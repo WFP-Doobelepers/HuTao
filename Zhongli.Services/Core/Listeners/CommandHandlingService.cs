@@ -7,7 +7,9 @@ using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Core.Listeners
 {
@@ -15,16 +17,22 @@ namespace Zhongli.Services.Core.Listeners
     {
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _discord;
+        private readonly CommandErrorHandler _errorHandler;
         private readonly ILogger<CommandHandlingService> _log;
         private readonly IServiceProvider _services;
 
-        public CommandHandlingService(IServiceProvider services, ILogger<CommandHandlingService> log,
-            CommandService commands, DiscordSocketClient discord)
+        public CommandHandlingService(
+            IServiceProvider services, ILogger<CommandHandlingService> log,
+            CommandService commands, CommandErrorHandler errorHandler,
+            DiscordSocketClient discord)
         {
-            _commands = commands;
             _services = services;
-            _discord  = discord;
             _log      = log;
+
+            _commands     = commands;
+            _errorHandler = errorHandler;
+
+            _discord = discord;
 
             _commands.CommandExecuted += CommandExecutedAsync;
         }
@@ -50,8 +58,25 @@ namespace Zhongli.Services.Core.Listeners
             }
         }
 
-        private static Task CommandFailedAsync(ICommandContext context, IResult result) =>
-            context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
+        private async Task CommandFailedAsync(ICommandContext context, IResult result)
+        {
+            var error = $"{result.Error}: {result.ErrorReason}";
+
+            if (string.Equals(result.ErrorReason, "UnknownCommand", StringComparison.OrdinalIgnoreCase))
+                Log.Error(error);
+            else
+                Log.Warning(error);
+
+            if (result.Error == CommandError.Exception)
+            {
+                await context.Channel.SendMessageAsync(
+                    $"Error: {FormatUtilities.SanitizeEveryone(result.ErrorReason)}");
+            }
+            else
+                await _errorHandler.AssociateError(context.Message, error);
+
+            await context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
+        }
 
         private static Task CommandExecutedAsync(
             Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;

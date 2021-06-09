@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Zhongli.Data.Config;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 
 namespace Zhongli.Bot
@@ -29,6 +30,7 @@ namespace Zhongli.Bot
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
+                .AddCommandHelp()
                 .BuildServiceProvider();
 
         private static Task LogAsync(LogMessage message)
