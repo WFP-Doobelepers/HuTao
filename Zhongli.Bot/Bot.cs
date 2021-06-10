@@ -5,10 +5,12 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
+using Zhongli.Data;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
@@ -24,6 +26,7 @@ namespace Zhongli.Bot
 
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
+                .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<ZhongliMediator>(),
                     typeof(Bot), typeof(ZhongliMediator))
                 .AddLogging(l => l.AddSerilog())
@@ -32,6 +35,17 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandHandlingService>()
                 .AddCommandHelp()
                 .BuildServiceProvider();
+
+        private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<ZhongliContext>()
+                .Build();
+
+            optionsBuilder
+                .UseNpgsql(configuration.GetConnectionString(nameof(ZhongliContext)))
+                .UseLazyLoadingProxies();
+        }
 
         private static Task LogAsync(LogMessage message)
         {
