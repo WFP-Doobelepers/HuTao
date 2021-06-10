@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,14 +68,10 @@ namespace Zhongli.Services.Core.Listeners
                 Log.Warning(error);
 
             if (result.Error == CommandError.Exception)
-            {
                 await context.Channel.SendMessageAsync(
                     $"Error: {FormatUtilities.SanitizeEveryone(result.ErrorReason)}");
-            }
             else
                 await _errorHandler.AssociateError(context.Message, error);
-
-            await context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
         }
 
         private static Task CommandExecutedAsync(
