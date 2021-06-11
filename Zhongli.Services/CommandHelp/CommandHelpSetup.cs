@@ -1,7 +1,4 @@
-﻿using MediatR;
-using Microsoft.Extensions.DependencyInjection;
-using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Messages;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Zhongli.Services.CommandHelp
 {
