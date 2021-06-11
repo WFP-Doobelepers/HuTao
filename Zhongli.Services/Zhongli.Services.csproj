@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Folder Include="Utilities\" />
+    <ProjectReference Include="..\Zhongli.Data\Zhongli.Data.csproj" />
   </ItemGroup>
 
 </Project>

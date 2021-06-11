@@ -30,7 +30,7 @@ namespace Zhongli.Bot
                 .AddMediatR(c => c.Using<ZhongliMediator>(),
                     typeof(Bot), typeof(ZhongliMediator))
                 .AddLogging(l => l.AddSerilog())
-                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true }))
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()

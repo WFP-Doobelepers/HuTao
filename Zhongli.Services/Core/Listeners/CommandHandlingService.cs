@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,8 +7,11 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 
@@ -45,6 +49,17 @@ namespace Zhongli.Services.Core.Listeners
 
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
+
+            // Make sure the server entity exists
+            await using var db = _services.GetRequiredService<ZhongliContext>();
+            if (!db.Guilds.Any(g => g.Id == context.Guild.Id))
+                db.Add(new GuildEntity(context.Guild.Id));
+
+            // Make sure the user entity exists
+            if (!db.Users.Any(u => u.Id == context.User.Id))
+                db.Add(new GuildUserEntity((IGuildUser) context.User));
+
+            await db.SaveChangesAsync(cancellationToken);
 
             var hasPrefix = message.HasStringPrefix("z!", ref argPos, StringComparison.OrdinalIgnoreCase);
             var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
