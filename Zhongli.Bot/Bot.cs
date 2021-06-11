@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -32,6 +32,7 @@ namespace Zhongli.Bot
                 .AddLogging(l => l.AddSerilog())
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
+                .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
                 .AddCommandHelp()
                 .BuildServiceProvider();

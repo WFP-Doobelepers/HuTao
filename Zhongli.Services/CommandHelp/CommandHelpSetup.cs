@@ -19,9 +19,6 @@ namespace Zhongli.Services.CommandHelp
         /// </returns>
         public static IServiceCollection AddCommandHelp(this IServiceCollection services)
             => services
-                .AddSingleton<ICommandHelpService, CommandHelpService>()
-                .AddScoped<CommandErrorHandler>()
-                .AddScoped<INotificationHandler<ReactionAddedNotification>>(x => x.GetService<CommandErrorHandler>())
-                .AddScoped<INotificationHandler<ReactionRemovedNotification>>(x => x.GetService<CommandErrorHandler>());
+                .AddSingleton<ICommandHelpService, CommandHelpService>();
     }
 }
