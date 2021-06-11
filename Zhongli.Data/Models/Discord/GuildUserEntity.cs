@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Data.Models.Discord
 {
@@ -30,14 +34,26 @@ namespace Zhongli.Data.Models.Discord
 
         public DateTimeOffset? JoinedAt { get; set; }
 
+        public virtual GuildEntity Guild { get; set; }
+
+        public virtual ICollection<Warning> WarningHistory { get; set; }
+
+        public int WarningCount { get; set; }
+
         public string Username { get; set; }
 
         public string? Nickname { get; set; }
 
-        public ushort DiscriminatorValue { get; set; }
-
         public ulong GuildId { get; set; }
 
-        public virtual GuildEntity Guild { get; set; }
+        public ushort DiscriminatorValue { get; set; }
+    }
+
+    public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>
+    {
+        public void Configure(EntityTypeBuilder<GuildUserEntity> builder)
+        {
+            builder.HasMany(u => u.WarningHistory);
+        }
     }
 }
