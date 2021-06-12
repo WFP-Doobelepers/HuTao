@@ -22,7 +22,7 @@ namespace Zhongli.Services.CommandHelp
                 Summary = command.Summary,
                 Aliases = command.Aliases,
                 Parameters = command.Parameters
-                    .Select(x => ParameterHelpData.FromParameterInfo(x))
+                    .Select(ParameterHelpData.FromParameterInfo)
                     .ToArray()
             };
 

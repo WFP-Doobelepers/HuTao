@@ -65,7 +65,7 @@ namespace Zhongli.Services.Utilities
             var lines = code.Split('\n');
             var indentLine = lines.SkipWhile(d => d.FirstOrDefault() != ' ').FirstOrDefault();
 
-            if (indentLine != null)
+            if (indentLine is not null)
             {
                 var indent = indentLine.LastIndexOf(' ') + 1;
 
@@ -161,7 +161,9 @@ namespace Zhongli.Services.Utilities
                             $"{longestForm[..indexOfDifference]}({longestForm[indexOfDifference..]})";
                     }
                     else
+                    {
                         parenthesized[aliasIndex][wordIndex] = word.Single();
+                    }
                 }
             }
 

@@ -31,7 +31,7 @@ namespace Zhongli.Services.CommandHelp
                 Summary = string.IsNullOrWhiteSpace(module.Summary) ? "No Summary" : module.Summary,
                 Commands = module.Commands
                     .Where(x => !ShouldBeHidden(x))
-                    .Select(x => CommandHelpData.FromCommandInfo(x))
+                    .Select(CommandHelpData.FromCommandInfo)
                     .ToArray(),
                 HelpTags = module.Attributes
                                .OfType<HelpTagsAttribute>()
@@ -42,7 +42,7 @@ namespace Zhongli.Services.CommandHelp
 
             return ret;
 
-            bool ShouldBeHidden(CommandInfo command)
+            static bool ShouldBeHidden(CommandInfo command)
                 => command.Preconditions.Any(x => x is RequireOwnerAttribute)
                    || command.Attributes.Any(x => x is HiddenFromHelpAttribute);
         }

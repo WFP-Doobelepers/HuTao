@@ -27,7 +27,7 @@ namespace Zhongli.Services.CommandHelp
         ///     Help information for the supplied query, or <see langword="null" /> if no information could be found for the
         ///     supplied query.
         /// </returns>
-        ModuleHelpData GetModuleHelpData(string query);
+        ModuleHelpData? GetModuleHelpData(string query);
 
         /// <summary>
         ///     Retrieves command help data for the supplied query.
@@ -37,14 +37,14 @@ namespace Zhongli.Services.CommandHelp
         ///     Help information for the supplied query, or <see langword="null" /> if no information could be found for the
         ///     supplied query.
         /// </returns>
-        CommandHelpData GetCommandHelpData(string query);
+        CommandHelpData? GetCommandHelpData(string query);
     }
 
     /// <inheritdoc />
     internal class CommandHelpService : ICommandHelpService
     {
         private readonly CommandService _commandService;
-        private IReadOnlyCollection<ModuleHelpData> _cachedHelpData;
+        private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
         public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
@@ -57,27 +57,27 @@ namespace Zhongli.Services.CommandHelp
                     .ToArray());
 
         /// <inheritdoc />
-        public ModuleHelpData GetModuleHelpData(string query)
+        public ModuleHelpData? GetModuleHelpData(string query)
         {
             var allHelpData = GetModuleHelpData();
 
             var byNameExact = allHelpData.FirstOrDefault(x => x.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
-            if (byNameExact != null)
+            if (byNameExact is not null)
                 return byNameExact;
 
             var byTagsExact = allHelpData.FirstOrDefault(x =>
                 x.HelpTags.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
-            if (byTagsExact != null)
+            if (byTagsExact is not null)
                 return byTagsExact;
 
             var byNameContains =
                 allHelpData.FirstOrDefault(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
-            if (byNameContains != null)
+            if (byNameContains is not null)
                 return byNameContains;
 
             var byTagsContains = allHelpData.FirstOrDefault(x =>
                 x.HelpTags.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
-            if (byTagsContains != null)
+            if (byTagsContains is not null)
                 return byTagsContains;
 
             return null;
@@ -90,13 +90,13 @@ namespace Zhongli.Services.CommandHelp
 
             var byModuleNameExact = allHelpData.FirstOrDefault(x =>
                 x.Aliases.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
-            if (byModuleNameExact != null)
+            if (byModuleNameExact is not null)
                 return byModuleNameExact;
 
             var byNameContains =
                 allHelpData.FirstOrDefault(x =>
                     x.Aliases.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
-            if (byNameContains != null)
+            if (byNameContains is not null)
                 return byNameContains;
 
             return null;

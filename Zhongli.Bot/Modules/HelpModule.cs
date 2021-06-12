@@ -112,13 +112,13 @@ namespace Zhongli.Bot.Modules
 
         private bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
         {
-            embed = null;
+            embed = null!;
 
             // Prioritize module over command.
             if (queries.HasFlag(HelpDataType.Module))
             {
                 var byModule = _commandHelpService.GetModuleHelpData(query);
-                if (byModule != null)
+                if (byModule is not null)
                 {
                     embed = GetEmbedForModule(byModule);
                     return true;
@@ -128,7 +128,7 @@ namespace Zhongli.Bot.Modules
             if (queries.HasFlag(HelpDataType.Command))
             {
                 var byCommand = _commandHelpService.GetCommandHelpData(query);
-                if (byCommand != null)
+                if (byCommand is not null)
                 {
                     embed = GetEmbedForCommand(byCommand);
                     return true;
