@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using Discord;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Data.Models.Discord
@@ -12,11 +11,12 @@ namespace Zhongli.Data.Models.Discord
 
         public GuildEntity(ulong id) { Id = id; }
 
-
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public ulong Id { get; set; }
 
-        public virtual AutoModerationRules AutoModerationRules { get; set; }
+        public virtual AuthorizationRules? AuthorizationRules { get; set; }
+
+        public virtual AutoModerationRules? AutoModerationRules { get; set; }
 
         public virtual ICollection<GuildUserEntity> GuildUsers { get; set; }
 
