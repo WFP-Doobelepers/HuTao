@@ -10,11 +10,11 @@ namespace Zhongli.Services.CommandHelp
 
         public IReadOnlyCollection<string> Options { get; set; }
 
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
-        public string Summary { get; set; }
+        public string? Summary { get; set; }
 
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
         {

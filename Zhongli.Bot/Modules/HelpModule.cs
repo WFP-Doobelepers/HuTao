@@ -188,15 +188,18 @@ namespace Zhongli.Bot.Modules
         private StringBuilder AppendParameters(StringBuilder stringBuilder,
             IReadOnlyCollection<ParameterHelpData> parameters)
         {
-            if (parameters.Count == 0)
+            var includedParameters = parameters
+                .Where(p => p.Summary is not null)
+                .ToList();
+
+            if (includedParameters.Count == 0)
                 return stringBuilder;
 
             stringBuilder.AppendLine(Format.Bold("Parameters:"));
 
-            foreach (var parameter in parameters)
+            foreach (var parameter in includedParameters)
             {
-                if (parameter.Summary is not null)
-                    stringBuilder.AppendLine($"• {Format.Bold(parameter.Name)}: {parameter.Summary}");
+                stringBuilder.AppendLine($"• {Format.Bold(parameter.Name)}: {parameter.Summary}");
             }
 
             return stringBuilder;
@@ -204,14 +207,10 @@ namespace Zhongli.Bot.Modules
 
         private static string GetParams(CommandHelpData info)
         {
-            var sb = new StringBuilder();
+            var parameters = info.Parameters
+                .Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>");
 
-            foreach (var parameter in info.Parameters)
-            {
-                sb.Append(parameter.IsOptional ? $"[{parameter.Name}]" : $"<{parameter.Name}>");
-            }
-
-            return sb.ToString();
+            return string.Join(" ", parameters);
         }
 
         [Flags]
