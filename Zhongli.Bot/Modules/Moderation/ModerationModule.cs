@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -31,7 +32,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
             await _db.SaveChangesAsync();
 
-            userEntity.WarningCount += (int) warnCount;
+            userEntity.WarningCount = (int) (userEntity.WarningHistory.Sum(w => w.Amount) + warnCount);
             var warnEntity = new Warning
             {
                 User      = userEntity,
@@ -45,9 +46,9 @@ namespace Zhongli.Bot.Modules.Moderation
             };
             var actionEntity = ReprimandAction.FromWarning(warnEntity);
 
+            userEntity.WarningHistory.Add(warnEntity);
+            userEntity.ReprimandHistory.Add(actionEntity);
             _db.Update(userEntity);
-            _db.Add(warnEntity);
-            _db.Add(actionEntity);
 
             await _db.SaveChangesAsync();
 
