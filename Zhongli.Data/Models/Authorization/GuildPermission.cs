@@ -1,5 +1,8 @@
-﻿namespace Zhongli.Data.Models.Authorization
+﻿using System;
+
+namespace Zhongli.Data.Models.Authorization
 {
+    [Flags]
     public enum GuildPermission
     {
         /// <summary>Allows kicking members.</summary>

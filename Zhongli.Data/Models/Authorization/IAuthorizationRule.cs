@@ -13,10 +13,4 @@ namespace Zhongli.Data.Models.Authorization
 
         public GuildUserEntity AddedBy { get; set; }
     }
-
-    public enum AuthorizationScope
-    {
-        None,
-        All
-    }
 }

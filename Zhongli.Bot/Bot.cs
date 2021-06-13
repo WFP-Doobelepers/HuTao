@@ -13,6 +13,7 @@ using Serilog.Events;
 using Zhongli.Data;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 
 namespace Zhongli.Bot
@@ -34,6 +35,7 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
+                .AddSingleton<AuthorizationService>()
                 .AddCommandHelp()
                 .BuildServiceProvider();
 
@@ -153,7 +155,10 @@ namespace Zhongli.Bot
                     Log.Fatal("Client reset faulted, killing process", connect.Exception);
                     FailFast();
                 }
-                else if (connect.IsCompletedSuccessfully) Log.Information("Client reset succesfully!");
+                else if (connect.IsCompletedSuccessfully)
+                {
+                    Log.Information("Client reset succesfully!");
+                }
 
                 return;
             }
