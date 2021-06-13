@@ -1,5 +1,6 @@
 ﻿using System;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation.Reprimands;
 
 namespace Zhongli.Data.Models.Moderation
 {

@@ -6,7 +6,7 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation;
+using Zhongli.Data.Models.Moderation.Reprimands;
 using Zhongli.Services.Utilities;
 using GuildPermission = Discord.GuildPermission;
 
@@ -27,27 +27,16 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
         {
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
-            var modEntity = await _db.Users.FindAsync(Context.User.Id);
-            var guildEntity = await _db.Guilds.FindAsync(Context.Guild.Id);
-
             await _db.SaveChangesAsync();
 
-            userEntity.WarningCount = (int) (userEntity.WarningHistory.Sum(w => w.Amount) + warnCount);
-            var warnEntity = new Warning
-            {
-                User      = userEntity,
-                Moderator = modEntity,
-                Guild     = guildEntity,
+            var totalWarnings = userEntity.WarningHistory.Sum(w => w.Amount);
+            userEntity.WarningCount = (int) (totalWarnings + warnCount);
 
-                Amount = warnCount,
-                Reason = reason,
-                Date   = DateTimeOffset.UtcNow
-            };
-            var actionEntity = ReprimandAction.FromWarning(warnEntity);
+            var actionEntity = await CreateReprimandAction(user, Reprimand.Warning, reason);
+            var warnEntity = actionEntity.ToWarning(warnCount);
 
             userEntity.WarningHistory.Add(warnEntity);
             userEntity.ReprimandHistory.Add(actionEntity);
-            _db.Update(userEntity);
 
             await _db.SaveChangesAsync();
 
@@ -64,10 +53,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
             await _db.SaveChangesAsync();
 
-            userEntity.ReprimandHistory
-                .Add(await CreateReprimandAction(user, Reprimand.Ban, reason));
-
-            _db.Update(userEntity);
+            var action = await CreateReprimandAction(user, Reprimand.Ban, reason);
+            userEntity.ReprimandHistory.Add(action);
 
             await user.BanAsync((int) deleteDays, reason);
             await _db.SaveChangesAsync();
@@ -83,9 +70,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
             await _db.SaveChangesAsync();
 
-            userEntity.ReprimandHistory
-                .Add(await CreateReprimandAction(user, Reprimand.Kick, reason));
-            _db.Update(userEntity);
+            var action = await CreateReprimandAction(user, Reprimand.Kick, reason);
+            userEntity.ReprimandHistory.Add(action);
 
             await user.KickAsync(reason);
             await _db.SaveChangesAsync();

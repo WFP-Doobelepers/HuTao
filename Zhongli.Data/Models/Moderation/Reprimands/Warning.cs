@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Moderation
+namespace Zhongli.Data.Models.Moderation.Reprimands
 {
     public class Warning : IModerationAction
     {

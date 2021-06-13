@@ -1,4 +1,4 @@
-﻿namespace Zhongli.Data.Models.Moderation
+﻿namespace Zhongli.Data.Models.Moderation.Reprimands
 {
     public enum Reprimand
     {

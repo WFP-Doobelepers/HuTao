@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Zhongli.Data.Models.Moderation;
+using Zhongli.Data.Models.Moderation.Reprimands;
 
 namespace Zhongli.Data.Models.Discord
 {

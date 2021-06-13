@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Moderation
+namespace Zhongli.Data.Models.Moderation.Reprimands
 {
     public class ReprimandAction : IModerationAction
     {
@@ -22,18 +22,6 @@ namespace Zhongli.Data.Models.Moderation
         public virtual GuildUserEntity User { get; set; }
 
         public string? Reason { get; set; }
-
-        public static ReprimandAction FromWarning(Warning warning) =>
-            new()
-            {
-                Reprimand = Reprimand.Warning,
-                Warning   = warning,
-                Date      = warning.Date,
-                Guild     = warning.Guild,
-                Moderator = warning.Moderator,
-                User      = warning.User,
-                Reason    = warning.Reason
-            };
     }
 
     public class ReprimandActionConfiguration : IEntityTypeConfiguration<ReprimandAction>
