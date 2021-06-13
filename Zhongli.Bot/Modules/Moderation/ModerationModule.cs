@@ -43,9 +43,11 @@ namespace Zhongli.Bot.Modules.Moderation
 
                 Date = DateTimeOffset.UtcNow
             };
+            var actionEntity = ReprimandAction.FromWarning(warnEntity);
 
             _db.Update(userEntity);
             _db.Add(warnEntity);
+            _db.Add(actionEntity);
 
             await _db.SaveChangesAsync();
 

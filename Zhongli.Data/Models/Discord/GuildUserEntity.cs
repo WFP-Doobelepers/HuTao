@@ -36,6 +36,8 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual GuildEntity Guild { get; set; }
 
+        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
+
         public virtual ICollection<Warning> WarningHistory { get; set; }
 
         public int WarningCount { get; set; }
@@ -54,6 +56,7 @@ namespace Zhongli.Data.Models.Discord
         public void Configure(EntityTypeBuilder<GuildUserEntity> builder)
         {
             builder.HasMany(u => u.WarningHistory);
+            builder.HasMany(u => u.ReprimandHistory);
         }
     }
 }

@@ -5,9 +5,11 @@ using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation
 {
-    public class Warning
+    public class Warning : IModerationAction
     {
         public Guid Id { get; set; }
+
+        public uint Amount { get; set; }
 
         public DateTimeOffset Date { get; set; }
 
@@ -18,8 +20,6 @@ namespace Zhongli.Data.Models.Moderation
         public virtual GuildUserEntity User { get; set; }
 
         public string? Reason { get; set; }
-
-        public uint Amount { get; set; }
     }
 
     public class WarningConfiguration : IEntityTypeConfiguration<Warning>
