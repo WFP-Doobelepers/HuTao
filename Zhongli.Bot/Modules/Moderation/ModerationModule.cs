@@ -41,8 +41,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
                 Amount = warnCount,
                 Reason = reason,
-
-                Date = DateTimeOffset.UtcNow
+                Date   = DateTimeOffset.UtcNow
             };
             var actionEntity = ReprimandAction.FromWarning(warnEntity);
 
@@ -54,6 +53,62 @@ namespace Zhongli.Bot.Modules.Moderation
 
             await ReplyAsync(
                 $"{user} has been warned {warnCount} times. They have a total of {userEntity.WarningCount} warnings.");
+        }
+
+        [Command("ban")]
+        [Summary("Ban a user from the current guild.")]
+        [RequireUserPermission(GuildPermission.BanMembers)]
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
+        {
+            var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
+            await _db.SaveChangesAsync();
+
+            userEntity.ReprimandHistory
+                .Add(await CreateReprimandAction(user, Reprimand.Ban, reason));
+
+            _db.Update(userEntity);
+
+            await user.BanAsync((int) deleteDays, reason);
+            await _db.SaveChangesAsync();
+            await ReplyAsync($"{user} has been banned.");
+        }
+
+        [Command("kick")]
+        [Summary("Kick a user from the current guild.")]
+        [RequireUserPermission(GuildPermission.KickMembers)]
+        [RequireAuthorization(AuthorizationScope.Kick)]
+        public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
+        {
+            var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
+            await _db.SaveChangesAsync();
+
+            userEntity.ReprimandHistory
+                .Add(await CreateReprimandAction(user, Reprimand.Kick, reason));
+            _db.Update(userEntity);
+
+            await user.KickAsync(reason);
+            await _db.SaveChangesAsync();
+            await ReplyAsync($"{user} has been kicked.");
+        }
+
+        private async Task<ReprimandAction> CreateReprimandAction(IGuildUser user, Reprimand reprimand, string? reason)
+        {
+            var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
+            var modEntity = await _db.Users.FindAsync(Context.User.Id);
+            var guildEntity = await _db.Guilds.FindAsync(Context.Guild.Id);
+
+            return new ReprimandAction
+            {
+                Reprimand = reprimand,
+
+                User      = userEntity,
+                Moderator = modEntity,
+                Guild     = guildEntity,
+
+                Reason = reason,
+                Date   = DateTimeOffset.UtcNow
+            };
         }
     }
 }
