@@ -11,6 +11,8 @@ namespace Zhongli.Data.Models.Moderation
 
         public Reprimand Reprimand { get; set; }
 
+        public virtual Warning? Warning { get; set; }
+
         public DateTimeOffset Date { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
@@ -25,6 +27,7 @@ namespace Zhongli.Data.Models.Moderation
             new()
             {
                 Reprimand = Reprimand.Warning,
+                Warning   = warning,
                 Date      = warning.Date,
                 Guild     = warning.Guild,
                 Moderator = warning.Moderator,
