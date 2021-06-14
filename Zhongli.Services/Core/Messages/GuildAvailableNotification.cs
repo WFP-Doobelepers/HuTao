@@ -5,7 +5,7 @@ using MediatR;
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IBaseSocketClient.GuildAvailable" /> is
+    ///     Describes an application-wide notification that occurs when <see cref="BaseSocketClient.GuildAvailable" /> is
     ///     raised.
     /// </summary>
     public class GuildAvailableNotification : INotification

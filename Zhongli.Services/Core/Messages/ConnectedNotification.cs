@@ -1,9 +1,10 @@
-﻿using MediatR;
+﻿using Discord.WebSocket;
+using MediatR;
 
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IDiscordSocketClient.Connected" /> is
+    ///     Describes an application-wide notification that occurs when <see cref="DiscordSocketClient.Connected" /> is
     ///     raised.
     /// </summary>
     public class ConnectedNotification : INotification

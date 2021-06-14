@@ -5,7 +5,7 @@ using MediatR;
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IBaseSocketClient.MessageReceived" /> is
+    ///     Describes an application-wide notification that occurs when <see cref="BaseSocketClient.MessageReceived" /> is
     ///     raised.
     /// </summary>
     public class MessageReceivedNotification : INotification

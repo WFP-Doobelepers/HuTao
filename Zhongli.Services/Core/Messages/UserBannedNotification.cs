@@ -5,7 +5,7 @@ using MediatR;
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IBaseSocketClient.UserBanned" /> is raised.
+    ///     Describes an application-wide notification that occurs when <see cref="BaseSocketClient.UserBanned" /> is raised.
     /// </summary>
     public class UserBannedNotification : INotification
     {

@@ -6,7 +6,7 @@ using MediatR;
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IBaseSocketClient.ReactionAdded" /> is
+    ///     Describes an application-wide notification that occurs when <see cref="BaseSocketClient.ReactionAdded" /> is
     ///     raised.
     /// </summary>
     public class ReactionAddedNotification : INotification

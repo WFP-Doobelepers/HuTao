@@ -6,7 +6,7 @@ using MediatR;
 namespace Zhongli.Services.Core.Messages
 {
     /// <summary>
-    ///     Describes an application-wide notification that occurs when <see cref="IBaseSocketClient.MessageDeleted" /> is
+    ///     Describes an application-wide notification that occurs when <see cref="BaseSocketClient.MessageDeleted" /> is
     ///     raised.
     /// </summary>
     public class MessageDeletedNotification : INotification
@@ -15,7 +15,7 @@ namespace Zhongli.Services.Core.Messages
         ///     Constructs a new <see cref="MessageDeletedNotification" /> from the given values.
         /// </summary>
         /// <param name="message">The value to use for <see cref="Message" />.</param>
-        /// <param name="message">The value to use for <see cref="Channel" />.</param>
+        /// <param name="channel">The value to use for <see cref="Channel" />.</param>
         /// <exception cref="ArgumentNullException">Throws for <paramref name="message" /> and <paramref name="channel" />.</exception>
         public MessageDeletedNotification(Cacheable<IMessage, ulong>? message, ISocketMessageChannel channel)
         {
