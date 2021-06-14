@@ -85,7 +85,32 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyAsync($"{user} has been kicked.");
         }
 
-        private async Task<ReprimandAction> CreateReprimandAction(IGuildUser user, Reprimand reprimand, string? reason)
+        [Command("mute")]
+        [Summary("Mute a user from the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Mute)]
+        public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
+        {
+            var serverEntity = await _db.Guilds.FindAsync(Context.Guild.Id);
+
+            if (serverEntity.MuteRoleId is null)
+                return;
+
+            var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
+            await _db.SaveChangesAsync();
+
+            var action = await CreateReprimandAction(user, Reprimand.Mute, ModerationActionType.Added, reason);
+            var muteAction = action.ToMute(length);
+
+            userEntity.ReprimandHistory.Add(action);
+            userEntity.MuteHistory.Add(muteAction);
+
+            await user.AddRoleAsync(serverEntity.MuteRoleId.Value);
+            await _db.SaveChangesAsync();
+            await ReplyAsync($"{user} has been muted.");
+        }
+
+        private async Task<ReprimandAction> CreateReprimandAction(IGuildUser user, Reprimand reprimand,
+            ModerationActionType type, string? reason = null)
         {
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
             var modEntity = await _db.Users.FindAsync(Context.User.Id);
