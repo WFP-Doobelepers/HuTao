@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Zhongli.Data.Models.Moderation.Reprimands
 {
@@ -8,6 +8,13 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
         {
             return action.ToModerationActionInternal<Warning>(w => w.Amount = amount);
         }
+
+        public static Ban ToBan(this ReprimandAction action, uint deleteDays)
+        {
+            return action.ToModerationActionInternal<Ban>(b => b.DeleteDays = deleteDays);
+        }
+
+        public static Kick ToKick(this ReprimandAction action) => action.ToModerationActionInternal<Kick>();
 
         private static T ToModerationActionInternal<T>(this IModerationAction action, Action<T>? selector = null)
             where T : class, IModerationAction, new()

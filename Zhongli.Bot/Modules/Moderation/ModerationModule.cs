@@ -54,7 +54,10 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
 
             var action = await CreateReprimandAction(user, Reprimand.Ban, reason);
+            var banAction = action.ToBan(deleteDays);
+
             userEntity.ReprimandHistory.Add(action);
+            userEntity.BanHistory.Add(banAction);
 
             await user.BanAsync((int) deleteDays, reason);
             await _db.SaveChangesAsync();
@@ -71,7 +74,10 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
 
             var action = await CreateReprimandAction(user, Reprimand.Kick, reason);
+            var kickAction = action.ToKick();
+
             userEntity.ReprimandHistory.Add(action);
+            userEntity.KickHistory.Add(kickAction);
 
             await user.KickAsync(reason);
             await _db.SaveChangesAsync();
