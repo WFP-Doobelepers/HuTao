@@ -12,9 +12,11 @@ using Serilog;
 using Serilog.Events;
 using Zhongli.Data;
 using Zhongli.Data.Config;
+using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Quote;
 
 namespace Zhongli.Bot
 {
@@ -37,6 +39,8 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<AuthorizationService>()
                 .AddCommandHelp()
+                .AddAutoRemoveMessage()
+                .AddSingleton<IQuoteService, QuoteService>()
                 .BuildServiceProvider();
 
         private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
