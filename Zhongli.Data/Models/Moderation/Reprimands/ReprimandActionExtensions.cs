@@ -16,6 +16,16 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
 
         public static Kick ToKick(this ReprimandAction action) => action.ToModerationActionInternal<Kick>();
 
+        public static Mute ToMute(this ReprimandAction action, TimeSpan? length = null)
+        {
+            return action.ToModerationActionInternal<Mute>(m =>
+            {
+                m.Date   = DateTimeOffset.UtcNow;
+                m.Length = length;
+                m.End    = m.Date + length;
+            });
+        }
+
         private static T ToModerationActionInternal<T>(this IModerationAction action, Action<T>? selector = null)
             where T : class, IModerationAction, new()
         {
@@ -25,7 +35,8 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
                 Guild     = action.Guild,
                 Moderator = action.Moderator,
                 User      = action.User,
-                Reason    = action.Reason
+                Reason    = action.Reason,
+                Type      = action.Type
             };
 
             selector?.Invoke(entity);

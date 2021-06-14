@@ -15,6 +15,14 @@ namespace Zhongli.Data.Models.Moderation
 
         GuildUserEntity User { get; set; }
 
+        ModerationActionType Type { get; set; }
+
         string? Reason { get; set; }
+    }
+
+    public enum ModerationActionType
+    {
+        Added,
+        Removed
     }
 }

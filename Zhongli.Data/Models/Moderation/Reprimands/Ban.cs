@@ -20,6 +20,8 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
         public virtual GuildUserEntity User { get; set; }
 
         public string? Reason { get; set; }
+
+        public ModerationActionType Type { get; set; }
     }
 
     public class BanConfiguration : IEntityTypeConfiguration<Ban>

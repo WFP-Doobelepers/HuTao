@@ -6,6 +6,7 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Reprimands;
 using Zhongli.Services.Utilities;
 using GuildPermission = Discord.GuildPermission;
@@ -32,7 +33,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var totalWarnings = userEntity.WarningHistory.Sum(w => w.Amount);
             userEntity.WarningCount = (int) (totalWarnings + warnCount);
 
-            var actionEntity = await CreateReprimandAction(user, Reprimand.Warning, reason);
+            var actionEntity = await CreateReprimandAction(user, Reprimand.Warning, ModerationActionType.Added, reason);
             var warnEntity = actionEntity.ToWarning(warnCount);
 
             userEntity.WarningHistory.Add(warnEntity);
@@ -53,7 +54,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
             await _db.SaveChangesAsync();
 
-            var action = await CreateReprimandAction(user, Reprimand.Ban, reason);
+            var action = await CreateReprimandAction(user, Reprimand.Ban, ModerationActionType.Added, reason);
             var banAction = action.ToBan(deleteDays);
 
             userEntity.ReprimandHistory.Add(action);
@@ -73,7 +74,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
             await _db.SaveChangesAsync();
 
-            var action = await CreateReprimandAction(user, Reprimand.Kick, reason);
+            var action = await CreateReprimandAction(user, Reprimand.Kick, ModerationActionType.Added, reason);
             var kickAction = action.ToKick();
 
             userEntity.ReprimandHistory.Add(action);
@@ -93,6 +94,7 @@ namespace Zhongli.Bot.Modules.Moderation
             return new ReprimandAction
             {
                 Reprimand = reprimand,
+                Type      = type,
 
                 User      = userEntity,
                 Moderator = modEntity,
