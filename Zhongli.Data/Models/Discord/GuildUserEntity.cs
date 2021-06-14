@@ -40,6 +40,8 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual ICollection<Kick> KickHistory { get; set; }
 
+        public virtual ICollection<Mute> MuteHistory { get; set; }
+
         public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
 
         public virtual ICollection<Warning> WarningHistory { get; set; }
@@ -63,6 +65,7 @@ namespace Zhongli.Data.Models.Discord
             builder.HasMany(u => u.WarningHistory);
             builder.HasMany(u => u.KickHistory);
             builder.HasMany(u => u.BanHistory);
+            builder.HasMany(u => u.MuteHistory);
         }
     }
 }
