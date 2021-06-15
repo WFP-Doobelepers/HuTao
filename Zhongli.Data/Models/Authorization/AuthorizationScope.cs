@@ -10,6 +10,7 @@ namespace Zhongli.Data.Models.Authorization
         Warning = 0b_00000010,
         Mute    = 0b_00000100,
         Kick    = 0b_00001000,
-        Ban     = 0b_00010000
+        Ban     = 0b_00010000,
+        Auto    = 0b_00100000
     }
 }
