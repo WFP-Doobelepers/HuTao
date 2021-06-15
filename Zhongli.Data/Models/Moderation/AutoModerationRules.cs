@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Moderation
 
         public virtual BanTrigger? BanTrigger { get; set; }
 
-        public virtual ICollection<MuteTrigger> MuteTriggers { get; set; }
+        public virtual ICollection<MuteTrigger> MuteTriggers { get; init; } = new List<MuteTrigger>();
 
         public virtual KickTrigger? KickTrigger { get; set; }
     }

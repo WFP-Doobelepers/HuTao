@@ -36,15 +36,15 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual GuildEntity Guild { get; set; }
 
-        public virtual ICollection<Ban> BanHistory { get; set; }
+        public virtual ICollection<Ban> BanHistory { get; init; } = new List<Ban>();
 
-        public virtual ICollection<Kick> KickHistory { get; set; }
+        public virtual ICollection<Kick> KickHistory { get; init; } = new List<Kick>();
 
-        public virtual ICollection<Mute> MuteHistory { get; set; }
+        public virtual ICollection<Mute> MuteHistory { get; init; } = new List<Mute>();
 
-        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
+        public virtual ICollection<ReprimandAction> ReprimandHistory { get; init; } = new List<ReprimandAction>();
 
-        public virtual ICollection<Warning> WarningHistory { get; set; }
+        public virtual ICollection<Warning> WarningHistory { get; init; } = new List<Warning>();
 
         public int WarningCount { get; set; }
 

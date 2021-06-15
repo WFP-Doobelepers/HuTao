@@ -18,7 +18,7 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual AutoModerationRules? AutoModerationRules { get; set; }
 
-        public virtual ICollection<GuildUserEntity> GuildUsers { get; set; }
+        public virtual ICollection<GuildUserEntity> GuildUsers { get; init; } = new List<GuildUserEntity>();
 
         public ulong? MuteRoleId { get; set; }
     }
