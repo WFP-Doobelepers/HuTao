@@ -59,24 +59,23 @@ namespace Zhongli.Services.Core
         {
             var guild = await _db.Guilds.FindAsync(guildId);
 
-            if (guild.AuthorizationRules is null)
-            {
-                guild.AuthorizationRules = new AuthorizationRules
-                {
-                    PermissionAuthorizations = new List<PermissionAuthorization>
-                    {
-                        new()
-                        {
-                            Date       = DateTimeOffset.UtcNow,
-                            Permission = GuildPermission.Administrator,
-                            Scope      = AuthorizationScope.All
-                        }
-                    }
-                };
+            if (guild.AuthorizationRules is not null)
+                return;
 
-                _db.Update(guild);
-                await _db.SaveChangesAsync();
-            }
+            guild.AuthorizationRules = new AuthorizationRules
+            {
+                PermissionAuthorizations = new List<PermissionAuthorization>
+                {
+                    new()
+                    {
+                        Date       = DateTimeOffset.UtcNow,
+                        Permission = GuildPermission.Administrator,
+                        Scope      = AuthorizationScope.All
+                    }
+                }
+            };
+
+            await _db.SaveChangesAsync();
         }
     }
 }

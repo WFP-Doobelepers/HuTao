@@ -20,9 +20,8 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
         {
             return action.ToModerationActionInternal<Mute>(m =>
             {
-                m.Date   = DateTimeOffset.UtcNow;
-                m.Length = length;
-                m.End    = m.Date + length;
+                m.StartedAt = DateTimeOffset.UtcNow;
+                m.Length    = length;
             });
         }
 

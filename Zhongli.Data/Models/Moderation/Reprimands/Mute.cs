@@ -9,9 +9,17 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
     {
         public Guid Id { get; set; }
 
-        public DateTimeOffset? End { get; set; }
+        public bool IsActive => EndedAt is not null || DateTimeOffset.Now >= EndAt;
+
+        public DateTimeOffset? EndAt => StartedAt + Length;
+
+        public DateTimeOffset? EndedAt { get; set; }
+
+        public DateTimeOffset? StartedAt { get; set; }
 
         public TimeSpan? Length { get; set; }
+
+        public TimeSpan? TimeLeft => EndAt - DateTimeOffset.Now;
 
         public DateTimeOffset Date { get; set; }
 
