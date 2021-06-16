@@ -25,7 +25,7 @@ namespace Zhongli.Services.Core.Listeners
                         {
                             await handler(notification, cancellationToken);
                         }
-                        catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
+                        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
                         {
                             Log.Error(ex,
                                 "An unexpected error occurred within a handler for a dispatched message: {notification}",
@@ -34,7 +34,7 @@ namespace Zhongli.Services.Core.Listeners
                     }, cancellationToken);
                 }
             }
-            catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
+            catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
             {
                 Log.Error(ex, "An unexpected error occurred while dispatching a notification: {notification}",
                     notification);

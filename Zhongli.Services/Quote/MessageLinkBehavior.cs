@@ -74,8 +74,7 @@ namespace Zhongli.Services.Quote
 
                         if (channel is ITextChannel { IsNsfw: true }) return;
 
-                        if (channel is IGuildChannel guildChannel &&
-                            channel is ISocketMessageChannel messageChannel)
+                        if (channel is IGuildChannel guildChannel and ISocketMessageChannel messageChannel)
                         {
                             var currentUser = await guildChannel.Guild.GetCurrentUserAsync();
                             var channelPermissions = currentUser.GetPermissions(guildChannel);

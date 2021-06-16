@@ -49,6 +49,7 @@ namespace Zhongli.Services.Utilities
         {
             var sb = new StringBuilder(0, maxLength);
             var builders = new List<StringBuilder>();
+
             foreach (var line in lines)
             {
                 if (sb.Length + Environment.NewLine.Length + line.Length > maxLength)
