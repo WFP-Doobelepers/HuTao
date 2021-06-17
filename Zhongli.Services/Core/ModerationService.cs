@@ -34,8 +34,8 @@ namespace Zhongli.Services.Core
             if (_mutesProcessor is not null)
                 return;
 
-            _mutesProcessor = Task.Factory.StartNew(ProcessMutes, cancellationToken, TaskCreationOptions.LongRunning,
-                TaskScheduler.Default);
+            _mutesProcessor = Task.Factory.StartNew(() => ProcessMutes(cancellationToken), cancellationToken,
+                TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public async Task<bool> TryMuteAsync(IGuildUser user, IGuildUser mod, string? reason = null,
@@ -62,14 +62,14 @@ namespace Zhongli.Services.Core
             userEntity.MuteHistory.Add(muteAction);
 
             if (muteAction.TimeLeft is not null)
-                _ = EnqueueMuteTimer(user, muteRole.Value, muteAction.TimeLeft.Value, muteAction);
+                _ = EnqueueMuteTimer(user, muteRole.Value, muteAction.TimeLeft.Value, muteAction, cancellationToken);
 
             await _db.SaveChangesAsync(cancellationToken);
 
             return true;
         }
 
-        private async Task ProcessMutes()
+        private async Task ProcessMutes(CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -79,18 +79,18 @@ namespace Zhongli.Services.Core
                     .Where(m => m.EndedAt == null)
                     .Where(m => m.StartedAt + m.Length > now)
                     .Where(m => m.StartedAt + m.Length - now < TimeSpan.FromMinutes(10))
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 foreach (var mute in activeMutes)
                 {
-                    _ = EnqueueMuteTimer(mute);
+                    _ = EnqueueMuteTimer(mute, cancellationToken);
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(5));
+                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
             }
         }
 
-        private async Task EnqueueMuteTimer(Mute mute)
+        private async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
         {
             var muteRoleId = mute.User.Guild.MuteRoleId;
             if (muteRoleId is null)
@@ -99,19 +99,20 @@ namespace Zhongli.Services.Core
             var guild = _client.GetGuild(mute.User.GuildId);
             var user = guild.GetUser(mute.User.Id);
 
-            await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute);
+            await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
         }
 
-        private async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute)
+        private async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
+            CancellationToken cancellationToken = default)
         {
             if (!ActiveMutes.TryAdd(mute.User.Id, mute))
                 return;
 
-            await Task.Delay(length);
+            await Task.Delay(length, cancellationToken);
             await user.RemoveRoleAsync(roleId);
 
             mute.EndedAt = DateTimeOffset.UtcNow;
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<(ReprimandAction, GuildUserEntity)> CreateReprimandAction(IGuildUser user, IGuildUser mod,
