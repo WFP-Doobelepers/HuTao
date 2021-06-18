@@ -1,35 +1,14 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation.Reprimands
 {
-    public class Warning : IModerationAction
+    public class Warning : ReprimandActionBase
     {
-        public Guid Id { get; set; }
+        protected Warning() { }
 
-        public uint Amount { get; set; }
+        public Warning(ReprimandDetails details, uint amount) : base(details) { Amount = amount; }
 
-        public DateTimeOffset Date { get; set; }
-
-        public virtual GuildEntity Guild { get; set; }
-
-        public virtual GuildUserEntity Moderator { get; set; }
-
-        public virtual GuildUserEntity User { get; set; }
-
-        public string? Reason { get; set; }
-
-        public ModerationActionType Type { get; set; }
-    }
-
-    public class WarningConfiguration : IEntityTypeConfiguration<Warning>
-    {
-        public void Configure(EntityTypeBuilder<Warning> builder)
-        {
-            builder.HasOne(w => w.Moderator);
-            builder.HasOne(w => w.User);
-        }
+        public uint Amount { get; init; }
     }
 }

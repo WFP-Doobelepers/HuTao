@@ -1,50 +1,35 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using MediatR;
 using Zhongli.Data;
-using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Reprimands;
-using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Core
 {
-    public class ModerationService : INotificationHandler<ReadyNotification>
+    public class ModerationService
     {
-        private readonly DiscordSocketClient _client;
         private readonly ZhongliContext _db;
-        private Task? _mutesProcessor;
+        private readonly DiscordSocketClient _client;
 
         public ModerationService(DiscordSocketClient client, ZhongliContext db)
         {
             _client = client;
-            _db     = db;
+            _db = db;
         }
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
 
-        public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
-        {
-            if (_mutesProcessor is not null)
-                return;
 
-            _mutesProcessor = Task.Factory.StartNew(() => ProcessMutes(cancellationToken), cancellationToken,
-                TaskCreationOptions.LongRunning, TaskScheduler.Default);
-        }
-
-        public async Task<bool> TryMuteAsync(IGuildUser user, IGuildUser mod, string? reason = null,
-            TimeSpan? length = null,
+        public async Task<bool> TryMuteAsync(IGuildUser user, IUser mod,
+            string? reason = null, TimeSpan? length = null,
             CancellationToken cancellationToken = default)
         {
-            var (action, userEntity) =
-                await CreateReprimandAction(user, mod, Reprimand.Mute, ModerationActionType.Added, reason);
-            var muteRole = action.Guild.MuteRoleId;
+            var guild = await _db.Guilds.FindAsync(user.GuildId);
+            var muteRole = guild.MuteRoleId;
 
             if (muteRole is null || user.HasRole(muteRole.Value))
                 return false;
@@ -55,57 +40,37 @@ namespace Zhongli.Services.Core
                 ActiveMutes.TryRemove(mod.Id, out _);
             }
 
+            var details = new ReprimandDetails(user, mod, ModerationActionType.Added, reason);
             await user.AddRoleAsync(muteRole.Value);
+            var mute = new Mute(details, DateTimeOffset.UtcNow, length);
 
-            var muteAction = action.ToMute(length);
-            userEntity.ReprimandHistory.Add(action);
-            userEntity.MuteHistory.Add(muteAction);
+            _db.Add(mute);
 
-            if (muteAction.TimeLeft is not null)
-                _ = EnqueueMuteTimer(user, muteRole.Value, muteAction.TimeLeft.Value, muteAction, cancellationToken);
+            if (mute.TimeLeft is not null)
+                _ = EnqueueMuteTimer(user, muteRole.Value, mute.TimeLeft.Value, mute, cancellationToken);
 
             await _db.SaveChangesAsync(cancellationToken);
 
             return true;
         }
 
-        private async Task ProcessMutes(CancellationToken cancellationToken)
+        public async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
         {
-            while (true)
-            {
-                var now = DateTimeOffset.Now;
-                var activeMutes = await _db.Set<Mute>()
-                    .AsAsyncEnumerable()
-                    .Where(m => m.EndedAt == null)
-                    .Where(m => m.StartedAt + m.Length > now)
-                    .Where(m => m.StartedAt + m.Length - now < TimeSpan.FromMinutes(10))
-                    .ToListAsync(cancellationToken);
-
-                foreach (var mute in activeMutes)
-                {
-                    _ = EnqueueMuteTimer(mute, cancellationToken);
-                }
-
-                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
-            }
-        }
-
-        private async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
-        {
-            var muteRoleId = mute.User.Guild.MuteRoleId;
+            var guildEntity = _db.Guilds.Find(mute.GuildId);
+            var muteRoleId = guildEntity.MuteRoleId;
             if (muteRoleId is null)
                 return;
-
-            var guild = _client.GetGuild(mute.User.GuildId);
-            var user = guild.GetUser(mute.User.Id);
-
+        
+            var guild = _client.GetGuild(mute.GuildId);
+            var user = guild.GetUser(mute.UserId);
+        
             await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
         }
 
-        private async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
+        public async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
             CancellationToken cancellationToken = default)
         {
-            if (!ActiveMutes.TryAdd(mute.User.Id, mute))
+            if (!ActiveMutes.TryAdd(mute.UserId, mute))
                 return;
 
             await Task.Delay(length, cancellationToken);
@@ -114,32 +79,5 @@ namespace Zhongli.Services.Core
             mute.EndedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
         }
-
-        public async Task<(ReprimandAction, GuildUserEntity)> CreateReprimandAction(IGuildUser user, IGuildUser mod,
-            Reprimand reprimand,
-            ModerationActionType type, string? reason = null)
-        {
-            var userEntity = await _db.Users.FindAsync(user.Id) ?? _db.Add(new GuildUserEntity(user)).Entity;
-            var modEntity = await _db.Users.FindAsync(mod.Id);
-            var guildEntity = await _db.Guilds.FindAsync(mod.GuildId);
-
-            return (new ReprimandAction
-            {
-                Reprimand = reprimand,
-                Type      = type,
-
-                User      = userEntity,
-                Moderator = modEntity,
-                Guild     = guildEntity,
-
-                Reason = reason,
-                Date   = DateTimeOffset.UtcNow
-            }, userEntity);
-        }
-
-        public Task<(ReprimandAction, GuildUserEntity)> CreateReprimandAction(IGuildUser user, IUser mod,
-            Reprimand reprimand,
-            ModerationActionType added, string? reason) =>
-            CreateReprimandAction(user, (IGuildUser) mod, reprimand, added, reason);
     }
 }

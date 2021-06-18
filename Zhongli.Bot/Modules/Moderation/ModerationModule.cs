@@ -5,7 +5,6 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Utilities;
@@ -33,21 +32,21 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
         {
-            var (action, userEntity) =
-                await _moderationService.CreateReprimandAction(user, Context.User, Reprimand.Warning,
-                    ModerationActionType.Added, reason);
-            var warnEntity = action.ToWarning(warnCount);
+            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
+            var warning = new Warning(details, warnCount);
 
-            var totalWarnings = userEntity.WarningHistory.Sum(w => w.Amount);
-            userEntity.WarningCount = (int) (totalWarnings + warnCount);
+            var userEntity = await _db.Users.FindAsync(user.Id);
+            var warnings =  _db.Set<Warning>()
+                .AsQueryable()
+                .Where(w => w.GuildId == user.GuildId)
+                .Where(w => w.UserId == user.Id)
+                .Sum(w => w.Amount);
 
-            userEntity.WarningHistory.Add(warnEntity);
-            userEntity.ReprimandHistory.Add(action);
-
+            userEntity.WarningCount = (int) warnings;
             await _db.SaveChangesAsync();
 
             await ReplyAsync(
-                $"{user} has been warned {warnCount} times. They have a total of {userEntity.WarningCount} warnings.");
+                $"{userEntity} has been warned {warnCount} times. They have a total of {warnings} warnings.");
         }
 
         [Command("ban")]
@@ -56,14 +55,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
         {
-            var (action, userEntity) = await _moderationService.CreateReprimandAction(user, Context.User, Reprimand.Ban,
-                ModerationActionType.Added, reason);
-            var banAction = action.ToBan(deleteDays);
-            userEntity.ReprimandHistory.Add(action);
-            userEntity.BanHistory.Add(banAction);
-
             await user.BanAsync((int) deleteDays, reason);
+
+            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
+            _db.Add(new Ban(details, deleteDays));
             await _db.SaveChangesAsync();
+
             await ReplyAsync($"{user} has been banned.");
         }
 
@@ -73,15 +70,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Kick)]
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            var (action, userEntity) = await _moderationService.CreateReprimandAction(user, Context.User,
-                Reprimand.Kick, ModerationActionType.Added, reason);
-            var kickAction = action.ToKick();
-
-            userEntity.ReprimandHistory.Add(action);
-            userEntity.KickHistory.Add(kickAction);
-
             await user.KickAsync(reason);
+
+            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
+            _db.Add(new Kick(details));
             await _db.SaveChangesAsync();
+
             await ReplyAsync($"{user} has been kicked.");
         }
 

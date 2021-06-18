@@ -42,8 +42,6 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual ICollection<Mute> MuteHistory { get; init; } = new List<Mute>();
 
-        public virtual ICollection<ReprimandAction> ReprimandHistory { get; init; } = new List<ReprimandAction>();
-
         public virtual ICollection<Warning> WarningHistory { get; init; } = new List<Warning>();
 
         public int WarningCount { get; set; }
@@ -55,17 +53,5 @@ namespace Zhongli.Data.Models.Discord
         public ulong GuildId { get; set; }
 
         public ushort DiscriminatorValue { get; set; }
-    }
-
-    public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>
-    {
-        public void Configure(EntityTypeBuilder<GuildUserEntity> builder)
-        {
-            builder.HasMany(u => u.ReprimandHistory);
-            builder.HasMany(u => u.WarningHistory);
-            builder.HasMany(u => u.KickHistory);
-            builder.HasMany(u => u.BanHistory);
-            builder.HasMany(u => u.MuteHistory);
-        }
     }
 }
