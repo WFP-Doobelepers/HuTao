@@ -24,11 +24,15 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
 
         public DateTimeOffset Date { get; set; }
 
+        [ForeignKey(nameof(GuildId))] public virtual GuildEntity Guild { get; set; }
+
+        public virtual GuildUserEntity Moderator { get; set; }
+
+        public virtual GuildUserEntity User { get; set; }
+
         public ModerationActionType Type { get; set; }
 
         public string? Reason { get; set; }
-
-        public virtual GuildUserEntity User { get; set; }
 
         public ulong GuildId { get; set; }
 

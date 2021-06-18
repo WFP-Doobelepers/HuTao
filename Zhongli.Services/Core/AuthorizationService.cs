@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Discord;
 using GuildPermission = Zhongli.Data.Models.Authorization.GuildPermission;
 
 namespace Zhongli.Services.Core
@@ -19,48 +20,47 @@ namespace Zhongli.Services.Core
         public async Task<bool> IsAuthorized(
             ICommandContext context, IGuildUser user, AuthorizationScope scope)
         {
-            await AutoConfigureGuild(user.GuildId);
-
-            var isUserAuthorized = GetAuthorizations<UserAuthorization>(scope)
+            var rules = await AutoConfigureGuild(user.GuildId);
+            
+            var isUserAuthorized = ScopedAuthorization(rules.UserAuthorizations)
                 .Any(auth => auth.GuildId == user.GuildId && auth.UserId == user.Id);
             if (isUserAuthorized)
                 return true;
 
-            var isRoleAuthorized = GetAuthorizations<RoleAuthorization>(scope)
+            var isRoleAuthorized = ScopedAuthorization(rules.RoleAuthorizations)
                 .Any(auth => user.RoleIds.Contains(auth.RoleId));
             if (isRoleAuthorized)
                 return true;
 
-            var isPermissionsAuthorized = GetAuthorizations<PermissionAuthorization>(scope)
+            var isPermissionsAuthorized = ScopedAuthorization(rules.PermissionAuthorizations)
                 .Any(auth => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0);
             if (isPermissionsAuthorized)
                 return true;
 
-            var isChannelAuthorized = GetAuthorizations<ChannelAuthorization>(scope)
+            var isChannelAuthorized = ScopedAuthorization(rules.ChannelAuthorizations)
                 .Any(auth => auth.ChannelId == context.Channel.Id);
             if (isChannelAuthorized)
                 return true;
 
-            var isGuildAuthorized = GetAuthorizations<GuildAuthorization>(scope)
+            var isGuildAuthorized = ScopedAuthorization(rules.GuildAuthorizations)
                 .Any(auth => auth.GuildId == user.GuildId);
             if (isGuildAuthorized)
                 return true;
 
             return false;
 
-            IQueryable<T> GetAuthorizations<T>(AuthorizationScope flags) where T : class, IAuthorizationRule
+            IEnumerable<T> ScopedAuthorization<T>(IEnumerable<T> rule) where T : class, IAuthorizationRule
             {
-                return _db.Set<T>().AsQueryable()
-                    .Where(auth => (auth.Scope & flags) != 0);
+                return rule.Where(auth => (auth.Scope & scope) != 0);
             }
         }
 
-        public async Task AutoConfigureGuild(ulong guildId)
+        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId)
         {
             var guild = await _db.Guilds.FindAsync(guildId);
 
             if (guild.AuthorizationRules is not null)
-                return;
+                return guild.AuthorizationRules;
 
             guild.AuthorizationRules = new AuthorizationRules
             {
@@ -76,6 +76,8 @@ namespace Zhongli.Services.Core
             };
 
             await _db.SaveChangesAsync();
+
+            return guild.AuthorizationRules;
         }
     }
 }

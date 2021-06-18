@@ -50,8 +50,37 @@ namespace Zhongli.Data.Models.Discord
 
         public string? Nickname { get; set; }
 
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public ulong GuildId { get; set; }
 
         public ushort DiscriminatorValue { get; set; }
+    }
+
+    public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>
+    {
+        public void Configure(EntityTypeBuilder<GuildUserEntity> builder)
+        {
+            builder.HasKey(w => new { w.Id, w.GuildId });
+
+            builder
+                .HasMany(u => u.BanHistory)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => new { r.UserId, r.GuildId });
+
+            builder
+                .HasMany(u => u.KickHistory)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => new { r.UserId, r.GuildId });
+
+            builder
+                .HasMany(u => u.MuteHistory)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => new { r.UserId, r.GuildId });
+
+            builder
+                .HasMany(u => u.WarningHistory)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => new { r.UserId, r.GuildId });
+        }
     }
 }

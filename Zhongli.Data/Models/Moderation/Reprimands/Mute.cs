@@ -8,13 +8,13 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
     {
         protected Mute() { }
 
-        public Guid Id { get; set; }
-
         public Mute(ReprimandDetails details, DateTimeOffset? startedAt, TimeSpan? length) : base(details)
         {
             StartedAt = startedAt;
             Length    = length;
         }
+
+        public Guid Id { get; set; }
 
         public bool IsActive => EndedAt is not null || DateTimeOffset.Now >= EndAt;
 
@@ -27,5 +27,17 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
         public TimeSpan? Length { get; set; }
 
         public TimeSpan? TimeLeft => EndAt - DateTimeOffset.Now;
+    }
+
+    public class MuteConfiguration : IEntityTypeConfiguration<Mute>
+    {
+        public void Configure(EntityTypeBuilder<Mute> builder)
+        {
+            builder.HasOne(r => r.User)
+                .WithMany().HasForeignKey(r => new { r.UserId, r.GuildId });
+
+            builder.HasOne(r => r.Moderator)
+                .WithMany().HasForeignKey(r => new { r.ModeratorId, r.GuildId });
+        }
     }
 }
