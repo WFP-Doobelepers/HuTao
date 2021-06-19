@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Reprimands;
@@ -17,10 +18,12 @@ namespace Zhongli.Bot.Modules.Moderation
     public class ModerationModule : ModuleBase
     {
         private readonly ZhongliContext _db;
+        private readonly IMediator _mediator;
         private readonly ModerationService _moderationService;
 
-        public ModerationModule(ZhongliContext db, ModerationService moderationService)
+        public ModerationModule(IMediator mediator, ZhongliContext db, ModerationService moderationService)
         {
+            _mediator = mediator;
             _db = db;
 
             _moderationService = moderationService;
@@ -36,7 +39,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var warning = new Warning(details, warnCount);
 
             var userEntity = await _db.Users.FindAsync(user.Id);
-            var warnings =  _db.Set<Warning>()
+            var warnings = _db.Set<Warning>()
                 .AsQueryable()
                 .Where(w => w.GuildId == user.GuildId)
                 .Where(w => w.UserId == user.Id)
@@ -44,6 +47,8 @@ namespace Zhongli.Bot.Modules.Moderation
 
             userEntity.WarningCount = (int) warnings;
             await _db.SaveChangesAsync();
+
+            await _mediator.Publish(new WarnNotification(user, warning));
 
             await ReplyAsync(
                 $"{userEntity} has been warned {warnCount} times. They have a total of {warnings} warnings.");
