@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Discord;
+using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Authorization.GuildPermission;
 
 namespace Zhongli.Services.Core
@@ -15,13 +16,17 @@ namespace Zhongli.Services.Core
     {
         private readonly ZhongliContext _db;
 
-        public AuthorizationService(ZhongliContext db) { _db = db; }
+        public AuthorizationService(ZhongliContext db)
+        {
+            _db = db;
+        }
 
         public async Task<bool> IsAuthorized(
-            ICommandContext context, IGuildUser user, AuthorizationScope scope)
+            ICommandContext context, IGuildUser user, AuthorizationScope scope,
+            CancellationToken cancellationToken = default)
         {
-            var rules = await AutoConfigureGuild(user.GuildId);
-            
+            var rules = await AutoConfigureGuild(user.GuildId, cancellationToken);
+
             var isUserAuthorized = ScopedAuthorization(rules.UserAuthorizations)
                 .Any(auth => auth.GuildId == user.GuildId && auth.UserId == user.Id);
             if (isUserAuthorized)
@@ -55,9 +60,9 @@ namespace Zhongli.Services.Core
             }
         }
 
-        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId)
+        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId, CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindAsync(guildId);
+            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken);
 
             if (guild.AuthorizationRules is not null)
                 return guild.AuthorizationRules;
@@ -75,7 +80,7 @@ namespace Zhongli.Services.Core
                 }
             };
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             return guild.AuthorizationRules;
         }

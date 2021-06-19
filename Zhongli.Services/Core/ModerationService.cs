@@ -12,23 +12,22 @@ namespace Zhongli.Services.Core
 {
     public class ModerationService
     {
-        private readonly ZhongliContext _db;
         private readonly DiscordSocketClient _client;
+        private readonly ZhongliContext _db;
 
         public ModerationService(DiscordSocketClient client, ZhongliContext db)
         {
             _client = client;
-            _db = db;
+            _db     = db;
         }
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
-
 
         public async Task<bool> TryMuteAsync(IGuildUser user, IUser mod,
             string? reason = null, TimeSpan? length = null,
             CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindAsync(user.GuildId);
+            var guild = await _db.Guilds.FindByIdAsync(user.GuildId, cancellationToken);
             var muteRole = guild.MuteRoleId;
 
             if (muteRole is null || user.HasRole(muteRole.Value))
@@ -60,10 +59,10 @@ namespace Zhongli.Services.Core
             var muteRoleId = guildEntity.MuteRoleId;
             if (muteRoleId is null)
                 return;
-        
+
             var guild = _client.GetGuild(mute.GuildId);
             var user = guild.GetUser(mute.UserId);
-        
+
             await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
         }
 
