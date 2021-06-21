@@ -39,7 +39,7 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
-                .AddSingleton<AuthorizationService>()
+                .AddTransient<AuthorizationService>()
                 .AddSingleton<ModerationService>()
                 .AddScoped<InteractiveService>().AddImages()
                 .AddCommandHelp()

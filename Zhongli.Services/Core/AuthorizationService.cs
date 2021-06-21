@@ -7,6 +7,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Authorization.GuildPermission;
 
@@ -62,7 +63,7 @@ namespace Zhongli.Services.Core
 
         public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId, CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken);
+            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ?? _db.Add(new GuildEntity(guildId)).Entity;
 
             if (guild.AuthorizationRules is not null)
                 return guild.AuthorizationRules;

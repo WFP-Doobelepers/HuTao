@@ -51,7 +51,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await _mediator.Publish(new WarnNotification(user, warning));
 
             await ReplyAsync(
-                $"{userEntity} has been warned {warnCount} times. They have a total of {warnings} warnings.");
+                $"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
         }
 
         [Command("ban")]
