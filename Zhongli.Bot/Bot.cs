@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
@@ -16,6 +17,7 @@ using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Image;
 using Zhongli.Services.Quote;
 
 namespace Zhongli.Bot
@@ -39,6 +41,7 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<AuthorizationService>()
                 .AddSingleton<ModerationService>()
+                .AddScoped<InteractiveService>().AddImages()
                 .AddCommandHelp()
                 .AddAutoRemoveMessage()
                 .AddSingleton<IQuoteService, QuoteService>()
