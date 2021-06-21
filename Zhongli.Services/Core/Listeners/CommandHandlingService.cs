@@ -52,11 +52,11 @@ namespace Zhongli.Services.Core.Listeners
 
             // Make sure the server entity exists
             await using var db = _services.GetRequiredService<ZhongliContext>();
-            if (!db.Guilds.Any(g => g.Id == context.Guild.Id))
+            if (await db.Guilds.FindByIdAsync(context.Guild.Id, cancellationToken) is null)
                 db.Add(new GuildEntity(context.Guild.Id));
 
             // Make sure the user entity exists
-            if (!db.Users.Any(u => u.Id == context.User.Id))
+            if (await db.Users.FindAsync(new object[] { context.User.Id, context.Guild.Id}, cancellationToken) is null)
                 db.Add(new GuildUserEntity((IGuildUser) context.User));
 
             await db.SaveChangesAsync(cancellationToken);

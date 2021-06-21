@@ -6,7 +6,7 @@ namespace Zhongli.Services.Utilities
 {
     public static class DbSetExtensions
     {
-        public static ValueTask<T> FindByIdAsync<T>(this DbSet<T> dbSet, object key, CancellationToken cancellationToken)
-            where T : class => dbSet.FindAsync(new[] { key }, cancellationToken);
+        public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key, CancellationToken cancellationToken)
+            where T : class => dbSet.FindAsync(new[] { key }, cancellationToken)!;
     }
 }
