@@ -15,6 +15,9 @@ namespace Zhongli.Services.Interactive
     {
         public IImageService ImageService { get; init; } = null!;
 
+        public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
+            where T : notnull => new(this, errorMessage);
+
         internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(string question,
             IUserMessage? message = null, PromptOptions? promptOptions = null)
         {

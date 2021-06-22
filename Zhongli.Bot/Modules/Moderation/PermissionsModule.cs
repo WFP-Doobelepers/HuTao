@@ -42,7 +42,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Ban)).WithValue("Allows banning.")
             };
 
-            var prompts = this.CreatePromptCollection<ConfigureOptions>()
+            var prompts = CreatePromptCollection<ConfigureOptions>()
                 .WithPrompt(ConfigureOptions.Admin,
                     "Please enter the role name, ID, or mention the role that will be the admin.")
                 .ThatHas(new RoleTypeReader<IRole>())

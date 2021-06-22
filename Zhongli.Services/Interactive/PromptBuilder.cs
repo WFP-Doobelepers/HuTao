@@ -123,18 +123,12 @@ namespace Zhongli.Services.Interactive
 
     public static class PromptBuilderExtensions
     {
-        public static PromptCollection<T> CreatePromptCollection<T>(
-            this InteractivePromptBase context,
-            string? errorMessage = null)
-            where T : notnull =>
-            new(context, errorMessage);
-
         public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue value)
             where TKey : notnull
             where TValue : notnull =>
             dict.TryGetValue(key, out var result) ? result : value;
 
-        public static T Modify<T>(this T t, Action<T> action)
+        internal static T Modify<T>(this T t, Action<T> action)
         {
             action(t);
             return t;
