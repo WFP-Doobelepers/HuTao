@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -96,7 +97,10 @@ namespace Zhongli.Services.Core.Listeners
         {
             _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
             _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-    
+
+            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
+            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
+
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
     }
