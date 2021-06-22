@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +12,7 @@ using Serilog;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Core.Listeners
@@ -56,7 +56,7 @@ namespace Zhongli.Services.Core.Listeners
                 db.Add(new GuildEntity(context.Guild.Id));
 
             // Make sure the user entity exists
-            if (await db.Users.FindAsync(new object[] { context.User.Id, context.Guild.Id}, cancellationToken) is null)
+            if (await db.Users.FindAsync(new object[] { context.User.Id, context.Guild.Id }, cancellationToken) is null)
                 db.Add(new GuildUserEntity((IGuildUser) context.User));
 
             await db.SaveChangesAsync(cancellationToken);
@@ -92,6 +92,12 @@ namespace Zhongli.Services.Core.Listeners
         private static Task CommandExecutedAsync(
             Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;
 
-        public Task InitializeAsync() => _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        public async Task InitializeAsync()
+        {
+            _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
+    
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        }
     }
 }

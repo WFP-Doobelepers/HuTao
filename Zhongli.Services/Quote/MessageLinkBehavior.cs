@@ -7,6 +7,8 @@ using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Utilities;
+using MessageExtensions = Zhongli.Services.Utilities.MessageExtensions;
 
 namespace Zhongli.Services.Quote
 {
@@ -14,12 +16,6 @@ namespace Zhongli.Services.Quote
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
-        private const string PatternString =
-            @"(?<Prelink>\S+\s+\S*)?(?<OpenBrace><)?https?://(?:(?:ptb|canary)\.)?discord(app)?\.com/channels/(?<GuildId>\d+)/(?<ChannelId>\d+)/(?<MessageId>\d+)/?(?<CloseBrace>>)?(?<Postlink>\S*\s+\S+)?";
-
-        private static readonly Regex Pattern =
-            new(PatternString, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
         private readonly DiscordSocketClient _discordClient;
         private readonly ILogger<MessageLinkBehavior> _log;
         private readonly IQuoteService _quoteService;
@@ -45,7 +41,7 @@ namespace Zhongli.Services.Quote
             if (cachedMessage is null)
                 return;
 
-            if (Pattern.IsMatch(cachedMessage.Content))
+            if (MessageExtensions.JumpUrlRegex.IsMatch(cachedMessage.Content))
                 return;
 
             await OnMessageReceivedAsync(notification.NewMessage);
@@ -59,42 +55,26 @@ namespace Zhongli.Services.Quote
             if (guildUser.IsBot || guildUser.IsWebhook)
                 return;
 
-            foreach (Match match in Pattern.Matches(message.Content))
+            foreach (Match match in MessageExtensions.JumpUrlRegex.Matches(message.Content))
             {
                 // check if the link is surrounded with < and >. This was too annoying to do in regex
                 if (match.Groups["OpenBrace"].Success && match.Groups["CloseBrace"].Success)
                     continue;
 
-                if (ulong.TryParse(match.Groups["GuildId"].Value, out var guildId)
+                if (ulong.TryParse(match.Groups["GuildId"].Value, out _)
                     && ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId)
                     && ulong.TryParse(match.Groups["MessageId"].Value, out var messageId))
                     try
                     {
-                        var channel = _discordClient.GetChannel(channelId);
+                        var msg = await _discordClient.GetMessageAsync(channelId, messageId);
 
-                        if (channel is ITextChannel { IsNsfw: true }) return;
+                        if (msg is null) return;
 
-                        if (channel is IGuildChannel guildChannel and ISocketMessageChannel messageChannel)
-                        {
-                            var currentUser = await guildChannel.Guild.GetCurrentUserAsync();
-                            var channelPermissions = currentUser.GetPermissions(guildChannel);
-
-                            if (!channelPermissions.ViewChannel) return;
-
-                            var cacheMode = channelPermissions.ReadMessageHistory
-                                ? CacheMode.AllowDownload
-                                : CacheMode.CacheOnly;
-
-                            var msg = await messageChannel.GetMessageAsync(messageId, cacheMode);
-
-                            if (msg is null) return;
-
-                            var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
-                            if (success
-                                && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
-                                && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
-                                await userMessage.DeleteAsync();
-                        }
+                        var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
+                        if (success
+                            && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
+                            && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
+                            await userMessage.DeleteAsync();
                     }
                     catch (Exception ex)
                     {
