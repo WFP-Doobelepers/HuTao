@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.VoiceChat;
 
 namespace Zhongli.Data.Models.Discord
 {
@@ -30,5 +31,7 @@ namespace Zhongli.Data.Models.Discord
         public virtual ICollection<Warning> WarningHistory { get; init; } = new List<Warning>();
 
         public ulong? MuteRoleId { get; set; }
+
+        public virtual VoiceChatRules? VoiceChatRules { get; set; }
     }
 }
