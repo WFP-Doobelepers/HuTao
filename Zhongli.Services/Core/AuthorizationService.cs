@@ -17,10 +17,7 @@ namespace Zhongli.Services.Core
     {
         private readonly ZhongliContext _db;
 
-        public AuthorizationService(ZhongliContext db)
-        {
-            _db = db;
-        }
+        public AuthorizationService(ZhongliContext db) { _db = db; }
 
         public async Task<bool> IsAuthorized(
             ICommandContext context, IGuildUser user, AuthorizationScope scope,
@@ -61,9 +58,11 @@ namespace Zhongli.Services.Core
             }
         }
 
-        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId, CancellationToken cancellationToken = default)
+        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId,
+            CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ?? _db.Add(new GuildEntity(guildId)).Entity;
+            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ??
+                _db.Add(new GuildEntity(guildId)).Entity;
 
             if (guild.AuthorizationRules is not null)
                 return guild.AuthorizationRules;

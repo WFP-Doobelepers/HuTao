@@ -41,9 +41,9 @@ namespace Zhongli.Bot.Behaviors
             if (warn.Warning.Type != ModerationActionType.Added)
                 return;
 
-            var userEntity = await _db.Users.FindByIdAsync(warn.User.Id, cancellationToken);
+            var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.GuildId, cancellationToken);
-            var rules = guildEntity.AutoModerationRules;
+            var rules = guildEntity?.AutoModerationRules;
 
             if (rules is null)
                 return;

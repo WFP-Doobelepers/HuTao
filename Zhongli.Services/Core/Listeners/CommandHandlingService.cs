@@ -51,17 +51,6 @@ namespace Zhongli.Services.Core.Listeners
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
 
-            // Make sure the server entity exists
-            await using var db = _services.GetRequiredService<ZhongliContext>();
-            if (await db.Guilds.FindByIdAsync(context.Guild.Id, cancellationToken) is null)
-                db.Add(new GuildEntity(context.Guild.Id));
-
-            // Make sure the user entity exists
-            if (await db.Users.FindAsync(new object[] { context.User.Id, context.Guild.Id }, cancellationToken) is null)
-                db.Add(new GuildUserEntity((IGuildUser) context.User));
-
-            await db.SaveChangesAsync(cancellationToken);
-
             var hasPrefix = message.HasStringPrefix("z!", ref argPos, StringComparison.OrdinalIgnoreCase);
             var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
             if (hasPrefix || hasMention)

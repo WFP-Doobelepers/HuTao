@@ -24,7 +24,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public ModerationModule(IMediator mediator, ZhongliContext db, ModerationService moderationService)
         {
             _mediator = mediator;
-            _db = db;
+            _db       = db;
 
             _moderationService = moderationService;
         }
@@ -38,7 +38,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
             var warning = new Warning(details, warnCount);
 
-            var userEntity = await _db.Users.FindAsync(user.Id, user.GuildId);
+            var userEntity = await _db.Users.TrackUserAsync(user);
             var warnings = _db.Set<Warning>()
                 .AsQueryable()
                 .Where(w => w.GuildId == user.GuildId)

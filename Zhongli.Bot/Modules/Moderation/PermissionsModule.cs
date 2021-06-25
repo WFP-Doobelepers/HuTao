@@ -7,6 +7,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.Core;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Interactive.TypeReaders;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -56,7 +57,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
             var results = await prompts.GetAnswersAsync();
 
-            var user = await _db.Users.FindAsync(Context.User.Id, Context.Guild.Id);
+            var user = await _db.Users.TrackUserAsync((IGuildUser) Context.User);
             var auth = await _auth.AutoConfigureGuild(Context.Guild.Id);
 
             auth.RoleAuthorizations.Add(new RoleAuthorization

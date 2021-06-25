@@ -30,14 +30,13 @@ namespace Zhongli.Services.Core.Listeners
         /// <summary>
         ///     The <see cref="DiscordSocketClient" /> to be listened to.
         /// </summary>
-        protected internal DiscordSocketClient DiscordSocketClient { get; }
+        private DiscordSocketClient DiscordSocketClient { get; }
 
         /// <summary>
         ///     A <see cref="IMessageDispatcher" /> used to dispatch discord notifications to the rest of the application.
         /// </summary>
-        protected internal IMediator MessageDispatcher { get; }
+        private IMediator MessageDispatcher { get; }
 
-        /// <inheritdoc />
         public Task StartAsync(
             CancellationToken cancellationToken)
         {
@@ -65,23 +64,24 @@ namespace Zhongli.Services.Core.Listeners
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc />
         public Task StopAsync(
             CancellationToken cancellationToken)
         {
-            DiscordSocketClient.ChannelCreated  -= OnChannelCreatedAsync;
-            DiscordSocketClient.ChannelUpdated  -= OnChannelUpdatedAsync;
-            DiscordSocketClient.GuildAvailable  -= OnGuildAvailableAsync;
-            DiscordSocketClient.JoinedGuild     -= OnJoinedGuildAsync;
-            DiscordSocketClient.MessageDeleted  -= OnMessageDeletedAsync;
-            DiscordSocketClient.MessageReceived -= OnMessageReceivedAsync;
-            DiscordSocketClient.MessageUpdated  -= OnMessageUpdatedAsync;
-            DiscordSocketClient.ReactionAdded   -= OnReactionAddedAsync;
-            DiscordSocketClient.ReactionRemoved -= OnReactionRemovedAsync;
-            DiscordSocketClient.Ready           -= OnReadyAsync;
-            DiscordSocketClient.UserBanned      -= OnUserBannedAsync;
-            DiscordSocketClient.UserJoined      -= OnUserJoinedAsync;
-            DiscordSocketClient.UserLeft        -= OnUserLeftAsync;
+            DiscordSocketClient.ChannelCreated        -= OnChannelCreatedAsync;
+            DiscordSocketClient.ChannelUpdated        -= OnChannelUpdatedAsync;
+            DiscordSocketClient.GuildAvailable        -= OnGuildAvailableAsync;
+            DiscordSocketClient.GuildMemberUpdated    -= OnGuildMemberUpdatedAsync;
+            DiscordSocketClient.JoinedGuild           -= OnJoinedGuildAsync;
+            DiscordSocketClient.MessageDeleted        -= OnMessageDeletedAsync;
+            DiscordSocketClient.MessageReceived       -= OnMessageReceivedAsync;
+            DiscordSocketClient.MessageUpdated        -= OnMessageUpdatedAsync;
+            DiscordSocketClient.ReactionAdded         -= OnReactionAddedAsync;
+            DiscordSocketClient.ReactionRemoved       -= OnReactionRemovedAsync;
+            DiscordSocketClient.Ready                 -= OnReadyAsync;
+            DiscordSocketClient.UserBanned            -= OnUserBannedAsync;
+            DiscordSocketClient.UserJoined            -= OnUserJoinedAsync;
+            DiscordSocketClient.UserLeft              -= OnUserLeftAsync;
+            DiscordSocketClient.UserVoiceStateUpdated -= OnUserVoiceStateUpdatedAsync;
 
             return Task.CompletedTask;
         }
@@ -100,9 +100,30 @@ namespace Zhongli.Services.Core.Listeners
             return Task.CompletedTask;
         }
 
+        private Task OnConnectedAsync()
+        {
+            MessageDispatcher.Publish(ConnectedNotification.Default, _cancellationToken);
+
+            return Task.CompletedTask;
+        }
+
+        private Task OnDisconnectedAsync(Exception arg)
+        {
+            MessageDispatcher.Publish(new DisconnectedNotification(arg), _cancellationToken);
+
+            return Task.CompletedTask;
+        }
+
         private Task OnGuildAvailableAsync(SocketGuild guild)
         {
             MessageDispatcher.Publish(new GuildAvailableNotification(guild), _cancellationToken);
+
+            return Task.CompletedTask;
+        }
+
+        private Task OnGuildMemberUpdatedAsync(SocketGuildUser oldMember, SocketGuildUser newMember)
+        {
+            MessageDispatcher.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken);
 
             return Task.CompletedTask;
         }
@@ -152,20 +173,6 @@ namespace Zhongli.Services.Core.Listeners
             SocketReaction reaction)
         {
             MessageDispatcher.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
-
-            return Task.CompletedTask;
-        }
-
-        private Task OnDisconnectedAsync(Exception arg)
-        {
-            MessageDispatcher.Publish(new DisconnectedNotification(arg), _cancellationToken);
-
-            return Task.CompletedTask;
-        }
-
-        private Task OnConnectedAsync()
-        {
-            MessageDispatcher.Publish(ConnectedNotification.Default, _cancellationToken);
 
             return Task.CompletedTask;
         }
