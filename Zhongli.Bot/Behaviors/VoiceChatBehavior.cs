@@ -9,11 +9,15 @@ using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Behaviors
 {
     public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification>
     {
+        private static readonly Regex VcRegex = new(@"^VC([ ]|-)(?<i>[0-9]+)$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly ZhongliContext _db;
 
         public VoiceChatBehavior(ZhongliContext db) { _db = db; }
@@ -40,15 +44,23 @@ namespace Zhongli.Bot.Behaviors
                 }
                 else
                 {
-                    var voiceChannels = rules.VoiceChats.Select(v =>
-                        guild.GetVoiceChannel(v.VoiceChannelId));
+                    var voiceChannelCategory = guild.GetCategoryChannel(rules.VoiceChannelCategoryId);
+                    var voiceChatCategory = guild.GetCategoryChannel(rules.VoiceChatCategoryId);
 
-                    var ruleNumbers = voiceChannels
-                        .Select(v => Regex.Match(v.Name, @"^VC (?<i>[0-9]+)$"))
-                        .Where(m => m.Success)
-                        .Select(m => uint.Parse(m.Groups["i"].Value));
+                    var ruleNumbers = voiceChannelCategory.Channels.Concat(voiceChatCategory.Channels)
+                        .Select(v => VcRegex.Match(v.Name))
+                        .Where(m => m.Success && uint.TryParse(m.Groups["i"].Value, out _))
+                        .Select(m => uint.Parse(m.Groups["i"].Value))
+                        .ToList();
 
-                    var maxId = ruleNumbers.DefaultIfEmpty<uint>(0).Max() + 1;
+                    // To get the next available number, sort the list and then
+                    // get the index of the first element that does not match its index.
+                    // If there is nothing that match, then the next value must be the length of the list.
+                    var maxId = ruleNumbers.OrderBy(x => x).AsIndexable()
+                        .Where(item => item.Index != item.Value)
+                        .Select(item => item.Index)
+                        .DefaultIfEmpty(ruleNumbers.Count)
+                        .FirstOrDefault();
 
                     var voiceChannel = await guild.CreateVoiceChannelAsync($"VC {maxId}",
                         c => c.CategoryId = rules.VoiceChannelCategoryId);
