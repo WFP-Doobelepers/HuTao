@@ -16,7 +16,7 @@ namespace Zhongli.Bot.Modules.Moderation
     public class PermissionsModule : InteractivePromptBase
     {
         private readonly AuthorizationService _auth;
-        private readonly ZhongliContext       _db;
+        private readonly ZhongliContext _db;
 
         public PermissionsModule(AuthorizationService auth, ZhongliContext db)
         {

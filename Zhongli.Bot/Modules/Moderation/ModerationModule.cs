@@ -29,31 +29,6 @@ namespace Zhongli.Bot.Modules.Moderation
             _moderationService = moderationService;
         }
 
-        [Command("warn")]
-        [Summary("Warn a user from the current guild.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
-        [RequireAuthorization(AuthorizationScope.Warning)]
-        public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
-        {
-            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
-            var warning = new Warning(details, warnCount);
-
-            var userEntity = await _db.Users.TrackUserAsync(user);
-            var warnings = _db.Set<Warning>()
-                .AsQueryable()
-                .Where(w => w.GuildId == user.GuildId)
-                .Where(w => w.UserId == user.Id)
-                .Sum(w => w.Amount);
-
-            userEntity.WarningCount = (int) warnings;
-            await _db.SaveChangesAsync();
-
-            await _mediator.Publish(new WarnNotification(user, warning));
-
-            await ReplyAsync(
-                $"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
-        }
-
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireUserPermission(GuildPermission.BanMembers)]
@@ -96,6 +71,31 @@ namespace Zhongli.Bot.Modules.Moderation
             }
 
             await ReplyAsync($"{user} has been muted.");
+        }
+
+        [Command("warn")]
+        [Summary("Warn a user from the current guild.")]
+        [RequireUserPermission(GuildPermission.KickMembers)]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
+        {
+            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
+            var warning = new Warning(details, warnCount);
+
+            var userEntity = await _db.Users.TrackUserAsync(user);
+            var warnings = _db.Set<Warning>()
+                .AsQueryable()
+                .Where(w => w.GuildId == user.GuildId)
+                .Where(w => w.UserId == user.Id)
+                .Sum(w => w.Amount);
+
+            userEntity.WarningCount = (int) warnings;
+            await _db.SaveChangesAsync();
+
+            await _mediator.Publish(new WarnNotification(user, warning));
+
+            await ReplyAsync(
+                $"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
         }
     }
 }

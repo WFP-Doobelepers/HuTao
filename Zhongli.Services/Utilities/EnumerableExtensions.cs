@@ -17,28 +17,6 @@ namespace Zhongli.Services.Utilities
             }
         }
 
-        public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, Func<T, bool> predicate)
-        {
-            var possibleTail = new Queue<T>();
-
-            foreach (var item in source)
-            {
-                if (!predicate(item))
-                {
-                    // We found an item that doesn't match the predicate, so
-                    // anything we weren't sure about is now safe to return.
-                    while (possibleTail.TryDequeue(out var queuedItem))
-                    {
-                        yield return queuedItem;
-                    }
-
-                    yield return item;
-                }
-                else
-                    possibleTail.Enqueue(item);
-            }
-        }
-
         public static IEnumerable<(TFirst First, TSecond Second)> ZipOrDefault<TFirst, TSecond>(
             this IEnumerable<TFirst> first, IEnumerable<TSecond> second)
         {
@@ -58,6 +36,30 @@ namespace Zhongli.Services.Utilities
                     e1Moved ? e1.Current : default,
                     e2Moved ? e2.Current : default
                 );
+            }
+        }
+
+        public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, Func<T, bool> predicate)
+        {
+            var possibleTail = new Queue<T>();
+
+            foreach (var item in source)
+            {
+                if (!predicate(item))
+                {
+                    // We found an item that doesn't match the predicate, so
+                    // anything we weren't sure about is now safe to return.
+                    while (possibleTail.TryDequeue(out var queuedItem))
+                    {
+                        yield return queuedItem;
+                    }
+
+                    yield return item;
+                }
+                else
+                {
+                    possibleTail.Enqueue(item);
+                }
             }
         }
     }

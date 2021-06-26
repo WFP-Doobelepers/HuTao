@@ -18,12 +18,11 @@ namespace Zhongli.Bot.Behaviors
     {
         private readonly ZhongliContext _db;
         private readonly ModerationService _moderationService;
-
         private Task? _mutesProcessor;
 
         public AutoModerationBehavior(ZhongliContext db, ModerationService moderationService)
         {
-            _db = db;
+            _db                = db;
             _moderationService = moderationService;
         }
 
@@ -66,10 +65,8 @@ namespace Zhongli.Bot.Behaviors
                 .FirstOrDefault();
 
             if (trigger is not null)
-            {
                 await _moderationService.TryMuteAsync(warn.User, warn.Moderator,
                     "[Auto trigger]", trigger.Length, cancellationToken);
-            }
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

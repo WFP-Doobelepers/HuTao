@@ -12,6 +12,16 @@ namespace Zhongli.Services.CommandHelp
     public interface ICommandHelpService
     {
         /// <summary>
+        ///     Retrieves command help data for the supplied query.
+        /// </summary>
+        /// <param name="query">A query to use to search for an applicable help module.</param>
+        /// <returns>
+        ///     Help information for the supplied query, or <see langword="null" /> if no information could be found for the
+        ///     supplied query.
+        /// </returns>
+        CommandHelpData? GetCommandHelpData(string query);
+
+        /// <summary>
         ///     Retrieves help data for all available modules.
         /// </summary>
         /// <returns>
@@ -28,16 +38,6 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         ModuleHelpData? GetModuleHelpData(string query);
-
-        /// <summary>
-        ///     Retrieves command help data for the supplied query.
-        /// </summary>
-        /// <param name="query">A query to use to search for an applicable help module.</param>
-        /// <returns>
-        ///     Help information for the supplied query, or <see langword="null" /> if no information could be found for the
-        ///     supplied query.
-        /// </returns>
-        CommandHelpData? GetCommandHelpData(string query);
     }
 
     /// <inheritdoc />

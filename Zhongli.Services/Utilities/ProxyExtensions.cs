@@ -7,11 +7,11 @@ namespace Zhongli.Services.Utilities
 {
     public static class ProxyExtensions
     {
+        public static GuildUserEntity CreateAndAddProxy(this DbSet<GuildUserEntity> set, IGuildUser user) =>
+            set.CreateAndAddProxyInternal(user).Entity;
+
         private static EntityEntry<TEntity> CreateAndAddProxyInternal<TEntity>(this DbSet<TEntity> set,
             params object[] constructorArguments) where TEntity : class
             => set.Add(set.CreateProxy(constructorArguments));
-
-        public static GuildUserEntity CreateAndAddProxy(this DbSet<GuildUserEntity> set, IGuildUser user) =>
-            set.CreateAndAddProxyInternal(user).Entity;
     }
 }

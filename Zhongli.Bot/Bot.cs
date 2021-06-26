@@ -29,6 +29,8 @@ namespace Zhongli.Bot
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
         private CancellationTokenSource _reconnectCts = null!;
 
+        public static async Task Main() => await new Bot().StartAsync();
+
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
                 .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
@@ -57,26 +59,6 @@ namespace Zhongli.Bot
                 .UseNpgsql(configuration.GetConnectionString(nameof(ZhongliContext)))
                 .UseLazyLoadingProxies();
         }
-
-        private static Task LogAsync(LogMessage message)
-        {
-            var severity = message.Severity switch
-            {
-                LogSeverity.Critical => LogEventLevel.Fatal,
-                LogSeverity.Error    => LogEventLevel.Error,
-                LogSeverity.Warning  => LogEventLevel.Warning,
-                LogSeverity.Info     => LogEventLevel.Information,
-                LogSeverity.Verbose  => LogEventLevel.Verbose,
-                LogSeverity.Debug    => LogEventLevel.Debug,
-                _                    => LogEventLevel.Information
-            };
-
-            Log.Write(severity, message.Exception, message.Message);
-
-            return Task.CompletedTask;
-        }
-
-        public static async Task Main() => await new Bot().StartAsync();
 
         private async Task StartAsync()
         {
@@ -140,6 +122,27 @@ namespace Zhongli.Bot
             return Task.CompletedTask;
         }
 
+        private static Task LogAsync(LogMessage message)
+        {
+            var severity = message.Severity switch
+            {
+                LogSeverity.Critical => LogEventLevel.Fatal,
+                LogSeverity.Error    => LogEventLevel.Error,
+                LogSeverity.Warning  => LogEventLevel.Warning,
+                LogSeverity.Info     => LogEventLevel.Information,
+                LogSeverity.Verbose  => LogEventLevel.Verbose,
+                LogSeverity.Debug    => LogEventLevel.Debug,
+                _                    => LogEventLevel.Information
+            };
+
+            Log.Write(severity, message.Exception, message.Message);
+
+            return Task.CompletedTask;
+        }
+
+        private void FailFast()
+            => Environment.Exit(1);
+
         private async Task CheckStateAsync(IDiscordClient client)
         {
             // Client reconnected, no need to reset
@@ -174,8 +177,5 @@ namespace Zhongli.Bot
             Log.Fatal("Client did not reconnect in time, killing process");
             FailFast();
         }
-
-        private void FailFast()
-            => Environment.Exit(1);
     }
 }

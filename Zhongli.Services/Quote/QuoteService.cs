@@ -62,6 +62,14 @@ namespace Zhongli.Services.Quote
                 async e => await callback.Invoke(e));
         }
 
+        private static bool IsQuote(IMessage message)
+        {
+            return message
+                .Embeds?
+                .SelectMany(d => d.Fields)
+                .Any(d => d.Name == "Quoted by") == true;
+        }
+
         private static bool TryAddImageAttachment(IMessage message, EmbedBuilder embed)
         {
             var firstAttachment = message.Attachments.FirstOrDefault();
@@ -69,16 +77,6 @@ namespace Zhongli.Services.Quote
                 return false;
 
             embed.WithImageUrl(firstAttachment.Url);
-
-            return true;
-        }
-
-        private static bool TryAddOtherAttachment(IMessage message, EmbedBuilder embed)
-        {
-            var firstAttachment = message.Attachments.FirstOrDefault();
-            if (firstAttachment is null) return false;
-
-            embed.AddField($"Attachment (Size: {new ByteSize(firstAttachment.Size)})", firstAttachment.Url);
 
             return true;
         }
@@ -94,13 +92,12 @@ namespace Zhongli.Services.Quote
             return true;
         }
 
-        private static bool TryAddThumbnailEmbed(IMessage message, EmbedBuilder embed)
+        private static bool TryAddOtherAttachment(IMessage message, EmbedBuilder embed)
         {
-            var thumbnailEmbed = message.Embeds.Select(x => x.Thumbnail).FirstOrDefault(x => x is { });
-            if (thumbnailEmbed is null)
-                return false;
+            var firstAttachment = message.Attachments.FirstOrDefault();
+            if (firstAttachment is null) return false;
 
-            embed.WithImageUrl(thumbnailEmbed.Value.Url);
+            embed.AddField($"Attachment (Size: {new ByteSize(firstAttachment.Size)})", firstAttachment.Url);
 
             return true;
         }
@@ -120,6 +117,17 @@ namespace Zhongli.Services.Quote
             return true;
         }
 
+        private static bool TryAddThumbnailEmbed(IMessage message, EmbedBuilder embed)
+        {
+            var thumbnailEmbed = message.Embeds.Select(x => x.Thumbnail).FirstOrDefault(x => x is { });
+            if (thumbnailEmbed is null)
+                return false;
+
+            embed.WithImageUrl(thumbnailEmbed.Value.Url);
+
+            return true;
+        }
+
         private static void AddActivity(IMessage message, EmbedBuilder embed)
         {
             if (message.Activity is null) return;
@@ -127,13 +135,6 @@ namespace Zhongli.Services.Quote
             embed
                 .AddField("Invite Type", message.Activity.Type)
                 .AddField("Party Id", message.Activity.PartyId);
-        }
-
-        private static void AddOtherEmbed(IMessage message, EmbedBuilder embed)
-        {
-            if (message.Embeds.Count == 0) return;
-
-            embed.AddField("Embed Type", message.Embeds.First().Type);
         }
 
         private static void AddContent(IMessage message, EmbedBuilder embed)
@@ -152,12 +153,11 @@ namespace Zhongli.Services.Quote
                 .AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);
         }
 
-        private static bool IsQuote(IMessage message)
+        private static void AddOtherEmbed(IMessage message, EmbedBuilder embed)
         {
-            return message
-                .Embeds?
-                .SelectMany(d => d.Fields)
-                .Any(d => d.Name == "Quoted by") == true;
+            if (message.Embeds.Count == 0) return;
+
+            embed.AddField("Embed Type", message.Embeds.First().Type);
         }
     }
 }

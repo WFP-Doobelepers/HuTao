@@ -17,84 +17,8 @@ namespace Zhongli.Services.Utilities
         private static readonly Regex RoleMentionRegex = new("<@&(?<Id>[0-9]+)>", RegexOptions.Compiled);
         private static readonly Regex ContainsSpoilerRegex = new(@"\|\|.+\|\|", RegexOptions.Compiled);
 
-        /// <summary>
-        ///     Prepares a piece of input code for use in HTTP operations
-        /// </summary>
-        /// <param name="code">The code to prepare</param>
-        /// <returns>The resulting StringContent for HTTP operations</returns>
-        public static StringContent BuildContent(string code)
-        {
-            var cleanCode = StripFormatting(code);
-            return new StringContent(cleanCode, Encoding.UTF8, "text/plain");
-        }
-
-        /// <summary>
-        ///     Attempts to get the language of the code piece
-        /// </summary>
-        /// <param name="message">The code</param>
-        /// <returns>The code language if a match is found, null of none are found</returns>
-        public static string GetCodeLanguage(string message)
-        {
-            var match = BuildContentRegex.Match(message);
-            if (match.Success)
-            {
-                var codeLanguage = match.Groups[1].Value;
-                return string.IsNullOrEmpty(codeLanguage) ? null : codeLanguage;
-            }
-
-            return null;
-        }
-
-        public static string StripFormatting(string code)
-        {
-            var cleanCode =
-                BuildContentRegex.Replace(code.Trim(),
-                    string.Empty);                       //strip out the ` characters and code block markers
-            cleanCode = cleanCode.Replace("\t", "    "); //spaces > tabs
-            cleanCode = FixIndentation(cleanCode);
-            return cleanCode;
-        }
-
-        /// <summary>
-        ///     Attempts to fix the indentation of a piece of code by aligning the left sidie.
-        /// </summary>
-        /// <param name="code">The code to align</param>
-        /// <returns>The newly aligned code</returns>
-        public static string FixIndentation(string code)
-        {
-            var lines = code.Split('\n');
-            var indentLine = lines.SkipWhile(d => d.FirstOrDefault() != ' ').FirstOrDefault();
-
-            if (indentLine is not null)
-            {
-                var indent = indentLine.LastIndexOf(' ') + 1;
-
-                var pattern = $@"^[^\S\n]{{{indent}}}";
-
-                return Regex.Replace(code, pattern, "", RegexOptions.Multiline);
-            }
-
-            return code;
-        }
-
-        public static string SanitizeAllMentions(string text)
-        {
-            var everyoneSanitized = SanitizeEveryone(text);
-            var userSanitized = SanitizeUserMentions(everyoneSanitized);
-            var roleSanitized = SanitizeRoleMentions(userSanitized);
-
-            return roleSanitized;
-        }
-
-        public static string SanitizeEveryone(string text)
-            => text.Replace("@everyone", "@\x200beveryone")
-                .Replace("@here", "@\x200bhere");
-
-        public static string SanitizeUserMentions(string text)
-            => UserMentionRegex.Replace(text, "<@\x200b${Id}>");
-
-        public static string SanitizeRoleMentions(string text)
-            => RoleMentionRegex.Replace(text, "<@&\x200b${Id}>");
+        public static bool ContainsSpoiler(string text)
+            => ContainsSpoilerRegex.IsMatch(text);
 
         /// <summary>
         ///     Collapses plural forms into a "singular(s)"-type format.
@@ -172,6 +96,28 @@ namespace Zhongli.Services.Utilities
             return formatted;
         }
 
+        /// <summary>
+        ///     Attempts to fix the indentation of a piece of code by aligning the left sidie.
+        /// </summary>
+        /// <param name="code">The code to align</param>
+        /// <returns>The newly aligned code</returns>
+        public static string FixIndentation(string code)
+        {
+            var lines = code.Split('\n');
+            var indentLine = lines.SkipWhile(d => d.FirstOrDefault() != ' ').FirstOrDefault();
+
+            if (indentLine is not null)
+            {
+                var indent = indentLine.LastIndexOf(' ') + 1;
+
+                var pattern = $@"^[^\S\n]{{{indent}}}";
+
+                return Regex.Replace(code, pattern, "", RegexOptions.Multiline);
+            }
+
+            return code;
+        }
+
         public static string FormatTimeAgo(DateTimeOffset now, DateTimeOffset ago)
         {
             var span = now - ago;
@@ -183,7 +129,61 @@ namespace Zhongli.Services.Utilities
             return $"{humanizedTimeAgo} ago ({ago.UtcDateTime:yyyy-MM-ddTHH:mm:ssK})";
         }
 
-        public static bool ContainsSpoiler(string text)
-            => ContainsSpoilerRegex.IsMatch(text);
+        /// <summary>
+        ///     Attempts to get the language of the code piece
+        /// </summary>
+        /// <param name="message">The code</param>
+        /// <returns>The code language if a match is found, null of none are found</returns>
+        public static string GetCodeLanguage(string message)
+        {
+            var match = BuildContentRegex.Match(message);
+            if (match.Success)
+            {
+                var codeLanguage = match.Groups[1].Value;
+                return string.IsNullOrEmpty(codeLanguage) ? null : codeLanguage;
+            }
+
+            return null;
+        }
+
+        public static string SanitizeAllMentions(string text)
+        {
+            var everyoneSanitized = SanitizeEveryone(text);
+            var userSanitized = SanitizeUserMentions(everyoneSanitized);
+            var roleSanitized = SanitizeRoleMentions(userSanitized);
+
+            return roleSanitized;
+        }
+
+        public static string SanitizeEveryone(string text)
+            => text.Replace("@everyone", "@\x200beveryone")
+                .Replace("@here", "@\x200bhere");
+
+        public static string SanitizeRoleMentions(string text)
+            => RoleMentionRegex.Replace(text, "<@&\x200b${Id}>");
+
+        public static string SanitizeUserMentions(string text)
+            => UserMentionRegex.Replace(text, "<@\x200b${Id}>");
+
+        public static string StripFormatting(string code)
+        {
+            var cleanCode =
+                BuildContentRegex.Replace(code.Trim(),
+                    string.Empty);                       //strip out the ` characters and code block markers
+            cleanCode = cleanCode.Replace("\t", "    "); //spaces > tabs
+            cleanCode = FixIndentation(cleanCode);
+            return cleanCode;
+        }
+
+        /// <summary>
+        ///     Prepares a piece of input code for use in HTTP operations
+        /// </summary>
+        /// <param name="code">The code to prepare</param>
+        /// <returns>The resulting StringContent for HTTP operations</returns>
+        public static StringContent BuildContent(string code)
+        {
+            var cleanCode = StripFormatting(code);
+            return new StringContent(cleanCode, Encoding.UTF8, "text/plain");
+        }
     }
 }

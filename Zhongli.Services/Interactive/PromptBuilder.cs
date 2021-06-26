@@ -17,11 +17,11 @@ namespace Zhongli.Services.Interactive
         public PromptCollection<T> WithCriterion(ICriterion<SocketMessage> criterion) =>
             this.Modify(c => c.Criteria?.Add(criterion));
 
-        public PromptCollection<T> WithTypeReader(TypeReader reader) => this.Modify(p => p.TypeReader = reader);
+        public PromptCollection<T> WithError(string error) => this.Modify(c => c.ErrorMessage = error);
 
         public PromptCollection<T> WithTimeout(int timeout) => this.Modify(c => c.Timeout = timeout);
 
-        public PromptCollection<T> WithError(string error) => this.Modify(c => c.ErrorMessage = error);
+        public PromptCollection<T> WithTypeReader(TypeReader reader) => this.Modify(p => p.TypeReader = reader);
 
         public PromptOrCollection<T> WithPrompt(
             T key, string question,
@@ -85,9 +85,6 @@ namespace Zhongli.Services.Interactive
 
     public partial class PromptOrCollection<TOptions>
     {
-        public Task<ResultDictionary<TOptions>> GetAnswersAsync(bool deleteResponse = true) =>
-            Collection.GetAnswersAsync(deleteResponse);
-
         public PromptCollection<TOptions> ThatHas(TypeReader reader)
         {
             if (!Prompt.IsRequired)
@@ -119,6 +116,9 @@ namespace Zhongli.Services.Interactive
             var collection = Collection.Modify(c => c.Prompts.Add(prompt));
             return new PromptOrCollection<TOptions>(prompt, collection);
         }
+
+        public Task<ResultDictionary<TOptions>> GetAnswersAsync(bool deleteResponse = true) =>
+            Collection.GetAnswersAsync(deleteResponse);
     }
 
     public static class PromptBuilderExtensions

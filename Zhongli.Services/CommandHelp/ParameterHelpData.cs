@@ -19,7 +19,7 @@ namespace Zhongli.Services.CommandHelp
         public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
         {
             var isNullable = parameter.Type.IsGenericType &&
-                             parameter.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
+                parameter.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
             var paramType = isNullable ? parameter.Type.GetGenericArguments()[0] : parameter.Type;
             var typeName = paramType.Name;
 

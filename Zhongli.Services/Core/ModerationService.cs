@@ -23,6 +23,32 @@ namespace Zhongli.Services.Core
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
 
+        public async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
+        {
+            var guildEntity = _db.Guilds.Find(mute.GuildId);
+            var muteRoleId = guildEntity.MuteRoleId;
+            if (muteRoleId is null)
+                return;
+
+            var guild = _client.GetGuild(mute.GuildId);
+            var user = guild.GetUser(mute.UserId);
+
+            await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
+        }
+
+        public async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
+            CancellationToken cancellationToken = default)
+        {
+            if (!ActiveMutes.TryAdd(mute.UserId, mute))
+                return;
+
+            await Task.Delay(length, cancellationToken);
+            await user.RemoveRoleAsync(roleId);
+
+            mute.EndedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
         public async Task<bool> TryMuteAsync(IGuildUser user, IUser mod,
             string? reason = null, TimeSpan? length = null,
             CancellationToken cancellationToken = default)
@@ -51,32 +77,6 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        public async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
-        {
-            var guildEntity = _db.Guilds.Find(mute.GuildId);
-            var muteRoleId = guildEntity.MuteRoleId;
-            if (muteRoleId is null)
-                return;
-
-            var guild = _client.GetGuild(mute.GuildId);
-            var user = guild.GetUser(mute.UserId);
-
-            await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
-        }
-
-        public async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
-            CancellationToken cancellationToken = default)
-        {
-            if (!ActiveMutes.TryAdd(mute.UserId, mute))
-                return;
-
-            await Task.Delay(length, cancellationToken);
-            await user.RemoveRoleAsync(roleId);
-
-            mute.EndedAt = DateTimeOffset.UtcNow;
-            await _db.SaveChangesAsync(cancellationToken);
         }
     }
 }

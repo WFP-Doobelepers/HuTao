@@ -15,16 +15,6 @@ namespace Zhongli.Services.Image
     public interface IImageService
     {
         /// <summary>
-        ///     Identifies a dominant color from the image at the supplied location.
-        /// </summary>
-        /// <param name="location">The location of the image.</param>
-        /// <returns>
-        ///     A <see cref="ValueTask" /> that will complete when the operation completes,
-        ///     containing a dominant color in the image.
-        /// </returns>
-        ValueTask<Color> GetDominantColorAsync(Uri location);
-
-        /// <summary>
         ///     Identifies a dominant color from the provided image.
         /// </summary>
         /// <param name="imageBytes">The bytes that compose the image for which the dominant color is to be retrieved.</param>
@@ -37,12 +27,22 @@ namespace Zhongli.Services.Image
         /// <param name="contextUser">The user to retrieve the avatar from.</param>
         /// <returns>A dominant color of the user.</returns>
         ValueTask<Color> GetAvatarColor(IUser contextUser);
+
+        /// <summary>
+        ///     Identifies a dominant color from the image at the supplied location.
+        /// </summary>
+        /// <param name="location">The location of the image.</param>
+        /// <returns>
+        ///     A <see cref="ValueTask" /> that will complete when the operation completes,
+        ///     containing a dominant color in the image.
+        /// </returns>
+        ValueTask<Color> GetDominantColorAsync(Uri location);
     }
 
     public sealed class ImageService : IImageService
     {
-        private readonly IMemoryCache       _cache;
-        private readonly ColorThief         _colorThief;
+        private readonly IMemoryCache _cache;
+        private readonly ColorThief _colorThief;
         private readonly IHttpClientFactory _httpClientFactory;
 
         public ImageService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache)

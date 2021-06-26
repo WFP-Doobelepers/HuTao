@@ -22,7 +22,7 @@ namespace Zhongli.Data.Models.VoiceChat
 
         public ulong VoiceChannelId { get; set; }
     }
-    
+
     public class VoiceChatLinkConfiguration : IEntityTypeConfiguration<VoiceChatLink>
     {
         public void Configure(EntityTypeBuilder<VoiceChatLink> builder)

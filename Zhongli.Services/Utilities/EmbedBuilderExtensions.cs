@@ -10,16 +10,6 @@ namespace Zhongli.Services.Utilities
     {
         private const int FieldMaxSize = 1024;
 
-        public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder builder, IUser user, string? extra = null)
-        {
-            var suffix = string.Empty;
-
-            if (!string.IsNullOrWhiteSpace(extra)) suffix = $" ({extra})";
-
-            return builder
-                .WithAuthor(user.GetFullUsername() + suffix, user.GetDefiniteAvatarUrl());
-        }
-
         public static EmbedBuilder AddLinesIntoFields<T>(this EmbedBuilder builder, string title,
             IEnumerable<T> lines, Func<T, string> lineSelector) =>
             builder.AddLinesIntoFields(title, lines.Select(lineSelector));
@@ -42,6 +32,16 @@ namespace Zhongli.Services.Utilities
             }
 
             return builder;
+        }
+
+        public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder builder, IUser user, string? extra = null)
+        {
+            var suffix = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(extra)) suffix = $" ({extra})";
+
+            return builder
+                .WithAuthor(user.GetFullUsername() + suffix, user.GetDefiniteAvatarUrl());
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,

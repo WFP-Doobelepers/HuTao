@@ -31,6 +31,11 @@ namespace Zhongli.Services.Interactive
 
     public static class PromptResultExtensions
     {
+        public static TValue Get<TKey, TValue>(
+            this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, Func<TypeReaderResult, TValue> selector)
+            where TKey : notnull =>
+            results[key].As(selector);
+
         public static TValue GetOrDefault<TKey, TValue>(
             this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, TValue @default = default)
             where TKey : notnull
@@ -40,10 +45,5 @@ namespace Zhongli.Services.Interactive
 
             return @default;
         }
-
-        public static TValue Get<TKey, TValue>(
-            this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, Func<TypeReaderResult, TValue> selector)
-            where TKey : notnull =>
-            results[key].As(selector);
     }
 }

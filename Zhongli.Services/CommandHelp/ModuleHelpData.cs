@@ -34,17 +34,17 @@ namespace Zhongli.Services.CommandHelp
                     .Select(CommandHelpData.FromCommandInfo)
                     .ToArray(),
                 HelpTags = module.Attributes
-                               .OfType<HelpTagsAttribute>()
-                               .SingleOrDefault()
-                               ?.Tags
-                           ?? Array.Empty<string>()
+                        .OfType<HelpTagsAttribute>()
+                        .SingleOrDefault()
+                        ?.Tags
+                    ?? Array.Empty<string>()
             };
 
             return ret;
 
-            static bool ShouldBeHidden(CommandInfo command)
-                => command.Preconditions.Any(x => x is RequireOwnerAttribute)
-                   || command.Attributes.Any(x => x is HiddenFromHelpAttribute);
+            static bool ShouldBeHidden(CommandInfo command) =>
+                command.Preconditions.Any(x => x is RequireOwnerAttribute)
+                || command.Attributes.Any(x => x is HiddenFromHelpAttribute);
         }
     }
 }

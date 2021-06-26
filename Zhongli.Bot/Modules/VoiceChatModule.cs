@@ -15,6 +15,29 @@ namespace Zhongli.Bot.Modules
 
         public VoiceChatModule(ZhongliContext db) { _db = db; }
 
+        [Command("ban")]
+        [Summary("Ban someone from your current VC.")]
+        public async Task BanAsync(IGuildUser user)
+        {
+            var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+                .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
+
+            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
+                return;
+
+            if (user.VoiceChannel.Id == voiceChat.VoiceChannelId)
+            {
+                await user.VoiceChannel.DisconnectAsync();
+                await user.VoiceChannel.AddPermissionOverwriteAsync(user,
+                    OverwritePermissions.DenyAll(user.VoiceChannel));
+
+                var textChannel = (IGuildChannel) Context.Channel;
+                await textChannel.AddPermissionOverwriteAsync(user, OverwritePermissions.DenyAll(textChannel));
+
+                await Context.Message.AddReactionAsync(new Emoji("✅"));
+            }
+        }
+
         [Command("claim")]
         [Summary("Claim this VC as yours. Only works if there are no other people in the VC.")]
         public async Task ClaimAsync()
@@ -67,29 +90,6 @@ namespace Zhongli.Bot.Modules
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("ban")]
-        [Summary("Ban someone from your current VC.")]
-        public async Task BanAsync(IGuildUser user)
-        {
-            var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
-                .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
-
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
-                return;
-
-            if (user.VoiceChannel.Id == voiceChat.VoiceChannelId)
-            {
-                await user.VoiceChannel.DisconnectAsync();
-                await user.VoiceChannel.AddPermissionOverwriteAsync(user,
-                    OverwritePermissions.DenyAll(user.VoiceChannel));
-
-                var textChannel = (IGuildChannel) Context.Channel;
-                await textChannel.AddPermissionOverwriteAsync(user, OverwritePermissions.DenyAll(textChannel));
-
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
-            }
         }
 
         [Command("hide")]

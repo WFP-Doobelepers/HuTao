@@ -7,11 +7,8 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Zhongli.Data;
-using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Utilities;
@@ -63,6 +60,20 @@ namespace Zhongli.Services.Core.Listeners
             }
         }
 
+        public async Task InitializeAsync()
+        {
+            _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
+
+            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
+            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
+
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        }
+
+        private static Task CommandExecutedAsync(
+            Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;
+
         private async Task CommandFailedAsync(ICommandContext context, IResult result)
         {
             var error = $"{result.Error}: {result.ErrorReason}";
@@ -77,20 +88,6 @@ namespace Zhongli.Services.Core.Listeners
                     $"Error: {FormatUtilities.SanitizeEveryone(result.ErrorReason)}");
             else
                 await _errorHandler.AssociateError(context.Message, error);
-        }
-
-        private static Task CommandExecutedAsync(
-            Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;
-
-        public async Task InitializeAsync()
-        {
-            _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
-            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-
-            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
-            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
-
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
     }
 }

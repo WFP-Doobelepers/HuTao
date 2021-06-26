@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Zhongli.Services.Core.TypeReaders
 {
-    public class EnumerableTypeReader<TReader, TResult> : TypeReader 
+    public class EnumerableTypeReader<TReader, TResult> : TypeReader
         where TReader : TypeReader
         where TResult : class
     {

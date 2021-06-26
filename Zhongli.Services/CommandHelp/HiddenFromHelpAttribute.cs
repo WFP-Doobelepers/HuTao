@@ -6,7 +6,5 @@ namespace Zhongli.Services.CommandHelp
     ///     Hides the module or command from display
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class HiddenFromHelpAttribute : Attribute
-    {
-    }
+    public class HiddenFromHelpAttribute : Attribute { }
 }

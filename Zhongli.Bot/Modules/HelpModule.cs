@@ -42,6 +42,26 @@ namespace Zhongli.Bot.Modules
             await ReplyAsync(embed: embed.Build());
         }
 
+        [Command]
+        [Summary("Retrieves help from a specific module or command.")]
+        [Priority(-10)]
+        public async Task HelpAsync(
+            [Remainder] [Summary("Name of the module or command to query.")]
+            string query)
+        {
+            await HelpAsync(query, HelpDataType.Command | HelpDataType.Module);
+        }
+
+        [Command("command")]
+        [Alias("commands")]
+        [Summary("Retrieves help from a specific command. Useful for commands that have an overlapping module name.")]
+        public async Task HelpCommandAsync(
+            [Remainder] [Summary("Name of the module to query.")]
+            string query)
+        {
+            await HelpAsync(query, HelpDataType.Command);
+        }
+
         [Command("dm")]
         [Summary("Spams the user's DMs with a list of every command available.")]
         public async Task HelpDMAsync()
@@ -67,16 +87,6 @@ namespace Zhongli.Bot.Modules
             await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
         }
 
-        [Command]
-        [Summary("Retrieves help from a specific module or command.")]
-        [Priority(-10)]
-        public async Task HelpAsync(
-            [Remainder] [Summary("Name of the module or command to query.")]
-            string query)
-        {
-            await HelpAsync(query, HelpDataType.Command | HelpDataType.Module);
-        }
-
         [Command("module")]
         [Alias("modules")]
         [Summary("Retrieves help from a specific module. Useful for modules that have an overlapping command name.")]
@@ -85,29 +95,6 @@ namespace Zhongli.Bot.Modules
             string query)
         {
             await HelpAsync(query, HelpDataType.Module);
-        }
-
-        [Command("command")]
-        [Alias("commands")]
-        [Summary("Retrieves help from a specific command. Useful for commands that have an overlapping module name.")]
-        public async Task HelpCommandAsync(
-            [Remainder] [Summary("Name of the module to query.")]
-            string query)
-        {
-            await HelpAsync(query, HelpDataType.Command);
-        }
-
-        private async Task HelpAsync(string query, HelpDataType type)
-        {
-            var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
-
-            if (TryGetEmbed(query, type, out var embed))
-            {
-                await ReplyAsync($"Results for \"{sanitizedQuery}\":", embed: embed.Build());
-                return;
-            }
-
-            await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
         }
 
         private bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
@@ -138,6 +125,24 @@ namespace Zhongli.Bot.Modules
             return false;
         }
 
+        private EmbedBuilder AddCommandFields(EmbedBuilder embedBuilder, CommandHelpData command)
+        {
+            var summaryBuilder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
+            var name = command.Aliases.FirstOrDefault();
+            AppendAliases(summaryBuilder,
+                command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList());
+            AppendParameters(summaryBuilder, command.Parameters);
+
+            embedBuilder.AddField(new EmbedFieldBuilder()
+                .WithName($"Command: z!{name} {GetParams(command)}")
+                .WithValue(summaryBuilder.ToString()));
+
+            return embedBuilder;
+        }
+
+        private EmbedBuilder GetEmbedForCommand(CommandHelpData command) =>
+            AddCommandFields(new EmbedBuilder(), command);
+
         private EmbedBuilder GetEmbedForModule(ModuleHelpData module)
         {
             var embedBuilder = new EmbedBuilder()
@@ -152,22 +157,12 @@ namespace Zhongli.Bot.Modules
             return embedBuilder;
         }
 
-        private EmbedBuilder GetEmbedForCommand(CommandHelpData command) =>
-            AddCommandFields(new EmbedBuilder(), command);
-
-        private EmbedBuilder AddCommandFields(EmbedBuilder embedBuilder, CommandHelpData command)
+        private static string GetParams(CommandHelpData info)
         {
-            var summaryBuilder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
-            var name = command.Aliases.FirstOrDefault();
-            AppendAliases(summaryBuilder,
-                command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList());
-            AppendParameters(summaryBuilder, command.Parameters);
+            var parameters = info.Parameters
+                .Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>");
 
-            embedBuilder.AddField(new EmbedFieldBuilder()
-                .WithName($"Command: z!{name} {GetParams(command)}")
-                .WithValue(summaryBuilder.ToString()));
-
-            return embedBuilder;
+            return string.Join(" ", parameters);
         }
 
         private StringBuilder AppendAliases(StringBuilder stringBuilder, IReadOnlyCollection<string> aliases)
@@ -205,12 +200,17 @@ namespace Zhongli.Bot.Modules
             return stringBuilder;
         }
 
-        private static string GetParams(CommandHelpData info)
+        private async Task HelpAsync(string query, HelpDataType type)
         {
-            var parameters = info.Parameters
-                .Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>");
+            var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-            return string.Join(" ", parameters);
+            if (TryGetEmbed(query, type, out var embed))
+            {
+                await ReplyAsync($"Results for \"{sanitizedQuery}\":", embed: embed.Build());
+                return;
+            }
+
+            await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
         }
 
         [Flags]

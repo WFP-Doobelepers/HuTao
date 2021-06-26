@@ -14,23 +14,7 @@ namespace Zhongli.Bot.Modules.Moderation
     {
         private readonly ZhongliContext _db;
 
-        public AutoModerationModule(ZhongliContext db)
-        {
-            _db = db;
-        }
-
-        [Command("muteAt")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
-        public async Task MuteAtAsync(uint triggerAt, TimeSpan? length = null)
-        {
-            var rules = await AutoConfigureGuild(Context.Guild.Id);
-            var similar = rules.MuteTriggers.FirstOrDefault(m => m.Length == length);
-
-            if (similar != null) _db.Remove(similar);
-            rules.MuteTriggers.Add(new MuteTrigger(triggerAt, length));
-
-            await _db.SaveChangesAsync();
-        }
+        public AutoModerationModule(ZhongliContext db) { _db = db; }
 
         [Command("banAt")]
         [RequireAuthorization(AuthorizationScope.Auto)]
@@ -52,6 +36,19 @@ namespace Zhongli.Bot.Modules.Moderation
 
             if (rules.KickTrigger is not null) _db.Remove(rules.KickTrigger);
             rules.KickTrigger = new KickTrigger(triggerAt);
+
+            await _db.SaveChangesAsync();
+        }
+
+        [Command("muteAt")]
+        [RequireAuthorization(AuthorizationScope.Auto)]
+        public async Task MuteAtAsync(uint triggerAt, TimeSpan? length = null)
+        {
+            var rules = await AutoConfigureGuild(Context.Guild.Id);
+            var similar = rules.MuteTriggers.FirstOrDefault(m => m.Length == length);
+
+            if (similar != null) _db.Remove(similar);
+            rules.MuteTriggers.Add(new MuteTrigger(triggerAt, length));
 
             await _db.SaveChangesAsync();
         }

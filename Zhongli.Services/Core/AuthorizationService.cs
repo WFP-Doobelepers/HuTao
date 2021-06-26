@@ -19,6 +19,33 @@ namespace Zhongli.Services.Core
 
         public AuthorizationService(ZhongliContext db) { _db = db; }
 
+        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId,
+            CancellationToken cancellationToken = default)
+        {
+            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ??
+                _db.Add(new GuildEntity(guildId)).Entity;
+
+            if (guild.AuthorizationRules is not null)
+                return guild.AuthorizationRules;
+
+            guild.AuthorizationRules = new AuthorizationRules
+            {
+                PermissionAuthorizations = new List<PermissionAuthorization>
+                {
+                    new()
+                    {
+                        Date       = DateTimeOffset.UtcNow,
+                        Permission = GuildPermission.Administrator,
+                        Scope      = AuthorizationScope.All
+                    }
+                }
+            };
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return guild.AuthorizationRules;
+        }
+
         public async Task<bool> IsAuthorized(
             ICommandContext context, IGuildUser user, AuthorizationScope scope,
             CancellationToken cancellationToken = default)
@@ -56,33 +83,6 @@ namespace Zhongli.Services.Core
             {
                 return rule.Where(auth => (auth.Scope & scope) != 0);
             }
-        }
-
-        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId,
-            CancellationToken cancellationToken = default)
-        {
-            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ??
-                _db.Add(new GuildEntity(guildId)).Entity;
-
-            if (guild.AuthorizationRules is not null)
-                return guild.AuthorizationRules;
-
-            guild.AuthorizationRules = new AuthorizationRules
-            {
-                PermissionAuthorizations = new List<PermissionAuthorization>
-                {
-                    new()
-                    {
-                        Date       = DateTimeOffset.UtcNow,
-                        Permission = GuildPermission.Administrator,
-                        Scope      = AuthorizationScope.All
-                    }
-                }
-            };
-
-            await _db.SaveChangesAsync(cancellationToken);
-
-            return guild.AuthorizationRules;
         }
     }
 }

@@ -9,6 +9,10 @@ namespace Zhongli.Services.Interactive
     {
         public ResultDictionary(IDictionary<TOptions, PromptResult> dictionary) : base(dictionary) { }
 
+        public TValue Get<TValue>(TOptions key) => this[key].As<TValue>();
+
+        public TValue Get<TValue>(TOptions key, Func<TypeReaderResult, TValue> selector) => this[key].As(selector);
+
         public TValue? GetOrDefault<TValue>(TOptions key, TValue? @default = default)
         {
             if (TryGetValue(key, out var result) && result!.UserResponse is TValue)
@@ -16,9 +20,5 @@ namespace Zhongli.Services.Interactive
 
             return @default;
         }
-
-        public TValue Get<TValue>(TOptions key) => this[key].As<TValue>();
-
-        public TValue Get<TValue>(TOptions key, Func<TypeReaderResult, TValue> selector) => this[key].As(selector);
     }
 }

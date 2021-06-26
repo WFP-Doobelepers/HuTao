@@ -45,7 +45,7 @@ namespace Zhongli.Services.Interactive
                 .WithUserAsAuthor(Context.User)
                 .WithDescription(content)
                 .WithColor(promptOptions?.Color ??
-                           await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
+                    await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
                 .WithFields(promptOptions?.Fields ?? Enumerable.Empty<EmbedFieldBuilder>());
 
             if (!promptOptions?.IsRequired ?? false)
