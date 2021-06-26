@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -21,6 +23,8 @@ namespace Zhongli.Bot.Behaviors
         private readonly ZhongliContext _db;
 
         public VoiceChatBehavior(ZhongliContext db) { _db = db; }
+
+        private static ConcurrentDictionary<ulong, CancellationTokenSource> PurgeTasks { get; } = new();
 
         public async Task Handle(UserVoiceStateNotification notification, CancellationToken cancellationToken)
         {
@@ -90,20 +94,30 @@ namespace Zhongli.Bot.Behaviors
             }
             else if (oldChannel is not null && newChannel is null)
             {
-                var users = oldChannel.Users.Where(u => !u.IsBot);
-                if (!users.Any())
+                if (rules.PurgeEmpty && !PurgeTasks.ContainsKey(oldChannel.Id))
                 {
-                    var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == oldChannel.Id);
-                    if (voiceChat is not null && rules.PurgeEmpty)
+                    var users = oldChannel.Users.Where(u => !u.IsBot);
+                    if (!users.Any())
                     {
-                        var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-                        var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
+                        var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == oldChannel.Id);
+                        if (voiceChat is not null)
+                        {
+                            var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
+                            var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
 
-                        await voiceChannel.DeleteAsync();
-                        await textChannel.DeleteAsync();
+                            var tokenSource = new CancellationTokenSource();
+                            _ = Task.Run(async () =>
+                            {
+                                await Task.Delay(TimeSpan.FromMinutes(1), tokenSource.Token);
+                                await voiceChannel.DeleteAsync();
+                                await textChannel.DeleteAsync();
 
-                        _db.Remove(voiceChat);
-                        await _db.SaveChangesAsync(cancellationToken);
+                                _db.Remove(voiceChat);
+                                await _db.SaveChangesAsync(cancellationToken);
+                            }, tokenSource.Token);
+
+                            PurgeTasks.TryAdd(oldChannel.Id, tokenSource);
+                        }
                     }
                 }
             }
@@ -115,6 +129,9 @@ namespace Zhongli.Bot.Behaviors
                     var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
                     await textChannel.AddPermissionOverwriteAsync(user,
                         new OverwritePermissions(viewChannel: PermValue.Allow));
+
+                    if (PurgeTasks.TryRemove(newChannel.Id, out var token))
+                        token?.Cancel();
                 }
             }
         }
