@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using Discord;
 using Discord.Commands;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.CommandHelp
 {
@@ -38,6 +41,22 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         ModuleHelpData? GetModuleHelpData(string query);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="CommandHelpData" />.
+        /// </summary>
+        /// <param name="command">The command's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
+        EmbedBuilder GetEmbedForCommand(CommandHelpData command);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="ModuleHelpData" />
+        /// </summary>
+        /// <param name="module">The module's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
+        EmbedBuilder GetEmbedForModule(ModuleHelpData module);
+
+        bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed);
     }
 
     /// <inheritdoc />
@@ -84,7 +103,7 @@ namespace Zhongli.Services.CommandHelp
         }
 
         /// <inheritdoc />
-        public CommandHelpData GetCommandHelpData(string query)
+        public CommandHelpData? GetCommandHelpData(string query)
         {
             var allHelpData = GetModuleHelpData().SelectMany(x => x.Commands).ToList();
 
@@ -101,5 +120,115 @@ namespace Zhongli.Services.CommandHelp
 
             return null;
         }
+
+        public EmbedBuilder GetEmbedForCommand(CommandHelpData command) =>
+            AddCommandFields(new EmbedBuilder(), command);
+
+        public EmbedBuilder GetEmbedForModule(ModuleHelpData module)
+        {
+            var embedBuilder = new EmbedBuilder()
+                .WithTitle($"Module: {module.Name}")
+                .WithDescription(module.Summary);
+
+            foreach (var command in module.Commands)
+            {
+                AddCommandFields(embedBuilder, command);
+            }
+
+            return embedBuilder;
+        }
+
+        public bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
+        {
+            embed = null!;
+
+            // Prioritize module over command.
+            if (queries.HasFlag(HelpDataType.Module))
+            {
+                var byModule = GetModuleHelpData(query);
+                if (byModule is not null)
+                {
+                    embed = GetEmbedForModule(byModule);
+                    return true;
+                }
+            }
+
+            if (queries.HasFlag(HelpDataType.Command))
+            {
+                var byCommand = GetCommandHelpData(query);
+                if (byCommand is not null)
+                {
+                    embed = GetEmbedForCommand(byCommand);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private EmbedBuilder AddCommandFields(EmbedBuilder embedBuilder, CommandHelpData command)
+        {
+            var summaryBuilder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
+            var name = command.Aliases.FirstOrDefault();
+            AppendAliases(summaryBuilder,
+                command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList());
+            AppendParameters(summaryBuilder, command.Parameters);
+
+            embedBuilder.AddField(new EmbedFieldBuilder()
+                .WithName($"Command: z!{name} {GetParams(command)}")
+                .WithValue(summaryBuilder.ToString()));
+
+            return embedBuilder;
+        }
+
+        private static string GetParams(CommandHelpData info)
+        {
+            var parameters = info.Parameters
+                .Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>");
+
+            return string.Join(" ", parameters);
+        }
+
+        private StringBuilder AppendAliases(StringBuilder stringBuilder, IReadOnlyCollection<string> aliases)
+        {
+            if (aliases.Count == 0)
+                return stringBuilder;
+
+            stringBuilder.AppendLine(Format.Bold("Aliases:"));
+
+            foreach (var alias in FormatUtilities.CollapsePlurals(aliases))
+            {
+                stringBuilder.AppendLine($"• {alias}");
+            }
+
+            return stringBuilder;
+        }
+
+        private StringBuilder AppendParameters(StringBuilder stringBuilder,
+            IReadOnlyCollection<ParameterHelpData> parameters)
+        {
+            var includedParameters = parameters
+                .Where(p => p.Summary is not null)
+                .ToList();
+
+            if (includedParameters.Count == 0)
+                return stringBuilder;
+
+            stringBuilder.AppendLine(Format.Bold("Parameters:"));
+
+            foreach (var parameter in includedParameters)
+            {
+                stringBuilder.AppendLine($"• {Format.Bold(parameter.Name)}: {parameter.Summary}");
+            }
+
+            return stringBuilder;
+        }
+    }
+
+    [Flags]
+    public enum HelpDataType
+    {
+        Command = 1 << 1,
+        Module = 1 << 2
     }
 }

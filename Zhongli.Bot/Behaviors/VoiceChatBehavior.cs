@@ -10,6 +10,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.VoiceChat;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 
@@ -20,9 +21,14 @@ namespace Zhongli.Bot.Behaviors
         private static readonly Regex VcRegex = new(@"^VC([ ]|-)(?<i>[0-9]+)$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private readonly ICommandHelpService _commandHelp;
         private readonly ZhongliContext _db;
 
-        public VoiceChatBehavior(ZhongliContext db) { _db = db; }
+        public VoiceChatBehavior(ZhongliContext db, ICommandHelpService commandHelp)
+        {
+            _db          = db;
+            _commandHelp = commandHelp;
+        }
 
         private static ConcurrentDictionary<ulong, CancellationTokenSource> PurgeTasks { get; } = new();
 
@@ -75,6 +81,12 @@ namespace Zhongli.Bot.Behaviors
                         c => c.CategoryId = rules.VoiceChatCategoryId);
                     await textChannel.AddPermissionOverwriteAsync(guild.EveryoneRole,
                         new OverwritePermissions(viewChannel: PermValue.Deny));
+
+                    if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var embed))
+                    {
+                        var message = await textChannel.SendMessageAsync(embed: embed.Build());
+                        await message.PinAsync();
+                    }
 
                     var voiceChat = new VoiceChatLink
                     {
@@ -132,6 +144,9 @@ namespace Zhongli.Bot.Behaviors
                     var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
                     await textChannel.AddPermissionOverwriteAsync(user,
                         new OverwritePermissions(viewChannel: PermValue.Allow));
+
+                    if (rules.ShowJoinLeave)
+                        await textChannel.SendMessageAsync($"{user.Mention} has joined the VC. You can chat in here.");
                 }
             }
         }

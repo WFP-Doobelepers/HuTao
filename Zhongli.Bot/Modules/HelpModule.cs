@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
@@ -70,7 +68,7 @@ namespace Zhongli.Bot.Modules
 
             foreach (var module in _commandHelpService.GetModuleHelpData().OrderBy(x => x.Name))
             {
-                var embed = GetEmbedForModule(module);
+                var embed = _commandHelpService.GetEmbedForModule(module);
 
                 try
                 {
@@ -97,127 +95,17 @@ namespace Zhongli.Bot.Modules
             await HelpAsync(query, HelpDataType.Module);
         }
 
-        private bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
-        {
-            embed = null!;
-
-            // Prioritize module over command.
-            if (queries.HasFlag(HelpDataType.Module))
-            {
-                var byModule = _commandHelpService.GetModuleHelpData(query);
-                if (byModule is not null)
-                {
-                    embed = GetEmbedForModule(byModule);
-                    return true;
-                }
-            }
-
-            if (queries.HasFlag(HelpDataType.Command))
-            {
-                var byCommand = _commandHelpService.GetCommandHelpData(query);
-                if (byCommand is not null)
-                {
-                    embed = GetEmbedForCommand(byCommand);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private EmbedBuilder AddCommandFields(EmbedBuilder embedBuilder, CommandHelpData command)
-        {
-            var summaryBuilder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
-            var name = command.Aliases.FirstOrDefault();
-            AppendAliases(summaryBuilder,
-                command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList());
-            AppendParameters(summaryBuilder, command.Parameters);
-
-            embedBuilder.AddField(new EmbedFieldBuilder()
-                .WithName($"Command: z!{name} {GetParams(command)}")
-                .WithValue(summaryBuilder.ToString()));
-
-            return embedBuilder;
-        }
-
-        private EmbedBuilder GetEmbedForCommand(CommandHelpData command) =>
-            AddCommandFields(new EmbedBuilder(), command);
-
-        private EmbedBuilder GetEmbedForModule(ModuleHelpData module)
-        {
-            var embedBuilder = new EmbedBuilder()
-                .WithTitle($"Module: {module.Name}")
-                .WithDescription(module.Summary);
-
-            foreach (var command in module.Commands)
-            {
-                AddCommandFields(embedBuilder, command);
-            }
-
-            return embedBuilder;
-        }
-
-        private static string GetParams(CommandHelpData info)
-        {
-            var parameters = info.Parameters
-                .Select(p => p.IsOptional ? $"[{p.Name}]" : $"<{p.Name}>");
-
-            return string.Join(" ", parameters);
-        }
-
-        private StringBuilder AppendAliases(StringBuilder stringBuilder, IReadOnlyCollection<string> aliases)
-        {
-            if (aliases.Count == 0)
-                return stringBuilder;
-
-            stringBuilder.AppendLine(Format.Bold("Aliases:"));
-
-            foreach (var alias in FormatUtilities.CollapsePlurals(aliases))
-            {
-                stringBuilder.AppendLine($"• {alias}");
-            }
-
-            return stringBuilder;
-        }
-
-        private StringBuilder AppendParameters(StringBuilder stringBuilder,
-            IReadOnlyCollection<ParameterHelpData> parameters)
-        {
-            var includedParameters = parameters
-                .Where(p => p.Summary is not null)
-                .ToList();
-
-            if (includedParameters.Count == 0)
-                return stringBuilder;
-
-            stringBuilder.AppendLine(Format.Bold("Parameters:"));
-
-            foreach (var parameter in includedParameters)
-            {
-                stringBuilder.AppendLine($"• {Format.Bold(parameter.Name)}: {parameter.Summary}");
-            }
-
-            return stringBuilder;
-        }
-
         private async Task HelpAsync(string query, HelpDataType type)
         {
             var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-            if (TryGetEmbed(query, type, out var embed))
+            if (_commandHelpService.TryGetEmbed(query, type, out var embed))
             {
                 await ReplyAsync($"Results for \"{sanitizedQuery}\":", embed: embed.Build());
                 return;
             }
 
             await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
-        }
-
-        [Flags]
-        private enum HelpDataType
-        {
-            Command = 1 << 1,
-            Module = 1 << 2
         }
     }
 }
