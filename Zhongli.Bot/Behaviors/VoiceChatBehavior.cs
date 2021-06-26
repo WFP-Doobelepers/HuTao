@@ -28,15 +28,15 @@ namespace Zhongli.Bot.Behaviors
 
         public async Task Handle(UserVoiceStateNotification notification, CancellationToken cancellationToken)
         {
-            var oldChannel = notification.Old.VoiceChannel;
-            var newChannel = notification.New.VoiceChannel;
-
-            if (notification.User is not SocketGuildUser user)
+            if (notification.User.IsBot || notification.User.IsWebhook || notification.User is not SocketGuildUser user)
                 return;
 
             var guild = user.Guild;
             var rules = await _db.Set<VoiceChatRules>().AsQueryable()
                 .FirstOrDefaultAsync(r => r.GuildId == guild.Id, cancellationToken);
+
+            var oldChannel = notification.Old.VoiceChannel;
+            var newChannel = notification.New.VoiceChannel;
 
             if (newChannel?.Id == rules.HubVoiceChannelId)
             {
@@ -123,15 +123,15 @@ namespace Zhongli.Bot.Behaviors
             }
             else if (newChannel is not null)
             {
+                if (PurgeTasks.TryRemove(newChannel.Id, out var token))
+                    token?.Cancel();
+
                 var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == newChannel.Id);
                 if (voiceChat is not null)
                 {
                     var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
                     await textChannel.AddPermissionOverwriteAsync(user,
                         new OverwritePermissions(viewChannel: PermValue.Allow));
-
-                    if (PurgeTasks.TryRemove(newChannel.Id, out var token))
-                        token?.Cancel();
                 }
             }
         }
