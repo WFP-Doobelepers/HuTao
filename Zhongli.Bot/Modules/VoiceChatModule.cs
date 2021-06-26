@@ -25,14 +25,15 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
-            if (user.VoiceChannel.Id == voiceChat.VoiceChannelId)
+            if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
             {
-                await user.VoiceChannel.DisconnectAsync();
+                await user.ModifyAsync(u => u.Channel = null);
                 await user.VoiceChannel.AddPermissionOverwriteAsync(user,
                     OverwritePermissions.DenyAll(user.VoiceChannel));
 
                 var textChannel = (IGuildChannel) Context.Channel;
-                await textChannel.AddPermissionOverwriteAsync(user, OverwritePermissions.DenyAll(textChannel));
+                await textChannel.AddPermissionOverwriteAsync(user,
+                    OverwritePermissions.DenyAll(textChannel));
 
                 await Context.Message.AddReactionAsync(new Emoji("✅"));
             }
@@ -119,9 +120,9 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
-            if (user.VoiceChannel.Id == voiceChat.VoiceChannelId)
+            if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
             {
-                await user.VoiceChannel.DisconnectAsync();
+                await user.ModifyAsync(u => u.Channel = null);
                 await Context.Message.AddReactionAsync(new Emoji("✅"));
             }
         }
