@@ -13,7 +13,7 @@ namespace Zhongli.Services.AutoRemoveMessage
         INotificationHandler<RemovableMessageRemovedNotification>,
         INotificationHandler<RemovableMessageSentNotification>
     {
-        private static readonly MemoryCacheEntryOptions _messageCacheOptions =
+        private static readonly MemoryCacheEntryOptions MessageCacheOptions =
             new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(60));
 
         public AutoRemoveMessageHandler(
@@ -68,7 +68,7 @@ namespace Zhongli.Services.AutoRemoveMessage
                     Message = notification.Message,
                     Users   = notification.Users
                 },
-                _messageCacheOptions);
+                MessageCacheOptions);
 
             return Task.CompletedTask;
         }
