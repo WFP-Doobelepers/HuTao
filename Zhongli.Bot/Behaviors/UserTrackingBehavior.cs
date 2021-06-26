@@ -17,15 +17,25 @@ namespace Zhongli.Bot.Behaviors
 
         public UserTrackingBehavior(ZhongliContext db) { _db = db; }
 
-        public Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken) =>
-            _db.Users.TrackUserAsync(notification.NewMember, cancellationToken);
+        public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
+        {
+            await _db.Users.TrackUserAsync(notification.NewMember, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
 
-        public Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
-            => notification.Message.Author is IGuildUser { Guild: { } } author
-                ? _db.Users.TrackUserAsync(author, cancellationToken)
-                : Task.CompletedTask;
+        public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
+        {
+            if (notification.Message.Author is IGuildUser { Guild: { } } author)
+            {
+                await _db.Users.TrackUserAsync(author, cancellationToken);
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+        }
 
-        public Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken) =>
-            _db.Users.TrackUserAsync(notification.GuildUser, cancellationToken);
+        public async Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)
+        {
+            await _db.Users.TrackUserAsync(notification.GuildUser, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 }

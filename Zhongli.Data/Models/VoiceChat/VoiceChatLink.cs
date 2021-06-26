@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.VoiceChat
 
         [ForeignKey(nameof(GuildId))] public virtual GuildEntity Guild { get; set; }
 
-        [ForeignKey(nameof(OwnerId))] public virtual GuildUserEntity Owner { get; set; }
+        public virtual GuildUserEntity Owner { get; set; }
 
         public ulong GuildId { get; set; }
 

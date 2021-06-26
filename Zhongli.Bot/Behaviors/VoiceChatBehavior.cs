@@ -37,6 +37,8 @@ namespace Zhongli.Bot.Behaviors
             if (notification.User.IsBot || notification.User.IsWebhook || notification.User is not SocketGuildUser user)
                 return;
 
+            await _db.Users.TrackUserAsync(user, cancellationToken);
+
             var guild = user.Guild;
             var rules = await _db.Set<VoiceChatRules>().AsQueryable()
                 .FirstOrDefaultAsync(r => r.GuildId == guild.Id, cancellationToken);
