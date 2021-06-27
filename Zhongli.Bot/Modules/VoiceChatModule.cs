@@ -55,9 +55,15 @@ namespace Zhongli.Bot.Modules
                 return;
             }
 
-            var owner = await Context.Guild.GetUserAsync(voiceChat.OwnerId);
             var voiceChannel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var users = await voiceChannel.GetUsersAsync().FlattenAsync();
+            if (users.Any(u => u.Id == voiceChat.OwnerId))
+            {
+                await ReplyAsync("You cannot claim this VC.");
+                return;
+            }
 
+            var owner = await Context.Guild.GetUserAsync(voiceChat.OwnerId);
             await voiceChannel.RemovePermissionOverwriteAsync(owner);
             await voiceChannel.AddPermissionOverwriteAsync(Context.User,
                 new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
