@@ -10,6 +10,7 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
+    [RequireAuthorization(AuthorizationScope.Auto)]
     public class AutoModerationModule : ModuleBase
     {
         private readonly ZhongliContext _db;
@@ -17,7 +18,6 @@ namespace Zhongli.Bot.Modules.Moderation
         public AutoModerationModule(ZhongliContext db) { _db = db; }
 
         [Command("banAt")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
         public async Task BanAtAsync(uint triggerAt, uint deleteDays = 0)
         {
             var rules = await AutoConfigureGuild(Context.Guild.Id);
@@ -29,7 +29,6 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("kickAt")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
         public async Task KickAtAsync(uint triggerAt)
         {
             var rules = await AutoConfigureGuild(Context.Guild.Id);
@@ -41,7 +40,6 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("muteAt")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
         public async Task MuteAtAsync(uint triggerAt, TimeSpan? length = null)
         {
             var rules = await AutoConfigureGuild(Context.Guild.Id);
