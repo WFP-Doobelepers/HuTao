@@ -14,7 +14,7 @@ namespace Zhongli.Services.CommandHelp
 
         public string Name { get; set; }
 
-        public string Summary { get; set; }
+        public string? Summary { get; set; }
 
         public static ModuleHelpData FromModuleInfo(ModuleInfo module)
         {
@@ -28,7 +28,7 @@ namespace Zhongli.Services.CommandHelp
             var ret = new ModuleHelpData
             {
                 Name    = moduleName,
-                Summary = string.IsNullOrWhiteSpace(module.Summary) ? "No Summary" : module.Summary,
+                Summary = string.IsNullOrWhiteSpace(module.Summary) ? "No Summary." : module.Summary,
                 Commands = module.Commands
                     .Where(x => !ShouldBeHidden(x))
                     .Select(CommandHelpData.FromCommandInfo)

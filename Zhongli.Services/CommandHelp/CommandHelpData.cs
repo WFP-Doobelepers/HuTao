@@ -12,7 +12,7 @@ namespace Zhongli.Services.CommandHelp
 
         public string Name { get; set; }
 
-        public string Summary { get; set; }
+        public string? Summary { get; set; }
 
         public static CommandHelpData FromCommandInfo(CommandInfo command)
         {

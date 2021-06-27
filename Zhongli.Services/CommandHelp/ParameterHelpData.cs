@@ -1,42 +1,82 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Discord.Commands;
+using Namotion.Reflection;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.CommandHelp
 {
+    public enum ParameterType
+    {
+        None,
+        Enum,
+        NamedArgument
+    }
+
     public class ParameterHelpData
     {
+        private ParameterHelpData(
+            string name, Type type,
+            string? summary = null, bool isOptional = false,
+            IReadOnlyCollection<ParameterHelpData>? options = null)
+        {
+            Name       = name;
+            Summary    = summary;
+            Type       = type;
+            IsOptional = isOptional;
+            Options    = options ?? Array.Empty<ParameterHelpData>();
+        }
+
         public bool IsOptional { get; set; }
 
-        public IReadOnlyCollection<string> Options { get; set; }
+        public IReadOnlyCollection<ParameterHelpData> Options { get; set; }
 
-        public string? Name { get; set; }
+        public string Name { get; set; }
 
         public string? Summary { get; set; }
 
-        public string? Type { get; set; }
+        public Type Type { get; set; }
 
         public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
         {
-            var isNullable = parameter.Type.IsGenericType &&
-                parameter.Type.GetGenericTypeDefinition() == typeof(Nullable<>);
-            var paramType = isNullable ? parameter.Type.GetGenericArguments()[0] : parameter.Type;
-            var typeName = paramType.Name;
+            var type = parameter.Type.ToContextualType();
 
-            if (paramType.IsInterface && paramType.Name.StartsWith('I')) typeName = typeName[1..];
-
-            var ret = new ParameterHelpData
+            var options = type switch
             {
-                Name       = parameter.Name,
-                Summary    = parameter.Summary,
-                Type       = typeName,
-                IsOptional = isNullable || parameter.IsOptional,
-                Options = parameter.Type.IsEnum
-                    ? parameter.Type.GetEnumNames()
-                    : Array.Empty<string>()
+                var t when t.Type.IsEnum => FromEnum(t),
+                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null =>
+                    FromNamedArgumentInfo(type),
+                _ => null
             };
 
-            return ret;
+            return new ParameterHelpData(parameter.Name, type, parameter.Summary,
+                parameter.IsOptional, options?.ToList());
+        }
+
+        private static IEnumerable<ParameterHelpData> FromEnum(Type type)
+        {
+            foreach (Enum? n in type.GetEnumValues())
+            {
+                if (n is null)
+                    continue;
+
+                var name = n.ToString();
+                var summary = n.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text;
+                yield return new ParameterHelpData(name, type, summary);
+            }
+        }
+
+        private static IEnumerable<ParameterHelpData> FromNamedArgumentInfo(CachedType type)
+        {
+            var properties = type.Type.GetPublicProperties();
+
+            return properties.Select(p =>
+            {
+                var info = p.ToContextualProperty();
+                return new ParameterHelpData(info.Name, info,
+                    p.GetAttribute<HelpSummaryAttribute>()?.Text, info.Nullability == Nullability.Nullable);
+            });
         }
     }
 }
