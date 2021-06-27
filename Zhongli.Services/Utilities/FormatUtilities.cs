@@ -134,7 +134,7 @@ namespace Zhongli.Services.Utilities
         /// </summary>
         /// <param name="message">The code</param>
         /// <returns>The code language if a match is found, null of none are found</returns>
-        public static string GetCodeLanguage(string message)
+        public static string? GetCodeLanguage(string message)
         {
             var match = BuildContentRegex.Match(message);
             if (match.Success)

@@ -17,7 +17,7 @@ namespace Zhongli.Services.Utilities
             }
         }
 
-        public static IEnumerable<(TFirst First, TSecond Second)> ZipOrDefault<TFirst, TSecond>(
+        public static IEnumerable<(TFirst? First, TSecond? Second)> ZipOrDefault<TFirst, TSecond>(
             this IEnumerable<TFirst> first, IEnumerable<TSecond> second)
         {
             using var e1 = first.GetEnumerator();

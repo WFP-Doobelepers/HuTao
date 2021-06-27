@@ -54,7 +54,7 @@ namespace Zhongli.Services.Core
             CancellationToken cancellationToken = default)
         {
             var guild = await _db.Guilds.FindByIdAsync(user.GuildId, cancellationToken);
-            var muteRole = guild.MuteRoleId;
+            var muteRole = guild?.MuteRoleId;
 
             if (muteRole is null || user.HasRole(muteRole.Value))
                 return false;

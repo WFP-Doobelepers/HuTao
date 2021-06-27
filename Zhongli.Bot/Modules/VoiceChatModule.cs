@@ -88,7 +88,7 @@ namespace Zhongli.Bot.Modules
                 .SelectAwait(async v => new
                 {
                     VoiceChannel = await Context.Guild.GetVoiceChannelAsync(v.VoiceChannelId),
-                    VoiceChat = await Context.Guild.GetTextChannelAsync(v.TextChannelId)
+                    VoiceChat    = await Context.Guild.GetTextChannelAsync(v.TextChannelId)
                 })
                 .WhereAwait(async v =>
                 {
@@ -99,9 +99,9 @@ namespace Zhongli.Bot.Modules
             await foreach (var link in empty)
             {
                 var voiceChat = voiceChats.FirstOrDefault(v => v.VoiceChannelId == link.VoiceChannel.Id);
-                
+
                 _db.Remove(voiceChat!);
-                
+
                 await link.VoiceChannel.DeleteAsync();
                 await link.VoiceChat.DeleteAsync();
             }
