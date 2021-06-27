@@ -90,7 +90,11 @@ namespace Zhongli.Bot.Modules
                     VoiceChannel = await Context.Guild.GetVoiceChannelAsync(v.VoiceChannelId),
                     VoiceChat = await Context.Guild.GetTextChannelAsync(v.TextChannelId)
                 })
-                .WhereAwait(async v => !await v.VoiceChannel.GetUsersAsync().AnyAsync());
+                .WhereAwait(async v =>
+                {
+                    var users = await v.VoiceChannel.GetUsersAsync().FlattenAsync();
+                    return users.All(u => u.IsBot || u.IsWebhook);
+                });
 
             await foreach (var link in empty)
             {
@@ -215,7 +219,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null)
+            if (voiceChat is null || user.IsBot || user.IsWebhook)
                 return;
 
             if (voiceChat.OwnerId == user.Id)
