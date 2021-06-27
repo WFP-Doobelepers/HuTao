@@ -85,14 +85,21 @@ namespace Zhongli.Bot.Modules
 
             var voiceChats = guild.VoiceChatRules.VoiceChats.ToList();
             var empty = voiceChats.ToAsyncEnumerable()
-                .SelectAwait(async v => await Context.Guild.GetVoiceChannelAsync(v.VoiceChannelId));
+                .SelectAwait(async v => new
+                {
+                    VoiceChannel = await Context.Guild.GetVoiceChannelAsync(v.VoiceChannelId),
+                    VoiceChat = await Context.Guild.GetTextChannelAsync(v.TextChannelId)
+                })
+                .WhereAwait(async v => !await v.VoiceChannel.GetUsersAsync().AnyAsync());
 
-            await foreach (var channel in empty)
+            await foreach (var link in empty)
             {
-                var voiceChat = voiceChats.FirstOrDefault(v => v.VoiceChannelId == channel.Id);
-
+                var voiceChat = voiceChats.FirstOrDefault(v => v.VoiceChannelId == link.VoiceChannel.Id);
+                
                 _db.Remove(voiceChat!);
-                await channel.DeleteAsync();
+                
+                await link.VoiceChannel.DeleteAsync();
+                await link.VoiceChat.DeleteAsync();
             }
 
             await _db.SaveChangesAsync();
