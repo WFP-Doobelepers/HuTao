@@ -26,6 +26,9 @@ namespace Zhongli.Bot.Modules
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
 
+            if (hubVoiceChannel.CategoryId is null)
+                return;
+
             if (guild.VoiceChatRules is not null)
                 _db.Remove(guild.VoiceChatRules);
 
@@ -33,8 +36,8 @@ namespace Zhongli.Bot.Modules
             {
                 GuildId                = guild.Id,
                 HubVoiceChannelId      = hubVoiceChannel.Id,
-                VoiceChannelCategoryId = options?.VoiceChannelCategory?.Id ?? hubVoiceChannel.Id,
-                VoiceChatCategoryId    = options?.VoiceChatCategory?.Id ?? hubVoiceChannel.Id,
+                VoiceChannelCategoryId = options?.VoiceChannelCategory?.Id ?? hubVoiceChannel.CategoryId.Value,
+                VoiceChatCategoryId    = options?.VoiceChatCategory?.Id ?? hubVoiceChannel.CategoryId.Value,
                 PurgeEmpty             = options?.PurgeEmpty ?? true,
                 ShowJoinLeave          = options?.ShowJoinLeave ?? true
             };
