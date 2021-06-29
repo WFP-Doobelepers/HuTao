@@ -4,9 +4,8 @@ using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Services.Core;
 
-namespace Zhongli.Services.Utilities
+namespace Zhongli.Services.Core.Preconditions
 {
     public class RequireAuthorizationAttribute : PreconditionAttribute
     {

@@ -5,7 +5,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
-using Zhongli.Services.Utilities;
+using Zhongli.Services.Core.Preconditions;
 
 namespace Zhongli.Bot.Modules
 {
@@ -49,12 +49,10 @@ namespace Zhongli.Bot.Modules
         [NamedArgumentType]
         public class VoiceChatOptions
         {
-            [HelpSummary(
-                "The category where Voice Channels will be made.")]
+            [HelpSummary("The category where Voice Channels will be made.")]
             public ICategoryChannel? VoiceChannelCategory { get; init; }
 
-            [HelpSummary(
-                "The category where Voice Chat channels will be made.")]
+            [HelpSummary("The category where Voice Chat channels will be made.")]
             public ICategoryChannel? VoiceChatCategory { get; init; }
 
             [HelpSummary("Purge empty channels after 1 minute automatically.")]

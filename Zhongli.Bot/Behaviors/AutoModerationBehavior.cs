@@ -39,14 +39,14 @@ namespace Zhongli.Bot.Behaviors
         {
             if (warn.Warning.Type != ModerationActionType.Added)
                 return;
-
-            var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
+            
             var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.GuildId, cancellationToken);
             var rules = guildEntity?.AutoModerationRules;
 
             if (rules is null)
                 return;
 
+            var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             if (rules.BanTrigger?.IsTriggered(userEntity) ?? false)
             {
                 await warn.User.BanAsync(0, "[Auto Trigger]");

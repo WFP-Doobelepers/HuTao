@@ -43,6 +43,9 @@ namespace Zhongli.Bot.Behaviors
             var rules = await _db.Set<VoiceChatRules>().AsQueryable()
                 .FirstOrDefaultAsync(r => r.GuildId == guild.Id, cancellationToken);
 
+            if (rules is null)
+                return;
+
             var oldChannel = notification.Old.VoiceChannel;
             var newChannel = notification.New.VoiceChannel;
 
