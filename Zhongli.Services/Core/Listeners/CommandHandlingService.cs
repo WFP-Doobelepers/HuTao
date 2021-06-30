@@ -47,8 +47,11 @@ namespace Zhongli.Services.Core.Listeners
 
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
-
+#if DEBUG
+            var hasPrefix = message.HasStringPrefix("z$", ref argPos, StringComparison.OrdinalIgnoreCase);
+#else
             var hasPrefix = message.HasStringPrefix("z!", ref argPos, StringComparison.OrdinalIgnoreCase);
+#endif
             var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
             if (hasPrefix || hasMention)
             {

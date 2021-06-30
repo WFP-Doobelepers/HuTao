@@ -90,8 +90,11 @@ namespace Zhongli.Bot
 
             client.Log   += LogAsync;
             commands.Log += LogAsync;
-
+#if DEBUG
+            await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(ZhongliConfig.DebugToken)));
+#else
             await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(ZhongliConfig.Token)));
+#endif
             await client.StartAsync();
 
             await Task.Delay(-1);
