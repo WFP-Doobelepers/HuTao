@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using Zhongli.Data.Logging;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Reprimands;
 using Zhongli.Data.Models.VoiceChat;
@@ -35,6 +35,6 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
 
-        public LoggingRules LoggingRules { get; set; }
+        public virtual LoggingRules? LoggingRules { get; set; }
     }
 }

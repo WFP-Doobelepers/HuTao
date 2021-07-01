@@ -1,8 +1,7 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Logging
+namespace Zhongli.Data.Models.Logging
 {
     public class LoggingRules
     {
