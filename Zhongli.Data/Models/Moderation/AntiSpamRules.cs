@@ -1,10 +1,15 @@
 ﻿using System;
+using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation
 {
     public class AntiSpamRules
     {
         public Guid Id { get; set; }
+        
+        public ulong GuildId { get; set; }
+        
+        public virtual GuildEntity Guild { get; set; }
 
         public int? DuplicateTolerance { get; set; }
 

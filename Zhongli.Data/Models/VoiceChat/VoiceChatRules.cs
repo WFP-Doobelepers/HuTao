@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.VoiceChat
@@ -13,7 +12,7 @@ namespace Zhongli.Data.Models.VoiceChat
 
         public bool ShowJoinLeave { get; set; }
 
-        [ForeignKey(nameof(GuildId))] public virtual GuildEntity Guild { get; set; }
+        public virtual GuildEntity Guild { get; set; }
 
         public virtual ICollection<VoiceChatLink> VoiceChats { get; set; } = new List<VoiceChatLink>();
 

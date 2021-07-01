@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Triggers;
 
 namespace Zhongli.Data.Models.Moderation
@@ -7,6 +8,10 @@ namespace Zhongli.Data.Models.Moderation
     public class AutoModerationRules
     {
         public Guid Id { get; set; }
+
+        public ulong GuildId { get; set; }
+
+        public virtual GuildEntity Guild { get; set; }
 
         public virtual AntiSpamRules AntiSpamRules { get; set; }
 

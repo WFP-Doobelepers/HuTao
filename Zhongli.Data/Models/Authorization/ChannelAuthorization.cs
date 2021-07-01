@@ -7,6 +7,10 @@ namespace Zhongli.Data.Models.Authorization
     {
         public Guid Id { get; set; }
 
+        public ulong GuildId { get; set; }
+        
+        public virtual GuildEntity Guild { get; set; }
+        
         public ulong ChannelId { get; set; }
 
         public AuthorizationScope Scope { get; set; }

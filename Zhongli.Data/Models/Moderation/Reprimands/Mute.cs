@@ -14,8 +14,6 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
             Length    = length;
         }
 
-        public Guid Id { get; set; }
-
         public bool IsActive => EndedAt is not null || DateTimeOffset.Now >= EndAt;
 
         public DateTimeOffset? EndAt => StartedAt + Length;

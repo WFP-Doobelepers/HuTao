@@ -24,7 +24,7 @@ namespace Zhongli.Data.Models.Moderation.Reprimands
 
         public DateTimeOffset Date { get; set; }
 
-        [ForeignKey(nameof(GuildId))] public virtual GuildEntity Guild { get; set; }
+        public virtual GuildEntity Guild { get; set; }
 
         public virtual GuildUserEntity Moderator { get; set; }
 

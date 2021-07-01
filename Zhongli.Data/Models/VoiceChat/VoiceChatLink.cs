@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
@@ -10,7 +9,7 @@ namespace Zhongli.Data.Models.VoiceChat
     {
         public Guid Id { get; set; }
 
-        [ForeignKey(nameof(GuildId))] public virtual GuildEntity Guild { get; set; }
+        public virtual GuildEntity Guild { get; set; }
 
         public virtual GuildUserEntity Owner { get; set; }
 

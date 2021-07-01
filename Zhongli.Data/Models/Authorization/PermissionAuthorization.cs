@@ -7,6 +7,10 @@ namespace Zhongli.Data.Models.Authorization
     {
         public Guid Id { get; set; }
 
+        public ulong GuildId { get; set; }
+        
+        public virtual GuildEntity Guild { get; set; }
+        
         public GuildPermission Permission { get; set; }
 
         public DateTimeOffset Date { get; set; }
