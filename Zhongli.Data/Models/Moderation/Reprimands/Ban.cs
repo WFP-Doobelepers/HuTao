@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Reprimands
 {
-    public class Ban : ReprimandActionBase
+    public class Ban : ReprimandAction
     {
         protected Ban() { }
 

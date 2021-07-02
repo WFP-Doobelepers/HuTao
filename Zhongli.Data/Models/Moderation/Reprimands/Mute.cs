@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Reprimands
 {
-    public class Mute : ReprimandActionBase
+    public class Mute : ReprimandAction
     {
         protected Mute() { }
 

@@ -3,9 +3,9 @@ using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation.Triggers
 {
-    public class WarningTrigger
+    public abstract class WarningTrigger
     {
-        public WarningTrigger() { }
+        protected WarningTrigger() { }
 
         protected WarningTrigger(uint triggerAt) { TriggerAt = triggerAt; }
 

@@ -1,14 +1,13 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation.Reprimands
 {
-    public abstract class ReprimandActionBase
+    public abstract class ReprimandAction
     {
-        protected ReprimandActionBase() { }
+        protected ReprimandAction() { }
 
-        protected ReprimandActionBase(ReprimandDetails details)
+        protected ReprimandAction(ReprimandDetails details)
         {
             Date = DateTimeOffset.UtcNow;
 
