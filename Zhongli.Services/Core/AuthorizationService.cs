@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
@@ -15,9 +16,14 @@ namespace Zhongli.Services.Core
 {
     public class AuthorizationService
     {
+        private readonly DiscordSocketClient _client;
         private readonly ZhongliContext _db;
 
-        public AuthorizationService(ZhongliContext db) { _db = db; }
+        public AuthorizationService(ZhongliContext db, DiscordSocketClient client)
+        {
+            _db     = db;
+            _client = client;
+        }
 
         public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId,
             CancellationToken cancellationToken = default)
@@ -34,6 +40,8 @@ namespace Zhongli.Services.Core
                 {
                     new()
                     {
+                        Guild      = guild,
+                        AddedById  = _client.CurrentUser.Id,
                         Date       = DateTimeOffset.UtcNow,
                         Permission = GuildPermission.Administrator,
                         Scope      = AuthorizationScope.All
@@ -79,7 +87,7 @@ namespace Zhongli.Services.Core
 
             return false;
 
-            IEnumerable<T> ScopedAuthorization<T>(IEnumerable<T> rule) where T : class, IAuthorizationRule
+            IEnumerable<T> ScopedAuthorization<T>(IEnumerable<T> rule) where T : AuthorizationRule
             {
                 return rule.Where(auth => (auth.Scope & scope) != 0);
             }
