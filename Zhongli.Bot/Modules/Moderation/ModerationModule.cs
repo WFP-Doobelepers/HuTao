@@ -32,15 +32,16 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
+        [RequireBotPermission(GuildPermission.BanMembers)]
         [RequireUserPermission(GuildPermission.BanMembers)]
         [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
         {
-            await user.BanAsync((int) deleteDays, reason);
-
-            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
-            _db.Add(new Ban(details, deleteDays));
-            await _db.SaveChangesAsync();
+            if (!await _moderationService.TryBanAsync(user, Context.User, deleteDays, reason))
+            {
+                await ReplyAsync("Ban failed");
+                return;
+            }
 
             await ReplyAsync($"{user} has been banned.");
         }

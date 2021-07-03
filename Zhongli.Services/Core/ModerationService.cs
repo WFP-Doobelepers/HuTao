@@ -78,5 +78,18 @@ namespace Zhongli.Services.Core
 
             return true;
         }
+
+        public async Task<bool> TryBanAsync(IGuildUser user, IUser mod, 
+            uint deleteDays = 1, string? reason = null)
+        {
+            await user.BanAsync((int)deleteDays, reason);
+
+            var details = new ReprimandDetails(user, mod, ModerationActionType.Added);
+            _db.Add(new Ban(details, deleteDays));
+            
+            await _db.SaveChangesAsync();
+
+            return true;
+        }
     }
 }
