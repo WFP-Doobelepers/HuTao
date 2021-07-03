@@ -25,7 +25,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public ModerationModule(IMediator mediator, ZhongliContext db, ModerationService moderationService)
         {
             _mediator = mediator;
-            _db       = db;
+            _db = db;
 
             _moderationService = moderationService;
         }
@@ -39,7 +39,7 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             if (!await _moderationService.TryBanAsync(user, Context.User, deleteDays, reason))
             {
-                await ReplyAsync("Ban failed");
+                await ReplyAsync("Ban failed."); ;
                 return;
             }
 
@@ -52,11 +52,10 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Kick)]
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            await user.KickAsync(reason);
-
-            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
-            _db.Add(new Kick(details));
-            await _db.SaveChangesAsync();
+            if (!await _moderationService.TryKickAsync(user, Context.User, ModerationActionType.Added, reason))
+            {
+                await ReplyAsync("Kick failed.");
+            }    
 
             await ReplyAsync($"{user} has been kicked.");
         }
@@ -66,9 +65,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
-            if (!await _moderationService.TryMuteAsync(user, (IGuildUser) Context.User, reason, length))
+            if (!await _moderationService.TryMuteAsync(user, (IGuildUser)Context.User, reason, length))
             {
-                await ReplyAsync("Mute failed");
+                await ReplyAsync("Mute failed.");
                 return;
             }
 
@@ -91,7 +90,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 .Where(w => w.UserId == user.Id)
                 .Sum(w => w.Amount);
 
-            userEntity.WarningCount = (int) warnings;
+            userEntity.WarningCount = (int)warnings;
             await _db.SaveChangesAsync();
 
             await _mediator.Publish(new WarnNotification(user, warning));
