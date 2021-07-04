@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -57,26 +56,16 @@ namespace Zhongli.Bot.Modules.Moderation
 
             var results = await prompts.GetAnswersAsync();
 
-            var user = await _db.Users.TrackUserAsync((IGuildUser) Context.User);
-            var auth = await _auth.AutoConfigureGuild(Context.Guild.Id);
+            var guildUser = (IGuildUser) Context.User;
+            var user = await _db.Users.TrackUserAsync(guildUser);
+            var auth = await _auth.AutoConfigureGuild(Context.Guild);
 
-            auth.RoleAuthorizations.Add(new RoleAuthorization
-            {
-                AddedBy = user,
-                Date    = DateTimeOffset.UtcNow,
+            auth.RoleAuthorizations.Add(new RoleAuthorization(AuthorizationScope.All, guildUser,
+                results.Get<IRole>(ConfigureOptions.Admin).Id));
 
-                RoleId = results.Get<IRole>(ConfigureOptions.Admin).Id,
-                Scope  = AuthorizationScope.All
-            });
-
-            auth.RoleAuthorizations.Add(new RoleAuthorization
-            {
-                AddedBy = user,
-                Date    = DateTimeOffset.UtcNow,
-
-                RoleId = results.Get<IRole>(ConfigureOptions.Moderator).Id,
-                Scope  = results.Get<AuthorizationScope>(ConfigureOptions.Permissions)
-            });
+            auth.RoleAuthorizations.Add(new RoleAuthorization(
+                results.Get<AuthorizationScope>(ConfigureOptions.Permissions), guildUser,
+                results.Get<IRole>(ConfigureOptions.Moderator).Id));
 
             _db.Update(auth);
             await _db.SaveChangesAsync();

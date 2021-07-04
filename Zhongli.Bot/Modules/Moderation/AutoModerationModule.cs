@@ -7,7 +7,6 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Triggers;
 using Zhongli.Services.Core.Preconditions;
-using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -59,12 +58,7 @@ namespace Zhongli.Bot.Modules.Moderation
             if (guildEntity.AutoModerationRules is not null)
                 return guildEntity.AutoModerationRules;
 
-            guildEntity.AutoModerationRules = _db.Add(new AutoModerationRules
-            {
-                AntiSpamRules = new AntiSpamRules()
-            }).Entity;
-
-            await _db.SaveChangesAsync();
+            guildEntity.AutoModerationRules = _db.Add(new AutoModerationRules()).Entity;
 
             return guildEntity.AutoModerationRules!;
         }

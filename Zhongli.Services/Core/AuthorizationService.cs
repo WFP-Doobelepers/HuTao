@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
@@ -16,81 +14,46 @@ namespace Zhongli.Services.Core
 {
     public class AuthorizationService
     {
-        private readonly DiscordSocketClient _client;
         private readonly ZhongliContext _db;
 
-        public AuthorizationService(ZhongliContext db, DiscordSocketClient client)
-        {
-            _db     = db;
-            _client = client;
-        }
+        public AuthorizationService(ZhongliContext db) { _db = db; }
 
-        public async Task<AuthorizationRules> AutoConfigureGuild(ulong guildId,
+        public async Task<AuthorizationRules> AutoConfigureGuild(IGuild guild,
             CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindByIdAsync(guildId, cancellationToken) ??
-                _db.Add(new GuildEntity(guildId)).Entity;
+            var guildEntity = await GetGuildAsync(guild, cancellationToken);
 
-            if (guild.AuthorizationRules is not null)
-                return guild.AuthorizationRules;
-
-            guild.AuthorizationRules = new AuthorizationRules
+            guildEntity.AuthorizationRules ??= new AuthorizationRules
             {
                 PermissionAuthorizations = new List<PermissionAuthorization>
                 {
-                    new()
-                    {
-                        Guild      = guild,
-                        AddedById  = _client.CurrentUser.Id,
-                        Date       = DateTimeOffset.UtcNow,
-                        Permission = GuildPermission.Administrator,
-                        Scope      = AuthorizationScope.All
-                    }
+                    new(AuthorizationScope.All, await guild.GetCurrentUserAsync(), GuildPermission.Administrator)
                 }
             };
-
             await _db.SaveChangesAsync(cancellationToken);
 
-            return guild.AuthorizationRules;
+            return guildEntity.AuthorizationRules;
+        }
+
+        private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)
+        {
+            var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken) ??
+                _db.Add(new GuildEntity(guild.Id)).Entity;
+
+            await _db.Users.TrackUserAsync(await guild.GetCurrentUserAsync(), cancellationToken);
+
+            return guildEntity;
         }
 
         public async Task<bool> IsAuthorized(
             ICommandContext context, IGuildUser user, AuthorizationScope scope,
             CancellationToken cancellationToken = default)
         {
-            var rules = await AutoConfigureGuild(user.GuildId, cancellationToken);
+            var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
+            var groups = rules.AuthorizationGroups;
 
-            var isUserAuthorized = ScopedAuthorization(rules.UserAuthorizations)
-                .Any(auth => auth.GuildId == user.GuildId && auth.UserId == user.Id);
-            if (isUserAuthorized)
-                return true;
-
-            var isRoleAuthorized = ScopedAuthorization(rules.RoleAuthorizations)
-                .Any(auth => user.RoleIds.Contains(auth.RoleId));
-            if (isRoleAuthorized)
-                return true;
-
-            var isPermissionsAuthorized = ScopedAuthorization(rules.PermissionAuthorizations)
-                .Any(auth => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0);
-            if (isPermissionsAuthorized)
-                return true;
-
-            var isChannelAuthorized = ScopedAuthorization(rules.ChannelAuthorizations)
-                .Any(auth => auth.ChannelId == context.Channel.Id);
-            if (isChannelAuthorized)
-                return true;
-
-            var isGuildAuthorized = ScopedAuthorization(rules.GuildAuthorizations)
-                .Any(auth => auth.GuildId == user.GuildId);
-            if (isGuildAuthorized)
-                return true;
-
-            return false;
-
-            IEnumerable<T> ScopedAuthorization<T>(IEnumerable<T> rule) where T : AuthorizationRule
-            {
-                return rule.Where(auth => (auth.Scope & scope) != 0);
-            }
+            return groups.Scoped(scope).All(g => g.IsAuthorized(context, user))
+                && rules.Scoped(scope).Any(r => r.IsAuthorized(context, user));
         }
     }
 }

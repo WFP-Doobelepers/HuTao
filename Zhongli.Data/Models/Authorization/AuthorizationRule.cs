@@ -1,4 +1,5 @@
 ﻿using System;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
@@ -7,6 +8,17 @@ namespace Zhongli.Data.Models.Authorization
 {
     public abstract class AuthorizationRule
     {
+        protected AuthorizationRule() { }
+
+        protected AuthorizationRule(AuthorizationScope scope, IGuildUser moderator)
+        {
+            Scope     = scope;
+            Date      = DateTimeOffset.UtcNow;
+
+            GuildId   = moderator.GuildId;
+            AddedById = moderator.Id;
+        }
+
         public Guid Id { get; set; }
 
         public Guid AuthorizationRulesId { get; set; }

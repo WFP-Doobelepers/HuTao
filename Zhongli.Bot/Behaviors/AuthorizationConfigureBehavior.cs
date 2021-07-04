@@ -16,12 +16,12 @@ namespace Zhongli.Bot.Behaviors
 
         public async Task Handle(GuildAvailableNotification notification, CancellationToken cancellationToken)
         {
-            await _auth.AutoConfigureGuild(notification.Guild.Id, cancellationToken);
+            await _auth.AutoConfigureGuild(notification.Guild, cancellationToken);
         }
 
         public async Task Handle(JoinedGuildNotification notification, CancellationToken cancellationToken)
         {
-            await _auth.AutoConfigureGuild(notification.Guild.Id, cancellationToken);
+            await _auth.AutoConfigureGuild(notification.Guild, cancellationToken);
         }
     }
 }

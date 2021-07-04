@@ -13,7 +13,7 @@ namespace Zhongli.Data.Models.Moderation
 
         public virtual GuildEntity Guild { get; set; }
 
-        public virtual AntiSpamRules AntiSpamRules { get; set; }
+        public virtual AntiSpamRules? AntiSpamRules { get; set; }
 
         public virtual BanTrigger? BanTrigger { get; set; }
 
