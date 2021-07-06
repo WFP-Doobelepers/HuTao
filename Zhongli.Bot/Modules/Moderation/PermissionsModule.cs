@@ -56,21 +56,20 @@ namespace Zhongli.Bot.Modules.Moderation
 
             var results = await prompts.GetAnswersAsync();
 
-            var guildUser = (IGuildUser) Context.User;
-            var user = await _db.Users.TrackUserAsync(guildUser);
-            var auth = await _auth.AutoConfigureGuild(Context.Guild);
+            var moderator = (IGuildUser) Context.User;
+            var user = await _db.Users.TrackUserAsync(moderator);
+            var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
-            auth.RoleAuthorizations.Add(new RoleAuthorization(AuthorizationScope.All, guildUser,
-                results.Get<IRole>(ConfigureOptions.Admin).Id));
+            guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator,
+                new RoleAuthorization(results.Get<IRole>(ConfigureOptions.Admin).Id));
 
-            auth.RoleAuthorizations.Add(new RoleAuthorization(
-                results.Get<AuthorizationScope>(ConfigureOptions.Permissions), guildUser,
-                results.Get<IRole>(ConfigureOptions.Moderator).Id));
+            guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions), moderator,
+                new RoleAuthorization(results.Get<IRole>(ConfigureOptions.Moderator).Id));
 
-            _db.Update(auth);
+            _db.Update(guild);
             await _db.SaveChangesAsync();
 
-            await ReplyAsync($"Finished. {auth.RoleAuthorizations.Count}");
+            await ReplyAsync($"Finished. {guild.AuthorizationGroups.Count}");
         }
 
         private enum ConfigureOptions

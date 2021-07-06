@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data
@@ -10,6 +11,16 @@ namespace Zhongli.Data
         public DbSet<GuildEntity> Guilds { get; init; }
 
         public DbSet<GuildUserEntity> Users { get; init; }
+
+        public DbSet<ChannelAuthorization> ChannelAuthorizations { get; init; }
+
+        public DbSet<GuildAuthorization> GuildAuthorizations { get; init; }
+
+        public DbSet<PermissionAuthorization> PermissionAuthorizations { get; init; }
+
+        public DbSet<RoleAuthorization> RoleAuthorizations { get; init; }
+
+        public DbSet<UserAuthorization> UserAuthorizations { get; init; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

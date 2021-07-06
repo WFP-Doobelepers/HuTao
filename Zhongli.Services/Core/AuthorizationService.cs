@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -18,28 +17,24 @@ namespace Zhongli.Services.Core
 
         public AuthorizationService(ZhongliContext db) { _db = db; }
 
-        public async Task<AuthorizationRules> AutoConfigureGuild(IGuild guild,
+        public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
             CancellationToken cancellationToken = default)
         {
             var guildEntity = await GetGuildAsync(guild, cancellationToken);
+            var rules = guildEntity.AuthorizationGroups;
 
-            guildEntity.AuthorizationRules ??= new AuthorizationRules
-            {
-                PermissionAuthorizations = new List<PermissionAuthorization>
-                {
-                    new(AuthorizationScope.All, await guild.GetCurrentUserAsync(), GuildPermission.Administrator)
-                }
-            };
+            if (rules.Any()) return guildEntity;
+            
+            var permission = new PermissionAuthorization(GuildPermission.Administrator);
+            rules.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return guildEntity.AuthorizationRules;
+            return guildEntity;
         }
 
         private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)
         {
-            var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken) ??
-                _db.Add(new GuildEntity(guild.Id)).Entity;
-
+            var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
             await _db.Users.TrackUserAsync(await guild.GetCurrentUserAsync(), cancellationToken);
 
             return guildEntity;
@@ -52,8 +47,7 @@ namespace Zhongli.Services.Core
             var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
             var groups = rules.AuthorizationGroups;
 
-            return groups.Scoped(scope).All(g => g.IsAuthorized(context, user))
-                && rules.Scoped(scope).Any(r => r.IsAuthorized(context, user));
+            return groups.Scoped(scope).Any(g => g.IsAuthorized(context, user));
         }
     }
 }

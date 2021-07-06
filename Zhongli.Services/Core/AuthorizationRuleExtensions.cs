@@ -10,21 +10,26 @@ namespace Zhongli.Services.Core
     public static class AuthorizationRuleExtensions
     {
         public static IEnumerable<T> Scoped<T>(
-            this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationRule
+            this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
             => rules.Where(rule => (rule.Scope & scope) != 0);
 
-        public static IEnumerable<AuthorizationRule> Scoped(
-            this AuthorizationRules rules, AuthorizationScope scope)
-            => rules.UserAuthorizations.Scoped<AuthorizationRule>(scope)
-                .Concat(rules.RoleAuthorizations).Scoped(scope)
-                .Concat(rules.PermissionAuthorizations).Scoped(scope)
-                .Concat(rules.ChannelAuthorizations).Scoped(scope)
-                .Concat(rules.GuildAuthorizations).Scoped(scope);
+        public static void AddRules(this ICollection<AuthorizationGroup> group,
+            AuthorizationScope scope, IGuildUser moderator, ICollection<AuthorizationRule> rules)
+        {
+            group.Add(new AuthorizationGroup(scope, moderator, rules));
+        }
 
-        public static bool IsAuthorized(this AuthorizationGroup group, ICommandContext context, IGuildUser user) =>
-            group.Collection.All(r => r.IsAuthorized(context, user));
+        public static void AddRules(this ICollection<AuthorizationGroup> group,
+            AuthorizationScope scope, IGuildUser moderator,
+            params AuthorizationRule[] rules)
+        {
+            group.Add(new AuthorizationGroup(scope, moderator, rules));
+        }
 
-        public static bool IsAuthorized(this AuthorizationRule rule, ICommandContext context, IGuildUser user)
+        public static bool IsAuthorized(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>
+            rules.Collection.All(r => r.IsAuthorized(context, user));
+
+        private static bool IsAuthorized(this AuthorizationRule rule, ICommandContext context, IGuildUser user)
         {
             return rule switch
             {
@@ -34,27 +39,24 @@ namespace Zhongli.Services.Core
                 ChannelAuthorization
                     { IsCategory: true } auth => auth.IsAuthorized(((ITextChannel) context.Channel).CategoryId),
                 ChannelAuthorization auth => auth.IsAuthorized((ITextChannel) context.Channel),
-                GuildAuthorization auth   => auth.IsAuthorized(user),
+                GuildAuthorization    => true,
                 _                         => false
             };
         }
 
-        public static bool IsAuthorized(this UserAuthorization auth, IGuildUser user)
-            => auth.GuildId == user.GuildId && auth.UserId == user.Id;
+        private static bool IsAuthorized(this UserAuthorization auth, IGuildUser user)
+            =>  auth.UserId == user.Id;
 
-        public static bool IsAuthorized(this RoleAuthorization auth, IGuildUser user)
+        private static bool IsAuthorized(this RoleAuthorization auth, IGuildUser user)
             => user.RoleIds.Contains(auth.RoleId);
 
-        public static bool IsAuthorized(this PermissionAuthorization auth, IGuildUser user)
+        private static bool IsAuthorized(this PermissionAuthorization auth, IGuildUser user)
             => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0;
 
-        public static bool IsAuthorized(this ChannelAuthorization auth, ITextChannel channel)
+        private static bool IsAuthorized(this ChannelAuthorization auth, ITextChannel channel)
             => auth.ChannelId == channel.Id;
 
-        public static bool IsAuthorized(this ChannelAuthorization auth, ulong? categoryId)
+        private static bool IsAuthorized(this ChannelAuthorization auth, ulong? categoryId)
             => auth.ChannelId == categoryId;
-
-        public static bool IsAuthorized(this GuildAuthorization auth, IGuildUser user)
-            => auth.GuildId == user.GuildId;
     }
 }

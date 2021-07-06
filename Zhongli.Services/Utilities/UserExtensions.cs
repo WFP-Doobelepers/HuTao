@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
-using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Services.Utilities
@@ -28,8 +27,15 @@ namespace Zhongli.Services.Utilities
 
         public static string GetFullUsername(this IUser user)
             => $"{user.Username}#{user.Discriminator}";
-        
-        
+
+        public static async Task<GuildEntity> TrackGuildAsync(this DbSet<GuildEntity> set, IGuild guild,
+            CancellationToken cancellationToken = default)
+        {
+            var guildEntity = await set.FindByIdAsync(guild.Id, cancellationToken)
+                ?? set.Add(new GuildEntity(guild.Id)).Entity;
+
+            return guildEntity;
+        }
 
         public static async Task<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
             CancellationToken cancellationToken = default)
