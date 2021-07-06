@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -70,6 +71,10 @@ namespace Zhongli.Services.Core.Listeners
 
             _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
             _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
+
+            _commands.AddTypeReader<RegexOptions>(
+                new EnumFlagsTypeReader<RegexOptions>(
+                    splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }

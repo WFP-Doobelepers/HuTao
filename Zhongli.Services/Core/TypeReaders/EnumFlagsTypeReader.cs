@@ -5,23 +5,26 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Discord.Commands;
 
-namespace Zhongli.Services.Interactive.TypeReaders
+namespace Zhongli.Services.Core.TypeReaders
 {
     public class EnumFlagsTypeReader<T> : TypeReader where T : struct, Enum
     {
         private readonly bool _ignoreCase;
         private readonly string _separator;
+        private readonly StringSplitOptions _splitOptions;
 
-        public EnumFlagsTypeReader(bool ignoreCase = true, string separator = " ")
+        public EnumFlagsTypeReader(bool ignoreCase = true,
+            string separator = " ", StringSplitOptions splitOptions = StringSplitOptions.None)
         {
-            _ignoreCase = ignoreCase;
-            _separator  = separator;
+            _splitOptions = splitOptions;
+            _ignoreCase   = ignoreCase;
+            _separator    = separator;
         }
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
             IServiceProvider services)
         {
-            var enums = input.Split(_separator)
+            var enums = input.Split(_separator, _splitOptions)
                 .Select(content => (success: Enum.TryParse<T>(content, _ignoreCase, out var result), result))
                 .Where(e => e.success)
                 .ToList();
