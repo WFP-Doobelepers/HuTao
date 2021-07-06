@@ -5,7 +5,7 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
-using Zhongli.Data.Models.Moderation.Triggers;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core.Preconditions;
 
 namespace Zhongli.Bot.Modules.Moderation

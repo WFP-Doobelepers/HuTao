@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Data.Models.Discord
 {
@@ -36,14 +36,6 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual GuildEntity Guild { get; set; }
 
-        public virtual ICollection<Ban> BanHistory { get; init; } = new List<Ban>();
-
-        public virtual ICollection<Kick> KickHistory { get; init; } = new List<Kick>();
-
-        public virtual ICollection<Mute> MuteHistory { get; init; } = new List<Mute>();
-
-        public virtual ICollection<Warning> WarningHistory { get; init; } = new List<Warning>();
-
         public int WarningCount { get; set; }
 
         public string Username { get; set; }
@@ -61,26 +53,6 @@ namespace Zhongli.Data.Models.Discord
         public void Configure(EntityTypeBuilder<GuildUserEntity> builder)
         {
             builder.HasKey(w => new { w.Id, w.GuildId });
-
-            builder
-                .HasMany(u => u.BanHistory)
-                .WithOne(r => r.User)
-                .HasForeignKey(r => new { r.UserId, r.GuildId });
-
-            builder
-                .HasMany(u => u.KickHistory)
-                .WithOne(r => r.User)
-                .HasForeignKey(r => new { r.UserId, r.GuildId });
-
-            builder
-                .HasMany(u => u.MuteHistory)
-                .WithOne(r => r.User)
-                .HasForeignKey(r => new { r.UserId, r.GuildId });
-
-            builder
-                .HasMany(u => u.WarningHistory)
-                .WithOne(r => r.User)
-                .HasForeignKey(r => new { r.UserId, r.GuildId });
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using Discord;
 
-namespace Zhongli.Data.Models.Moderation.Reprimands
+namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
     public readonly struct ReprimandDetails
     {

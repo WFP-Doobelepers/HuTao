@@ -1,6 +1,6 @@
 ﻿using Discord;
 using MediatR;
-using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Bot.Behaviors
 {

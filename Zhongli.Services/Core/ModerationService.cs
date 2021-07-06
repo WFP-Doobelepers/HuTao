@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Zhongli.Data;
-using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Core

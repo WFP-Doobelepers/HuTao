@@ -6,7 +6,7 @@ using Discord.Commands;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;

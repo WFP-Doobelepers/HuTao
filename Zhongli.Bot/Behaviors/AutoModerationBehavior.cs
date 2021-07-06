@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using MediatR;
 using Zhongli.Data;
-using Zhongli.Data.Models.Moderation.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
@@ -61,7 +61,7 @@ namespace Zhongli.Bot.Behaviors
 
             var trigger = rules.MuteTriggers
                 .Where(t => t.IsTriggered(userEntity))
-                .OrderByDescending(t => t.TriggerAt)
+                .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 
             if (trigger is not null)

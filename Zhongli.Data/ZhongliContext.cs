@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data
 {
@@ -21,6 +23,16 @@ namespace Zhongli.Data
         public DbSet<RoleAuthorization> RoleAuthorizations { get; init; }
 
         public DbSet<UserAuthorization> UserAuthorizations { get; init; }
+
+        public DbSet<WarningTrigger> WarningTriggers { get; init; }
+
+        public DbSet<Ban> BanHistory { get; init; }
+
+        public DbSet<Kick> KickHistory { get; init; }
+
+        public DbSet<Mute> MuteHistory { get; init; }
+
+        public DbSet<Warning> WarningHistory { get; init; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
