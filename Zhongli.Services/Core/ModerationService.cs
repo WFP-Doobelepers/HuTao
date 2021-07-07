@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -18,7 +21,7 @@ namespace Zhongli.Services.Core
         public ModerationService(DiscordSocketClient client, ZhongliContext db)
         {
             _client = client;
-            _db     = db;
+            _db = db;
         }
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
@@ -77,6 +80,48 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
 
             return true;
+        }
+
+        public async Task<bool> TryKickAsync(IGuildUser user, IUser mod,
+            ModerationActionType moderationActionType, [Remainder] string? reason = null)
+        {
+            try
+            {
+                await user.KickAsync(reason);
+
+                var details = new ReprimandDetails(user, mod, moderationActionType);
+                _db.Add(new Kick(details));
+
+                await _db.SaveChangesAsync();
+                return true;
+            }
+            catch (HttpException e)
+            {
+                if (e.HttpCode == HttpStatusCode.Forbidden)
+                    Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> TryBanAsync(IGuildUser user, IUser mod,
+            uint deleteDays = 1, [Remainder] string? reason = null)
+        {
+            try
+            {
+                await user.BanAsync((int)deleteDays, reason);
+
+                var details = new ReprimandDetails(user, mod, ModerationActionType.Added);
+                _db.Add(new Ban(details, deleteDays));
+
+                await _db.SaveChangesAsync();
+                return true;
+            }
+            catch (HttpException e)
+            {
+                if (e.HttpCode == HttpStatusCode.Forbidden)
+                    Console.WriteLine(e.Message);
+                throw;
+            }
         }
     }
 }
