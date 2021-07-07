@@ -11,7 +11,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         protected ReprimandAction(ReprimandDetails details)
         {
-            UserId = details.UserId;
+            UserId  = details.UserId;
+            GuildId = details.GuildId;
 
             Type   = details.Type;
             Reason = details.Reason;

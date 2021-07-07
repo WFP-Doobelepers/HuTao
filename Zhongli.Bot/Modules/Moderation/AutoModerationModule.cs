@@ -20,7 +20,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("banAt")]
         public async Task BanAtAsync(uint triggerAt, uint deleteDays = 0)
         {
-            var rules = await AutoConfigureGuild(Context.Guild.Id);
+            var rules = await GetModerationRules(Context.Guild.Id);
 
             if (rules.BanTrigger is not null) _db.Remove(rules.BanTrigger);
             rules.BanTrigger = new BanTrigger(triggerAt, deleteDays);
@@ -31,7 +31,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("kickAt")]
         public async Task KickAtAsync(uint triggerAt)
         {
-            var rules = await AutoConfigureGuild(Context.Guild.Id);
+            var rules = await GetModerationRules(Context.Guild.Id);
 
             if (rules.KickTrigger is not null) _db.Remove(rules.KickTrigger);
             rules.KickTrigger = new KickTrigger(triggerAt);
@@ -42,7 +42,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("muteAt")]
         public async Task MuteAtAsync(uint triggerAt, TimeSpan? length = null)
         {
-            var rules = await AutoConfigureGuild(Context.Guild.Id);
+            var rules = await GetModerationRules(Context.Guild.Id);
             var similar = rules.MuteTriggers.FirstOrDefault(m => m.Length == length);
 
             if (similar != null) _db.Remove(similar);
@@ -51,16 +51,11 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
         }
 
-        private async Task<AutoModerationRules> AutoConfigureGuild(ulong guildId)
+        private async Task<AutoModerationRules> GetModerationRules(ulong guildId)
         {
             var guildEntity = await _db.Guilds.FindAsync(guildId);
-
-            if (guildEntity.AutoModerationRules is not null)
-                return guildEntity.AutoModerationRules;
-
-            guildEntity.AutoModerationRules = _db.Add(new AutoModerationRules()).Entity;
-
-            return guildEntity.AutoModerationRules!;
+            
+            return guildEntity.AutoModerationRules;
         }
     }
 }

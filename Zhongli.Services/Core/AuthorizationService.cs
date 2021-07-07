@@ -21,12 +21,12 @@ namespace Zhongli.Services.Core
             CancellationToken cancellationToken = default)
         {
             var guildEntity = await GetGuildAsync(guild, cancellationToken);
-            var rules = guildEntity.AuthorizationGroups;
+            var auth = guildEntity.AuthorizationGroups;
 
-            if (rules.Any()) return guildEntity;
+            if (auth.Any()) return guildEntity;
             
             var permission = new PermissionAuthorization(GuildPermission.Administrator);
-            rules.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
+            auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
             await _db.SaveChangesAsync(cancellationToken);
 
             return guildEntity;

@@ -1,15 +1,12 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
-using Zhongli.Services.Utilities;
 using GuildPermission = Discord.GuildPermission;
 
 namespace Zhongli.Bot.Modules.Moderation
@@ -25,7 +22,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public ModerationModule(IMediator mediator, ZhongliContext db, ModerationService moderationService)
         {
             _mediator = mediator;
-            _db = db;
+            _db       = db;
 
             _moderationService = moderationService;
         }
@@ -37,9 +34,10 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
         {
-            if (!await _moderationService.TryBanAsync(user, Context.User, deleteDays, reason))
+            if (!await _moderationService.TryBanAsync(user, (IGuildUser) Context.User, deleteDays, reason))
             {
-                await ReplyAsync("Ban failed."); ;
+                await ReplyAsync("Ban failed.");
+                ;
                 return;
             }
 
@@ -52,10 +50,8 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Kick)]
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            if (!await _moderationService.TryKickAsync(user, Context.User, ModerationActionType.Added, reason))
-            {
-                await ReplyAsync("Kick failed.");
-            }    
+            if (!await _moderationService.TryKickAsync(user, (IGuildUser) Context.User,
+                reason)) await ReplyAsync("Kick failed.");
 
             await ReplyAsync($"{user} has been kicked.");
         }
@@ -65,7 +61,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
-            if (!await _moderationService.TryMuteAsync(user, (IGuildUser)Context.User, reason, length))
+            if (!await _moderationService.TryMuteAsync(user, (IGuildUser) Context.User, length, reason))
             {
                 await ReplyAsync("Mute failed.");
                 return;
@@ -80,23 +76,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
         {
-            var details = new ReprimandDetails(user, Context.User, ModerationActionType.Added);
-            var warning = new Warning(details, warnCount);
+            var warnings = await _moderationService.WarnAsync(user, (IGuildUser) Context.User, warnCount, reason);
 
-            var userEntity = await _db.Users.TrackUserAsync(user);
-            var warnings = _db.Set<Warning>()
-                .AsQueryable()
-                .Where(w => w.GuildId == user.GuildId)
-                .Where(w => w.UserId == user.Id)
-                .Sum(w => w.Amount);
-
-            userEntity.WarningCount = (int)warnings;
-            await _db.SaveChangesAsync();
-
-            await _mediator.Publish(new WarnNotification(user, warning));
-
-            await ReplyAsync(
-                $"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
+            await ReplyAsync($"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
         }
     }
 }

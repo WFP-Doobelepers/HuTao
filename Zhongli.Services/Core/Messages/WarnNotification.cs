@@ -2,7 +2,7 @@
 using MediatR;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
-namespace Zhongli.Bot.Behaviors
+namespace Zhongli.Services.Core.Messages
 {
     public class WarnNotification : INotification
     {

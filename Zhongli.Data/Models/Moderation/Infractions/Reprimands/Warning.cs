@@ -4,7 +4,7 @@
     {
         protected Warning() { }
 
-        public Warning(ReprimandDetails details, uint amount) : base(details) { Amount = amount; }
+        public Warning(uint amount, ReprimandDetails details) : base(details) { Amount = amount; }
 
         public uint Amount { get; set; }
     }

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;

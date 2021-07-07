@@ -6,7 +6,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Mute() { }
 
-        public Mute(ReprimandDetails details, DateTimeOffset? startedAt, TimeSpan? length) : base(details)
+        public Mute(DateTimeOffset? startedAt, TimeSpan? length, ReprimandDetails details) : base(details)
         {
             StartedAt = startedAt;
             Length    = length;
