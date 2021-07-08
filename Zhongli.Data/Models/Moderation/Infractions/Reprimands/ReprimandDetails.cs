@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.Commands;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
@@ -7,15 +6,14 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         public ReprimandDetails(IGuildUser user, ModerationActionType type, string? reason = null)
         {
-            GuildId     = user.GuildId;
-            UserId      = user.Id;
-            
-            Type        = type;
-            Reason      = reason;
+            GuildId = user.GuildId;
+            UserId  = user.Id;
+
+            Type   = type;
+            Reason = reason;
         }
 
         public ulong GuildId { get; }
-        
 
         public ulong UserId { get; }
 

@@ -6,7 +6,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected BanCensor() { }
 
-        public BanCensor(uint deleteDays, string pattern, RegexOptions options = RegexOptions.None) : base(pattern, options)
+        public BanCensor(uint deleteDays, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
+            options)
         {
             DeleteDays = deleteDays;
         }

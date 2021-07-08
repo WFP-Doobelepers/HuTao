@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Zhongli.Data.Models.Authorization
+namespace Zhongli.Data.Models.Discord
 {
     [Flags]
     public enum GuildPermission

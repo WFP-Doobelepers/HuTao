@@ -6,7 +6,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected WarnCensor() { }
 
-        public WarnCensor(uint amount, string pattern, RegexOptions options = RegexOptions.None) : base(pattern, options)
+        public WarnCensor(uint amount, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
+            options)
         {
             Amount = amount;
         }

@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Criteria;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
@@ -62,10 +63,10 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
             guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator,
-                new RoleAuthorization(results.Get<IRole>(ConfigureOptions.Admin).Id));
+                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin).Id));
 
             guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions), moderator,
-                new RoleAuthorization(results.Get<IRole>(ConfigureOptions.Moderator).Id));
+                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator).Id));
 
             _db.Update(guild);
             await _db.SaveChangesAsync();

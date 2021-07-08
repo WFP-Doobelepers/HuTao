@@ -47,7 +47,9 @@ namespace Zhongli.Bot.Behaviors
 
             await _db.Users.TrackUserAsync(user, cancellationToken);
             var currentUser = await guild.GetCurrentUserAsync();
-            foreach (var censor in rules.Censors.Where(c => c.IsMatch(message)))
+            foreach (var censor in rules.Censors
+                .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
+                .Where(c => c.IsMatch(message)))
             {
                 switch (censor)
                 {

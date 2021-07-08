@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Discord;
+using Zhongli.Data.Models.Criteria;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
@@ -19,6 +21,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
         public string Pattern { get; set; }
 
         public RegexOptions Options { get; set; }
+
+        public virtual ICollection<Criterion> Exclusions { get; set; }
 
         public virtual ModerationAction Action { get; set; }
 

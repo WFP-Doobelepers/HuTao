@@ -20,9 +20,9 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public Guid Id { get; set; }
 
-        public virtual GuildUserEntity User { get; set; }
-
         public ModerationActionType Type { get; set; }
+
+        public virtual GuildUserEntity User { get; set; }
 
         public string? Reason { get; set; }
 

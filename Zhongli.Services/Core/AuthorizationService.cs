@@ -5,9 +5,10 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Utilities;
-using GuildPermission = Zhongli.Data.Models.Authorization.GuildPermission;
+using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Services.Core
 {
@@ -25,7 +26,7 @@ namespace Zhongli.Services.Core
 
             if (auth.Any()) return guildEntity;
             
-            var permission = new PermissionAuthorization(GuildPermission.Administrator);
+            var permission = new PermissionCriterion(GuildPermission.Administrator);
             auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -47,7 +48,7 @@ namespace Zhongli.Services.Core
             var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
             var groups = rules.AuthorizationGroups;
 
-            return groups.Scoped(scope).Any(g => g.IsAuthorized(context, user));
+            return groups.Scoped(scope).Any(g => g.Judge(context, user));
         }
     }
 }

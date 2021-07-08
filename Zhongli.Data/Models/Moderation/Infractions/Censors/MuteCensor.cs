@@ -7,7 +7,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected MuteCensor() { }
 
-        public MuteCensor(TimeSpan? length, string pattern, RegexOptions options = RegexOptions.None) : base(pattern, options)
+        public MuteCensor(TimeSpan? length, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
+            options)
         {
             Length = length;
         }

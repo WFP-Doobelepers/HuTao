@@ -1,6 +1,5 @@
 using System;
 using Discord;
-using Discord.Commands;
 
 namespace Zhongli.Data.Models.Moderation.Infractions
 {

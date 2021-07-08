@@ -88,7 +88,7 @@ namespace Zhongli.Services.Core
         public async Task<int> WarnAsync(IGuildUser user, IGuildUser moderator, uint warnCount, string? reason = null,
             CancellationToken cancellationToken = default)
         {
-            var details = new ReprimandDetails(user, ModerationActionType.Added);
+            var details = new ReprimandDetails(user, ModerationActionType.Added, reason);
             var warning = new Warning(warnCount, details).WithModerator(moderator);
 
             var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
