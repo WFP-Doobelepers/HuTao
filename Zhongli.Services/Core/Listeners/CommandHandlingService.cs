@@ -58,7 +58,7 @@ namespace Zhongli.Services.Core.Listeners
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
                 if (result is null)
-                    _log.LogWarning("Command with context {0} ran by user {1} is null.", context, message.Author);
+                    _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild, message.Author);
                 else if (!result.IsSuccess)
                     await CommandFailedAsync(context, result);
             }

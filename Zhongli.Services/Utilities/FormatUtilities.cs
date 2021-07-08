@@ -39,7 +39,7 @@ namespace Zhongli.Services.Utilities
                 withSingulars.GroupBy(x => x.Singular, x => x.Value)
                     .ToList();
 
-            var withDistinctParts = new HashSet<string>[groupedBySingulars.Count()][];
+            var withDistinctParts = new HashSet<string>[groupedBySingulars.Count][];
 
             foreach (var (singular, singularIndex) in groupedBySingulars.AsIndexable())
             {

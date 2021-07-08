@@ -18,16 +18,17 @@ namespace Zhongli.Data.Models.Discord
         public ulong Id { get; set; }
 
         public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
+            = new List<AuthorizationGroup>();
 
-        public virtual AutoModerationRules? AutoModerationRules { get; set; }
+        public virtual AutoModerationRules AutoModerationRules { get; set; } = new();
 
         public ulong? MuteRoleId { get; set; }
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
 
         public virtual LoggingRules? LoggingRules { get; set; }
-        
 
-        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; } = new List<ReprimandAction>();
+        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
+            = new List<ReprimandAction>();
     }
 }

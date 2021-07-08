@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data.Models.Moderation
@@ -19,6 +20,8 @@ namespace Zhongli.Data.Models.Moderation
 
         public virtual ICollection<MuteTrigger> MuteTriggers { get; set; }
             = new List<MuteTrigger>();
+
+        public virtual ICollection<Censor> Censors { get; init; } = new List<Censor>();
 
         public virtual KickTrigger? KickTrigger { get; set; }
     }
