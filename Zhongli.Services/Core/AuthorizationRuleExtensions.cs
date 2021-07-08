@@ -3,6 +3,7 @@ using System.Linq;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Moderation.Infractions;
 using GuildPermission = Zhongli.Data.Models.Authorization.GuildPermission;
 
 namespace Zhongli.Services.Core
@@ -16,14 +17,14 @@ namespace Zhongli.Services.Core
         public static void AddRules(this ICollection<AuthorizationGroup> group,
             AuthorizationScope scope, IGuildUser moderator, ICollection<AuthorizationRule> rules)
         {
-            group.Add(new AuthorizationGroup(scope, moderator, rules));
+            group.Add(new AuthorizationGroup(scope, rules).WithModerator(moderator));
         }
 
         public static void AddRules(this ICollection<AuthorizationGroup> group,
             AuthorizationScope scope, IGuildUser moderator,
             params AuthorizationRule[] rules)
         {
-            group.Add(new AuthorizationGroup(scope, moderator, rules));
+            group.Add(new AuthorizationGroup(scope, rules).WithModerator(moderator));
         }
 
         public static bool IsAuthorized(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>
@@ -39,13 +40,13 @@ namespace Zhongli.Services.Core
                 ChannelAuthorization
                     { IsCategory: true } auth => auth.IsAuthorized(((ITextChannel) context.Channel).CategoryId),
                 ChannelAuthorization auth => auth.IsAuthorized((ITextChannel) context.Channel),
-                GuildAuthorization    => true,
+                GuildAuthorization        => true,
                 _                         => false
             };
         }
 
         private static bool IsAuthorized(this UserAuthorization auth, IGuildUser user)
-            =>  auth.UserId == user.Id;
+            => auth.UserId == user.Id;
 
         private static bool IsAuthorized(this RoleAuthorization auth, IGuildUser user)
             => user.RoleIds.Contains(auth.RoleId);
