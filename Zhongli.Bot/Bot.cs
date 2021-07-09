@@ -91,9 +91,9 @@ namespace Zhongli.Bot
             client.Log   += LogAsync;
             commands.Log += LogAsync;
 #if DEBUG
-            await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(ZhongliConfig.DebugToken)));
+            await client.LoginAsync(TokenType.Bot, config.GetSection(nameof(ZhongliConfig.Debug)).GetValue<string>(nameof(BotConfig.Token)));
 #else
-            await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(ZhongliConfig.Token)));
+            await client.LoginAsync(TokenType.Bot, config.GetSection(nameof(ZhongliConfig.Release)).GetValue<string>(nameof(BotConfig.Token)));
 #endif
             await client.StartAsync();
 

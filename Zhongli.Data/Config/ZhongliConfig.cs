@@ -2,10 +2,8 @@
 {
     public class ZhongliConfig
     {
-        public string Token { get; }
+        public BotConfig Debug { get; set; }
 
-        public string DebugToken { get; }
-
-        public ulong Owner { get; }
+        public BotConfig Release { get; set; }
     }
 }
