@@ -55,9 +55,13 @@ namespace Zhongli.Bot
                 .AddUserSecrets<ZhongliContext>()
                 .Build();
 
-            optionsBuilder
-                .UseNpgsql(configuration.GetConnectionString(nameof(ZhongliContext)))
+#if DEBUG
+            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.ZhongliContext)])
                 .UseLazyLoadingProxies();
+#else
+            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.ZhongliContext)]))
+                .UseLazyLoadingProxies();;
+#endif
         }
 
         private async Task StartAsync()
