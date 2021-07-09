@@ -21,6 +21,6 @@ namespace Zhongli.Data.Models.Authorization
 
         public virtual ICollection<Criterion> Collection { get; set; } = new List<Criterion>();
 
-        public ModerationAction Action { get; set; }
+        public virtual ModerationAction Action { get; set; }
     }
 }

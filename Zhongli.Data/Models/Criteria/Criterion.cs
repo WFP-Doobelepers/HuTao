@@ -7,6 +7,6 @@ namespace Zhongli.Data.Models.Criteria
     {
         public Guid Id { get; set; }
 
-        public ModerationAction Action { get; set; }
+        public virtual ModerationAction Action { get; set; }
     }
 }
