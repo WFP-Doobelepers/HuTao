@@ -53,7 +53,7 @@ namespace Zhongli.Services.Core.Listeners
             var context = new SocketCommandContext(_discord, message);
 
             var configuration = new ConfigurationBuilder()
-                .AddUserSecrets<ZhongliContextFactory>()
+                .AddUserSecrets<ZhongliConfig>()
                 .Build();
 #if DEBUG
             
