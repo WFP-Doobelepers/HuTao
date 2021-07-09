@@ -8,8 +8,11 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Zhongli.Data;
+using Zhongli.Data.Config;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Utilities;
@@ -48,10 +51,15 @@ namespace Zhongli.Services.Core.Listeners
 
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
+
+            var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<ZhongliContextFactory>()
+                .Build();
 #if DEBUG
-            var hasPrefix = message.HasStringPrefix("m$", ref argPos, StringComparison.OrdinalIgnoreCase);
+            
+            var hasPrefix = message.HasStringPrefix(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.Prefix)], ref argPos, StringComparison.OrdinalIgnoreCase);
 #else
-            var hasPrefix = message.HasStringPrefix("z!", ref argPos, StringComparison.OrdinalIgnoreCase);
+            var hasPrefix = message.HasStringPrefix(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.Prefix)], ref argPos, StringComparison.OrdinalIgnoreCase);
 #endif
             var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
             if (hasPrefix || hasMention)
