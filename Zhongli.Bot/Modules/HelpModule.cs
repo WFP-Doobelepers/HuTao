@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Net;
+using Microsoft.Extensions.Configuration;
+using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Utilities;
 
@@ -26,12 +28,18 @@ namespace Zhongli.Bot.Modules
                 .Select(d => d.Name)
                 .OrderBy(d => d);
 
+                        var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<ZhongliConfig>()
+                .Build();
+
+            var prefix = configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.Prefix)];
+
             var descriptionBuilder = new StringBuilder()
                 .AppendLine("Modules:")
                 .AppendJoin(", ", modules)
                 .AppendLine().AppendLine()
-                .AppendLine("Do \"z!help dm\" to have everything DMed to you. (Spammy!)")
-                .AppendLine("Do \"z!help [module name] to have that module's commands listed.");
+                .AppendLine($"Do \"{prefix}help dm\" to have everything DMed to you. (Spammy!)")
+                .AppendLine($"Do \"{prefix}help [module name] to have that module's commands listed.");
 
             var embed = new EmbedBuilder()
                 .WithTitle("Help")
