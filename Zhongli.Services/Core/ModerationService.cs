@@ -9,7 +9,6 @@ using Discord.Net;
 using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
-using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
@@ -22,10 +21,11 @@ namespace Zhongli.Services.Core
         private readonly ZhongliContext _db;
         private readonly IMediator _mediator;
 
-        public ModerationService(DiscordSocketClient client, ZhongliContext db)
+        public ModerationService(IMediator mediator, DiscordSocketClient client, ZhongliContext db)
         {
-            _client = client;
-            _db     = db;
+            _mediator = mediator;
+            _client   = client;
+            _db       = db;
         }
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
@@ -56,28 +56,26 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<bool> TryMuteAsync(IGuildUser user, IGuildUser moderator,
-            TimeSpan? length = null, string? reason = null,
+        public async Task<bool> TryMuteAsync(ReprimandDetails details, TimeSpan? length,
             CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindByIdAsync(user.GuildId, cancellationToken);
+            var guild = await _db.Guilds.FindByIdAsync(details.User.Guild.Id, cancellationToken);
             var muteRole = guild?.MuteRoleId;
 
-            if (muteRole is null || user.HasRole(muteRole.Value))
+            if (muteRole is null || details.User.HasRole(muteRole.Value))
                 return false;
 
-            if (ActiveMutes.TryGetValue(user.Id, out var activeMute))
+            if (ActiveMutes.TryGetValue(details.User.Id, out var activeMute))
             {
                 activeMute!.EndedAt = DateTimeOffset.UtcNow;
-                ActiveMutes.TryRemove(moderator.Id, out _);
+                ActiveMutes.TryRemove(details.Moderator.Id, out _);
             }
 
-            var details = new ReprimandDetails(user, ModerationActionType.Added, reason);
-            var mute = new Mute(DateTimeOffset.UtcNow, length, details).WithModerator(moderator);
+            var mute = new Mute(DateTimeOffset.UtcNow, length, details);
 
-            await user.AddRoleAsync(muteRole.Value);
+            await details.User.AddRoleAsync(muteRole.Value);
             if (mute.TimeLeft is not null)
-                _ = EnqueueMuteTimer(user, muteRole.Value, mute.TimeLeft.Value, mute, cancellationToken);
+                _ = EnqueueMuteTimer(details.User, muteRole.Value, mute.TimeLeft.Value, mute, cancellationToken);
 
             _db.Add(mute);
             await _db.SaveChangesAsync(cancellationToken);
@@ -85,37 +83,35 @@ namespace Zhongli.Services.Core
             return true;
         }
 
-        public async Task<int> WarnAsync(IGuildUser user, IGuildUser moderator, uint warnCount, string? reason = null,
+        public async Task<int> WarnAsync(uint warnCount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var details = new ReprimandDetails(user, ModerationActionType.Added, reason);
-            var warning = new Warning(warnCount, details).WithModerator(moderator);
+            var warning = new Warning(warnCount, details);
 
-            var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+            var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
             var warnings = _db.Set<Warning>()
                 .AsQueryable()
-                .Where(w => w.GuildId == user.GuildId)
-                .Where(w => w.UserId == user.Id)
+                .Where(w => w.GuildId == details.User.Guild.Id)
+                .Where(w => w.UserId == details.User.Id)
                 .Sum(w => w.Amount);
 
             userEntity.WarningCount = (int) warnings;
             await _db.SaveChangesAsync(cancellationToken);
 
-            await _mediator.Publish(new WarnNotification(user, moderator, warning), cancellationToken);
+            await _mediator.Publish(new WarnNotification(details.User, details.Moderator, warning), cancellationToken);
             return userEntity.WarningCount;
         }
 
-        public async Task<bool> TryKickAsync(IGuildUser user, IGuildUser moderator, string? reason = null,
+        public async Task<bool> TryKickAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                await user.KickAsync(reason);
+                await details.User.KickAsync(details.Reason);
 
-                var details = new ReprimandDetails(user, ModerationActionType.Added);
-                _db.Add(new Kick(details).WithModerator(moderator));
-
+                _db.Add(new Kick(details));
                 await _db.SaveChangesAsync(cancellationToken);
+
                 return true;
             }
             catch (HttpException e)
@@ -127,18 +123,17 @@ namespace Zhongli.Services.Core
             }
         }
 
-        public async Task<bool> TryBanAsync(IGuildUser user, IGuildUser mod,
-            uint deleteDays = 1, string? reason = null,
+        public async Task<bool> TryBanAsync(uint? deleteDays,
+            ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                await user.BanAsync((int) deleteDays, reason);
+                await details.User.BanAsync((int) (deleteDays ?? 1), details.Reason);
 
-                var details = new ReprimandDetails(user, ModerationActionType.Added);
-                _db.Add(new Ban(deleteDays, details).WithModerator(mod));
-
+                _db.Add(new Ban(deleteDays ?? 1, details));
                 await _db.SaveChangesAsync(cancellationToken);
+
                 return true;
             }
             catch (HttpException e)

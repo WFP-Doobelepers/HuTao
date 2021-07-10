@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Data.Models.Discord
 {
@@ -24,7 +22,7 @@ namespace Zhongli.Data.Models.Discord
 
             DiscriminatorValue = user.DiscriminatorValue;
 
-            GuildId = user.GuildId;
+            GuildId = user.Guild.Id;
         }
 
         [DatabaseGenerated(DatabaseGeneratedOption.None)]

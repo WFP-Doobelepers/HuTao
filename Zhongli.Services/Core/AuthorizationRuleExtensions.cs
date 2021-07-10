@@ -4,7 +4,6 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
-using Zhongli.Data.Models.Moderation.Infractions;
 
 namespace Zhongli.Services.Core
 {
@@ -17,14 +16,14 @@ namespace Zhongli.Services.Core
         public static void AddRules(this ICollection<AuthorizationGroup> group,
             AuthorizationScope scope, IGuildUser moderator, ICollection<Criterion> rules)
         {
-            group.Add(new AuthorizationGroup(scope, rules).WithModerator(moderator));
+            group.Add(new AuthorizationGroup(scope, rules));
         }
 
         public static void AddRules(this ICollection<AuthorizationGroup> group,
             AuthorizationScope scope, IGuildUser moderator,
             params Criterion[] rules)
         {
-            group.Add(new AuthorizationGroup(scope, rules).WithModerator(moderator));
+            group.Add(new AuthorizationGroup(scope, rules));
         }
 
         public static bool Judge(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>

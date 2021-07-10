@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Discord;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -39,7 +38,7 @@ namespace Zhongli.Bot.Behaviors
             if (warn.Warning.Type != ModerationActionType.Added)
                 return;
 
-            var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.GuildId, cancellationToken);
+            var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.Guild.Id, cancellationToken);
             var rules = guildEntity?.AutoModerationRules;
 
             if (rules is null)
@@ -47,19 +46,20 @@ namespace Zhongli.Bot.Behaviors
 
             var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             var currentUser = await warn.Moderator.Guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(warn.User, currentUser,
+                ModerationActionType.Added, "[Warning Trigger]");
+
             if (rules.BanTrigger?.IsTriggered(userEntity) ?? false)
             {
-                await _moderationService.TryBanAsync(warn.User,  currentUser, rules.BanTrigger.DeleteDays, 
-                    "[Warning Trigger]", cancellationToken);
-                
+                await _moderationService.TryBanAsync(rules.BanTrigger.DeleteDays, details, cancellationToken);
+
                 return;
             }
 
             if (rules.KickTrigger?.IsTriggered(userEntity) ?? false)
             {
-                await _moderationService.TryKickAsync(warn.User,  currentUser, 
-                    "[Warning Trigger]", cancellationToken);
-                
+                await _moderationService.TryKickAsync(details, cancellationToken);
+
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace Zhongli.Bot.Behaviors
                 .FirstOrDefault();
 
             if (trigger is not null)
-                await _moderationService.TryMuteAsync(warn.User, warn.Moderator, trigger.Length, "[Warning trigger]", cancellationToken);
+                await _moderationService.TryMuteAsync(details, trigger.Length, cancellationToken);
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

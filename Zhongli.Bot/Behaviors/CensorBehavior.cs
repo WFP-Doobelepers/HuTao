@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +6,7 @@ using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
@@ -46,7 +46,10 @@ namespace Zhongli.Bot.Behaviors
                 return;
 
             await _db.Users.TrackUserAsync(user, cancellationToken);
+
             var currentUser = await guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(user, currentUser, ModerationActionType.Added, "[Censor trigger]");
+
             foreach (var censor in rules.Censors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
                 .Where(c => c.IsMatch(message)))
@@ -54,20 +57,16 @@ namespace Zhongli.Bot.Behaviors
                 switch (censor)
                 {
                     case BanCensor ban:
-                        await _moderationService.TryBanAsync(user, currentUser, ban.DeleteDays,
-                            "[Censor trigger]", cancellationToken);
+                        await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken);
                         return;
                     case KickCensor:
-                        await _moderationService.TryKickAsync(user, currentUser,
-                            "[Censor trigger]", cancellationToken);
+                        await _moderationService.TryKickAsync(details, cancellationToken);
                         return;
                     case MuteCensor mute:
-                        await _moderationService.TryMuteAsync(user, currentUser, mute.Length,
-                            "[Censor trigger]", cancellationToken);
+                        await _moderationService.TryMuteAsync(details, mute.Length, cancellationToken);
                         break;
                     case WarnCensor warn:
-                        await _moderationService.WarnAsync(user, currentUser, warn.Amount,
-                            "[Censor trigger]", cancellationToken);
+                        await _moderationService.WarnAsync(warn.Amount, details, cancellationToken);
                         break;
                 }
             }

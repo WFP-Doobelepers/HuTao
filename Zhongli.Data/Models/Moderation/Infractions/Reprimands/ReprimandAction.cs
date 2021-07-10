@@ -11,11 +11,13 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         protected ReprimandAction(ReprimandDetails details)
         {
-            UserId  = details.UserId;
-            GuildId = details.GuildId;
+            UserId  = details.User.Id;
+            GuildId = details.User.Guild.Id;
 
             Type   = details.Type;
             Reason = details.Reason;
+
+            Action = new ModerationAction(details);
         }
 
         public Guid Id { get; set; }

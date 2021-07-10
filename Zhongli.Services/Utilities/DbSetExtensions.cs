@@ -25,7 +25,7 @@ namespace Zhongli.Services.Utilities
             CancellationToken cancellationToken = default)
         {
             var userEntity = await set
-                .FindAsync(new object[] { user.Id, user.GuildId }, cancellationToken);
+                .FindAsync(new object[] { user.Id, user.Guild.Id }, cancellationToken);
 
             if (userEntity is null)
             {

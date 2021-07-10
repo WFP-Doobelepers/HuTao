@@ -1,4 +1,3 @@
-using System;
 using Discord;
 
 namespace Zhongli.Data.Models.Moderation.Infractions
@@ -7,13 +6,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
     {
         public static T WithModerator<T>(this T action, IGuildUser moderator) where T : IModerationAction
         {
-            action.Action = new ModerationAction
-            {
-                Date = DateTimeOffset.UtcNow,
-
-                GuildId     = moderator.Guild.Id,
-                ModeratorId = moderator.Id
-            };
+            action.Action = new ModerationAction(moderator);
 
             return action;
         }

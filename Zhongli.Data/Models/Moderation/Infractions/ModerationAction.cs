@@ -1,7 +1,9 @@
 using System;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Data.Models.Moderation.Infractions
 {
@@ -12,6 +14,18 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
     public class ModerationAction
     {
+        protected ModerationAction() { }
+
+        public ModerationAction(ReprimandDetails details) : this(details.Moderator) { }
+
+        public ModerationAction(IGuildUser moderator)
+        {
+            Date = DateTimeOffset.UtcNow;
+
+            GuildId     = moderator.Guild.Id;
+            ModeratorId = moderator.Id;
+        }
+
         public Guid Id { get; set; }
 
         public DateTimeOffset Date { get; set; }
