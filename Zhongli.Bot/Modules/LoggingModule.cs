@@ -1,5 +1,4 @@
-﻿using Discord.Commands;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Zhongli.Data;
 
 namespace Zhongli.Bot.Modules
