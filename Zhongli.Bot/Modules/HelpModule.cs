@@ -32,7 +32,13 @@ namespace Zhongli.Bot.Modules
                 .AddUserSecrets<ZhongliConfig>()
                 .Build();
 
-            var prefix = configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.Prefix)];
+            var prefix = string.Empty;
+
+#if DEBUG
+            prefix = configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.Prefix)];
+#else
+            prefix = configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.Prefix)];
+#endif
 
             var descriptionBuilder = new StringBuilder()
                 .AppendLine("Modules:")
