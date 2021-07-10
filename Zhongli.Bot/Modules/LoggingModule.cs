@@ -13,6 +13,5 @@ namespace Zhongli.Bot.Modules
         {
 
         }
-        
     }
 }
