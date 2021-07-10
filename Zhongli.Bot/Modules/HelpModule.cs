@@ -28,7 +28,7 @@ namespace Zhongli.Bot.Modules
                 .Select(d => d.Name)
                 .OrderBy(d => d);
 
-                        var configuration = new ConfigurationBuilder()
+            var configuration = new ConfigurationBuilder()
                 .AddUserSecrets<ZhongliConfig>()
                 .Build();
 

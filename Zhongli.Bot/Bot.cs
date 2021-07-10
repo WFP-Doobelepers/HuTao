@@ -55,12 +55,12 @@ namespace Zhongli.Bot
                 .AddUserSecrets<ZhongliContext>()
                 .Build();
 
-            var options = optionsBuilder.UseLazyLoadingProxies();
+            optionsBuilder.UseLazyLoadingProxies();
 
 #if DEBUG
-            options.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.ZhongliContext)]);
+            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.ZhongliContext)]);
 #else
-            options.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.ZhongliContext)]));
+            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.ZhongliContext)]));
 #endif
         }
 
