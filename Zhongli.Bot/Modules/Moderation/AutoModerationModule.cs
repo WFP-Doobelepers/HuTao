@@ -54,7 +54,7 @@ namespace Zhongli.Bot.Modules.Moderation
         private async Task<AutoModerationRules> GetModerationRules(ulong guildId)
         {
             var guildEntity = await _db.Guilds.FindAsync(guildId);
-            
+
             return guildEntity.AutoModerationRules;
         }
     }
