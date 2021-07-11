@@ -25,7 +25,7 @@ namespace Zhongli.Services.Core
             var auth = guildEntity.AuthorizationGroups;
 
             if (auth.Any()) return guildEntity;
-            
+
             var permission = new PermissionCriterion(GuildPermission.Administrator);
             auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
             await _db.SaveChangesAsync(cancellationToken);

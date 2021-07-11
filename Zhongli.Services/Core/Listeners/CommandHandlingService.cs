@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -11,7 +11,6 @@ using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Zhongli.Data;
 using Zhongli.Data.Config;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;

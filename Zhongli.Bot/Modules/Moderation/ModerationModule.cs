@@ -7,7 +7,6 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
-using GuildPermission = Discord.GuildPermission;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
