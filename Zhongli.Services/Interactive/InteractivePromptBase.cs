@@ -19,7 +19,7 @@ namespace Zhongli.Services.Interactive
             where T : notnull => new(this, errorMessage);
 
         internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(string question,
-            IUserMessage? message = null, PromptOptions? promptOptions = null)
+            IUserMessage? message, PromptOptions? promptOptions)
         {
             message = await ModifyOrSendMessage(question, message, promptOptions);
 
@@ -39,7 +39,7 @@ namespace Zhongli.Services.Interactive
         }
 
         internal async Task<IUserMessage> ModifyOrSendMessage(string content,
-            IUserMessage? message = null, PromptOptions? promptOptions = null)
+            IUserMessage? message, PromptOptions? promptOptions)
         {
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(Context.User)

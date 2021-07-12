@@ -18,7 +18,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public ModerationModule(ModerationService moderationService) { _moderationService = moderationService; }
 
         private ReprimandDetails GetDetails(IGuildUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationActionType.Added, reason);
+            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
 
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
@@ -50,7 +50,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
-            if (await _moderationService.TryMuteAsync(GetDetails(user, reason), length))
+            if (await _moderationService.TryMuteAsync(length, GetDetails(user, reason)))
                 await ReplyAsync($"{user} has been muted.");
             else
                 await ReplyAsync("Mute failed.");

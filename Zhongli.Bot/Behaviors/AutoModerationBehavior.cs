@@ -35,9 +35,6 @@ namespace Zhongli.Bot.Behaviors
 
         public async Task Handle(WarnNotification warn, CancellationToken cancellationToken)
         {
-            if (warn.Warning.Type != ModerationActionType.Added)
-                return;
-
             var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.Guild.Id, cancellationToken);
             var rules = guildEntity?.AutoModerationRules;
 
@@ -47,7 +44,7 @@ namespace Zhongli.Bot.Behaviors
             var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             var currentUser = await warn.Moderator.Guild.GetCurrentUserAsync();
             var details = new ReprimandDetails(warn.User, currentUser,
-                ModerationActionType.Added, "[Warning Trigger]");
+                ModerationSource.Warning, "[Warning Trigger]");
 
             if (rules.BanTrigger?.IsTriggered(userEntity) ?? false)
             {
@@ -69,7 +66,7 @@ namespace Zhongli.Bot.Behaviors
                 .FirstOrDefault();
 
             if (trigger is not null)
-                await _moderationService.TryMuteAsync(details, trigger.Length, cancellationToken);
+                await _moderationService.TryMuteAsync(trigger.Length, details, cancellationToken);
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

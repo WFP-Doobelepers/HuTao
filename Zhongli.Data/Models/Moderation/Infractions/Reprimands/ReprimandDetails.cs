@@ -4,7 +4,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
     public readonly struct ReprimandDetails
     {
-        public ReprimandDetails(IGuildUser user, IGuildUser moderator, ModerationActionType type, string? reason)
+        public ReprimandDetails(IGuildUser user, IGuildUser moderator, ModerationSource type, string? reason)
         {
             User      = user;
             Moderator = moderator;
@@ -17,7 +17,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public IGuildUser User { get; }
 
-        public ModerationActionType Type { get; }
+        public ModerationSource Type { get; }
 
         public string? Reason { get; }
     }

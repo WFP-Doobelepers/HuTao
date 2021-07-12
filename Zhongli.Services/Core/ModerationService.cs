@@ -56,7 +56,7 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<bool> TryMuteAsync(ReprimandDetails details, TimeSpan? length,
+        public async Task<bool> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var guild = await _db.Guilds.FindByIdAsync(details.User.Guild.Id, cancellationToken);

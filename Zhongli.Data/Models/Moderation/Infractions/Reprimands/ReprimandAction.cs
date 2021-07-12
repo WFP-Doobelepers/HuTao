@@ -14,7 +14,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             UserId  = details.User.Id;
             GuildId = details.User.Guild.Id;
 
-            Type   = details.Type;
+            Source   = details.Type;
             Reason = details.Reason;
 
             Action = new ModerationAction(details);
@@ -22,7 +22,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public Guid Id { get; set; }
 
-        public ModerationActionType Type { get; set; }
+        public ModerationSource Source { get; set; }
 
         public virtual GuildUserEntity User { get; set; }
 
@@ -44,9 +44,10 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
         }
     }
 
-    public enum ModerationActionType
+    public enum ModerationSource
     {
-        Added,
-        Removed
+        Command,
+        Warning,
+        Censor,
     }
 }
