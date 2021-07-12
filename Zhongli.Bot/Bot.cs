@@ -94,11 +94,13 @@ namespace Zhongli.Bot
 
             client.Log   += LogAsync;
             commands.Log += LogAsync;
+
 #if DEBUG
-            await client.LoginAsync(TokenType.Bot, config.GetSection(nameof(ZhongliConfig.Debug)).GetValue<string>(nameof(BotConfig.Token)));
+            var token = config.GetSection(nameof(ZhongliConfig.Debug)).GetValue<string>(nameof(BotConfig.Token));
 #else
-            await client.LoginAsync(TokenType.Bot, config.GetSection(nameof(ZhongliConfig.Release)).GetValue<string>(nameof(BotConfig.Token)));
+            var token = config.GetSection(nameof(ZhongliConfig.Release)).GetValue<string>(nameof(BotConfig.Token));
 #endif
+            await client.LoginAsync(TokenType.Bot, token);
             await client.StartAsync();
 
             await Task.Delay(-1);
@@ -111,7 +113,7 @@ namespace Zhongli.Bot
             _reconnectCts.Cancel();
             _reconnectCts = new CancellationTokenSource();
 
-            Log.Debug("Client reconnected, cancel tokens reset.");
+            Log.Debug("Client reconnected, cancel tokens reset");
             return Task.CompletedTask;
         }
 

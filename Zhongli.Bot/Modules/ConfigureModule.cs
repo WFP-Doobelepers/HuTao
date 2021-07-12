@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions;
@@ -41,6 +42,19 @@ namespace Zhongli.Bot.Modules
                 PurgeEmpty             = options?.PurgeEmpty ?? true,
                 ShowJoinLeave          = options?.ShowJoinLeave ?? true
             };
+
+            await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("logging")]
+        [Summary("Configures the Logging Channel that logs will be sent on.")]
+        public async Task ConfigureLoggingAsync(
+            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
+            ITextChannel channel)
+        {
+            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            guild.LoggingRules = new LoggingRules { ModerationChannelId = channel.Id };
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));

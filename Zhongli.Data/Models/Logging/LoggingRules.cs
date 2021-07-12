@@ -9,7 +9,7 @@ namespace Zhongli.Data.Models.Logging
 
         public ulong GuildId { get; set; }
 
-        public ulong ModerationChannelId { get; set; }
+        public ulong? ModerationChannelId { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
     }

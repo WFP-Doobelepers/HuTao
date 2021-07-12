@@ -26,7 +26,7 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
 
-        public virtual LoggingRules? LoggingRules { get; set; }
+        public virtual LoggingRules LoggingRules { get; set; } = new();
 
         public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
             = new List<ReprimandAction>();

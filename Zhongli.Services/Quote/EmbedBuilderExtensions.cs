@@ -67,24 +67,36 @@ namespace Zhongli.Services.Quote
             return true;
         }
 
-        public static void AddActivity(this EmbedBuilder embed, IMessage message)
+        public static EmbedBuilder AddActivity(this EmbedBuilder embed, IMessage message)
         {
-            if (message.Activity is null) return;
+            if (message.Activity is null) return embed;
 
-            embed
+            return embed
                 .AddField("Invite Type", message.Activity.Type)
                 .AddField("Party Id", message.Activity.PartyId);
         }
 
-        public static EmbedBuilder AddContent(this EmbedBuilder embed, IMessage message) =>
-            string.IsNullOrWhiteSpace(message.Content) ? embed : embed.WithDescription(message.Content);
+        public static EmbedBuilder AddContent(this EmbedBuilder embed, IMessage message)
+            => embed.AddContent(message.Content);
 
-        public static EmbedBuilder AddMeta(this EmbedBuilder embed, IMessage message, IMentionable executingUser) =>
-            embed
-                .WithUserAsAuthor(message.Author)
-                .WithTimestamp(message.Timestamp)
-                .WithColor(new Color(95, 186, 125))
-                .AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);
+        public static EmbedBuilder AddContent(this EmbedBuilder embed, string content) =>
+            string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
+
+        public static EmbedBuilder AddMeta(this EmbedBuilder embed, IMessage message,
+            bool includeId = false, bool useFooter = false)
+            => embed
+                .WithUserAsAuthor(message.Author, includeId, useFooter)
+                .WithTimestamp(message.Timestamp);
+
+        public static EmbedBuilder AddJumpLink(this EmbedBuilder embed, IMessage message, IMentionable executingUser)
+            => embed.AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);
+
+        public static EmbedBuilder AddJumpLink(this EmbedBuilder embed, IMessage message, bool useTitle = false)
+            => useTitle
+                ? embed.WithTitle($"From #{message.Channel.Name}").WithUrl(message.GetJumpUrl())
+                : embed.AddField("Context",
+                    $"By {message.Author.Mention} from {Format.Bold(message.GetJumpUrlForEmbed())}",
+                    true);
 
         public static EmbedBuilder AddOtherEmbed(this EmbedBuilder embed, IMessage message) => message.Embeds.Count == 0
             ? embed

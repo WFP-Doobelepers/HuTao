@@ -14,7 +14,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             UserId  = details.User.Id;
             GuildId = details.User.Guild.Id;
 
-            Source   = details.Type;
+            Source = details.Type;
             Reason = details.Reason;
 
             Action = new ModerationAction(details);
@@ -48,6 +48,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         Command,
         Warning,
-        Censor,
+        Censor
     }
 }

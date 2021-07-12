@@ -22,26 +22,28 @@ namespace Zhongli.Services.Utilities
             IEnumerable<string> lines)
         {
             var splitLines = SplitLinesIntoChunks(lines).ToArray();
-            if (splitLines.Any())
+
+            if (!splitLines.Any()) return builder;
+
+            builder.AddField(title, splitLines.First());
+            foreach (var line in splitLines.Skip(1))
             {
-                builder.AddField(title, splitLines.First());
-                foreach (var line in splitLines.Skip(1))
-                {
-                    builder.AddField("\x200b", line);
-                }
+                builder.AddField("\x200b", line);
             }
 
             return builder;
         }
 
-        public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder builder, IUser user, string? extra = null)
+        public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder builder, IUser user,
+            bool includeId = false, bool useFooter = false)
         {
-            var suffix = string.Empty;
+            var username = user.GetFullUsername();
+            if (includeId)
+                username += $" ({user.Id})";
 
-            if (!string.IsNullOrWhiteSpace(extra)) suffix = $" ({extra})";
-
-            return builder
-                .WithAuthor(user.GetFullUsername() + suffix, user.GetDefiniteAvatarUrl());
+            return useFooter
+                ? builder.WithFooter(username, user.GetDefiniteAvatarUrl())
+                : builder.WithAuthor(username, user.GetDefiniteAvatarUrl());
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,

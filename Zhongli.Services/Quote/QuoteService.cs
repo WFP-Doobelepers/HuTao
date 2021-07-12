@@ -40,10 +40,12 @@ namespace Zhongli.Services.Quote
                     if (!embed.TryAddThumbnailEmbed(message))
                         embed.TryAddOtherAttachment(message);
 
-            embed.AddContent(message);
-            embed.AddOtherEmbed(message);
-            embed.AddActivity(message);
-            embed.AddMeta(message, executingUser);
+            embed.WithColor(new Color(95, 186, 125))
+                .AddContent(message)
+                .AddOtherEmbed(message)
+                .AddActivity(message)
+                .AddMeta(message)
+                .AddJumpLink(message, executingUser);
 
             return embed;
         }

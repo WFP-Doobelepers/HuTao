@@ -1,14 +1,17 @@
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Behaviors
@@ -40,9 +43,7 @@ namespace Zhongli.Bot.Behaviors
 
             var guild = ((IGuildChannel) message.Channel).Guild;
             var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
-            var rules = guildEntity?.AutoModerationRules;
-
-            if (rules is null)
+            if (guildEntity is null || cancellationToken.IsCancellationRequested)
                 return;
 
             await _db.Users.TrackUserAsync(user, cancellationToken);
@@ -50,10 +51,16 @@ namespace Zhongli.Bot.Behaviors
             var currentUser = await guild.GetCurrentUserAsync();
             var details = new ReprimandDetails(user, currentUser, ModerationSource.Censor, "[Censor trigger]");
 
-            foreach (var censor in rules.Censors
+            foreach (var censor in guildEntity.AutoModerationRules.Censors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
                 .Where(c => c.IsMatch(message)))
             {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                await message.DeleteAsync();
+                await LogCensor(message, censor, guildEntity, guild, cancellationToken);
+
                 switch (censor)
                 {
                     case BanCensor ban:
@@ -70,6 +77,31 @@ namespace Zhongli.Bot.Behaviors
                         break;
                 }
             }
+        }
+
+        private static async Task LogCensor(IMessage message, Censor censor, GuildEntity guildEntity, IGuild guild,
+            CancellationToken cancellationToken = default)
+        {
+            var channelId = guildEntity.LoggingRules.ModerationChannelId;
+            if (channelId is null || cancellationToken.IsCancellationRequested)
+                return;
+
+            var logChannel = await guild.GetTextChannelAsync(channelId.Value);
+            if (logChannel is null || cancellationToken.IsCancellationRequested)
+                return;
+
+            var content = Regex.Replace(
+                message.Content, censor.Pattern,
+                m => Format.Bold(m.Value),
+                censor.Options);
+
+            var embed = new EmbedBuilder()
+                .WithColor(Color.Red)
+                .WithTitle("Censor Triggered").WithDescription(content)
+                .AddMeta(message, true).AddJumpLink(message)
+                .WithFooter(censor.Id.ToString(), guild.IconUrl);
+
+            await logChannel.SendMessageAsync(embed: embed.Build());
         }
     }
 }
