@@ -87,15 +87,13 @@ namespace Zhongli.Services.Core
             CancellationToken cancellationToken = default)
         {
             var warning = new Warning(amount, details);
-
             var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
-            var warnings = _db.Set<Warning>()
-                .AsQueryable()
+
+            var warnings = _db.WarningHistory.AsQueryable()
                 .Where(w => w.GuildId == details.User.Guild.Id)
                 .Where(w => w.UserId == details.User.Id)
                 .Sum(w => w.Amount);
-
-            userEntity.WarningCount = (int) warnings;
+            userEntity.WarningCount = (int) (warnings + warning.Amount);
 
             _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
