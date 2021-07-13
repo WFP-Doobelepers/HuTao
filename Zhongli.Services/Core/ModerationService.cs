@@ -83,10 +83,10 @@ namespace Zhongli.Services.Core
             return true;
         }
 
-        public async Task<int> WarnAsync(uint warnCount, ReprimandDetails details,
+        public async Task<int> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var warning = new Warning(warnCount, details);
+            var warning = new Warning(amount, details);
 
             var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
             var warnings = _db.Set<Warning>()
@@ -96,6 +96,8 @@ namespace Zhongli.Services.Core
                 .Sum(w => w.Amount);
 
             userEntity.WarningCount = (int) warnings;
+
+            _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
             await _mediator.Publish(new WarnNotification(details.User, details.Moderator, warning), cancellationToken);
