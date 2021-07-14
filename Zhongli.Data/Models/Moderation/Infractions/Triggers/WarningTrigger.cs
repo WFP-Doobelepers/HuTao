@@ -1,22 +1,26 @@
 ﻿using System;
-using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public abstract class WarningTrigger : IModerationAction, IWarning
+    public abstract class WarningTrigger : IModerationAction, IWarning, ITrigger
     {
         protected WarningTrigger() { }
 
-        protected WarningTrigger(uint amount) { Amount = amount; }
+        protected WarningTrigger(uint amount, bool retroactive = false)
+        {
+            Amount      = amount;
+            Retroactive = retroactive;
+        }
 
         public Guid Id { get; set; }
 
-        public Guid AutoModerationRulesId { get; set; }
-
         public virtual ModerationAction Action { get; set; }
 
-        public uint Amount { get; set; }
+        public bool Retroactive { get; set; }
 
-        public virtual bool IsTriggered(GuildUserEntity user) => user.WarningCount >= Amount;
+        public bool IsTriggered(uint amount)
+            => Retroactive ? amount >= Amount : amount == Amount;
+
+        public uint Amount { get; set; }
     }
 }

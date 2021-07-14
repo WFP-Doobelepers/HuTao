@@ -2,6 +2,6 @@
 {
     public class KickTrigger : WarningTrigger
     {
-        public KickTrigger(uint amount) : base(amount) { }
+        public KickTrigger(uint amount, bool retroactive) : base(amount, retroactive) { }
     }
 }

@@ -83,7 +83,7 @@ namespace Zhongli.Services.Core
             return true;
         }
 
-        public async Task<int> WarnAsync(uint amount, ReprimandDetails details,
+        public async Task<uint> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var warning = new Warning(amount, details);
@@ -93,7 +93,7 @@ namespace Zhongli.Services.Core
                 .Where(w => w.GuildId == details.User.Guild.Id)
                 .Where(w => w.UserId == details.User.Id)
                 .Sum(w => w.Amount);
-            userEntity.WarningCount = (int) (warnings + amount);
+            userEntity.WarningCount = (uint) (warnings + amount);
 
             _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
@@ -102,7 +102,7 @@ namespace Zhongli.Services.Core
             return userEntity.WarningCount;
         }
 
-        public async Task<int> NoticeAsync(uint amount, ReprimandDetails details,
+        public async Task<uint> NoticeAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var notice = new Notice(amount, details);
@@ -113,7 +113,7 @@ namespace Zhongli.Services.Core
                 .Where(w => w.GuildId == details.User.Guild.Id)
                 .Where(w => w.UserId == details.User.Id)
                 .Sum(w => w.Amount);
-            userEntity.NoticeCount = (int) (notices + amount);
+            userEntity.NoticeCount = (uint) (notices + amount);
 
             _db.NoticeHistory.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);

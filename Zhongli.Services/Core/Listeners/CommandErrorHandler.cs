@@ -52,7 +52,7 @@ namespace Zhongli.Services.Core.Listeners
             if (AssociatedErrors.TryAdd(message.Id, error)) await message.AddReactionAsync(new Emoji(Emoji));
         }
 
-        public async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
+        private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
             //Don't trigger if the emoji is wrong, if the user is a bot, or if we've
@@ -81,11 +81,11 @@ namespace Zhongli.Services.Core.Listeners
             }
         }
 
-        public async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
+        private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
             //Bugfix for NRE?
-            if (reaction is null || reaction.User.Value is null) return;
+            if (reaction?.User.Value is null) return;
 
             //Don't trigger if the emoji is wrong, or if the user is bot
             if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;

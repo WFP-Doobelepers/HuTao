@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -20,49 +21,61 @@ namespace Zhongli.Bot.Modules.Moderation
         public AutoModerationModule(ZhongliContext db) { _db = db; }
 
         [Command("banAt")]
-        public async Task BanAtAsync(uint amount, uint deleteDays = 0)
+        public async Task BanAtAsync(uint amount, bool retroactive = false, uint deleteDays = 0)
         {
             var rules = await GetModerationRules(Context.Guild.Id);
+            TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            if (rules.BanTrigger is not null) _db.Remove(rules.BanTrigger);
-            rules.BanTrigger = new BanTrigger(amount, deleteDays).WithModerator((IGuildUser) Context.User);
+            var trigger = new BanTrigger(amount, retroactive, deleteDays).WithModerator((IGuildUser) Context.User);
+            rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
         [Command("kickAt")]
-        public async Task KickAtAsync(uint amount)
+        public async Task KickAtAsync(uint amount, bool retroactive = false)
         {
             var rules = await GetModerationRules(Context.Guild.Id);
+            TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            if (rules.KickTrigger is not null) _db.Remove(rules.KickTrigger);
-            rules.KickTrigger = new KickTrigger(amount).WithModerator((IGuildUser) Context.User);
+            var trigger = new KickTrigger(amount, retroactive).WithModerator((IGuildUser) Context.User);
+            rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
         [Command("muteAt")]
-        public async Task MuteAtAsync(uint amount, TimeSpan? length = null)
+        public async Task MuteAtAsync(uint amount, bool retroactive = false, TimeSpan? length = null)
         {
             var rules = await GetModerationRules(Context.Guild.Id);
-            var similar = rules.MuteTriggers.FirstOrDefault(m => m.Length == length);
+            TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            if (similar != null) _db.Remove(similar);
-            rules.MuteTriggers.Add(new MuteTrigger(amount, length).WithModerator((IGuildUser) Context.User));
+            var trigger = new MuteTrigger(amount, retroactive, length).WithModerator((IGuildUser) Context.User);
+            rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
         [Command("warnAt")]
-        public async Task WarnAtAsync(uint amount)
+        public async Task WarnAtAsync(uint amount, bool retroactive = false)
         {
             var rules = await GetModerationRules(Context.Guild.Id);
-            var similar = rules.NoticeTriggers.FirstOrDefault(m => m.Amount == amount);
+            TryRemoveTrigger(rules.NoticeTriggers, amount);
 
-            if (similar != null) _db.Remove(similar);
-            rules.NoticeTriggers.Add(new NoticeTrigger(amount).WithModerator((IGuildUser) Context.User));
+            var trigger = new NoticeTrigger(amount, retroactive).WithModerator((IGuildUser) Context.User);
+            rules.NoticeTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        private void TryRemoveTrigger(IEnumerable<ITrigger> triggers, uint amount)
+        {
+            var existing = triggers.FirstOrDefault(w => w.Amount == amount);
+            if (existing is not null) _db.Remove((object) existing);
         }
 
         private async Task<AutoModerationRules> GetModerationRules(ulong guildId)

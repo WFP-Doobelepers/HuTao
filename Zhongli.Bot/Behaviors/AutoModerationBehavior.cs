@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
@@ -36,8 +37,8 @@ namespace Zhongli.Bot.Behaviors
 
             var userEntity = await _db.Users.TrackUserAsync(notice.User, cancellationToken);
 
-            var trigger = rules.NoticeTriggers
-                .Where(t => t.IsTriggered(userEntity))
+            var trigger = rules.WarningTriggers.OfType<NoticeTrigger>()
+                .Where(t => t.IsTriggered(userEntity.NoticeCount))
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 
@@ -71,27 +72,23 @@ namespace Zhongli.Bot.Behaviors
             var details = new ReprimandDetails(warn.User, currentUser,
                 ModerationSource.Auto, "[Warning Trigger]");
 
-            if (rules.BanTrigger?.IsTriggered(userEntity) ?? false)
+            foreach (var trigger in rules.WarningTriggers
+                .Where(t => t.IsTriggered(userEntity.WarningCount))
+                .OrderByDescending(t => t.Amount))
             {
-                await _moderationService.TryBanAsync(rules.BanTrigger.DeleteDays, details, cancellationToken);
-
-                return;
+                switch (trigger)
+                {
+                    case BanTrigger ban:
+                        await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken);
+                        return;
+                    case KickTrigger:
+                        await _moderationService.TryKickAsync(details, cancellationToken);
+                        return;
+                    case MuteTrigger mute:
+                        await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken);
+                        return;
+                }
             }
-
-            if (rules.KickTrigger?.IsTriggered(userEntity) ?? false)
-            {
-                await _moderationService.TryKickAsync(details, cancellationToken);
-
-                return;
-            }
-
-            var trigger = rules.MuteTriggers
-                .Where(t => t.IsTriggered(userEntity))
-                .OrderByDescending(t => t.Amount)
-                .FirstOrDefault();
-
-            if (trigger is not null)
-                await _moderationService.TryMuteAsync(trigger.Length, details, cancellationToken);
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

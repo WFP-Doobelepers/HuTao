@@ -2,8 +2,8 @@
 {
     public class BanTrigger : WarningTrigger, IBan
     {
-        public BanTrigger(uint amount, uint deleteDays = 0)
-            : base(amount)
+        public BanTrigger(uint amount, bool retroactive, uint deleteDays = 0)
+            : base(amount, retroactive)
         {
             DeleteDays = deleteDays;
         }

@@ -34,9 +34,9 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual GuildEntity Guild { get; set; }
 
-        public int WarningCount { get; set; }
+        public uint WarningCount { get; set; }
 
-        public int NoticeCount { get; set; }
+        public uint NoticeCount { get; set; }
 
         public string Username { get; set; }
 
