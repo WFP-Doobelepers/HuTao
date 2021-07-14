@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
@@ -36,6 +35,10 @@ namespace Zhongli.Data
 
         public DbSet<Warning> WarningHistory { get; init; }
 
+        public DbSet<Notice> NoticeHistory { get; init; }
+
+        public DbSet<Note> NoteHistory { get; init; }
+
         public DbSet<BanCensor> BanCensors { get; init; }
 
         public DbSet<KickCensor> KickCensors { get; init; }
@@ -45,6 +48,14 @@ namespace Zhongli.Data
         public DbSet<NoteCensor> NoteCensors { get; init; }
 
         public DbSet<WarnCensor> WarnCensors { get; init; }
+
+        public DbSet<BanTrigger> BanTriggers { get; init; }
+
+        public DbSet<KickTrigger> KickTriggers { get; init; }
+
+        public DbSet<MuteTrigger> MuteTriggers { get; init; }
+
+        public DbSet<NoticeTrigger> NoticeTriggers { get; init; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

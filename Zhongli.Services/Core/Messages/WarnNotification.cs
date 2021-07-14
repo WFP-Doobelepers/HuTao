@@ -19,4 +19,10 @@ namespace Zhongli.Services.Core.Messages
 
         public Warning Warning { get; }
     }
+
+    public class NoticeNotification : WarnNotification
+    {
+        public NoticeNotification(IGuildUser user, IGuildUser moderator, Warning warning) : base(user, moderator,
+            warning) { }
+    }
 }

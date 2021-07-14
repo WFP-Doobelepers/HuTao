@@ -36,6 +36,8 @@ namespace Zhongli.Data.Models.Discord
 
         public int WarningCount { get; set; }
 
+        public int NoticeCount { get; set; }
+
         public string Username { get; set; }
 
         public string? Nickname { get; set; }

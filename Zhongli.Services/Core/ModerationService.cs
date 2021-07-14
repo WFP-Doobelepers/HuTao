@@ -93,13 +93,40 @@ namespace Zhongli.Services.Core
                 .Where(w => w.GuildId == details.User.Guild.Id)
                 .Where(w => w.UserId == details.User.Id)
                 .Sum(w => w.Amount);
-            userEntity.WarningCount = (int) (warnings + warning.Amount);
+            userEntity.WarningCount = (int) (warnings + amount);
 
             _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
             await _mediator.Publish(new WarnNotification(details.User, details.Moderator, warning), cancellationToken);
             return userEntity.WarningCount;
+        }
+
+        public async Task<int> NoticeAsync(uint amount, ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            var notice = new Notice(amount, details);
+
+            var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
+            var notices = _db.Set<Notice>()
+                .AsQueryable()
+                .Where(w => w.GuildId == details.User.Guild.Id)
+                .Where(w => w.UserId == details.User.Id)
+                .Sum(w => w.Amount);
+            userEntity.NoticeCount = (int) (notices + amount);
+
+            _db.NoticeHistory.Add(notice);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await _mediator.Publish(new NoticeNotification(details.User, details.Moderator, notice), cancellationToken);
+            return userEntity.NoticeCount;
+        }
+
+        public async Task NoteAsync(ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            _db.Add(new Note(details));
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<bool> TryKickAsync(ReprimandDetails details,

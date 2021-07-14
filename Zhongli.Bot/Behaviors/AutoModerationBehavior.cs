@@ -13,6 +13,7 @@ namespace Zhongli.Bot.Behaviors
 {
     public class AutoModerationBehavior :
         INotificationHandler<WarnNotification>,
+        INotificationHandler<NoticeNotification>,
         INotificationHandler<ReadyNotification>
     {
         private static Task? _mutesProcessor;
@@ -23,6 +24,30 @@ namespace Zhongli.Bot.Behaviors
         {
             _db                = db;
             _moderationService = moderationService;
+        }
+
+        public async Task Handle(NoticeNotification notice, CancellationToken cancellationToken)
+        {
+            var guildEntity = await _db.Guilds.FindByIdAsync(notice.User.Guild.Id, cancellationToken);
+            var rules = guildEntity?.AutoModerationRules;
+
+            if (rules is null)
+                return;
+
+            var userEntity = await _db.Users.TrackUserAsync(notice.User, cancellationToken);
+
+            var trigger = rules.NoticeTriggers
+                .Where(t => t.IsTriggered(userEntity))
+                .OrderByDescending(t => t.Amount)
+                .FirstOrDefault();
+
+            if (trigger is not null)
+            {
+                var currentUser = await notice.Moderator.Guild.GetCurrentUserAsync();
+                var details = new ReprimandDetails(notice.User, currentUser,
+                    ModerationSource.Auto, "[Notice Trigger]");
+                await _moderationService.WarnAsync(1, details, cancellationToken);
+            }
         }
 
         public Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
@@ -44,7 +69,7 @@ namespace Zhongli.Bot.Behaviors
             var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             var currentUser = await warn.Moderator.Guild.GetCurrentUserAsync();
             var details = new ReprimandDetails(warn.User, currentUser,
-                ModerationSource.Warning, "[Warning Trigger]");
+                ModerationSource.Auto, "[Warning Trigger]");
 
             if (rules.BanTrigger?.IsTriggered(userEntity) ?? false)
             {

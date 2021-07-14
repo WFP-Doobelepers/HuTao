@@ -11,12 +11,12 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public Guid Id { get; set; }
 
+        public Guid AutoModerationRulesId { get; set; }
+
         public virtual ModerationAction Action { get; set; }
 
         public uint Amount { get; set; }
 
-        public bool IsTriggered(GuildUserEntity user) => user.WarningCount >= Amount;
-
-        public bool IsTriggered(int count) => count >= Amount;
+        public virtual bool IsTriggered(GuildUserEntity user) => user.WarningCount >= Amount;
     }
 }

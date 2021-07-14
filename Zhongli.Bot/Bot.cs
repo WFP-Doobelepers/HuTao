@@ -42,10 +42,9 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
                 .AddTransient<AuthorizationService>()
-                .AddSingleton<ModerationService>()
+                .AddScoped<ModerationService>()
                 .AddScoped<InteractiveService>().AddImages()
-                .AddCommandHelp()
-                .AddAutoRemoveMessage()
+                .AddCommandHelp().AddAutoRemoveMessage()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .BuildServiceProvider();
 

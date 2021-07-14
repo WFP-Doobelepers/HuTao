@@ -66,5 +66,27 @@ namespace Zhongli.Bot.Modules.Moderation
 
             await ReplyAsync($"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
         }
+
+        [Command("notice")]
+        [Summary("Add a notice to a user. This counts as a minor warning.")]
+        [RequireUserPermission(GuildPermission.KickMembers)]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public async Task NoticeAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
+        {
+            var notices = await _moderationService.NoticeAsync(amount, GetDetails(user, reason));
+
+            await ReplyAsync($"{user} has been given a notice {amount} times. They have a total of {notices} notices.");
+        }
+
+        [Command("note")]
+        [Summary("Add a note to a user. This does nothing.")]
+        [RequireUserPermission(GuildPermission.KickMembers)]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
+        {
+            await _moderationService.NoteAsync(GetDetails(user, note));
+
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
     }
 }
