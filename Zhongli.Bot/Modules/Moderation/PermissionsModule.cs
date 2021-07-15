@@ -7,7 +7,6 @@ using Zhongli.Data.Models.Criteria;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
-using Zhongli.Services.Interactive.TypeReaders;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation

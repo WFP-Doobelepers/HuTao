@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
+using Zhongli.Data.Config;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.CommandHelp
@@ -18,8 +19,9 @@ namespace Zhongli.Services.CommandHelp
                 .AppendAliases(command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList())
                 .AppendParameters(command.Parameters);
 
+            var prefix = ZhongliConfig.Configuration.Prefix;
             embed.AddField(new EmbedFieldBuilder()
-                .WithName($"Command: z!{name} {GetParams(command)}")
+                .WithName($"Command: {prefix}{name} {GetParams(command)}")
                 .WithValue(builder.ToString()));
 
             return embed;

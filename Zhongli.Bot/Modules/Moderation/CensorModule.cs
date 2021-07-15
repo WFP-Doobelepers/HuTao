@@ -64,7 +64,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
             guild.AutoModerationRules.Censors
                 .Add(censor.WithModerator((IGuildUser) Context.User));
-            
+
             await _db.SaveChangesAsync();
         }
     }

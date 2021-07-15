@@ -2,13 +2,12 @@
 {
     public class BotConfig
     {
-        public ulong Owner { get; }
+        public ulong Owner { get; init; }
 
-        public string Token { get; }
-         
-        public string Prefix { get; }
+        public string Token { get; init; }
 
-        public string ZhongliContext { get; }
+        public string Prefix { get; init; }
 
+        public string ZhongliContext { get; init; }
     }
 }

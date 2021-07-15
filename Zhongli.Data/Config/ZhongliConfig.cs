@@ -1,9 +1,23 @@
-﻿namespace Zhongli.Data.Config
+﻿using Microsoft.Extensions.Configuration;
+
+namespace Zhongli.Data.Config
 {
     public class ZhongliConfig
     {
-        public BotConfig Debug { get; set; }
+        public static readonly IConfigurationRoot Secrets = new ConfigurationBuilder()
+            .AddUserSecrets<ZhongliConfig>().Build();
 
-        public BotConfig Release { get; set; }
+        public BotConfig Debug { get; init; }
+
+        public BotConfig Release { get; init; }
+
+        public static T GetValue<T>(string key) => Secrets.GetSection("Debug").GetValue<T>(key);
+
+        public static BotConfig Configuration { get; } =
+#if DEBUG
+            Secrets.GetSection(nameof(Debug)).Get<BotConfig>();
+#else
+            Secrets.GetSection(nameof(Release)).Get<BotConfig>();
+#endif
     }
 }

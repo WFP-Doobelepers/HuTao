@@ -7,7 +7,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
@@ -50,25 +49,13 @@ namespace Zhongli.Bot
 
         private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
         {
-            var configuration = new ConfigurationBuilder()
-                .AddUserSecrets<ZhongliContext>()
-                .Build();
-
-            optionsBuilder.UseLazyLoadingProxies();
-
-#if DEBUG
-            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.ZhongliContext)]);
-#else
-            optionsBuilder.UseNpgsql(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.ZhongliContext)]));
-#endif
+            optionsBuilder
+                .UseLazyLoadingProxies()
+                .UseNpgsql(ZhongliConfig.Configuration.ZhongliContext);
         }
 
         private async Task StartAsync()
         {
-            var config = new ConfigurationBuilder()
-                .AddUserSecrets<ZhongliConfig>()
-                .Build();
-
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .WriteTo.Console()
@@ -94,12 +81,7 @@ namespace Zhongli.Bot
             client.Log   += LogAsync;
             commands.Log += LogAsync;
 
-#if DEBUG
-            var token = config.GetSection(nameof(ZhongliConfig.Debug)).GetValue<string>(nameof(BotConfig.Token));
-#else
-            var token = config.GetSection(nameof(ZhongliConfig.Release)).GetValue<string>(nameof(BotConfig.Token));
-#endif
-            await client.LoginAsync(TokenType.Bot, token);
+            await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
             await client.StartAsync();
 
             await Task.Delay(-1);

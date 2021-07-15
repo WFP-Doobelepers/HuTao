@@ -8,7 +8,6 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Zhongli.Data.Config;
@@ -51,21 +50,15 @@ namespace Zhongli.Services.Core.Listeners
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
 
-            var configuration = new ConfigurationBuilder()
-                .AddUserSecrets<ZhongliConfig>()
-                .Build();
-#if DEBUG
-            
-            var hasPrefix = message.HasStringPrefix(configuration.GetSection(nameof(ZhongliConfig.Debug))[nameof(BotConfig.Prefix)], ref argPos, StringComparison.OrdinalIgnoreCase);
-#else
-            var hasPrefix = message.HasStringPrefix(configuration.GetSection(nameof(ZhongliConfig.Release))[nameof(BotConfig.Prefix)], ref argPos, StringComparison.OrdinalIgnoreCase);
-#endif
+            var hasPrefix = message.HasStringPrefix(ZhongliConfig.Configuration.Prefix, ref argPos,
+                StringComparison.OrdinalIgnoreCase);
             var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
             if (hasPrefix || hasMention)
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
                 if (result is null)
-                    _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild, message.Author);
+                    _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild,
+                        message.Author);
                 else if (!result.IsSuccess)
                     await CommandFailedAsync(context, result);
             }
