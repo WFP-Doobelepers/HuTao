@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,43 +82,31 @@ namespace Zhongli.Services.Core
             return true;
         }
 
-        public async Task<uint> WarnAsync(uint amount, ReprimandDetails details,
+        public async Task<int> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var warning = new Warning(amount, details);
             var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
 
-            var warnings = _db.WarningHistory.AsQueryable()
-                .Where(w => w.GuildId == details.User.Guild.Id)
-                .Where(w => w.UserId == details.User.Id)
-                .Sum(w => w.Amount);
-            userEntity.WarningCount = (uint) (warnings + amount);
-
             _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
             await _mediator.Publish(new WarnNotification(details.User, details.Moderator, warning), cancellationToken);
-            return userEntity.WarningCount;
+            return userEntity.ReprimandCount<Warning>();
         }
 
-        public async Task<uint> NoticeAsync(uint amount, ReprimandDetails details,
+        public async Task<int> NoticeAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var notice = new Notice(amount, details);
 
             var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
-            var notices = _db.Set<Notice>()
-                .AsQueryable()
-                .Where(w => w.GuildId == details.User.Guild.Id)
-                .Where(w => w.UserId == details.User.Id)
-                .Sum(w => w.Amount);
-            userEntity.NoticeCount = (uint) (notices + amount);
 
             _db.NoticeHistory.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
 
             await _mediator.Publish(new NoticeNotification(details.User, details.Moderator, notice), cancellationToken);
-            return userEntity.NoticeCount;
+            return userEntity.ReprimandCount<Notice>();
         }
 
         public async Task NoteAsync(ReprimandDetails details,

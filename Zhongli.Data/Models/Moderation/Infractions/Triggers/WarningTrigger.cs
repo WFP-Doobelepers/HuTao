@@ -18,7 +18,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public bool Retroactive { get; set; }
 
-        public bool IsTriggered(uint amount)
+        public bool IsTriggered(int amount)
             => Retroactive ? amount >= Amount : amount == Amount;
 
         public uint Amount { get; set; }

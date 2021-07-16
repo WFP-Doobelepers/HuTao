@@ -6,6 +6,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         uint Amount { get; set; }
 
-        bool IsTriggered(uint amount);
+        bool IsTriggered(int amount);
     }
 }

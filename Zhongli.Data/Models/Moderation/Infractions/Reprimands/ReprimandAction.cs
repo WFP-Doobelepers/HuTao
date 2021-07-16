@@ -30,6 +30,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public ulong GuildId { get; set; }
 
+        public GuildEntity Guild { get; set; }
+
         public ulong UserId { get; set; }
 
         public virtual ModerationAction Action { get; set; }

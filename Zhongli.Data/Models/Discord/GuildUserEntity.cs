@@ -1,8 +1,11 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Data.Models.Discord
 {
@@ -34,10 +37,6 @@ namespace Zhongli.Data.Models.Discord
 
         public virtual GuildEntity Guild { get; set; }
 
-        public uint WarningCount { get; set; }
-
-        public uint NoticeCount { get; set; }
-
         public string Username { get; set; }
 
         public string? Nickname { get; set; }
@@ -46,6 +45,11 @@ namespace Zhongli.Data.Models.Discord
         public ulong GuildId { get; set; }
 
         public ushort DiscriminatorValue { get; set; }
+
+        public int HistoryCount<T>() where T : ReprimandAction => Guild.ReprimandHistory.OfType<T>().Count();
+
+        public int ReprimandCount<T>() where T : IWarning
+            => (int) Guild.ReprimandHistory.OfType<T>().Sum(w => w.Amount);
     }
 
     public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>

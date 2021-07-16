@@ -36,9 +36,10 @@ namespace Zhongli.Bot.Behaviors
                 return;
 
             var userEntity = await _db.Users.TrackUserAsync(notice.User, cancellationToken);
+            var notices = userEntity.ReprimandCount<Notice>();
 
-            var trigger = rules.WarningTriggers.OfType<NoticeTrigger>()
-                .Where(t => t.IsTriggered(userEntity.NoticeCount))
+            var trigger = rules.NoticeTriggers
+                .Where(t => t.IsTriggered(notices))
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 
@@ -69,11 +70,13 @@ namespace Zhongli.Bot.Behaviors
 
             var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
             var currentUser = await warn.Moderator.Guild.GetCurrentUserAsync();
+            var warnings = userEntity.ReprimandCount<Warning>();
+
             var details = new ReprimandDetails(warn.User, currentUser,
                 ModerationSource.Auto, "[Warning Trigger]");
 
             foreach (var trigger in rules.WarningTriggers
-                .Where(t => t.IsTriggered(userEntity.WarningCount))
+                .Where(t => t.IsTriggered(warnings))
                 .OrderByDescending(t => t.Amount))
             {
                 switch (trigger)
