@@ -2,7 +2,7 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public abstract class WarningTrigger : IModerationAction, IWarning, ITrigger
+    public abstract class WarningTrigger : IModerationAction, IReprimand, ITrigger
     {
         protected WarningTrigger() { }
 
@@ -16,11 +16,11 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public virtual ModerationAction Action { get; set; }
 
+        public uint Amount { get; set; }
+
         public bool Retroactive { get; set; }
 
         public bool IsTriggered(int amount)
             => Retroactive ? amount >= Amount : amount == Amount;
-
-        public uint Amount { get; set; }
     }
 }

@@ -33,18 +33,20 @@ namespace Zhongli.Bot
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
                 .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
-                .AddMediatR(c => c.Using<ZhongliMediator>(),
+                .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
                     typeof(Bot), typeof(ZhongliMediator))
                 .AddLogging(l => l.AddSerilog())
                 .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true }))
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
-                .AddTransient<AuthorizationService>()
+                .AddSingleton<InteractiveService>()
+                .AddScoped<AuthorizationService>()
                 .AddScoped<ModerationService>()
-                .AddScoped<InteractiveService>().AddImages()
-                .AddCommandHelp().AddAutoRemoveMessage()
                 .AddSingleton<IQuoteService, QuoteService>()
+                .AddAutoRemoveMessage()
+                .AddCommandHelp()
+                .AddImages()
                 .BuildServiceProvider();
 
         private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)

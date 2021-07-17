@@ -87,9 +87,9 @@ namespace Zhongli.Services.Core.Listeners
             var error = $"{result.Error}: {result.ErrorReason}";
 
             if (string.Equals(result.ErrorReason, "UnknownCommand", StringComparison.OrdinalIgnoreCase))
-                Log.Error(error);
+                Log.Warning("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
             else
-                Log.Warning(error);
+                Log.Error("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
 
             if (result.Error == CommandError.Exception)
                 await context.Channel.SendMessageAsync(

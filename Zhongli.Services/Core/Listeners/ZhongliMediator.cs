@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +11,7 @@ namespace Zhongli.Services.Core.Listeners
     {
         public ZhongliMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
 
-        protected override async Task PublishCore(
+        protected override Task PublishCore(
             IEnumerable<Func<INotification, CancellationToken, Task>> handlers,
             INotification notification, CancellationToken cancellationToken)
         {
@@ -28,7 +28,7 @@ namespace Zhongli.Services.Core.Listeners
                         catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
                         {
                             Log.Error(ex,
-                                "An unexpected error occurred within a handler for a dispatched message: {notification}",
+                                "An unexpected error occurred within a handler for a dispatched message: {Notification}",
                                 notification);
                         }
                     }, cancellationToken);
@@ -36,9 +36,11 @@ namespace Zhongli.Services.Core.Listeners
             }
             catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
             {
-                Log.Error(ex, "An unexpected error occurred while dispatching a notification: {notification}",
+                Log.Error(ex, "An unexpected error occurred while dispatching a notification: {Notification}",
                     notification);
             }
+
+            return Task.CompletedTask;
         }
     }
 }

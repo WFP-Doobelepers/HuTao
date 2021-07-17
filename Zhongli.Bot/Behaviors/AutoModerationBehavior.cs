@@ -8,13 +8,12 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
-using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Behaviors
 {
     public class AutoModerationBehavior :
-        INotificationHandler<WarnNotification>,
-        INotificationHandler<NoticeNotification>,
+        IRequestHandler<ReprimandRequest<Warning>, ReprimandAction>,
+        IRequestHandler<ReprimandRequest<Notice>, ReprimandAction>,
         INotificationHandler<ReadyNotification>
     {
         private static Task? _mutesProcessor;
@@ -27,31 +26,6 @@ namespace Zhongli.Bot.Behaviors
             _moderationService = moderationService;
         }
 
-        public async Task Handle(NoticeNotification notice, CancellationToken cancellationToken)
-        {
-            var guildEntity = await _db.Guilds.FindByIdAsync(notice.User.Guild.Id, cancellationToken);
-            var rules = guildEntity?.AutoModerationRules;
-
-            if (rules is null)
-                return;
-
-            var userEntity = await _db.Users.TrackUserAsync(notice.User, cancellationToken);
-            var notices = userEntity.ReprimandCount<Notice>();
-
-            var trigger = rules.NoticeTriggers
-                .Where(t => t.IsTriggered(notices))
-                .OrderByDescending(t => t.Amount)
-                .FirstOrDefault();
-
-            if (trigger is not null)
-            {
-                var currentUser = await notice.Moderator.Guild.GetCurrentUserAsync();
-                var details = new ReprimandDetails(notice.User, currentUser,
-                    ModerationSource.Auto, "[Notice Trigger]");
-                await _moderationService.WarnAsync(1, details, cancellationToken);
-            }
-        }
-
         public Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
         {
             _mutesProcessor ??= Task.Factory.StartNew(() => ProcessMutes(cancellationToken), cancellationToken,
@@ -60,38 +34,49 @@ namespace Zhongli.Bot.Behaviors
             return Task.CompletedTask;
         }
 
-        public async Task Handle(WarnNotification warn, CancellationToken cancellationToken)
+        public async Task<ReprimandAction> Handle(ReprimandRequest<Notice> reprimand,
+            CancellationToken cancellationToken)
         {
-            var guildEntity = await _db.Guilds.FindByIdAsync(warn.User.Guild.Id, cancellationToken);
-            var rules = guildEntity?.AutoModerationRules;
+            var rules = reprimand.Reprimand.Guild.AutoModerationRules;
+            var notices = reprimand.Reprimand.User.ReprimandCount<Notice>();
 
-            if (rules is null)
-                return;
+            var trigger = rules.NoticeTriggers
+                .Where(t => t.IsTriggered(notices))
+                .OrderByDescending(t => t.Amount)
+                .FirstOrDefault();
 
-            var userEntity = await _db.Users.TrackUserAsync(warn.User, cancellationToken);
-            var currentUser = await warn.Moderator.Guild.GetCurrentUserAsync();
-            var warnings = userEntity.ReprimandCount<Warning>();
+            if (trigger is null) return reprimand.Reprimand;
 
-            var details = new ReprimandDetails(warn.User, currentUser,
+            var currentUser = await reprimand.Moderator.Guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(reprimand.User, currentUser,
+                ModerationSource.Auto, "[Notice Trigger]");
+
+            return await _moderationService.WarnAsync(1, details, cancellationToken);
+        }
+
+        public async Task<ReprimandAction> Handle(ReprimandRequest<Warning> reprimand,
+            CancellationToken cancellationToken)
+        {
+            var rules = reprimand.Reprimand.Guild.AutoModerationRules;
+            var warnings = reprimand.Reprimand.User.ReprimandCount<Warning>();
+            var currentUser = await reprimand.Moderator.Guild.GetCurrentUserAsync();
+
+            var details = new ReprimandDetails(reprimand.User, currentUser,
                 ModerationSource.Auto, "[Warning Trigger]");
 
-            foreach (var trigger in rules.WarningTriggers
+            var trigger = rules.WarningTriggers
                 .Where(t => t.IsTriggered(warnings))
-                .OrderByDescending(t => t.Amount))
+                .OrderByDescending(t => t.Amount)
+                .FirstOrDefault();
+
+            ReprimandAction? action = trigger switch
             {
-                switch (trigger)
-                {
-                    case BanTrigger ban:
-                        await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken);
-                        return;
-                    case KickTrigger:
-                        await _moderationService.TryKickAsync(details, cancellationToken);
-                        return;
-                    case MuteTrigger mute:
-                        await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken);
-                        return;
-                }
-            }
+                BanTrigger ban   => await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken),
+                KickTrigger      => await _moderationService.TryKickAsync(details, cancellationToken),
+                MuteTrigger mute => await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken)
+            };
+
+            return action ?? reprimand.Reprimand;
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

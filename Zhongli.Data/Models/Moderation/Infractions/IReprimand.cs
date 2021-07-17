@@ -1,6 +1,6 @@
 namespace Zhongli.Data.Models.Moderation.Infractions
 {
-    public interface IWarning
+    public interface IReprimand
     {
         public uint Amount { get; set; }
     }

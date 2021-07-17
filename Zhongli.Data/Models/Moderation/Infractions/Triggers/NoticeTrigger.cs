@@ -2,7 +2,7 @@ using System;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public class NoticeTrigger : IModerationAction, IWarning, ITrigger
+    public class NoticeTrigger : IModerationAction, IReprimand, ITrigger
     {
         protected NoticeTrigger() { }
 
@@ -16,10 +16,11 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public virtual ModerationAction Action { get; set; }
 
+        public uint Amount { get; set; }
+
         public bool Retroactive { get; set; }
 
-        public bool IsTriggered(int amount) => throw new NotImplementedException();
-
-        public uint Amount { get; set; }
+        public bool IsTriggered(int amount)
+            => Retroactive ? amount >= Amount : amount == Amount;
     }
 }

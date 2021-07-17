@@ -55,14 +55,14 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<bool> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
+        public async Task<Mute?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var guild = await _db.Guilds.FindByIdAsync(details.User.Guild.Id, cancellationToken);
             var muteRole = guild?.MuteRoleId;
 
             if (muteRole is null || details.User.HasRole(muteRole.Value))
-                return false;
+                return null;
 
             if (ActiveMutes.TryGetValue(details.User.Id, out var activeMute))
             {
@@ -79,34 +79,31 @@ namespace Zhongli.Services.Core
             _db.Add(mute);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return true;
+            return mute;
         }
 
-        public async Task<int> WarnAsync(uint amount, ReprimandDetails details,
+        public async Task<ReprimandAction> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var warning = new Warning(amount, details);
-            var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
+            var warning = new Warning(amount, details).AsProxy(_db);
 
             _db.WarningHistory.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
-            await _mediator.Publish(new WarnNotification(details.User, details.Moderator, warning), cancellationToken);
-            return userEntity.ReprimandCount<Warning>();
+            return await _mediator.Send(new ReprimandRequest<Warning>(details.User, details.Moderator, warning),
+                cancellationToken);
         }
 
-        public async Task<int> NoticeAsync(uint amount, ReprimandDetails details,
+        public async Task<ReprimandAction> NoticeAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var notice = new Notice(amount, details);
-
-            var userEntity = await _db.Users.TrackUserAsync(details.User, cancellationToken);
+            var notice = new Notice(amount, details).AsProxy(_db);
 
             _db.NoticeHistory.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
 
-            await _mediator.Publish(new NoticeNotification(details.User, details.Moderator, notice), cancellationToken);
-            return userEntity.ReprimandCount<Notice>();
+            return await _mediator.Send(new ReprimandRequest<Notice>(details.User, details.Moderator, notice),
+                cancellationToken);
         }
 
         public async Task NoteAsync(ReprimandDetails details,
@@ -116,28 +113,28 @@ namespace Zhongli.Services.Core
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<bool> TryKickAsync(ReprimandDetails details,
+        public async Task<Kick?> TryKickAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
             {
                 await details.User.KickAsync(details.Reason);
 
-                _db.Add(new Kick(details));
+                var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                return true;
+                return kick;
             }
             catch (HttpException e)
             {
                 if (e.HttpCode == HttpStatusCode.Forbidden)
-                    return false;
+                    return null;
 
                 throw;
             }
         }
 
-        public async Task<bool> TryBanAsync(uint? deleteDays,
+        public async Task<Ban?> TryBanAsync(uint? deleteDays,
             ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
@@ -145,15 +142,15 @@ namespace Zhongli.Services.Core
             {
                 await details.User.BanAsync((int) (deleteDays ?? 1), details.Reason);
 
-                _db.Add(new Ban(deleteDays ?? 1, details));
+                var ban = _db.Add(new Ban(deleteDays ?? 1, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                return true;
+                return ban;
             }
             catch (HttpException e)
             {
                 if (e.HttpCode == HttpStatusCode.Forbidden)
-                    return false;
+                    return null;
 
                 throw;
             }

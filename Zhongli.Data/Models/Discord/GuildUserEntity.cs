@@ -48,7 +48,7 @@ namespace Zhongli.Data.Models.Discord
 
         public int HistoryCount<T>() where T : ReprimandAction => Guild.ReprimandHistory.OfType<T>().Count();
 
-        public int ReprimandCount<T>() where T : IWarning
+        public int ReprimandCount<T>() where T : IReprimand
             => (int) Guild.ReprimandHistory.OfType<T>().Sum(w => w.Amount);
     }
 

@@ -6,6 +6,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -27,7 +28,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
         {
-            if (await _moderationService.TryBanAsync(deleteDays, GetDetails(user, reason)))
+            if (await _moderationService.TryBanAsync(deleteDays, GetDetails(user, reason)) is not null)
                 await ReplyAsync($"{user} has been banned.");
             else
                 await ReplyAsync("Ban failed.");
@@ -35,11 +36,10 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("kick")]
         [Summary("Kick a user from the current guild.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireAuthorization(AuthorizationScope.Kick)]
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            if (await _moderationService.TryKickAsync(GetDetails(user, reason)))
+            if (await _moderationService.TryKickAsync(GetDetails(user, reason)) is not null)
                 await ReplyAsync($"{user} has been kicked.");
             else
                 await ReplyAsync("Kick failed.");
@@ -50,7 +50,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
-            if (await _moderationService.TryMuteAsync(length, GetDetails(user, reason)))
+            if (await _moderationService.TryMuteAsync(length, GetDetails(user, reason)) is not null)
                 await ReplyAsync($"{user} has been muted.");
             else
                 await ReplyAsync("Mute failed.");
@@ -58,24 +58,29 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("warn")]
         [Summary("Warn a user from the current guild.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireAuthorization(AuthorizationScope.Warning)]
-        public async Task WarnAsync(IGuildUser user, uint warnCount = 1, [Remainder] string? reason = null)
+        public async Task WarnAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
-            var warnings = await _moderationService.WarnAsync(warnCount, GetDetails(user, reason));
+            var action = await _moderationService.WarnAsync(amount, GetDetails(user, reason));
+            var embed = CreateEmbed(user, action)
+                .WithTitle("Warning")
+                .WithDescription($"{user.Mention} was given {amount} warnings.")
+                .AddField("Total", action.User.ReprimandCount<Warning>(), true);
 
-            await ReplyAsync($"{user} has been warned {warnCount} times. They have a total of {warnings} warnings.");
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("notice")]
         [Summary("Add a notice to a user. This counts as a minor warning.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task NoticeAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
-            var notices = await _moderationService.NoticeAsync(amount, GetDetails(user, reason));
-
-            await ReplyAsync($"{user} has been given a notice {amount} times. They have a total of {notices} notices.");
+            var action = await _moderationService.NoticeAsync(amount, GetDetails(user, reason));
+            var embed = CreateEmbed(user, action)
+                .WithTitle("Notice")
+                .WithDescription($"{user.Mention} was given {amount} notices.")
+                .AddField("Total", action.User.ReprimandCount<Notice>(), true);
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("note")]
@@ -87,6 +92,39 @@ namespace Zhongli.Bot.Modules.Moderation
             await _moderationService.NoteAsync(GetDetails(user, note));
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        private EmbedBuilder CreateEmbed(IUser user, ReprimandAction action)
+        {
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(Context.User)
+                .WithUserAsAuthor(user, true, true)
+                .WithCurrentTimestamp();
+
+            AddReprimands(embed, action);
+
+            return embed;
+        }
+
+        private static void AddReprimands(EmbedBuilder embed, ReprimandAction action)
+        {
+            if (action.Source != ModerationSource.Auto) return;
+
+            switch (action)
+            {
+                case Ban:
+                    embed.AddField("Reprimands", "Additionally got banned.");
+                    break;
+                case Kick:
+                    embed.AddField("Reprimands", "Additionally got kicked.");
+                    break;
+                case Mute mute:
+                    embed.AddField("Reprimands", $"Additionally got muted for {mute.Length}.");
+                    break;
+                case Warning:
+                    embed.AddField("Reprimands", "Additionally got warned");
+                    break;
+            }
         }
     }
 }
