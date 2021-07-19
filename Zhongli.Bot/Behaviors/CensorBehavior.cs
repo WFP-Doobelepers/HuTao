@@ -35,7 +35,7 @@ namespace Zhongli.Bot.Behaviors
         public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
             => ProcessMessage(notification.NewMessage, cancellationToken);
 
-        public async Task ProcessMessage(SocketMessage message, CancellationToken cancellationToken = default)
+        private async Task ProcessMessage(SocketMessage message, CancellationToken cancellationToken = default)
         {
             var author = message.Author;
             if (author.IsBot || author.IsWebhook || author is not IGuildUser user)
@@ -98,7 +98,7 @@ namespace Zhongli.Bot.Behaviors
             var embed = new EmbedBuilder()
                 .WithColor(Color.Red)
                 .WithTitle("Censor Triggered").WithDescription(content)
-                .AddMeta(message, true).AddJumpLink(message)
+                .AddMeta(message, AuthorOptions.IncludeId).AddJumpLink(message)
                 .WithFooter(censor.Id.ToString(), guild.IconUrl);
 
             await logChannel.SendMessageAsync(embed: embed.Build());

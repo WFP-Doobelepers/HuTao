@@ -98,8 +98,8 @@ namespace Zhongli.Bot.Modules.Moderation
         private EmbedBuilder CreateEmbed(IUser user, ReprimandAction action)
         {
             var embed = new EmbedBuilder()
-                .WithUserAsAuthor(Context.User)
-                .WithUserAsAuthor(user, true, true)
+                .WithUserAsAuthor(Context.User, AuthorOptions.IncludeId | AuthorOptions.UseFooter)
+                .WithUserAsAuthor(user, AuthorOptions.Requested | AuthorOptions.UseFooter)
                 .WithCurrentTimestamp();
 
             AddReprimands(embed, action);
