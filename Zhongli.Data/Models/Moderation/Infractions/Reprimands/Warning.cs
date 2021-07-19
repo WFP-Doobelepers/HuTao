@@ -1,6 +1,6 @@
 ﻿namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Warning : ReprimandAction, IReprimand
+    public class Warning : ReprimandAction, ICountable
     {
         protected Warning() { }
 

@@ -75,11 +75,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task NoticeAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
-            var action = await _moderationService.NoticeAsync(amount, GetDetails(user, reason));
+            var action = await _moderationService.NoticeAsync(GetDetails(user, reason));
             var embed = CreateEmbed(user, action)
                 .WithTitle("Notice")
                 .WithDescription($"{user.Mention} was given {amount} notices.")
-                .AddField("Total", action.User.ReprimandCount<Notice>(), true);
+                .AddField("Total", action.User.HistoryCount<Notice>(), true);
+
             await ReplyAsync(embed: embed.Build());
         }
 

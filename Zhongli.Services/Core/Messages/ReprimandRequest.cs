@@ -5,7 +5,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Services.Core.Messages
 {
-    public class ReprimandRequest<T> : IRequest<ReprimandAction> where T : IReprimand
+    public class ReprimandRequest<T> : IRequest<ReprimandAction> where T : ReprimandAction
     {
         public ReprimandRequest(IGuildUser user, IGuildUser moderator, T reprimand)
         {

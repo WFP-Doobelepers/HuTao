@@ -2,7 +2,7 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public abstract class WarningTrigger : IModerationAction, IReprimand, ITrigger
+    public abstract class WarningTrigger : IModerationAction, ICountable, ITrigger
     {
         protected WarningTrigger() { }
 

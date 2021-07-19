@@ -94,10 +94,10 @@ namespace Zhongli.Services.Core
                 cancellationToken);
         }
 
-        public async Task<ReprimandAction> NoticeAsync(uint amount, ReprimandDetails details,
+        public async Task<ReprimandAction> NoticeAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var notice = new Notice(amount, details).AsProxy(_db);
+            var notice = new Notice(details).AsProxy(_db);
 
             _db.NoticeHistory.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);

@@ -38,7 +38,7 @@ namespace Zhongli.Bot.Behaviors
             CancellationToken cancellationToken)
         {
             var rules = reprimand.Reprimand.Guild.AutoModerationRules;
-            var notices = reprimand.Reprimand.User.ReprimandCount<Notice>();
+            var notices = reprimand.Reprimand.User.HistoryCount<Notice>();
 
             var trigger = rules.NoticeTriggers
                 .Where(t => t.IsTriggered(notices))

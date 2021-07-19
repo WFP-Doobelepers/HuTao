@@ -2,7 +2,7 @@ using System;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public class NoticeTrigger : IModerationAction, IReprimand, ITrigger
+    public class NoticeTrigger : IModerationAction, ICountable, ITrigger
     {
         protected NoticeTrigger() { }
 

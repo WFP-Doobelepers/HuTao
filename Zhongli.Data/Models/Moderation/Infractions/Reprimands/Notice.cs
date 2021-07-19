@@ -1,9 +1,9 @@
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Notice : Warning
+    public class Notice : ReprimandAction
     {
         protected Notice() { }
 
-        public Notice(uint amount, ReprimandDetails details) : base(amount, details) { }
+        public Notice(ReprimandDetails details) : base(details) { }
     }
 }
