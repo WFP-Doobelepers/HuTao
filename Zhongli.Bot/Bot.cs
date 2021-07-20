@@ -44,7 +44,7 @@ namespace Zhongli.Bot
                 .AddSingleton<InteractiveService>()
                 .AddTransient<AuthorizationService>()
                 .AddTransient<ModerationService>()
-                .AddScoped<ModerationLoggingService>()
+                .AddTransient<ModerationLoggingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()

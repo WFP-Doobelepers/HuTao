@@ -15,8 +15,8 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
-        public async Task<EmbedBuilder> CreateEmbedAsync<T>(ReprimandDetails details, T result,
-            CancellationToken cancellationToken = default) where T : ReprimandResult
+        public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandDetails details, ReprimandResult result,
+            CancellationToken cancellationToken = default)
         {
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(details.User, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)

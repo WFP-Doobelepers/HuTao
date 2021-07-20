@@ -9,7 +9,6 @@ using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Moderation
@@ -79,6 +78,8 @@ namespace Zhongli.Services.Moderation
             _db.Add(mute);
             await _db.SaveChangesAsync(cancellationToken);
 
+            await PublishReprimandAsync(details, mute, cancellationToken);
+
             return mute;
         }
 
@@ -90,9 +91,23 @@ namespace Zhongli.Services.Moderation
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return await _mediator.Send(
-                new ReprimandRequest<Warning, WarningResult>(details.User, details.Moderator, warning),
-                cancellationToken);
+            var request = new ReprimandRequest<Warning, WarningResult>(details.User, details.Moderator, warning);
+            return await PublishReprimandAsync(details, request, cancellationToken);
+        }
+
+        private async Task<T> PublishReprimandAsync<T>(ReprimandDetails details, IRequest<T> request,
+            CancellationToken cancellationToken) where T : ReprimandResult
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            await PublishReprimandAsync(details, result, cancellationToken);
+
+            return result;
+        }
+
+        private async Task PublishReprimandAsync(ReprimandDetails details, ReprimandResult result,
+            CancellationToken cancellationToken)
+        {
+            await _mediator.Publish(new ReprimandNotification(details, result), cancellationToken);
         }
 
         public async Task<NoticeResult> NoticeAsync(ReprimandDetails details,
@@ -103,16 +118,17 @@ namespace Zhongli.Services.Moderation
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return await _mediator.Send(
-                new ReprimandRequest<Notice, NoticeResult>(details.User, details.Moderator, notice),
-                cancellationToken);
+            var request = new ReprimandRequest<Notice, NoticeResult>(details.User, details.Moderator, notice);
+            return await PublishReprimandAsync(details, request, cancellationToken);
         }
 
         public async Task NoteAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            _db.Add(new Note(details));
+            var note = _db.Add(new Note(details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
+
+            await PublishReprimandAsync(details, note, cancellationToken);
         }
 
         public async Task<Kick?> TryKickAsync(ReprimandDetails details,
@@ -124,6 +140,8 @@ namespace Zhongli.Services.Moderation
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
+
+                await PublishReprimandAsync(details, kick, cancellationToken);
 
                 return kick;
             }
@@ -146,6 +164,8 @@ namespace Zhongli.Services.Moderation
 
                 var ban = _db.Add(new Ban(deleteDays ?? 1, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
+
+                await PublishReprimandAsync(details, ban, cancellationToken);
 
                 return ban;
             }

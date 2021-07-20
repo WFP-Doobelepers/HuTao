@@ -35,6 +35,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
         public ulong UserId { get; set; }
 
         public virtual ModerationAction Action { get; set; }
+
+        public static implicit operator ReprimandResult(ReprimandAction reprimand) => new(reprimand);
     }
 
     public class ReprimandActionConfiguration : IEntityTypeConfiguration<ReprimandAction>

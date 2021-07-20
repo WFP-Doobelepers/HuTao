@@ -37,9 +37,9 @@ namespace Zhongli.Bot.Behaviors
         public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,
             CancellationToken cancellationToken)
         {
-            var reprimand = request.Reprimand;
-            var user = await reprimand.GetUserAsync(_db, cancellationToken);
+            var (guildUser, moderator, reprimand) = request;
 
+            var user = await reprimand.GetUserAsync(_db, cancellationToken);
             var rules = user.Guild.AutoModerationRules;
             var notices = user.HistoryCount<Notice>();
 
@@ -48,27 +48,27 @@ namespace Zhongli.Bot.Behaviors
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 
-            if (trigger is null) return new NoticeResult(request.Reprimand);
+            if (trigger is null) return new NoticeResult(reprimand);
 
-            var currentUser = await request.Moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(request.User, currentUser,
+            var currentUser = await moderator.Guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(guildUser, currentUser,
                 ModerationSource.Notice, "[Notice Trigger]");
 
-            return new NoticeResult(request.Reprimand,
+            return new NoticeResult(reprimand,
                 await _moderationService.WarnAsync(1, details, cancellationToken));
         }
 
         public async Task<WarningResult> Handle(ReprimandRequest<Warning, WarningResult> request,
             CancellationToken cancellationToken)
         {
-            var reprimand = request.Reprimand;
-            var user = await reprimand.GetUserAsync(_db, cancellationToken);
+            var (guildUser, moderator, reprimand) = request;
 
+            var user = await reprimand.GetUserAsync(_db, cancellationToken);
             var rules = user.Guild.AutoModerationRules;
             var warnings = user.ReprimandCount<Warning>();
 
-            var currentUser = await request.Moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(request.User, currentUser,
+            var currentUser = await moderator.Guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(guildUser, currentUser,
                 ModerationSource.Warning, "[Warning Trigger]");
 
             var trigger = rules.WarningTriggers
