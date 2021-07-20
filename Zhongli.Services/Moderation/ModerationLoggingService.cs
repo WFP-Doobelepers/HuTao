@@ -39,6 +39,7 @@ namespace Zhongli.Services.Moderation
             {
                 embed
                     .WithTitle(GetTitle(reprimand))
+                    .WithColor(GetColor(reprimand))
                     .WithDescription(GetMessage(details, reprimand));
 
                 if (!string.IsNullOrWhiteSpace(reprimand.Reason))
@@ -55,9 +56,27 @@ namespace Zhongli.Services.Moderation
         {
             if (reprimand is not null)
             {
-                embed.AddField($"{GetTitle(reprimand)} [{await GetTotalAsync(reprimand, cancellationToken)}]",
-                    $"{GetMessage(details, reprimand)}");
+                var total = await GetTotalAsync(reprimand, cancellationToken);
+                embed
+                    .WithColor(GetColor(reprimand))
+                    .AddField($"{GetTitle(reprimand)} [{total}]", $"{GetMessage(details, reprimand)}");
             }
+        }
+
+        private static Color GetColor(ReprimandAction action)
+        {
+            return action switch
+            {
+                Ban     => Color.Red,
+                Kick    => Color.Red,
+                Mute    => Color.Orange,
+                Note    => Color.Blue,
+                Notice  => Color.Gold,
+                Warning => Color.Gold,
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(action), action, "An unknown reprimand was given.")
+            };
         }
 
         private async ValueTask<int> GetTotalAsync(ReprimandAction action, CancellationToken cancellationToken)
@@ -102,7 +121,7 @@ namespace Zhongli.Services.Moderation
             {
                 Ban             => $"{details.User} was banned.",
                 Kick            => $"{details.User} was kicked.",
-                Mute mute       => $"{details.User} was muted for {mute.Length}.",
+                Mute mute       => $"{details.User} was muted for {mute.Length?.ToString() ?? "indefinitely"}.",
                 Note            => $"{details.User} was given a note.",
                 Notice          => $"{details.User} was given a notice.",
                 Warning warning => $"{details.User} was warned {warning.Amount} times.",
