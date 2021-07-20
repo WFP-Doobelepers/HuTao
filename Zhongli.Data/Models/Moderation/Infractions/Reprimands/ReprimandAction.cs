@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
@@ -24,13 +24,13 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public ModerationSource Source { get; set; }
 
-        public virtual GuildUserEntity User { get; set; }
+        public virtual GuildUserEntity? User { get; set; }
 
         public string? Reason { get; set; }
 
         public ulong GuildId { get; set; }
 
-        public virtual GuildEntity Guild { get; set; }
+        public virtual GuildEntity? Guild { get; set; }
 
         public ulong UserId { get; set; }
 
@@ -44,12 +44,5 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             builder.HasOne(r => r.User)
                 .WithMany().HasForeignKey(r => new { r.UserId, r.GuildId });
         }
-    }
-
-    public enum ModerationSource
-    {
-        Command,
-        Auto,
-        Censor
     }
 }

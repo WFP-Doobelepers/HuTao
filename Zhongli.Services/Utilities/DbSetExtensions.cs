@@ -21,24 +21,14 @@ namespace Zhongli.Services.Utilities
             return guildEntity;
         }
 
-        public static T AsProxy<T>(this T entity, DbContext context) where T : class
-        {
-            var proxy = context.CreateProxy<T>();
-            context.Entry(proxy).CurrentValues.SetValues(entity);
-
-            return proxy;
-        }
-
-        public static async Task<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
+        public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
             CancellationToken cancellationToken = default)
         {
             var userEntity = await set
                 .FindAsync(new object[] { user.Id, user.Guild.Id }, cancellationToken);
 
             if (userEntity is null)
-            {
                 userEntity = set.Add(new GuildUserEntity(user)).Entity;
-            }
             else
             {
                 userEntity.Username           = user.Username;

@@ -4,9 +4,8 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
-using Zhongli.Services.Utilities;
+using Zhongli.Services.Moderation;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -14,9 +13,14 @@ namespace Zhongli.Bot.Modules.Moderation
     [Summary("Guild moderation commands.")]
     public class ModerationModule : ModuleBase
     {
+        private readonly ModerationLoggingService _moderationLogging;
         private readonly ModerationService _moderationService;
 
-        public ModerationModule(ModerationService moderationService) { _moderationService = moderationService; }
+        public ModerationModule(ModerationService moderationService, ModerationLoggingService moderationLogging)
+        {
+            _moderationService = moderationService;
+            _moderationLogging = moderationLogging;
+        }
 
         private ReprimandDetails GetDetails(IGuildUser user, string? reason)
             => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
@@ -61,11 +65,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task WarnAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
-            var action = await _moderationService.WarnAsync(amount, GetDetails(user, reason));
-            var embed = CreateEmbed(user, action)
-                .WithTitle("Warning")
-                .WithDescription($"{user.Mention} was given {amount} warnings.")
-                .AddField("Total", action.User.ReprimandCount<Warning>(), true);
+            var details = GetDetails(user, reason);
+            var result = await _moderationService.WarnAsync(amount, details);
+            var embed = await _moderationLogging.CreateEmbedAsync(details, result);
 
             await ReplyAsync(embed: embed.Build());
         }
@@ -73,13 +75,11 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("notice")]
         [Summary("Add a notice to a user. This counts as a minor warning.")]
         [RequireAuthorization(AuthorizationScope.Warning)]
-        public async Task NoticeAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
+        public async Task NoticeAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            var action = await _moderationService.NoticeAsync(GetDetails(user, reason));
-            var embed = CreateEmbed(user, action)
-                .WithTitle("Notice")
-                .WithDescription($"{user.Mention} was given {amount} notices.")
-                .AddField("Total", action.User.HistoryCount<Notice>(), true);
+            var details = GetDetails(user, reason);
+            var result = await _moderationService.NoticeAsync(details);
+            var embed = await _moderationLogging.CreateEmbedAsync(details, result);
 
             await ReplyAsync(embed: embed.Build());
         }
@@ -93,39 +93,6 @@ namespace Zhongli.Bot.Modules.Moderation
             await _moderationService.NoteAsync(GetDetails(user, note));
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        private EmbedBuilder CreateEmbed(IUser user, ReprimandAction action)
-        {
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(Context.User, AuthorOptions.IncludeId | AuthorOptions.UseFooter)
-                .WithUserAsAuthor(user, AuthorOptions.Requested | AuthorOptions.UseFooter)
-                .WithCurrentTimestamp();
-
-            AddReprimands(embed, action);
-
-            return embed;
-        }
-
-        private static void AddReprimands(EmbedBuilder embed, ReprimandAction action)
-        {
-            if (action.Source != ModerationSource.Auto) return;
-
-            switch (action)
-            {
-                case Ban:
-                    embed.AddField("Reprimands", "Additionally got banned.");
-                    break;
-                case Kick:
-                    embed.AddField("Reprimands", "Additionally got kicked.");
-                    break;
-                case Mute mute:
-                    embed.AddField("Reprimands", $"Additionally got muted for {mute.Length}.");
-                    break;
-                case Warning:
-                    embed.AddField("Reprimands", "Additionally got warned");
-                    break;
-            }
         }
     }
 }

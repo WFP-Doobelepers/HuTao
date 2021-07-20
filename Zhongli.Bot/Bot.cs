@@ -17,6 +17,7 @@ using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Image;
+using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 
 namespace Zhongli.Bot
@@ -41,8 +42,9 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<InteractiveService>()
-                .AddScoped<AuthorizationService>()
-                .AddScoped<ModerationService>()
+                .AddTransient<AuthorizationService>()
+                .AddTransient<ModerationService>()
+                .AddScoped<ModerationLoggingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
@@ -132,7 +134,7 @@ namespace Zhongli.Bot
             return Task.CompletedTask;
         }
 
-        private void FailFast()
+        private static void FailFast()
             => Environment.Exit(1);
 
         private async Task CheckStateAsync(IDiscordClient client)
@@ -155,13 +157,10 @@ namespace Zhongli.Bot
                 }
                 else if (connect.IsFaulted)
                 {
-                    Log.Fatal("Client reset faulted, killing process", connect.Exception);
+                    Log.Fatal(connect.Exception, "Client reset faulted, killing process");
                     FailFast();
                 }
-                else if (connect.IsCompletedSuccessfully)
-                {
-                    Log.Information("Client reset succesfully!");
-                }
+                else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
 
                 return;
             }
