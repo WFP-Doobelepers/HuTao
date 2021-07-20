@@ -72,9 +72,11 @@ namespace Zhongli.Services.CommandHelp
                 return builder;
 
             if (parameters.HasSummary())
+            {
                 builder
                     .AppendLine(Format.Bold("Parameters:"))
                     .AppendSummaries(parameters);
+            }
 
             foreach (var parameter in parameters.Where(p => p.Options.HasSummary()))
             {

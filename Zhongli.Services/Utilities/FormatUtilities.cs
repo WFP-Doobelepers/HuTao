@@ -85,9 +85,7 @@ namespace Zhongli.Services.Utilities
                             $"{longestForm[..indexOfDifference]}({longestForm[indexOfDifference..]})";
                     }
                     else
-                    {
                         parenthesized[aliasIndex][wordIndex] = word.Single();
-                    }
                 }
             }
 

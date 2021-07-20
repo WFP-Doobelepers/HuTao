@@ -14,9 +14,9 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public Guid Id { get; set; }
 
-        public virtual ModerationAction Action { get; set; }
-
         public uint Amount { get; set; }
+
+        public virtual ModerationAction Action { get; set; }
 
         public bool Retroactive { get; set; }
 

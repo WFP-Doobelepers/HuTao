@@ -62,8 +62,10 @@ namespace Zhongli.Services.Interactive
                         continue;
 
                     if (ErrorMessage is not null)
+                    {
                         await Module.ModifyOrSendMessage(ErrorMessage ?? "You did not respond in time.", message,
                             new PromptOptions { Color = Color.Red });
+                    }
 
                     throw new ArgumentNullException(nameof(result.response), "User did not respond in time");
                 }

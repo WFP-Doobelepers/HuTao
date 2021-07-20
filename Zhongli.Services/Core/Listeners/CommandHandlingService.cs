@@ -57,8 +57,10 @@ namespace Zhongli.Services.Core.Listeners
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
                 if (result is null)
+                {
                     _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild,
                         message.Author);
+                }
                 else if (!result.IsSuccess)
                     await CommandFailedAsync(context, result);
             }
@@ -92,8 +94,10 @@ namespace Zhongli.Services.Core.Listeners
                 Log.Error("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
 
             if (result.Error == CommandError.Exception)
+            {
                 await context.Channel.SendMessageAsync(
                     $"Error: {FormatUtilities.SanitizeEveryone(result.ErrorReason)}");
+            }
             else
                 await _errorHandler.AssociateError(context.Message, error);
         }

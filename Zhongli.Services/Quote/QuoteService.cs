@@ -36,9 +36,13 @@ namespace Zhongli.Services.Quote
             var embed = message.GetRichEmbed(executingUser) ?? new EmbedBuilder();
 
             if (!embed.TryAddImageAttachment(message))
+            {
                 if (!embed.TryAddImageEmbed(message))
+                {
                     if (!embed.TryAddThumbnailEmbed(message))
                         embed.TryAddOtherAttachment(message);
+                }
+            }
 
             embed.WithColor(new Color(95, 186, 125))
                 .AddContent(message)

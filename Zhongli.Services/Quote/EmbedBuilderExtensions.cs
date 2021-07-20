@@ -82,10 +82,10 @@ namespace Zhongli.Services.Quote
         public static EmbedBuilder AddContent(this EmbedBuilder embed, string content) =>
             string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
 
-        public static EmbedBuilder AddMeta(this EmbedBuilder embed, IMessage message, AuthorOptions options = AuthorOptions.None)
-            => embed
-                .WithUserAsAuthor(message.Author, options)
-                .WithTimestamp(message.Timestamp);
+        public static EmbedBuilder AddMeta(this EmbedBuilder embed, IMessage message,
+            AuthorOptions options = AuthorOptions.None) => embed
+            .WithUserAsAuthor(message.Author, options)
+            .WithTimestamp(message.Timestamp);
 
         public static EmbedBuilder AddJumpLink(this EmbedBuilder embed, IMessage message, IMentionable executingUser)
             => embed.AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);

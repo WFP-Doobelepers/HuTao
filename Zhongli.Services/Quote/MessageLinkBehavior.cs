@@ -64,6 +64,7 @@ namespace Zhongli.Services.Quote
                 if (ulong.TryParse(match.Groups["GuildId"].Value, out _)
                     && ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId)
                     && ulong.TryParse(match.Groups["MessageId"].Value, out var messageId))
+                {
                     try
                     {
                         var msg = await _discordClient.GetMessageAsync(channelId, messageId);
@@ -80,6 +81,7 @@ namespace Zhongli.Services.Quote
                     {
                         _log.LogError(ex, "An error occurred while attempting to create a quote embed.");
                     }
+                }
             }
         }
 

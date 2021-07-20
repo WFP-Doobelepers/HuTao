@@ -18,8 +18,10 @@ namespace Zhongli.Services.Core.TypeReaders
             IServiceProvider services)
         {
             if (ulong.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out var id))
+            {
                 if (await context.GetMessageAsync(id).ConfigureAwait(false) is T msg)
                     return TypeReaderResult.FromSuccess(msg);
+            }
 
             return TypeReaderResult.FromError(CommandError.ObjectNotFound, "Message not found.");
         }

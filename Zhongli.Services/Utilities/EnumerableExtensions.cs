@@ -57,9 +57,7 @@ namespace Zhongli.Services.Utilities
                     yield return item;
                 }
                 else
-                {
                     possibleTail.Enqueue(item);
-                }
             }
         }
     }

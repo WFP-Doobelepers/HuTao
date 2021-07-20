@@ -19,8 +19,10 @@ namespace Zhongli.Services.Core.TypeReaders
                 .FirstOrDefault(t => t.Key == typeof(TReader));
 
             if (typeReader is null)
+            {
                 return TypeReaderResult.FromError(CommandError.ObjectNotFound,
                     $"The type reader {typeof(TReader)} could not be found.");
+            }
 
             var results = await input.Split(" ")
                 .ToAsyncEnumerable()
