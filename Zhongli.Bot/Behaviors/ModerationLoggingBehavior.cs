@@ -31,6 +31,9 @@ namespace Zhongli.Bot.Behaviors
             var reprimand = GetReprimand(result);
 
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
+            if (!guild.LoggingRules.Verbose && reprimand.Source != ModerationSource.Command)
+                return;
+
             var channelId = guild.LoggingRules.ModerationChannelId;
             if (channelId is null)
                 return;

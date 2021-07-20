@@ -99,8 +99,8 @@ namespace Zhongli.Bot.Behaviors
             var embed = new EmbedBuilder()
                 .WithColor(Color.Red)
                 .WithTitle("Censor Triggered").WithDescription(content)
-                .AddMeta(message, AuthorOptions.IncludeId).AddJumpLink(message)
-                .WithFooter(censor.Id.ToString(), guild.IconUrl);
+                .AddMeta(message, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail).AddJumpLink(message)
+                .WithUserAsAuthor(await guild.GetCurrentUserAsync(), AuthorOptions.Requested | AuthorOptions.UseFooter);
 
             await logChannel.SendMessageAsync(embed: embed.Build());
         }

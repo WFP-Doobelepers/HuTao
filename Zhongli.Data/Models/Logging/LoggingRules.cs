@@ -12,5 +12,7 @@ namespace Zhongli.Data.Models.Logging
         public ulong? ModerationChannelId { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
+
+        public bool Verbose { get; set; } = true;
     }
 }
