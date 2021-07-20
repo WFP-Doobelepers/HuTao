@@ -54,8 +54,8 @@ namespace Zhongli.Bot.Behaviors
             var details = new ReprimandDetails(guildUser, currentUser,
                 ModerationSource.Notice, "[Notice Trigger]");
 
-            return new NoticeResult(reprimand,
-                await _moderationService.WarnAsync(1, details, cancellationToken));
+            var secondary = await _moderationService.WarnAsync(1, details, cancellationToken);
+            return new NoticeResult(reprimand, secondary);
         }
 
         public async Task<WarningResult> Handle(ReprimandRequest<Warning, WarningResult> request,
@@ -76,14 +76,14 @@ namespace Zhongli.Bot.Behaviors
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 
-            ReprimandAction? action = trigger switch
+            ReprimandAction? secondary = trigger switch
             {
                 BanTrigger ban   => await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken),
                 KickTrigger      => await _moderationService.TryKickAsync(details, cancellationToken),
                 MuteTrigger mute => await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken)
             };
 
-            return new WarningResult(reprimand, action);
+            return new WarningResult(reprimand, secondary);
         }
 
         private async Task ProcessMutes(CancellationToken cancellationToken)

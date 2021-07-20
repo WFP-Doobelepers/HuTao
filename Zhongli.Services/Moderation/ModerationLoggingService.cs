@@ -23,20 +23,10 @@ namespace Zhongli.Services.Moderation
                 .WithUserAsAuthor(details.Moderator, AuthorOptions.UseFooter | AuthorOptions.Requested)
                 .WithCurrentTimestamp();
 
-            switch (result)
+            await AddPrimaryAsync(embed, details, result.Primary, cancellationToken);
+            foreach (var secondary in result.Secondary)
             {
-                case NoticeResult(var notice, var warning):
-                    await AddPrimaryAsync(embed, details, notice, cancellationToken);
-                    await AddSecondaryAsync(embed, details, warning?.Warning, cancellationToken);
-                    await AddSecondaryAsync(embed, details, warning?.Reprimand, cancellationToken);
-                    break;
-                case WarningResult(var warning, var reprimand):
-                    await AddPrimaryAsync(embed, details, warning, cancellationToken);
-                    await AddSecondaryAsync(embed, details, reprimand, cancellationToken);
-                    break;
-                default:
-                    await AddPrimaryAsync(embed, details, result.Reprimand, cancellationToken);
-                    break;
+                await AddSecondaryAsync(embed, details, secondary, cancellationToken);
             }
 
             return embed;

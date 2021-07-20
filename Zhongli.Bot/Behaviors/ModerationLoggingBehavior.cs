@@ -28,7 +28,7 @@ namespace Zhongli.Bot.Behaviors
         {
             var (details, result) = notification;
 
-            var reprimand = GetReprimand(result);
+            var reprimand = result.Primary;
 
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
             if (!guild.LoggingRules.Verbose && reprimand.Source != ModerationSource.Command)
@@ -41,16 +41,6 @@ namespace Zhongli.Bot.Behaviors
             var embed = await _moderationLogging.CreateEmbedAsync(details, result, cancellationToken);
             var channel = _client.GetGuild(guild.Id).GetTextChannel(channelId.Value);
             await channel.SendMessageAsync(embed: embed.Build());
-        }
-
-        private static ReprimandAction GetReprimand(ReprimandResult result)
-        {
-            return (result switch
-            {
-                NoticeResult notice   => notice.Notice,
-                WarningResult warning => warning.Warning!,
-                _                     => result.Reprimand!
-            })!;
         }
     }
 }
