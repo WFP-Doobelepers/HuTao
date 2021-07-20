@@ -7,7 +7,7 @@ using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions;
 
-namespace Zhongli.Bot.Modules
+namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("configure")]
     [RequireAuthorization(AuthorizationScope.Auto)]
@@ -41,32 +41,6 @@ namespace Zhongli.Bot.Modules
                 PurgeEmpty             = options?.PurgeEmpty ?? true,
                 ShowJoinLeave          = options?.ShowJoinLeave ?? true
             };
-
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("logging")]
-        [Summary("Configures the Logging Channel that logs will be sent on.")]
-        public async Task ConfigureLoggingAsync(
-            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
-            ITextChannel channel)
-        {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.ModerationChannelId = channel.Id;
-
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("verbose")]
-        [Summary("Configures the Logging messages to be verbose or not.")]
-        public async Task VerboseAsync(
-            [Summary("Set to 'true' to log secondary reprimands in separate messages. Leave blank to toggle.")]
-            bool? verbose = null)
-        {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Verbose = verbose ?? !guild.LoggingRules.Verbose;
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));

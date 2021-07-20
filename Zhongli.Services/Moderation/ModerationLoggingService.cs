@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Humanizer;
 using Zhongli.Data;
+using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
 
@@ -18,10 +19,17 @@ namespace Zhongli.Services.Moderation
         public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandDetails details, ReprimandResult result,
             CancellationToken cancellationToken = default)
         {
+            var guild = await result.Primary.GetGuildAsync(_db, cancellationToken);
+            var options = guild.LoggingRules.Options;
+
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(details.User, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithUserAsAuthor(details.Moderator, AuthorOptions.UseFooter | AuthorOptions.Requested)
                 .WithCurrentTimestamp();
+
+            if (options.HasFlag(LoggingOptions.Anonymous))
+                embed.WithGuildAsAuthor(details.Moderator.Guild, AuthorOptions.UseFooter | AuthorOptions.Requested);
+            else
+                embed.WithUserAsAuthor(details.Moderator, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await AddPrimaryAsync(embed, details, result.Primary, cancellationToken);
             foreach (var secondary in result.Secondary)

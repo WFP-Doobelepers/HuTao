@@ -9,11 +9,11 @@ namespace Zhongli.Services.Utilities
     [Flags]
     public enum AuthorOptions
     {
-        None = 1 << 0,
-        IncludeId = 1 << 1,
-        UseFooter = 1 << 2,
-        UseThumbnail = 1 << 3,
-        Requested = 1 << 4
+        None         = 0,
+        IncludeId    = 1 << 0,
+        UseFooter    = 1 << 1,
+        UseThumbnail = 1 << 2,
+        Requested    = 1 << 3
     }
 
     public static class EmbedBuilderExtensions
@@ -44,25 +44,38 @@ namespace Zhongli.Services.Utilities
             return builder;
         }
 
+        public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild guild,
+            AuthorOptions authorOptions = AuthorOptions.None)
+        {
+            var name = guild.Name;
+            if (authorOptions.HasFlag(AuthorOptions.Requested))
+                name = $"Requested from {name}";
+
+            return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
+        }
+
         public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder embed, IUser user,
             AuthorOptions authorOptions = AuthorOptions.None)
         {
             var username = user.GetFullUsername();
-
-            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
-                username += $" ({user.Id})";
-
             if (authorOptions.HasFlag(AuthorOptions.Requested))
                 username = $"Requested by {username}";
 
-            var avatar = user.GetDefiniteAvatarUrl();
+            return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(), authorOptions);
+        }
+
+        private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
+            string name, string iconUrl, AuthorOptions authorOptions)
+        {
+            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
+                name += $" ({entity.Id})";
 
             if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
-                embed.WithThumbnailUrl(avatar);
+                embed.WithThumbnailUrl(iconUrl);
 
             return authorOptions.HasFlag(AuthorOptions.UseFooter)
-                ? embed.WithFooter(username, avatar)
-                : embed.WithAuthor(username, avatar);
+                ? embed.WithFooter(name, iconUrl)
+                : embed.WithAuthor(name, iconUrl);
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,
