@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using Hangfire;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -28,7 +29,7 @@ namespace Zhongli.Services.Moderation
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
 
-        public async Task EnqueueMuteTimer(Mute mute, CancellationToken cancellationToken)
+        public async Task UnmuteAsync(Mute mute, CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
             var muteRoleId = guildEntity?.MuteRoleId;
@@ -38,17 +39,7 @@ namespace Zhongli.Services.Moderation
             var guild = _client.GetGuild(mute.GuildId);
             var user = guild.GetUser(mute.UserId);
 
-            await EnqueueMuteTimer(user, muteRoleId.Value, mute.TimeLeft!.Value, mute, cancellationToken);
-        }
-
-        private async Task EnqueueMuteTimer(IGuildUser user, ulong roleId, TimeSpan length, Mute mute,
-            CancellationToken cancellationToken = default)
-        {
-            if (!ActiveMutes.TryAdd(mute.UserId, mute))
-                return;
-
-            await Task.Delay(length, cancellationToken);
-            await user.RemoveRoleAsync(roleId);
+            await user.RemoveRoleAsync(muteRoleId.Value);
 
             mute.EndedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
@@ -73,7 +64,10 @@ namespace Zhongli.Services.Moderation
 
             await details.User.AddRoleAsync(muteRole.Value);
             if (mute.TimeLeft is not null)
-                _ = EnqueueMuteTimer(details.User, muteRole.Value, mute.TimeLeft.Value, mute, cancellationToken);
+            {
+                BackgroundJob.Schedule(() => UnmuteAsync(mute, cancellationToken),
+                    mute.TimeLeft!.Value);
+            }
 
             _db.Add(mute);
             await _db.SaveChangesAsync(cancellationToken);

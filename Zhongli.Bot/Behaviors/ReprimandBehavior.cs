@@ -1,22 +1,18 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
-using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 
 namespace Zhongli.Bot.Behaviors
 {
     public class ReprimandBehavior :
         IRequestHandler<ReprimandRequest<Warning, WarningResult>, WarningResult>,
-        IRequestHandler<ReprimandRequest<Notice, NoticeResult>, NoticeResult>,
-        INotificationHandler<ReadyNotification>
+        IRequestHandler<ReprimandRequest<Notice, NoticeResult>, NoticeResult>
     {
-        private static Task? _mutesProcessor;
         private readonly ZhongliContext _db;
         private readonly ModerationService _moderationService;
 
@@ -24,14 +20,6 @@ namespace Zhongli.Bot.Behaviors
         {
             _db                = db;
             _moderationService = moderationService;
-        }
-
-        public Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
-        {
-            _mutesProcessor ??= Task.Factory.StartNew(() => ProcessMutes(cancellationToken), cancellationToken,
-                TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-            return Task.CompletedTask;
         }
 
         public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,
@@ -84,30 +72,6 @@ namespace Zhongli.Bot.Behaviors
             };
 
             return new WarningResult(reprimand, secondary);
-        }
-
-        private async Task ProcessMutes(CancellationToken cancellationToken)
-        {
-            while (true)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                var now = DateTimeOffset.Now;
-                var activeMutes = await _db.Set<Mute>()
-                    .AsAsyncEnumerable()
-                    .Where(m => m.EndedAt == null)
-                    .Where(m => m.StartedAt + m.Length > now)
-                    .Where(m => m.StartedAt + m.Length - now < TimeSpan.FromMinutes(10))
-                    .ToListAsync(cancellationToken);
-
-                foreach (var mute in activeMutes)
-                {
-                    _ = _moderationService.EnqueueMuteTimer(mute, cancellationToken);
-                }
-
-                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
-            }
         }
     }
 }

@@ -5,9 +5,13 @@ using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
+using Hangfire;
+using Hangfire.AspNetCore;
+using Hangfire.PostgreSql;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Serilog;
 using Serilog.Events;
 using Zhongli.Data;
@@ -29,10 +33,10 @@ namespace Zhongli.Bot
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
         private CancellationTokenSource _reconnectCts = null!;
 
-        public static async Task Main() => await new Bot().StartAsync();
+        public static async Task Main() { await new Bot().StartAsync(); }
 
         private static ServiceProvider ConfigureServices() =>
-            new ServiceCollection().AddHttpClient().AddMemoryCache()
+            new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
                 .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
                     typeof(Bot), typeof(ZhongliMediator))
@@ -61,11 +65,20 @@ namespace Zhongli.Bot
         private async Task StartAsync()
         {
             Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
                 .MinimumLevel.Verbose()
                 .WriteTo.Console()
                 .CreateLogger();
 
             await using var services = ConfigureServices();
+
+            GlobalConfiguration.Configuration
+                .UseActivator(new AspNetCoreJobActivator(
+                    services.GetRequiredService<IServiceScopeFactory>()))
+                .UseSerilogLogProvider()
+                .UsePostgreSqlStorage(ZhongliConfig.Configuration.HangfireContext)
+                .UseRecommendedSerializerSettings(s =>
+                    s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
 
             await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
             var commands = services.GetRequiredService<CommandService>();
@@ -87,6 +100,8 @@ namespace Zhongli.Bot
 
             await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
             await client.StartAsync();
+
+            using var server = new BackgroundJobServer();
 
             await Task.Delay(-1);
         }

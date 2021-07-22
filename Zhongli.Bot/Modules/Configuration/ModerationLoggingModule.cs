@@ -8,12 +8,12 @@ using Zhongli.Services.Utilities;
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("configure logging")]
-    public class LoggingConfigurationModule : ModuleBase
+    public class ModerationLoggingModule : ModuleBase
     {
         private static readonly GenericBitwise<LoggingOptions> LoggingOptionsBitwise = new();
         private readonly ZhongliContext _db;
 
-        public LoggingConfigurationModule(ZhongliContext db) { _db = db; }
+        public ModerationLoggingModule(ZhongliContext db) { _db = db; }
 
         [Command]
         [Summary("Configures the Logging Channel that logs will be sent on.")]

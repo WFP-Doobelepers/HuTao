@@ -9,5 +9,7 @@
         public string Prefix { get; init; }
 
         public string ZhongliContext { get; init; }
+
+        public string HangfireContext { get; init; }
     }
 }
