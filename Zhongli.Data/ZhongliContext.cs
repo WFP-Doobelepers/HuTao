@@ -4,6 +4,7 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
+using Zhongli.Data.Models.TimeTracking;
 
 namespace Zhongli.Data
 {
@@ -54,6 +55,8 @@ namespace Zhongli.Data
         public DbSet<KickTrigger> KickTriggers { get; init; }
 
         public DbSet<MuteTrigger> MuteTriggers { get; init; }
+
+        public DbSet<TimeTracking> TimeTrackingRules { get; init; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

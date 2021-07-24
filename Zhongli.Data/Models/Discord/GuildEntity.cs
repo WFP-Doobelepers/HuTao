@@ -4,6 +4,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Data.Models.VoiceChat;
 
 namespace Zhongli.Data.Models.Discord
@@ -25,6 +26,8 @@ namespace Zhongli.Data.Models.Discord
         public ulong? MuteRoleId { get; set; }
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
+
+        public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
 
         public virtual LoggingRules LoggingRules { get; set; } = new();
 
