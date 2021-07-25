@@ -28,7 +28,6 @@ namespace Zhongli.Bot.Behaviors
             CancellationToken cancellationToken)
         {
             var (details, result) = notification;
-
             var reprimand = result.Primary;
 
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
@@ -44,10 +43,9 @@ namespace Zhongli.Bot.Behaviors
             var embed = await _moderationLogging.CreateEmbedAsync(details, result, cancellationToken);
             var channel = _client.GetGuild(guild.Id).GetTextChannel(channelId.Value);
 
-            if (!options.HasFlag(LoggingOptions.Silent))
-                await channel.SendMessageAsync(embed: embed.Build());
+            await channel.SendMessageAsync(embed: embed.Build());
 
-            if (options.HasFlag(LoggingOptions.NotifyUser))
+            if (options.HasFlag(LoggingOptions.NotifyUser) && reprimand is not Note)
             {
                 var dm = await details.User.GetOrCreateDMChannelAsync();
                 await dm.SendMessageAsync(

@@ -76,7 +76,6 @@ namespace Zhongli.Services.Moderation
             await _db.SaveChangesAsync(cancellationToken);
 
             await PublishReprimandAsync(details, mute, cancellationToken);
-
             return mute;
         }
 
@@ -139,7 +138,6 @@ namespace Zhongli.Services.Moderation
                 await _db.SaveChangesAsync(cancellationToken);
 
                 await PublishReprimandAsync(details, kick, cancellationToken);
-
                 return kick;
             }
             catch (HttpException e)
@@ -163,7 +161,6 @@ namespace Zhongli.Services.Moderation
                 await _db.SaveChangesAsync(cancellationToken);
 
                 await PublishReprimandAsync(details, ban, cancellationToken);
-
                 return ban;
             }
             catch (HttpException e)

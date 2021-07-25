@@ -12,7 +12,7 @@ namespace Zhongli.Services.Moderation
     public static class ReprimandExtensions
     {
         public static async ValueTask<GuildEntity> GetGuildAsync(this ReprimandAction reprimand, DbContext db,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             return reprimand.Guild ??
                 await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken);

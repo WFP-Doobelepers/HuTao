@@ -141,7 +141,9 @@ namespace Zhongli.Services.Moderation
             };
 
             static string GetLength(IMute mute)
-                => mute.Length?.Humanize(5, minUnit: TimeUnit.Second) ?? "indefinitely";
+                => mute.Length?.Humanize(5,
+                    minUnit: TimeUnit.Second,
+                    maxUnit: TimeUnit.Year) ?? "indefinitely";
         }
     }
 }
