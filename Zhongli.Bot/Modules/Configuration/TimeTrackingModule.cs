@@ -26,6 +26,13 @@ namespace Zhongli.Bot.Modules.Configuration
         }
 
         [Command("genshin")]
+        public async Task GenshinAsync(ITextChannel channel)
+        {
+            var message = await channel.SendMessageAsync("Setting up...");
+            await GenshinAsync(message);
+        }
+
+        [Command("genshin")]
         public async Task GenshinAsync(IUserMessage? message = null)
         {
             message ??= await ReplyAsync("Setting up...");
