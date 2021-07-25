@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
+using Discord.Rest;
 using Discord.WebSocket;
 using Hangfire;
 using Hangfire.AspNetCore;
@@ -23,6 +24,7 @@ using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Image;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
+using Zhongli.Services.TimeTracking;
 
 namespace Zhongli.Bot
 {
@@ -41,6 +43,7 @@ namespace Zhongli.Bot
                 .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
                     typeof(Bot), typeof(ZhongliMediator))
                 .AddLogging(l => l.AddSerilog())
+                .AddSingleton<DiscordRestClient>()
                 .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true }))
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
@@ -49,6 +52,7 @@ namespace Zhongli.Bot
                 .AddTransient<AuthorizationService>()
                 .AddTransient<ModerationService>()
                 .AddTransient<ModerationLoggingService>()
+                .AddTransient<GenshinTimeTrackingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
@@ -66,6 +70,7 @@ namespace Zhongli.Bot
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
                 .MinimumLevel.Verbose()
                 .WriteTo.Console()
                 .CreateLogger();
@@ -84,6 +89,7 @@ namespace Zhongli.Bot
             var commands = services.GetRequiredService<CommandService>();
 
             var client = services.GetRequiredService<DiscordSocketClient>();
+            var rest = services.GetRequiredService<DiscordRestClient>();
             var mediator = services.GetRequiredService<IMediator>();
 
             _reconnectCts  = new CancellationTokenSource();
@@ -95,10 +101,14 @@ namespace Zhongli.Bot
             client.Disconnected += _ => ClientOnDisconnected(client);
             client.Connected    += ClientOnConnected;
 
+            rest.Log     += LogAsync;
             client.Log   += LogAsync;
             commands.Log += LogAsync;
 
             await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
+            await rest.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
+
+            await client.StartAsync();
             await client.StartAsync();
 
             using var server = new BackgroundJobServer();
