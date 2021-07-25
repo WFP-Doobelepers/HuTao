@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using Hangfire;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -65,8 +64,12 @@ namespace Zhongli.Services.Moderation
             await details.User.AddRoleAsync(muteRole.Value);
             if (mute.TimeLeft is not null)
             {
-                BackgroundJob.Schedule(() => UnmuteAsync(mute, cancellationToken),
-                    mute.TimeLeft!.Value);
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(mute.TimeLeft!.Value, cancellationToken);
+                    if (!cancellationToken.IsCancellationRequested)
+                        await UnmuteAsync(mute, cancellationToken);
+                }, cancellationToken);
             }
 
             _db.Add(mute);

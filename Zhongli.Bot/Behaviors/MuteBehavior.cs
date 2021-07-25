@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Hangfire;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -33,8 +32,12 @@ namespace Zhongli.Bot.Behaviors
 
             await foreach (var mute in activeMutes.WithCancellation(cancellationToken))
             {
-                BackgroundJob.Schedule(() => _moderationService.UnmuteAsync(mute, cancellationToken),
-                    mute.TimeLeft!.Value);
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(mute.TimeLeft!.Value, cancellationToken);
+                    if (!cancellationToken.IsCancellationRequested)
+                        await _moderationService.UnmuteAsync(mute, cancellationToken);
+                }, cancellationToken);
             }
         }
     }
