@@ -23,24 +23,23 @@ namespace Zhongli.Services.Utilities
             if (client.GetChannel(channelId) is not ITextChannel channel)
                 return null;
 
-            return await channel.GetMessageAsync(messageId, allowNsfw);
+            return await GetMessageAsync(channel, messageId);
         }
 
         public static async Task<IMessage?> GetMessageAsync(this ICommandContext context,
-            ulong messageId, bool allowHidden = true, bool allowNsfw = false)
+            ulong messageId, bool allowNsfw = false)
         {
-            if (context.User is not IGuildUser guildUser || context.Channel is not ITextChannel textChannel)
+            if (context.Channel is not ITextChannel textChannel)
                 return null;
 
-            var channelPermissions = guildUser.GetPermissions(textChannel);
-            if (!channelPermissions.ViewChannel && !allowHidden)
+            if (textChannel.IsNsfw && !allowNsfw)
                 return null;
 
-            return await textChannel.GetMessageAsync(messageId, allowNsfw);
+            return await GetMessageAsync(textChannel, messageId);
         }
 
-        public static async Task<IMessage?> GetMessageAsync(this ITextChannel channel, ulong messageId,
-            bool allowNsfw)
+        private static async Task<IMessage?> GetMessageAsync(this ITextChannel channel, ulong messageId,
+            bool allowHidden = false, bool allowNsfw = false)
         {
             if (channel.IsNsfw && !allowNsfw)
                 return null;
@@ -48,7 +47,7 @@ namespace Zhongli.Services.Utilities
             var currentUser = await channel.Guild.GetCurrentUserAsync();
             var channelPermissions = currentUser.GetPermissions(channel);
 
-            if (!channelPermissions.ViewChannel)
+            if (!channelPermissions.ViewChannel && !allowHidden)
                 return null;
 
             var cacheMode = channelPermissions.ReadMessageHistory
@@ -58,17 +57,29 @@ namespace Zhongli.Services.Utilities
             return await channel.GetMessageAsync(messageId, cacheMode);
         }
 
+        public static async Task<IMessage?> GetMessageFromUrlAsync(this ICommandContext context, string jumpUrl,
+            bool allowNsfw = false)
+        {
+            var match = JumpUrlRegex.Match(jumpUrl);
+
+            if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
+                !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
+                !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) return null;
+
+            var channel = await context.Guild.GetTextChannelAsync(channelId);
+            return await GetMessageAsync(channel, messageId);
+        }
+
         public static async Task<IMessage?> GetMessageFromUrlAsync(this BaseSocketClient client, string jumpUrl,
             bool allowNsfw = false)
         {
             var match = JumpUrlRegex.Match(jumpUrl);
 
-            if (ulong.TryParse(match.Groups["GuildId"].Value, out _)
-                && ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId)
-                && ulong.TryParse(match.Groups["MessageId"].Value, out var messageId))
-                return await client.GetMessageAsync(channelId, messageId, allowNsfw);
+            if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
+                !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
+                !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) return null;
 
-            return null;
+            return await client.GetMessageAsync(channelId, messageId, allowNsfw);
         }
     }
 }

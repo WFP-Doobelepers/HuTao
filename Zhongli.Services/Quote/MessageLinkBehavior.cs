@@ -6,6 +6,7 @@ using Discord;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Zhongli.Data.Config;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 using MessageExtensions = Zhongli.Services.Utilities.MessageExtensions;
@@ -49,6 +50,8 @@ namespace Zhongli.Services.Quote
 
         private async Task OnMessageReceivedAsync(IMessage message)
         {
+            if (message.Content?.StartsWith(ZhongliConfig.Configuration.Prefix) ?? true) return;
+
             if (message is not IUserMessage { Author: IGuildUser guildUser } userMessage)
                 return;
 
@@ -61,26 +64,25 @@ namespace Zhongli.Services.Quote
                 if (match.Groups["OpenBrace"].Success && match.Groups["CloseBrace"].Success)
                     continue;
 
-                if (ulong.TryParse(match.Groups["GuildId"].Value, out _)
-                    && ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId)
-                    && ulong.TryParse(match.Groups["MessageId"].Value, out var messageId))
+                if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
+                    !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
+                    !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) continue;
+
+                try
                 {
-                    try
-                    {
-                        var msg = await _discordClient.GetMessageAsync(channelId, messageId);
+                    var msg = await _discordClient.GetMessageAsync(channelId, messageId);
 
-                        if (msg is null) return;
+                    if (msg is null) return;
 
-                        var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
-                        if (success
-                            && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
-                            && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
-                            await userMessage.DeleteAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.LogError(ex, "An error occurred while attempting to create a quote embed.");
-                    }
+                    var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
+                    if (success
+                        && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
+                        && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
+                        await userMessage.DeleteAsync();
+                }
+                catch (Exception ex)
+                {
+                    _log.LogError(ex, "An error occurred while attempting to create a quote embed");
                 }
             }
         }
