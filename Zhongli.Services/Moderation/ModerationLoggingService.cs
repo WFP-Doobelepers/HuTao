@@ -3,8 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Humanizer;
+using Humanizer.Localisation;
 using Zhongli.Data;
 using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
 
@@ -127,16 +129,19 @@ namespace Zhongli.Services.Moderation
         {
             return action switch
             {
-                Ban             => $"{details.User} was banned.",
-                Kick            => $"{details.User} was kicked.",
-                Mute mute       => $"{details.User} was muted for {mute.Length?.ToString() ?? "indefinitely"}.",
-                Note            => $"{details.User} was given a note.",
-                Notice          => $"{details.User} was given a notice.",
-                Warning warning => $"{details.User} was warned {warning.Amount} times.",
+                Ban       => $"{details.User} was banned.",
+                Kick      => $"{details.User} was kicked.",
+                Mute m    => $"{details.User} was muted for {GetLength(m)}.",
+                Note      => $"{details.User} was given a note.",
+                Notice    => $"{details.User} was given a notice.",
+                Warning w => $"{details.User} was warned {w.Amount} times.",
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
             };
+
+            static string GetLength(IMute mute)
+                => mute.Length?.Humanize(5, minUnit: TimeUnit.Second) ?? "indefinitely";
         }
     }
 }
