@@ -1,13 +1,17 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
+using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
+using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -17,11 +21,13 @@ namespace Zhongli.Bot.Modules.Moderation
     {
         private readonly AuthorizationService _auth;
         private readonly ZhongliContext _db;
+        private readonly CommandErrorHandler _error;
 
-        public PermissionsModule(ZhongliContext db, AuthorizationService auth)
+        public PermissionsModule(ZhongliContext db, CommandErrorHandler error, AuthorizationService auth)
         {
-            _auth = auth;
-            _db   = db;
+            _auth  = auth;
+            _db    = db;
+            _error = error;
         }
 
         [Command("configure")]
@@ -72,6 +78,62 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("add")]
+        [Summary(
+            "Add a permission for a specific scope. At least one rule option must be filled. " +
+            "Filling multiple options make an Authorization Group. " +
+            "An Authorization Group must have all pass before the permission is allowed.")]
+        public async Task AddPermissionAsync(AuthorizationScope scope, RuleOptions options)
+        {
+            var moderator = (IGuildUser) Context.User;
+            var rules = new List<Criterion>();
+
+            var channel = options.Channel;
+
+            if (options.User is not null)
+                rules.Add(new UserCriterion(options.User.Id));
+
+            if (channel is ITextChannel or ICategoryChannel)
+                rules.Add(new ChannelCriterion(channel.Id, channel is ICategoryChannel));
+
+            if (options.Role is not null)
+                rules.Add(new RoleCriterion(options.Role.Id));
+
+            if (options.Permission is not null)
+                rules.Add(new PermissionCriterion(options.Permission.Value));
+
+            if (rules.Count == 0)
+            {
+                await _error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
+                return;
+            }
+
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.AuthorizationGroups.AddRules(scope, moderator, options.AccessType, rules);
+
+            await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [NamedArgumentType]
+        public class RuleOptions
+        {
+            [HelpSummary("The text or category channel this permission will work on.")]
+            public IChannel? Channel { get; set; }
+
+            [HelpSummary("The user(s) that are allowed to use the command.")]
+            public IGuildUser? User { get; set; }
+
+            [HelpSummary("The specific role that the user must have.")]
+            public IRole? Role { get; set; }
+
+            [HelpSummary("The permissions that the user must have.")]
+            public GuildPermission? Permission { get; set; }
+
+            [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
+            public AccessType AccessType { get; set; } = AccessType.Allow;
         }
 
         private enum ConfigureOptions
