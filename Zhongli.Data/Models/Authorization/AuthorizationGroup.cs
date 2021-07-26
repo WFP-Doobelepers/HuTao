@@ -9,9 +9,10 @@ namespace Zhongli.Data.Models.Authorization
     {
         protected AuthorizationGroup() { }
 
-        public AuthorizationGroup(AuthorizationScope scope, ICollection<Criterion> rules)
+        public AuthorizationGroup(AuthorizationScope scope, AccessType access, ICollection<Criterion> rules)
         {
             Scope      = scope;
+            Access     = access;
             Collection = rules;
         }
 
@@ -20,6 +21,8 @@ namespace Zhongli.Data.Models.Authorization
         public AuthorizationScope Scope { get; set; }
 
         public virtual ICollection<Criterion> Collection { get; set; } = new List<Criterion>();
+
+        public AccessType Access { get; set; }
 
         public virtual ModerationAction Action { get; set; }
     }

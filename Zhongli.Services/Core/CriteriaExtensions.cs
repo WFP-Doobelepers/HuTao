@@ -2,6 +2,7 @@ using System.Linq;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Criteria;
+using Zhongli.Data.Models.Discord;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Services.Core
@@ -15,30 +16,27 @@ namespace Zhongli.Services.Core
         {
             return rule switch
             {
-                UserCriterion auth       => auth.Judge(user),
-                RoleCriterion auth       => auth.Judge(user),
-                PermissionCriterion auth => auth.Judge(user),
-                ChannelCriterion
-                    { IsCategory: true } auth => auth.Judge(channel.CategoryId),
-                ChannelCriterion auth => auth.Judge(channel.Id),
-                GuildCriterion        => true,
-                _                     => false
+                IUserEntity auth       => auth.Judge(user),
+                IRoleEntity auth       => auth.Judge(user),
+                IPermissionEntity auth => auth.Judge(user),
+                IChannelEntity auth    => auth.Judge(channel),
+                IGuildEntity           => true,
+                _                      => false
             };
         }
 
-        public static bool Judge(this UserCriterion auth, IGuildUser user)
+        private static bool Judge(this IUserEntity auth, IGuildUser user)
             => auth.UserId == user.Id;
 
-        public static bool Judge(this RoleCriterion auth, IGuildUser user)
+        private static bool Judge(this IRoleEntity auth, IGuildUser user)
             => user.RoleIds.Contains(auth.RoleId);
 
-        public static bool Judge(this PermissionCriterion auth, IGuildUser user)
+        private static bool Judge(this IPermissionEntity auth, IGuildUser user)
             => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0;
 
-        public static bool Judge(this ChannelCriterion auth, ITextChannel channel)
-            => auth.ChannelId == channel.Id;
-
-        public static bool Judge(this ChannelCriterion auth, ulong? categoryId)
-            => auth.ChannelId == categoryId;
+        private static bool Judge(this IChannelEntity auth, INestedChannel channel)
+            => auth.IsCategory
+                ? auth.ChannelId == channel.CategoryId
+                : auth.ChannelId == channel.Id;
     }
 }

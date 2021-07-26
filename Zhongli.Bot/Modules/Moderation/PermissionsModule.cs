@@ -18,30 +18,30 @@ namespace Zhongli.Bot.Modules.Moderation
         private readonly AuthorizationService _auth;
         private readonly ZhongliContext _db;
 
-        public PermissionsModule(AuthorizationService auth, ZhongliContext db)
+        public PermissionsModule(ZhongliContext db, AuthorizationService auth)
         {
             _auth = auth;
             _db   = db;
         }
 
         [Command("configure")]
+        [Summary("Interactively configure the permissions. This uses a template of having an admin and mod role.")]
         public async Task InteractiveConfigureAsync()
         {
             var permissionOptionFields = new[]
             {
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.All))
-                    .WithValue("All permissions. You probably only want this with admins."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Auto))
-                    .WithValue("Configuration of the auto moderation settings."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Moderator))
-                    .WithValue("Allows warning, mute, kick, and ban."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Helper))
-                    .WithValue("Allows warning and mute."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Warning)).WithValue("Allows warning."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Mute)).WithValue("Allows muting."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Kick)).WithValue("Allows kicking."),
-                new EmbedFieldBuilder().WithName(nameof(AuthorizationScope.Ban)).WithValue("Allows banning.")
+                CreateField(nameof(AuthorizationScope.All), "All permissions. Dangerous!"),
+                CreateField(nameof(AuthorizationScope.Auto), "Configuration of the auto moderation settings."),
+                CreateField(nameof(AuthorizationScope.Moderator), "Allows warning, mute, kick, and ban."),
+                CreateField(nameof(AuthorizationScope.Helper), "Allows warning and mute."),
+                CreateField(nameof(AuthorizationScope.Warning), "Allows warning."),
+                CreateField(nameof(AuthorizationScope.Mute), "Allows muting."),
+                CreateField(nameof(AuthorizationScope.Kick), "Allows kicking."),
+                CreateField(nameof(AuthorizationScope.Ban), "Allows banning.")
             };
+
+            EmbedFieldBuilder CreateField(string name, string value)
+                => new EmbedFieldBuilder().WithName(name).WithValue(value);
 
             var prompts = CreatePromptCollection<ConfigureOptions>()
                 .WithPrompt(ConfigureOptions.Admin,
@@ -61,16 +61,17 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await _db.Users.TrackUserAsync(moderator);
             var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
-            guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator,
+            guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow,
                 new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin).Id));
 
-            guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions), moderator,
+            guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions),
+                moderator, AccessType.Allow,
                 new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator).Id));
 
             _db.Update(guild);
             await _db.SaveChangesAsync();
 
-            await ReplyAsync($"Finished. {guild.AuthorizationGroups.Count}");
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
         private enum ConfigureOptions

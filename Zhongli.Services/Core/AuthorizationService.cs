@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -27,7 +27,7 @@ namespace Zhongli.Services.Core
             if (auth.Any()) return guildEntity;
 
             var permission = new PermissionCriterion(GuildPermission.Administrator);
-            auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), permission);
+            auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), AccessType.Allow, permission);
             await _db.SaveChangesAsync(cancellationToken);
 
             return guildEntity;
@@ -46,9 +46,12 @@ namespace Zhongli.Services.Core
             CancellationToken cancellationToken = default)
         {
             var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
-            var groups = rules.AuthorizationGroups;
+            var groups = rules.AuthorizationGroups
+                .Scoped(scope)
+                .ToLookup(r => r.Access);
 
-            return groups.Scoped(scope).Any(g => g.Judge(context, user));
+            return groups[AccessType.Allow].Any(r => r.Judge(context, user))
+                && groups[AccessType.Deny].All(r => !r.Judge(context, user));
         }
     }
 }
