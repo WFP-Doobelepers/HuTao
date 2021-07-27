@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zhongli.Data;
@@ -9,9 +10,10 @@ using Zhongli.Data;
 namespace Zhongli.Data.Migrations
 {
     [DbContext(typeof(ZhongliContext))]
-    partial class ZhongliContextModelSnapshot : ModelSnapshot
+    [Migration("20210727131451_AddReprimandStatus")]
+    partial class AddReprimandStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,6 +54,9 @@ namespace Zhongli.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ActionId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("AuthorizationGroupId")
                         .HasColumnType("uuid");
 
@@ -63,6 +68,8 @@ namespace Zhongli.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActionId");
 
                     b.HasIndex("AuthorizationGroupId");
 
@@ -711,6 +718,10 @@ namespace Zhongli.Data.Migrations
 
             modelBuilder.Entity("Zhongli.Data.Models.Criteria.Criterion", b =>
                 {
+                    b.HasOne("Zhongli.Data.Models.Moderation.Infractions.ModerationAction", "Action")
+                        .WithMany()
+                        .HasForeignKey("ActionId");
+
                     b.HasOne("Zhongli.Data.Models.Authorization.AuthorizationGroup", null)
                         .WithMany("Collection")
                         .HasForeignKey("AuthorizationGroupId");
@@ -718,6 +729,8 @@ namespace Zhongli.Data.Migrations
                     b.HasOne("Zhongli.Data.Models.Moderation.Infractions.Censors.Censor", null)
                         .WithMany("Exclusions")
                         .HasForeignKey("CensorId");
+
+                    b.Navigation("Action");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.GuildEntity", b =>

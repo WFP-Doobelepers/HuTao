@@ -28,15 +28,15 @@ namespace Zhongli.Bot.Behaviors
         public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,
             CancellationToken cancellationToken)
         {
-            var (guildUser, moderator, reprimand) = request;
+            var ((user, moderator, _, _), reprimand) = request;
 
-            var trigger = await TryGetTriggerAsync(reprimand,
+            var trigger = await TryGetTriggerAsync(reprimand, await reprimand.CountAsync(_db, cancellationToken),
                 rules => rules.NoticeTriggers, cancellationToken);
 
             if (trigger is null) return new NoticeResult(reprimand);
 
             var currentUser = await moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(guildUser, currentUser,
+            var details = new ReprimandDetails(user, currentUser,
                 ModerationSource.Notice, "[Notice Trigger]");
 
             var secondary = await _moderationService.WarnAsync(1, details, cancellationToken);
@@ -46,15 +46,15 @@ namespace Zhongli.Bot.Behaviors
         public async Task<WarningResult> Handle(ReprimandRequest<Warning, WarningResult> request,
             CancellationToken cancellationToken)
         {
-            var (guildUser, moderator, reprimand) = request;
+            var ((user, moderator, _, _), reprimand) = request;
 
-            var trigger = await TryGetTriggerAsync(reprimand,
+            var trigger = await TryGetTriggerAsync(reprimand, await reprimand.CountAsync(_db, cancellationToken),
                 rules => rules.WarningTriggers, cancellationToken);
 
             if (trigger is null) return new WarningResult(reprimand);
 
             var currentUser = await moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(guildUser, currentUser,
+            var details = new ReprimandDetails(user, currentUser,
                 ModerationSource.Warning, "[Warning Trigger]");
 
             ReprimandAction? secondary = trigger switch
@@ -66,19 +66,17 @@ namespace Zhongli.Bot.Behaviors
             };
 
             return new WarningResult(reprimand, secondary);
-
         }
 
-        private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand,
+        private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand, int count,
             Func<AutoModerationRules, IEnumerable<T>> selector,
             CancellationToken cancellationToken) where T : ITrigger
         {
             var user = await reprimand.GetUserAsync(_db, cancellationToken);
             var rules = user.Guild.AutoModerationRules;
-            var warnings = user.ReprimandCount<Warning>();
 
             var trigger = selector.Invoke(rules)
-                .Where(t => t.IsTriggered(warnings))
+                .Where(t => t.IsTriggered(count))
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
 

@@ -15,24 +15,26 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             GuildId = details.User.Guild.Id;
 
             Source = details.Type;
-            Reason = details.Reason;
 
             Action = new ModerationAction(details);
+            Status = ReprimandStatus.Added;
         }
 
         public Guid Id { get; set; }
 
         public ModerationSource Source { get; set; }
 
-        public virtual GuildUserEntity? User { get; set; }
+        public ReprimandStatus Status { get; set; }
 
-        public string? Reason { get; set; }
+        public virtual GuildUserEntity? User { get; set; }
 
         public ulong GuildId { get; set; }
 
         public virtual GuildEntity? Guild { get; set; }
 
         public ulong UserId { get; set; }
+
+        public virtual ModerationAction? ModifiedAction { get; set; }
 
         public virtual ModerationAction Action { get; set; }
 

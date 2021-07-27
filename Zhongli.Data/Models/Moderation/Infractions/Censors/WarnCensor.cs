@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
-    public class WarnCensor : Censor, ICountable
+    public class WarnCensor : Censor
     {
         protected WarnCensor() { }
 

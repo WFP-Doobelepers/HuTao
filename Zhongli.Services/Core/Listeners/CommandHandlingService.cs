@@ -13,6 +13,7 @@ using Serilog;
 using Zhongli.Data.Config;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;
+using Zhongli.Services.Interactive.TypeReaders;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Core.Listeners
@@ -79,6 +80,8 @@ namespace Zhongli.Services.Core.Listeners
             _commands.AddTypeReader<RegexOptions>(
                 new EnumFlagsTypeReader<RegexOptions>(
                     splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+            _commands.AddTypeReader<Guid>(new TryParseTypeReader<Guid>(Guid.TryParse));
 
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }

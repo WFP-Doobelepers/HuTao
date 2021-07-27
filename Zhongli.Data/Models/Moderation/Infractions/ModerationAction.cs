@@ -16,17 +16,23 @@ namespace Zhongli.Data.Models.Moderation.Infractions
     {
         protected ModerationAction() { }
 
-        public ModerationAction(ReprimandDetails details) : this(details.Moderator) { }
+        public ModerationAction(ReprimandDetails details) : this(details.Moderator, details.Reason) { }
 
-        public ModerationAction(IGuildUser moderator)
+        public ModerationAction(ModifiedReprimand details) : this(details.Moderator, details.Reason) { }
+
+        public ModerationAction(IGuildUser moderator, string? reason)
         {
             Date = DateTimeOffset.UtcNow;
 
             GuildId     = moderator.Guild.Id;
             ModeratorId = moderator.Id;
+
+            Reason = reason;
         }
 
         public Guid Id { get; set; }
+
+        public string? Reason { get; set; }
 
         public DateTimeOffset Date { get; set; }
 

@@ -46,7 +46,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 CreateField(nameof(AuthorizationScope.Ban), "Allows banning.")
             };
 
-            EmbedFieldBuilder CreateField(string name, string value)
+            static EmbedFieldBuilder CreateField(string name, string value)
                 => new EmbedFieldBuilder().WithName(name).WithValue(value);
 
             var prompts = CreatePromptCollection<ConfigureOptions>()

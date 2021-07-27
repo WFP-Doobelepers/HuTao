@@ -8,6 +8,7 @@ using Discord.Net;
 using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
 
@@ -87,7 +88,7 @@ namespace Zhongli.Services.Moderation
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
-            var request = new ReprimandRequest<Warning, WarningResult>(details.User, details.Moderator, warning);
+            var request = new ReprimandRequest<Warning, WarningResult>(details, warning);
             return await PublishReprimandAsync(details, request, cancellationToken);
         }
 
@@ -114,7 +115,7 @@ namespace Zhongli.Services.Moderation
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
 
-            var request = new ReprimandRequest<Notice, NoticeResult>(details.User, details.Moderator, notice);
+            var request = new ReprimandRequest<Notice, NoticeResult>(details, notice);
             return await PublishReprimandAsync(details, request, cancellationToken);
         }
 
@@ -132,7 +133,8 @@ namespace Zhongli.Services.Moderation
         {
             try
             {
-                await details.User.KickAsync(details.Reason);
+                var user = details.User;
+                await user.KickAsync(details.Reason);
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
@@ -155,7 +157,8 @@ namespace Zhongli.Services.Moderation
         {
             try
             {
-                await details.User.BanAsync((int) (deleteDays ?? 1), details.Reason);
+                var user = details.User;
+                await user.BanAsync((int) (deleteDays ?? 1), details.Reason);
 
                 var ban = _db.Add(new Ban(deleteDays ?? 1, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
@@ -170,6 +173,45 @@ namespace Zhongli.Services.Moderation
 
                 throw;
             }
+        }
+
+        public Task HideReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
+            => UpdateReprimandAsync(details, reprimand, ReprimandStatus.Hidden);
+
+        public async Task DeleteReprimandAsync(ModifiedReprimand details, ReprimandAction reprimand)
+        {
+            _db.Remove(reprimand.Action);
+            if (reprimand.ModifiedAction is not null)
+                _db.Remove(reprimand.ModifiedAction);
+
+            _db.Remove(reprimand);
+            await _db.SaveChangesAsync();
+
+            ModifyReprimandAsync(details, reprimand, ReprimandStatus.Deleted);
+            await _mediator.Publish(new ModifiedReprimandNotification(details, reprimand));
+        }
+
+        public Task UpdateReprimandAsync(ModifiedReprimand details, ReprimandAction reprimand)
+            => UpdateReprimandAsync(details, reprimand, ReprimandStatus.Updated);
+
+        private static ReprimandAction ModifyReprimandAsync(ModifiedReprimand details,
+            ReprimandAction reprimand,
+            ReprimandStatus status)
+        {
+            reprimand.Status         = status;
+            reprimand.ModifiedAction = new ModerationAction(details);
+
+            return reprimand;
+        }
+
+        private async Task UpdateReprimandAsync(ModifiedReprimand details,
+            ReprimandAction reprimand,
+            ReprimandStatus status)
+        {
+            _db.Update(ModifyReprimandAsync(details, reprimand, status));
+            await _db.SaveChangesAsync();
+
+            await _mediator.Publish(new ModifiedReprimandNotification(details, reprimand));
         }
     }
 }
