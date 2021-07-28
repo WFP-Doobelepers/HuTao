@@ -4,14 +4,17 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Hangfire;
 using Zhongli.Data;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.TimeTracking;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("time")]
+    [RequireAuthorization(AuthorizationScope.Auto)]
     public class TimeTrackingModule : ModuleBase
     {
         private readonly ZhongliContext _db;
