@@ -4,13 +4,14 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Services.Core.Messages;
 
 namespace Zhongli.Services.Core.Listeners
 {
     /// <summary>
     ///     Listens for events from an <see cref="DiscordSocketClient" /> and dispatches them to the rest of the application,
-    ///     through an <see cref="MessageDispatcher" />.
+    ///     through an <see cref="IMediator" />.
     /// </summary>
     public class DiscordSocketListener
     {
@@ -19,21 +20,21 @@ namespace Zhongli.Services.Core.Listeners
         /// <summary>
         ///     Constructs a new <see cref="DiscordSocketListener" /> with the given dependencies.
         /// </summary>
-        public DiscordSocketListener(DiscordSocketClient discordSocketClient, IMediator messageDispatcher)
+        public DiscordSocketListener(DiscordSocketClient discordSocketClient, IServiceScopeFactory scope)
         {
             DiscordSocketClient = discordSocketClient;
-            MessageDispatcher   = messageDispatcher;
+            Scope               = scope;
         }
+
+        /// <summary>
+        ///     The <see cref="IServiceScopeFactory" /> to be used.
+        /// </summary>
+        private IServiceScopeFactory Scope { get; }
 
         /// <summary>
         ///     The <see cref="DiscordSocketClient" /> to be listened to.
         /// </summary>
         private DiscordSocketClient DiscordSocketClient { get; }
-
-        /// <summary>
-        ///     A <see cref="IMediator" /> used to dispatch discord notifications to the rest of the application.
-        /// </summary>
-        private IMediator MessageDispatcher { get; }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -86,144 +87,143 @@ namespace Zhongli.Services.Core.Listeners
             return Task.CompletedTask;
         }
 
-        private Task OnChannelCreatedAsync(SocketChannel channel)
+        private async Task OnChannelCreatedAsync(SocketChannel channel)
         {
-            MessageDispatcher.Publish(new ChannelCreatedNotification(channel), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new ChannelCreatedNotification(channel), _cancellationToken);
         }
 
-        private Task OnChannelUpdatedAsync(SocketChannel oldChannel, SocketChannel newChannel)
+        private async Task OnChannelUpdatedAsync(SocketChannel oldChannel, SocketChannel newChannel)
         {
-            MessageDispatcher.Publish(new ChannelUpdatedNotification(oldChannel, newChannel), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new ChannelUpdatedNotification(oldChannel, newChannel), _cancellationToken);
         }
 
-        private Task OnConnectedAsync()
+        private async Task OnConnectedAsync()
         {
-            MessageDispatcher.Publish(ConnectedNotification.Default, _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(ConnectedNotification.Default, _cancellationToken);
         }
 
-        private Task OnDisconnectedAsync(Exception arg)
+        private async Task OnDisconnectedAsync(Exception arg)
         {
-            MessageDispatcher.Publish(new DisconnectedNotification(arg), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new DisconnectedNotification(arg), _cancellationToken);
         }
 
-        private Task OnGuildAvailableAsync(SocketGuild guild)
+        private async Task OnGuildAvailableAsync(SocketGuild guild)
         {
-            MessageDispatcher.Publish(new GuildAvailableNotification(guild), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new GuildAvailableNotification(guild), _cancellationToken);
         }
 
-        private Task OnGuildMemberUpdatedAsync(SocketGuildUser oldMember, SocketGuildUser newMember)
+        private async Task OnGuildMemberUpdatedAsync(SocketGuildUser oldMember, SocketGuildUser newMember)
         {
-            MessageDispatcher.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken);
         }
 
-        private Task OnJoinedGuildAsync(SocketGuild guild)
+        private async Task OnJoinedGuildAsync(SocketGuild guild)
         {
-            MessageDispatcher.Publish(new JoinedGuildNotification(guild), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new JoinedGuildNotification(guild), _cancellationToken);
         }
 
-        private Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, ISocketMessageChannel channel)
+        private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, ISocketMessageChannel channel)
         {
-            MessageDispatcher.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
         }
 
-        private Task OnMessageReceivedAsync(SocketMessage message)
+        private async Task OnMessageReceivedAsync(SocketMessage message)
         {
-            MessageDispatcher.Publish(new MessageReceivedNotification(message), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new MessageReceivedNotification(message), _cancellationToken);
         }
 
-        private Task OnMessageUpdatedAsync(
+        private async Task OnMessageUpdatedAsync(
             Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage,
             ISocketMessageChannel channel)
         {
-            MessageDispatcher.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel),
-                _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>().Publish(
+                new MessageUpdatedNotification(oldMessage, newMessage, channel), _cancellationToken);
         }
 
-        private Task OnReactionAddedAsync(
+        private async Task OnReactionAddedAsync(
             Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
-            MessageDispatcher.Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
         }
 
-        private Task OnReactionRemovedAsync(
+        private async Task OnReactionRemovedAsync(
             Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
-            MessageDispatcher.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
         }
 
-        private Task OnReadyAsync()
+        private async Task OnReadyAsync()
         {
-            MessageDispatcher.Publish(ReadyNotification.Default, _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(ReadyNotification.Default, _cancellationToken);
         }
 
-        private Task OnRoleCreatedAsync(SocketRole role)
+        private async Task OnRoleCreatedAsync(SocketRole role)
         {
-            MessageDispatcher.Publish(new RoleCreatedNotification(role), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new RoleCreatedNotification(role), _cancellationToken);
         }
 
-        private Task OnRoleUpdatedAsync(SocketRole oldRole, SocketRole newRole)
+        private async Task OnRoleUpdatedAsync(SocketRole oldRole, SocketRole newRole)
         {
-            MessageDispatcher.Publish(new RoleUpdatedNotification(oldRole, newRole), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new RoleUpdatedNotification(oldRole, newRole), _cancellationToken);
         }
 
-        private Task OnUserBannedAsync(SocketUser user, SocketGuild guild)
+        private async Task OnUserBannedAsync(SocketUser user, SocketGuild guild)
         {
-            MessageDispatcher.Publish(new UserBannedNotification(user, guild), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new UserBannedNotification(user, guild), _cancellationToken);
         }
 
-        private Task OnUserJoinedAsync(SocketGuildUser guildUser)
+        private async Task OnUserJoinedAsync(SocketGuildUser guildUser)
         {
-            MessageDispatcher.Publish(new UserJoinedNotification(guildUser), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new UserJoinedNotification(guildUser), _cancellationToken);
         }
 
-        private Task OnUserLeftAsync(SocketGuildUser guildUser)
+        private async Task OnUserLeftAsync(SocketGuildUser guildUser)
         {
-            MessageDispatcher.Publish(new UserLeftNotification(guildUser), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new UserLeftNotification(guildUser), _cancellationToken);
         }
 
-        private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
+        private async Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
         {
-            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
-
-            return Task.CompletedTask;
+            var scope = Scope.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>()
+                .Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
         }
     }
 }

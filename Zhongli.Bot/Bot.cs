@@ -40,8 +40,7 @@ namespace Zhongli.Bot
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
                 .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
-                .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
-                    typeof(Bot), typeof(ZhongliMediator))
+                .AddMediatR(typeof(Bot), typeof(DiscordSocketListener))
                 .AddLogging(l => l.AddSerilog())
                 .AddSingleton<DiscordRestClient>()
                 .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true }))
@@ -49,10 +48,11 @@ namespace Zhongli.Bot
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<InteractiveService>()
-                .AddTransient<AuthorizationService>()
-                .AddTransient<ModerationService>()
-                .AddTransient<ModerationLoggingService>()
-                .AddTransient<GenshinTimeTrackingService>()
+                .AddSingleton<DiscordSocketListener>()
+                .AddScoped<AuthorizationService>()
+                .AddScoped<ModerationService>()
+                .AddScoped<ModerationLoggingService>()
+                .AddScoped<GenshinTimeTrackingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
@@ -90,12 +90,11 @@ namespace Zhongli.Bot
 
             var client = services.GetRequiredService<DiscordSocketClient>();
             var rest = services.GetRequiredService<DiscordRestClient>();
-            var mediator = services.GetRequiredService<IMediator>();
 
             _reconnectCts  = new CancellationTokenSource();
             _mediatorToken = new CancellationTokenSource();
 
-            await new DiscordSocketListener(client, mediator)
+            await services.GetRequiredService<DiscordSocketListener>()
                 .StartAsync(_mediatorToken.Token);
 
             client.Disconnected += _ => ClientOnDisconnected(client);
