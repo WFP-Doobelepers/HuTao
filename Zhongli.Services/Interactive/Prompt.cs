@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Discord;
-using Discord.Addons.Interactive;
+using Discord.Addons.Interactive.Criteria;
 using Discord.Commands;
 using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;

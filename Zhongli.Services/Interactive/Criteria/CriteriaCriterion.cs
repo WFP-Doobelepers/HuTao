@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord.Addons.Interactive;
+using Discord.Addons.Interactive.Criteria;
 using Discord.Commands;
 
 namespace Zhongli.Services.Interactive.Criteria

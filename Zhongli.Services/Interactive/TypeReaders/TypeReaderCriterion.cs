@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Discord.Addons.Interactive;
+using Discord.Addons.Interactive.Criteria;
 using Discord.Commands;
 using Discord.WebSocket;
 
