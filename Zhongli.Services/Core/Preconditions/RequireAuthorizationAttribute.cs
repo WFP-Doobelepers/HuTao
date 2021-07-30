@@ -20,7 +20,7 @@ namespace Zhongli.Services.Core.Preconditions
                 return PreconditionResult.FromError("User could not be cast as SocketGuildUser");
 
             var auth = services.GetRequiredService<AuthorizationService>();
-            var isAuthorized = await auth.IsAuthorized(context, user, _scopes);
+            var isAuthorized = await auth.IsAuthorized(context, _scopes);
 
             return isAuthorized
                 ? PreconditionResult.FromSuccess()

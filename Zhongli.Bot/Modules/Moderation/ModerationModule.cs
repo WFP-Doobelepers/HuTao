@@ -44,7 +44,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("hide")]
         [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
         [RequireAuthorization(AuthorizationScope.Auto)]
-        public async Task HideReprimandAsync(Guid id, string? reason = null)
+        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
             if (reprimand is null)
@@ -82,7 +82,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("update")]
         [Summary("Update a reprimand's reason.")]
         [RequireAuthorization(AuthorizationScope.Auto)]
-        public async Task UpdateReprimandAsync(Guid id, string? reason = null)
+        public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
             if (reprimand is null)

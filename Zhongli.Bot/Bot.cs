@@ -161,7 +161,7 @@ namespace Zhongli.Bot
         private static void FailFast()
             => Environment.Exit(1);
 
-        private async Task CheckStateAsync(IDiscordClient client)
+        private static async Task CheckStateAsync(IDiscordClient client)
         {
             // Client reconnected, no need to reset
             if (client.ConnectionState == ConnectionState.Connected) return;

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -16,6 +17,14 @@ namespace Zhongli.Services.Moderation
             return reprimand.Guild ??
                 await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken);
         }
+
+        public static EmbedBuilder AddReprimands(this EmbedBuilder embed, GuildUserEntity user)
+            => embed
+                .AddField("Warnings", user.WarningCount(), true)
+                .AddField("Notices", user.HistoryCount<Notice>(), true)
+                .AddField("Bans", user.HistoryCount<Ban>(), true)
+                .AddField("Kicks", user.HistoryCount<Kick>(), true)
+                .AddField("Notes", user.HistoryCount<Note>(), true);
 
         public static int HistoryCount<T>(this GuildUserEntity user) where T : ReprimandAction
             => Reprimands<T>(user).Count(IsCounted);

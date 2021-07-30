@@ -41,10 +41,10 @@ namespace Zhongli.Services.Core
             return guildEntity;
         }
 
-        public async Task<bool> IsAuthorized(
-            ICommandContext context, IGuildUser user, AuthorizationScope scope,
+        public async Task<bool> IsAuthorized(ICommandContext context, AuthorizationScope scope,
             CancellationToken cancellationToken = default)
         {
+            var user = (IGuildUser) context.User;
             var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
             var groups = rules.AuthorizationGroups
                 .Scoped(scope)

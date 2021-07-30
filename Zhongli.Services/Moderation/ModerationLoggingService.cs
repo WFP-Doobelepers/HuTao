@@ -72,7 +72,7 @@ namespace Zhongli.Services.Moderation
                 embed
                     .WithTitle(GetTitle(reprimand))
                     .WithColor(GetColor(reprimand))
-                    .WithDescription(GetMessage(details, reprimand));
+                    .WithDescription(GetMessage(reprimand, details.User));
 
                 if (!string.IsNullOrWhiteSpace(reprimand.Action.Reason))
                     embed.AddField("Reason", reprimand.Action.Reason);
@@ -91,7 +91,7 @@ namespace Zhongli.Services.Moderation
                 var total = await GetTotalAsync(reprimand, cancellationToken);
                 embed
                     .WithColor(GetColor(reprimand))
-                    .AddField($"{GetTitle(reprimand)} [{total}]", $"{GetMessage(details, reprimand)}");
+                    .AddField($"{GetTitle(reprimand)} [{total}]", $"{GetMessage(reprimand, details.User)}");
             }
         }
 
@@ -129,7 +129,7 @@ namespace Zhongli.Services.Moderation
             };
         }
 
-        private static string GetTitle(ReprimandAction action)
+        public static string GetTitle(ReprimandAction action)
         {
             var title = action switch
             {
@@ -147,16 +147,16 @@ namespace Zhongli.Services.Moderation
             return $"{title.Humanize()}: {action.Id}";
         }
 
-        private static string GetMessage(ReprimandDetails details, ReprimandAction action)
+        public static string GetMessage(ReprimandAction action, IUser user)
         {
             return action switch
             {
-                Ban       => $"{details.User} was banned.",
-                Kick      => $"{details.User} was kicked.",
-                Mute m    => $"{details.User} was muted for {GetLength(m)}.",
-                Note      => $"{details.User} was given a note.",
-                Notice    => $"{details.User} was given a notice.",
-                Warning w => $"{details.User} was warned {w.Amount} times.",
+                Ban       => $"{user} was banned.",
+                Kick      => $"{user} was kicked.",
+                Mute m    => $"{user} was muted for {GetLength(m)}.",
+                Note      => $"{user} was given a note.",
+                Notice    => $"{user} was given a notice.",
+                Warning w => $"{user} was warned {w.Amount} times.",
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
