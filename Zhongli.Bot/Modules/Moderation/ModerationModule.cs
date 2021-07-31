@@ -75,7 +75,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, null);
 
-            await _moderationService.DeleteReprimandAsync(details, reprimand);
+            await _moderationService.DeleteReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
         }
 
@@ -94,7 +94,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
 
-            await _moderationService.UpdateReprimandAsync(details, reprimand);
+            await _moderationService.UpdateReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
         }
 

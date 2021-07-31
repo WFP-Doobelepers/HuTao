@@ -151,8 +151,7 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        public async Task<Ban?> TryBanAsync(uint? deleteDays,
-            ReprimandDetails details,
+        public async Task<Ban?> TryBanAsync(uint? deleteDays, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
@@ -176,9 +175,9 @@ namespace Zhongli.Services.Moderation
         }
 
         public Task HideReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
-            => UpdateReprimandAsync(details, reprimand, ReprimandStatus.Hidden);
+            => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden);
 
-        public async Task DeleteReprimandAsync(ModifiedReprimand details, ReprimandAction reprimand)
+        public async Task DeleteReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
         {
             _db.Remove(reprimand.Action);
             if (reprimand.ModifiedAction is not null)
@@ -191,8 +190,8 @@ namespace Zhongli.Services.Moderation
             await _mediator.Publish(new ModifiedReprimandNotification(details, reprimand));
         }
 
-        public Task UpdateReprimandAsync(ModifiedReprimand details, ReprimandAction reprimand)
-            => UpdateReprimandAsync(details, reprimand, ReprimandStatus.Updated);
+        public Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
+            => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated);
 
         private static ReprimandAction ModifyReprimandAsync(ModifiedReprimand details,
             ReprimandAction reprimand,
@@ -204,8 +203,7 @@ namespace Zhongli.Services.Moderation
             return reprimand;
         }
 
-        private async Task UpdateReprimandAsync(ModifiedReprimand details,
-            ReprimandAction reprimand,
+        private async Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
             ReprimandStatus status)
         {
             _db.Update(ModifyReprimandAsync(details, reprimand, status));
