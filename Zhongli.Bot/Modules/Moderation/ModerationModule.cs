@@ -132,7 +132,9 @@ namespace Zhongli.Bot.Modules.Moderation
             var details = GetDetails(user, reason);
             var result = await _moderationService.TryMuteAsync(length, details);
             if (result is null)
-                await _error.AssociateError(Context.Message, "Failed to mute user.");
+                await _error.AssociateError(Context.Message, "Failed to mute user. " +
+                    "Either the user is already muted or there is no mute role configured. " +
+                    "Configure the mute role by running the 'configure mute' command.");
             else
                 await ReplyReprimandAsync(result, details);
         }

@@ -6,6 +6,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Moderation;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
@@ -16,6 +17,16 @@ namespace Zhongli.Bot.Modules.Configuration
         private readonly ZhongliContext _db;
 
         public ConfigureModule(ZhongliContext db) { _db = db; }
+
+        [Command("mute")]
+        [Summary("Configures the Mute role.")]
+        public async Task ConfigureMuteAsync(
+            [Summary("Optionally provide a mention, ID, or name of an existing role.")]
+            IRole? role)
+        {
+            await ModerationService.ConfigureMuteRoleAsync(Context.Guild, role);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
 
         [Command("voice")]
         [Summary("Configures the Voice Chat settings. Leave the categories empty to use the same one the hub uses.")]

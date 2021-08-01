@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,23 @@ namespace Zhongli.Services.Moderation
 
         private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
 
+        public static async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
+        {
+            role ??= guild.Roles.FirstOrDefault(r => r.Name == "Muted");
+            role ??= await guild.CreateRoleAsync("Muted", isMentionable: false);
+
+            var permissions = new OverwritePermissions(
+                addReactions: PermValue.Deny,
+                sendMessages: PermValue.Deny,
+                speak: PermValue.Deny,
+                stream: PermValue.Deny);
+
+            foreach (var channel in await guild.GetChannelsAsync())
+            {
+                await channel.AddPermissionOverwriteAsync(role, permissions);
+            }
+        }
+
         public async Task UnmuteAsync(Mute mute, CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
@@ -40,6 +58,7 @@ namespace Zhongli.Services.Moderation
             var user = guild.GetUser(mute.UserId);
 
             await user.RemoveRoleAsync(muteRoleId.Value);
+            await user.ModifyAsync(u => u.Mute = false);
 
             mute.EndedAt = DateTimeOffset.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
@@ -48,13 +67,14 @@ namespace Zhongli.Services.Moderation
         public async Task<Mute?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var guild = await _db.Guilds.FindByIdAsync(details.User.Guild.Id, cancellationToken);
-            var muteRole = guild?.MuteRoleId;
+            var user = details.User;
+            var guildEntity = await _db.Guilds.FindByIdAsync(user.Guild.Id, cancellationToken);
 
-            if (muteRole is null || details.User.HasRole(muteRole.Value))
+            var muteRole = guildEntity?.MuteRoleId;
+            if (muteRole is null || user.HasRole(muteRole.Value))
                 return null;
 
-            if (ActiveMutes.TryGetValue(details.User.Id, out var activeMute))
+            if (ActiveMutes.TryGetValue(user.Id, out var activeMute))
             {
                 activeMute!.EndedAt = DateTimeOffset.UtcNow;
                 ActiveMutes.TryRemove(details.Moderator.Id, out _);
@@ -62,7 +82,8 @@ namespace Zhongli.Services.Moderation
 
             var mute = new Mute(DateTimeOffset.UtcNow, length, details);
 
-            await details.User.AddRoleAsync(muteRole.Value);
+            await user.AddRoleAsync(muteRole.Value);
+            await user.ModifyAsync(u => u.Mute = true);
             if (mute.TimeLeft is not null)
             {
                 _ = Task.Run(async () =>
@@ -157,9 +178,11 @@ namespace Zhongli.Services.Moderation
             try
             {
                 var user = details.User;
-                await user.BanAsync((int) (deleteDays ?? 1), details.Reason);
+                var days = deleteDays ?? 1;
 
-                var ban = _db.Add(new Ban(deleteDays ?? 1, details)).Entity;
+                await user.BanAsync((int) days, details.Reason);
+
+                var ban = _db.Add(new Ban(days, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
                 await PublishReprimandAsync(details, ban, cancellationToken);
