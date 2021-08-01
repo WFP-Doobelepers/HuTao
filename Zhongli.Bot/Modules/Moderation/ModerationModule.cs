@@ -43,7 +43,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("hide")]
         [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
         public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
@@ -62,7 +62,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("delete")]
         [Summary("Delete a reprimand, this completely removes the data.")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
         public async Task DeleteReprimandAsync(Guid id)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
@@ -81,7 +81,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("update")]
         [Summary("Update a reprimand's reason.")]
-        [RequireAuthorization(AuthorizationScope.Auto)]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
         public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
@@ -100,7 +100,6 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
-        [RequireBotPermission(GuildPermission.BanMembers)]
         [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
         {

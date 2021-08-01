@@ -14,7 +14,7 @@ using Zhongli.Services.Utilities;
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("time")]
-    [RequireAuthorization(AuthorizationScope.Auto)]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class TimeTrackingModule : ModuleBase
     {
         private readonly ZhongliContext _db;

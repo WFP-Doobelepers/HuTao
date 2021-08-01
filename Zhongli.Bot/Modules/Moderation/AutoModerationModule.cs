@@ -13,7 +13,7 @@ using Zhongli.Services.Core.Preconditions;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
-    [RequireAuthorization(AuthorizationScope.Auto)]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class AutoModerationModule : ModuleBase
     {
         private readonly ZhongliContext _db;

@@ -37,7 +37,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var permissionOptionFields = new[]
             {
                 CreateField(nameof(AuthorizationScope.All), "All permissions. Dangerous!"),
-                CreateField(nameof(AuthorizationScope.Auto), "Configuration of the auto moderation settings."),
+                CreateField(nameof(AuthorizationScope.Configuration), "Allows configuration of settings."),
                 CreateField(nameof(AuthorizationScope.Moderator), "Allows warning, mute, kick, and ban."),
                 CreateField(nameof(AuthorizationScope.Helper), "Allows warning and mute."),
                 CreateField(nameof(AuthorizationScope.Warning), "Allows warning."),

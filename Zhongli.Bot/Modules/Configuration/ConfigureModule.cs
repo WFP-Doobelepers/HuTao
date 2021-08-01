@@ -10,7 +10,7 @@ using Zhongli.Services.Core.Preconditions;
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("configure")]
-    [RequireAuthorization(AuthorizationScope.Auto)]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureModule : ModuleBase
     {
         private readonly ZhongliContext _db;

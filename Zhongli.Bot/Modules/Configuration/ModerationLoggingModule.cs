@@ -2,12 +2,16 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
+using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
-    [Group("configure logging")]
+    [Group("logging")]
+    [Name("Logging Configuration")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ModerationLoggingModule : ModuleBase
     {
         private static readonly GenericBitwise<LoggingOptions> LoggingOptionsBitwise = new();
@@ -56,7 +60,7 @@ namespace Zhongli.Bot.Modules.Configuration
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("notifyUser")]
+        [Command("notify")]
         [Summary("Notify and DM the user about their reprimand.")]
         public async Task NotifyUserAsync(
             [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
