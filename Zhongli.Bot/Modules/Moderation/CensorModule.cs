@@ -19,10 +19,11 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("add ban")]
         [Summary("A censor that deletes the message and also bans the user.")]
-        public async Task AddBanCensorAsync(string pattern, RegexOptions options = RegexOptions.None,
+        public async Task AddBanCensorAsync(string pattern, TimeSpan? length = null,
+            RegexOptions options = RegexOptions.None,
             uint deleteDays = 0)
         {
-            var censor = new BanCensor(deleteDays, pattern, options);
+            var censor = new BanCensor(deleteDays, length, pattern, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));

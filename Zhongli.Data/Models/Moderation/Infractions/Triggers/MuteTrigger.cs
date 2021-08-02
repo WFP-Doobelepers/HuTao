@@ -1,4 +1,6 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
@@ -11,5 +13,15 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
         }
 
         public TimeSpan? Length { get; set; }
+    }
+
+    public class MuteTriggerConfiguration : IEntityTypeConfiguration<MuteTrigger>
+    {
+        public void Configure(EntityTypeBuilder<MuteTrigger> builder)
+        {
+            builder
+                .Property(t => t.Length)
+                .HasColumnName(nameof(MuteTrigger.Length));
+        }
     }
 }

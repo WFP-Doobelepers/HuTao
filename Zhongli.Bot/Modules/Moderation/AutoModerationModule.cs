@@ -21,12 +21,14 @@ namespace Zhongli.Bot.Modules.Moderation
         public AutoModerationModule(ZhongliContext db) { _db = db; }
 
         [Command("banAt")]
-        public async Task BanAtAsync(uint amount, bool retroactive = false, uint deleteDays = 0)
+        public async Task BanAtAsync(uint amount, bool retroactive = false, uint deleteDays = 0,
+            TimeSpan? length = null)
         {
             var rules = await GetModerationRules(Context.Guild.Id);
             TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            var trigger = new BanTrigger(amount, retroactive, deleteDays).WithModerator((IGuildUser) Context.User);
+            var trigger = new BanTrigger(amount, retroactive, deleteDays, length)
+                .WithModerator((IGuildUser) Context.User);
             rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
@@ -39,7 +41,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var rules = await GetModerationRules(Context.Guild.Id);
             TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            var trigger = new KickTrigger(amount, retroactive).WithModerator((IGuildUser) Context.User);
+            var trigger = new KickTrigger(amount, retroactive)
+                .WithModerator((IGuildUser) Context.User);
             rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
@@ -52,7 +55,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var rules = await GetModerationRules(Context.Guild.Id);
             TryRemoveTrigger(rules.WarningTriggers, amount);
 
-            var trigger = new MuteTrigger(amount, retroactive, length).WithModerator((IGuildUser) Context.User);
+            var trigger = new MuteTrigger(amount, retroactive, length)
+                .WithModerator((IGuildUser) Context.User);
             rules.WarningTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();
@@ -65,7 +69,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var rules = await GetModerationRules(Context.Guild.Id);
             TryRemoveTrigger(rules.NoticeTriggers, amount);
 
-            var trigger = new NoticeTrigger(amount, retroactive).WithModerator((IGuildUser) Context.User);
+            var trigger = new NoticeTrigger(amount, retroactive)
+                .WithModerator((IGuildUser) Context.User);
             rules.NoticeTriggers.Add(trigger);
 
             await _db.SaveChangesAsync();

@@ -4,9 +4,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
     public abstract class WarningTrigger : IModerationAction, ITrigger
     {
-        protected WarningTrigger() { }
-
-        protected WarningTrigger(uint amount, bool retroactive = false)
+        protected WarningTrigger(uint amount, bool retroactive)
         {
             Amount      = amount;
             Retroactive = retroactive;

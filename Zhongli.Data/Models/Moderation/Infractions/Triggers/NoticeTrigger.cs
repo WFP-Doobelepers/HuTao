@@ -4,8 +4,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
     public class NoticeTrigger : IModerationAction, ITrigger
     {
-        protected NoticeTrigger() { }
-
         public NoticeTrigger(uint amount, bool retroactive)
         {
             Amount      = amount;

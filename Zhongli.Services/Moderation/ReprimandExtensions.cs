@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -5,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Services.Moderation
@@ -34,7 +36,7 @@ namespace Zhongli.Services.Moderation
             .OfType<T>();
 
         private static bool IsCounted(ReprimandAction reprimand)
-            => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
+            => reprimand.Status is not ReprimandStatus.Hidden or ReprimandStatus.Deleted;
 
         public static int WarningCount(this GuildUserEntity user)
             => (int) Reprimands<Warning>(user).Where(IsCounted).Sum(w => w.Amount);
@@ -62,5 +64,14 @@ namespace Zhongli.Services.Moderation
 
             return user.WarningCount();
         }
+
+        public static bool IsActive(this IExpire expire)
+            => expire.EndedAt is null || expire.EndAt() >= DateTimeOffset.Now;
+
+        private static DateTimeOffset? EndAt(this IExpire expire)
+            => expire.StartedAt + expire.Length;
+
+        public static TimeSpan? TimeLeft(this IExpire expire)
+            => expire.EndAt() - DateTimeOffset.Now;
     }
 }

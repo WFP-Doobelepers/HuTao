@@ -1,5 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
@@ -14,5 +16,15 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
         }
 
         public TimeSpan? Length { get; set; }
+    }
+
+    public class MuteCensorConfiguration : IEntityTypeConfiguration<MuteCensor>
+    {
+        public void Configure(EntityTypeBuilder<MuteCensor> builder)
+        {
+            builder
+                .Property(c => c.Length)
+                .HasColumnName(nameof(MuteCensor.Length));
+        }
     }
 }

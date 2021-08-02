@@ -22,12 +22,12 @@ namespace Zhongli.Bot.Behaviors
         INotificationHandler<MessageUpdatedNotification>
     {
         private readonly ZhongliContext _db;
-        private readonly ModerationService _moderationService;
+        private readonly ModerationService _moderation;
 
-        public CensorBehavior(ZhongliContext db, ModerationService moderationService)
+        public CensorBehavior(ZhongliContext db, ModerationService moderation)
         {
-            _db                = db;
-            _moderationService = moderationService;
+            _db         = db;
+            _moderation = moderation;
         }
 
         public Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -65,16 +65,16 @@ namespace Zhongli.Bot.Behaviors
                 switch (censor)
                 {
                     case BanCensor ban:
-                        await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken);
+                        await _moderation.TryBanAsync(ban.DeleteDays, ban.Length, details, cancellationToken);
                         return;
                     case KickCensor:
-                        await _moderationService.TryKickAsync(details, cancellationToken);
+                        await _moderation.TryKickAsync(details, cancellationToken);
                         return;
                     case MuteCensor mute:
-                        await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken);
+                        await _moderation.TryMuteAsync(mute.Length, details, cancellationToken);
                         break;
                     case WarnCensor warn:
-                        await _moderationService.WarnAsync(warn.Amount, details, cancellationToken);
+                        await _moderation.WarnAsync(warn.Amount, details, cancellationToken);
                         break;
                 }
             }

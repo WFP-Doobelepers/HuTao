@@ -19,20 +19,17 @@ namespace Zhongli.Bot.Modules.Moderation
     {
         private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
-        private readonly ModerationLoggingService _moderationLogging;
-        private readonly ModerationService _moderationService;
+        private readonly ModerationLoggingService _logging;
+        private readonly ModerationService _moderation;
 
-        public ModerationModule(
-            ZhongliContext db,
-            CommandErrorHandler error,
-            ModerationService moderationService,
-            ModerationLoggingService moderationLogging)
+        public ModerationModule(ZhongliContext db, CommandErrorHandler error,
+            ModerationService moderation, ModerationLoggingService logging)
         {
             _db    = db;
             _error = error;
 
-            _moderationService = moderationService;
-            _moderationLogging = moderationLogging;
+            _moderation = moderation;
+            _logging    = logging;
         }
 
         private ReprimandDetails GetDetails(IGuildUser user, string? reason)
@@ -56,7 +53,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
 
-            await _moderationService.HideReprimandAsync(reprimand, details);
+            await _moderation.HideReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
         }
 
@@ -75,7 +72,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, null);
 
-            await _moderationService.DeleteReprimandAsync(reprimand, details);
+            await _moderation.DeleteReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
         }
 
@@ -94,17 +91,18 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
 
-            await _moderationService.UpdateReprimandAsync(reprimand, details);
+            await _moderation.UpdateReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
         }
 
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, [Remainder] string? reason = null)
+        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, TimeSpan? length = null,
+            [Remainder] string? reason = null)
         {
             var details = GetDetails(user, reason);
-            var result = await _moderationService.TryBanAsync(deleteDays, details);
+            var result = await _moderation.TryBanAsync(deleteDays, length, details);
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
             else
@@ -117,7 +115,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
             var details = GetDetails(user, reason);
-            var result = await _moderationService.TryKickAsync(details);
+            var result = await _moderation.TryKickAsync(details);
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to kick user.");
             else
@@ -130,11 +128,13 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
             var details = GetDetails(user, reason);
-            var result = await _moderationService.TryMuteAsync(length, details);
+            var result = await _moderation.TryMuteAsync(length, details);
             if (result is null)
+            {
                 await _error.AssociateError(Context.Message, "Failed to mute user. " +
                     "Either the user is already muted or there is no mute role configured. " +
                     "Configure the mute role by running the 'configure mute' command.");
+            }
             else
                 await ReplyReprimandAsync(result, details);
         }
@@ -145,7 +145,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task WarnAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
             var details = GetDetails(user, reason);
-            var result = await _moderationService.WarnAsync(amount, details);
+            var result = await _moderation.WarnAsync(amount, details);
             await ReplyReprimandAsync(result, details);
         }
 
@@ -154,7 +154,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await reprimand.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
             {
-                var embed = await _moderationLogging.UpdatedEmbedAsync(reprimand, details);
+                var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
                 await ReplyAsync(embed: embed.Build());
             }
             else
@@ -166,7 +166,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await result.Primary.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
             {
-                var embed = await _moderationLogging.CreateEmbedAsync(result, details);
+                var embed = await _logging.CreateEmbedAsync(result, details);
                 await ReplyAsync(embed: embed.Build());
             }
             else
@@ -179,7 +179,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task NoticeAsync(IGuildUser user, [Remainder] string? reason = null)
         {
             var details = GetDetails(user, reason);
-            var result = await _moderationService.NoticeAsync(details);
+            var result = await _moderation.NoticeAsync(details);
             await ReplyReprimandAsync(result, details);
         }
 
@@ -190,7 +190,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
         {
             var details = GetDetails(user, note);
-            await _moderationService.NoteAsync(details);
+            await _moderation.NoteAsync(details);
 
             await Context.Message.DeleteAsync();
         }

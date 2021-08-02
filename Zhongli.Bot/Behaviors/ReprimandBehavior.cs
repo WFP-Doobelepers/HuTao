@@ -17,12 +17,12 @@ namespace Zhongli.Bot.Behaviors
         IRequestHandler<ReprimandRequest<Notice, NoticeResult>, NoticeResult>
     {
         private readonly ZhongliContext _db;
-        private readonly ModerationService _moderationService;
+        private readonly ModerationService _moderation;
 
-        public ReprimandBehavior(ZhongliContext db, ModerationService moderationService)
+        public ReprimandBehavior(ZhongliContext db, ModerationService moderation)
         {
-            _db                = db;
-            _moderationService = moderationService;
+            _db         = db;
+            _moderation = moderation;
         }
 
         public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,
@@ -39,7 +39,7 @@ namespace Zhongli.Bot.Behaviors
             var details = new ReprimandDetails(user, currentUser,
                 ModerationSource.Notice, "[Notice Trigger]");
 
-            var secondary = await _moderationService.WarnAsync(1, details, cancellationToken);
+            var secondary = await _moderation.WarnAsync(1, details, cancellationToken);
             return new NoticeResult(reprimand, secondary);
         }
 
@@ -59,10 +59,10 @@ namespace Zhongli.Bot.Behaviors
 
             ReprimandAction? secondary = trigger switch
             {
-                BanTrigger ban   => await _moderationService.TryBanAsync(ban.DeleteDays, details, cancellationToken),
-                KickTrigger      => await _moderationService.TryKickAsync(details, cancellationToken),
-                MuteTrigger mute => await _moderationService.TryMuteAsync(mute.Length, details, cancellationToken),
-                _                => null
+                BanTrigger ban => await _moderation.TryBanAsync(ban.DeleteDays, ban.Length, details, cancellationToken),
+                KickTrigger => await _moderation.TryKickAsync(details, cancellationToken),
+                MuteTrigger mute => await _moderation.TryMuteAsync(mute.Length, details, cancellationToken),
+                _ => null
             };
 
             return new WarningResult(reprimand, secondary);

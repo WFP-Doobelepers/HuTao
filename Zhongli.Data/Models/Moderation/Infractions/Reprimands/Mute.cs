@@ -1,4 +1,6 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
@@ -6,22 +8,34 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Mute() { }
 
-        public Mute(DateTimeOffset? startedAt, TimeSpan? length, ReprimandDetails details) : base(details)
+        public Mute(TimeSpan? length, ReprimandDetails details) : base(details)
         {
-            StartedAt = startedAt;
+            StartedAt = DateTimeOffset.Now;
             Length    = length;
         }
 
-        public bool IsActive => EndedAt is null || EndAt >= DateTimeOffset.Now;
-
-        public DateTimeOffset? EndAt => StartedAt + Length;
-
-        public TimeSpan? TimeLeft => EndAt - DateTimeOffset.Now;
-
         public DateTimeOffset? EndedAt { get; set; }
 
-        public DateTimeOffset? StartedAt { get; set; }
+        public DateTimeOffset StartedAt { get; set; }
 
         public TimeSpan? Length { get; set; }
+    }
+
+    public class MuteConfiguration : IEntityTypeConfiguration<Mute>
+    {
+        public void Configure(EntityTypeBuilder<Mute> builder)
+        {
+            builder
+                .Property(r => r.EndedAt)
+                .HasColumnName(nameof(Mute.EndedAt));
+
+            builder
+                .Property(r => r.StartedAt)
+                .HasColumnName(nameof(Mute.StartedAt));
+
+            builder
+                .Property(r => r.Length)
+                .HasColumnName(nameof(Mute.Length));
+        }
     }
 }

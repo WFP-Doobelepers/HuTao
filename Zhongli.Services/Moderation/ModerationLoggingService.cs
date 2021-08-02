@@ -40,7 +40,10 @@ namespace Zhongli.Services.Moderation
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
             var options = guild.LoggingRules.Options;
             if (!options.HasFlag(LoggingOptions.Verbose)
-                && reprimand.Source != ModerationSource.Command)
+                && reprimand.Status is ReprimandStatus.Added
+                && reprimand.Source
+                    is ModerationSource.Notice
+                    or ModerationSource.Warning)
                 return;
 
             var channelId = guild.LoggingRules.ModerationChannelId;
