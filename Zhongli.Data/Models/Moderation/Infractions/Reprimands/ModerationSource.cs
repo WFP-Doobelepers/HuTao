@@ -5,6 +5,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
         Command,
         Notice,
         Warning,
-        Censor
+        Censor,
+        Expiry
     }
 }

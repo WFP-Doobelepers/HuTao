@@ -83,8 +83,7 @@ namespace Zhongli.Bot
                     services.GetRequiredService<IServiceScopeFactory>()))
                 .UseSerilogLogProvider()
                 .UsePostgreSqlStorage(ZhongliConfig.Configuration.HangfireContext)
-                .UseRecommendedSerializerSettings(s =>
-                    s.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor);
+                .UseRecommendedSerializerSettings();
 
             await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
             var commands = services.GetRequiredService<CommandService>();

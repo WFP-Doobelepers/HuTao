@@ -7,10 +7,4 @@ namespace Zhongli.Services.Moderation
         : IRequest<TResult>
         where TAction : ReprimandAction
         where TResult : ReprimandResult;
-
-    public record ReprimandNotification(ReprimandDetails Details, ReprimandResult Reprimand)
-        : INotification;
-
-    public record ModifiedReprimandNotification(ModifiedReprimand Details, ReprimandAction Reprimand)
-        : INotification;
 }

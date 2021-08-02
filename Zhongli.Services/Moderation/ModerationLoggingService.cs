@@ -18,7 +18,47 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
-        public async Task<EmbedBuilder> UpdatedEmbedAsync(ModifiedReprimand details, ReprimandAction reprimand,
+        public async Task PublishReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
+            CancellationToken cancellationToken = default)
+        {
+            var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
+            await HandleReprimandAsync(reprimand, details.User, details.Moderator, embed, cancellationToken);
+        }
+
+        public async Task PublishReprimandAsync(ReprimandResult reprimand, ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
+            await HandleReprimandAsync(reprimand, details.User, details.Moderator, embed, cancellationToken);
+        }
+
+        private async Task HandleReprimandAsync(ReprimandResult result, IUser user, IGuildUser moderator,
+            EmbedBuilder embed,
+            CancellationToken cancellationToken)
+        {
+            var reprimand = result.Primary;
+            var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
+            var options = guild.LoggingRules.Options;
+            if (!options.HasFlag(LoggingOptions.Verbose)
+                && reprimand.Source != ModerationSource.Command)
+                return;
+
+            var channelId = guild.LoggingRules.ModerationChannelId;
+            if (channelId is null)
+                return;
+
+            var channel = await moderator.Guild.GetTextChannelAsync(channelId.Value);
+            await channel.SendMessageAsync(embed: embed.Build());
+
+            if (options.HasFlag(LoggingOptions.NotifyUser) && reprimand is not Note
+                && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Expired)
+            {
+                var dm = await user.GetOrCreateDMChannelAsync();
+                await dm.SendMessageAsync(embed: embed.Build());
+            }
+        }
+
+        public async Task<EmbedBuilder> UpdatedEmbedAsync(ReprimandAction reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
             var modifyName = reprimand.Status.Humanize();
@@ -40,7 +80,7 @@ namespace Zhongli.Services.Moderation
             return embed;
         }
 
-        public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandDetails details, ReprimandResult result,
+        public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var reprimand = result.Primary;

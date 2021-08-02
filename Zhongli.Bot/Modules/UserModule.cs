@@ -21,7 +21,7 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
 {
-    public class ReprimandModule : InteractiveBase
+    public class UserModule : InteractiveBase
     {
         public enum InfractionType
         {
@@ -37,7 +37,7 @@ namespace Zhongli.Bot.Modules
         private readonly AuthorizationService _auth;
         private readonly ZhongliContext _db;
 
-        public ReprimandModule(AuthorizationService auth, ZhongliContext db)
+        public UserModule(AuthorizationService auth, ZhongliContext db)
         {
             _auth = auth;
             _db   = db;
@@ -143,7 +143,7 @@ namespace Zhongli.Bot.Modules
                 .AppendLine(GetDate(r.Action.Date))
                 .AppendLine(GetStatus(r.Status));
 
-            if (r.Status != ReprimandStatus.Added && r.ModifiedAction is not null)
+            if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
             {
                 content
                     .AppendLine($"▌▌{r.Status.Humanize()} by {GetModifiedInfo(r.ModifiedAction)}")
@@ -153,27 +153,27 @@ namespace Zhongli.Bot.Modules
             return new EmbedFieldBuilder()
                 .WithName(ModerationLoggingService.GetTitle(r))
                 .WithValue(content.ToString());
+        }
 
-            static string GetReason(ModerationAction action)
-                => $"▌Reason: {Format.Bold(action.Reason ?? "None")}";
+        private static string GetReason(ModerationAction action)
+            => $"▌Reason: {Format.Bold(action.Reason ?? "None")}";
 
-            static string GetModerator(GuildUserEntity user)
-                => $"▌Moderator: {GetUser(user)} ({user.Id})";
+        private static string GetModerator(GuildUserEntity user)
+            => $"▌Moderator: {GetUser(user)} ({user.Id})";
 
-            static string GetDate(DateTimeOffset date)
-                => $"▌Date: {Format.Bold(date.Humanize())} ({date.ToUniversalTime()})";
+        private static string GetDate(DateTimeOffset date)
+            => $"▌Date: {Format.Bold(date.Humanize())} ({date.ToUniversalTime()})";
 
-            static string GetStatus(ReprimandStatus status)
-                => $"▌Status: {Format.Bold(status.Humanize())}";
+        private static string GetStatus(ReprimandStatus status)
+            => $"▌Status: {Format.Bold(status.Humanize())}";
 
-            static string GetUser(GuildUserEntity user)
-                => Format.Bold($"{user.Username}#{user.DiscriminatorValue}");
+        private static string GetUser(GuildUserEntity user)
+            => Format.Bold($"{user.Username}#{user.DiscriminatorValue}");
 
-            static string GetModifiedInfo(ModerationAction action)
-            {
-                var modified = action.Moderator;
-                return $"{GetUser(modified)} {modified.Id} ({action.Date.Humanize()})";
-            }
+        private static string GetModifiedInfo(ModerationAction action)
+        {
+            var modified = action.Moderator;
+            return $"{GetUser(modified)} {modified.Id} ({action.Date.Humanize()})";
         }
 
         public async Task HideReprimandAsync(Guid id)

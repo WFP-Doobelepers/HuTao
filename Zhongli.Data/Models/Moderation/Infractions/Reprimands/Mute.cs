@@ -2,7 +2,7 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Mute : ReprimandAction, IMute
+    public class Mute : ReprimandAction, IMute, IExpire
     {
         protected Mute() { }
 
@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             Length    = length;
         }
 
-        public bool IsActive => EndedAt is not null || DateTimeOffset.Now >= EndAt;
+        public bool IsActive => EndedAt is null || EndAt >= DateTimeOffset.Now;
 
         public DateTimeOffset? EndAt => StartedAt + Length;
 

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -21,17 +20,19 @@ namespace Zhongli.Services.Moderation
     {
         private readonly DiscordSocketClient _client;
         private readonly ZhongliContext _db;
+        private readonly ModerationLoggingService _logging;
         private readonly IServiceScopeFactory _scope;
 
         public ModerationService(DiscordSocketClient client, ZhongliContext db,
+            ModerationLoggingService logging,
             IServiceScopeFactory scope)
         {
             _client = client;
             _db     = db;
-            _scope  = scope;
-        }
 
-        private ConcurrentDictionary<ulong, Mute> ActiveMutes { get; } = new();
+            _logging = logging;
+            _scope   = scope;
+        }
 
         public static async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
         {
@@ -50,62 +51,55 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        private async Task UnmuteAsync(Mute mute, CancellationToken cancellationToken)
+        public async Task ExpireMuteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
-            var muteRoleId = guildEntity?.MuteRoleId;
-            if (muteRoleId is null)
+            var mute = await _db.MuteHistory.FindByIdAsync(id, cancellationToken);
+            if (mute is null)
                 return;
 
             var guild = _client.GetGuild(mute.GuildId);
-            var user = guild.GetUser(mute.UserId);
+            var user = _client.GetUser(mute.UserId);
+            var moderator = guild.CurrentUser;
 
-            await user.RemoveRoleAsync(muteRoleId.Value);
-            if (user.VoiceChannel is not null)
-                await user.ModifyAsync(u => u.Mute = false);
+            var details = new ModifiedReprimand(user, moderator,
+                ModerationSource.Expiry, "[Mute Expired]");
 
-            mute.EndedAt = DateTimeOffset.UtcNow;
-            await _db.SaveChangesAsync(cancellationToken);
-        }
-
-        public async Task UnmuteAsync(Guid id, CancellationToken cancellationToken)
-        {
-            var mute = await _db.MuteHistory.FindByIdAsync(id, cancellationToken);
-            if (mute is not null) await UnmuteAsync(mute, cancellationToken);
+            await ExpireReprimandAsync(mute, details);
         }
 
         public async Task<Mute?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
+            var activeMute = await _db.MuteHistory
+                .FirstOrDefaultAsync(m => m.IsActive
+                        && m.UserId == details.User.Id
+                        && m.GuildId == details.User.Guild.Id,
+                    cancellationToken);
+
             var user = details.User;
             var guildEntity = await _db.Guilds.FindByIdAsync(user.Guild.Id, cancellationToken);
 
             var muteRole = guildEntity?.MuteRoleId;
-            if (muteRole is null || user.HasRole(muteRole.Value))
+            if (muteRole is null)
                 return null;
-
-            if (ActiveMutes.TryGetValue(user.Id, out var activeMute))
-            {
-                activeMute!.EndedAt = DateTimeOffset.UtcNow;
-                ActiveMutes.TryRemove(details.Moderator.Id, out _);
-            }
-
-            var mute = new Mute(DateTimeOffset.UtcNow, length, details);
 
             await user.AddRoleAsync(muteRole.Value);
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = true);
 
-            _db.Add(mute);
+            if (activeMute is not null)
+                return null;
+
+            var mute = _db.Add(new Mute(DateTimeOffset.UtcNow, length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
             if (mute.TimeLeft is not null)
             {
-                BackgroundJob.Schedule(() => UnmuteAsync(mute.Id, cancellationToken),
+                BackgroundJob.Schedule(() => ExpireMuteAsync(mute.Id, cancellationToken),
                     mute.TimeLeft!.Value);
             }
 
-            await PublishReprimandAsync(details, mute, cancellationToken);
+            await _logging.PublishReprimandAsync(mute, details, cancellationToken);
             return mute;
         }
 
@@ -118,24 +112,17 @@ namespace Zhongli.Services.Moderation
             await _db.SaveChangesAsync(cancellationToken);
 
             var request = new ReprimandRequest<Warning, WarningResult>(details, warning);
-            return await PublishReprimandAsync(details, request, cancellationToken);
+            return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        private async Task<T> PublishReprimandAsync<T>(ReprimandDetails details, IRequest<T> request,
+        private async Task<T> PublishReprimandAsync<T>(IRequest<T> request, ReprimandDetails details,
             CancellationToken cancellationToken) where T : ReprimandResult
         {
             var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
             var result = await mediator.Send(request, cancellationToken);
-            await PublishReprimandAsync(details, result, cancellationToken);
+            await _logging.PublishReprimandAsync(result, details, cancellationToken);
 
             return result;
-        }
-
-        private async Task PublishReprimandAsync(ReprimandDetails details, ReprimandResult result,
-            CancellationToken cancellationToken)
-        {
-            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
-            await mediator.Publish(new ReprimandNotification(details, result), cancellationToken);
         }
 
         public async Task<NoticeResult> NoticeAsync(ReprimandDetails details,
@@ -147,7 +134,7 @@ namespace Zhongli.Services.Moderation
             await _db.SaveChangesAsync(cancellationToken);
 
             var request = new ReprimandRequest<Notice, NoticeResult>(details, notice);
-            return await PublishReprimandAsync(details, request, cancellationToken);
+            return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
         public async Task NoteAsync(ReprimandDetails details,
@@ -156,7 +143,7 @@ namespace Zhongli.Services.Moderation
             var note = _db.Add(new Note(details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
-            await PublishReprimandAsync(details, note, cancellationToken);
+            await _logging.PublishReprimandAsync(note, details, cancellationToken);
         }
 
         public async Task<Kick?> TryKickAsync(ReprimandDetails details,
@@ -170,7 +157,7 @@ namespace Zhongli.Services.Moderation
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await PublishReprimandAsync(details, kick, cancellationToken);
+                await _logging.PublishReprimandAsync(kick, details, cancellationToken);
                 return kick;
             }
             catch (HttpException e)
@@ -195,7 +182,7 @@ namespace Zhongli.Services.Moderation
                 var ban = _db.Add(new Ban(days, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await PublishReprimandAsync(details, ban, cancellationToken);
+                await _logging.PublishReprimandAsync(ban, details, cancellationToken);
                 return ban;
             }
             catch (HttpException e)
@@ -219,17 +206,21 @@ namespace Zhongli.Services.Moderation
             _db.Remove(reprimand);
             await _db.SaveChangesAsync();
 
-            ModifyReprimandAsync(details, reprimand, ReprimandStatus.Deleted);
+            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired);
+        }
 
-            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
-            await mediator.Publish(new ModifiedReprimandNotification(details, reprimand));
+        private async Task ExpireReprimandAsync<T>(T reprimand, ModifiedReprimand details)
+            where T : ReprimandAction, IExpire
+        {
+            reprimand.EndedAt = DateTimeOffset.Now;
+
+            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired);
         }
 
         public Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated);
 
-        private static ReprimandAction ModifyReprimandAsync(ModifiedReprimand details,
-            ReprimandAction reprimand,
+        private static ReprimandAction ModifyReprimand(ReprimandAction reprimand, ModifiedReprimand details,
             ReprimandStatus status)
         {
             reprimand.Status         = status;
@@ -241,11 +232,10 @@ namespace Zhongli.Services.Moderation
         private async Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
             ReprimandStatus status)
         {
-            _db.Update(ModifyReprimandAsync(details, reprimand, status));
+            _db.Update(ModifyReprimand(reprimand, details, status));
             await _db.SaveChangesAsync();
 
-            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
-            await mediator.Publish(new ModifiedReprimandNotification(details, reprimand));
+            await _logging.PublishReprimandAsync(reprimand, details);
         }
     }
 }

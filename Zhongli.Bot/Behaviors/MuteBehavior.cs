@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
 using MediatR;
 using Zhongli.Data;
-using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 
@@ -24,16 +22,12 @@ namespace Zhongli.Bot.Behaviors
 
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
         {
-            var now = DateTimeOffset.Now;
-            var activeMutes = _db.Set<Mute>()
-                .AsAsyncEnumerable()
-                .Where(m => m.EndedAt == null)
-                .Where(m => m.StartedAt + m.Length > now)
-                .Where(m => m.TimeLeft is not null);
+            var activeMutes = _db.MuteHistory.AsAsyncEnumerable()
+                .Where(m => m.IsActive);
 
             await foreach (var mute in activeMutes.WithCancellation(cancellationToken))
             {
-                BackgroundJob.Schedule(() => _moderationService.UnmuteAsync(mute.Id, cancellationToken),
+                BackgroundJob.Schedule(() => _moderationService.ExpireMuteAsync(mute.Id, cancellationToken),
                     mute.TimeLeft!.Value);
             }
         }

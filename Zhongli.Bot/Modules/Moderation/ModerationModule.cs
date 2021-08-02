@@ -154,7 +154,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await reprimand.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
             {
-                var embed = await _moderationLogging.UpdatedEmbedAsync(details, reprimand);
+                var embed = await _moderationLogging.UpdatedEmbedAsync(reprimand, details);
                 await ReplyAsync(embed: embed.Build());
             }
             else
@@ -166,7 +166,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await result.Primary.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
             {
-                var embed = await _moderationLogging.CreateEmbedAsync(details, result);
+                var embed = await _moderationLogging.CreateEmbedAsync(result, details);
                 await ReplyAsync(embed: embed.Build());
             }
             else
