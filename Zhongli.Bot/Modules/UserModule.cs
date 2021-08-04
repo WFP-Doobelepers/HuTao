@@ -66,7 +66,7 @@ namespace Zhongli.Bot.Modules
                         string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
             }
 
-            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.Moderator) && userEntity is not null)
+            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator) && userEntity is not null)
             {
                 embed
                     .AddReprimands(userEntity)
@@ -115,7 +115,8 @@ namespace Zhongli.Bot.Modules
                     "Invalid Infraction type.")
             };
 
-            var reprimands = new EmbedBuilder().AddReprimands(userEntity).Fields;
+            var reprimands = new EmbedBuilder().AddReprimands(userEntity)
+                .AddField("Reprimands", "Active/Total", true).Fields;
             var pages = history
                 .OrderByDescending(r => r.Action.Date)
                 .Select(r => CreateEmbed(user, r));
@@ -126,7 +127,8 @@ namespace Zhongli.Bot.Modules
                 Author = new EmbedAuthorBuilder().WithName($"{user}"),
                 Options = new PaginatedAppearanceOptions
                 {
-                    DisplayInformationIcon = false
+                    DisplayInformationIcon = false,
+                    FieldsPerPage = 8
                 }
             };
 
