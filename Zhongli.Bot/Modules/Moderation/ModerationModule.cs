@@ -149,6 +149,12 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(result, details);
         }
 
+        [Command("warn")]
+        [Summary("Warn a user from the current guild once.")]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
+            => WarnAsync(user, 1, reason);
+
         private async Task ReplyReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
         {
             var guild = await reprimand.GetGuildAsync(_db);
