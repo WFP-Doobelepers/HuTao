@@ -39,8 +39,8 @@ namespace Zhongli.Bot.Modules.Configuration
             bool? isVerbose = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Options
-                = LoggingOptionsBitwise.SetValue(guild.LoggingRules.Options, LoggingOptions.Verbose, isVerbose);
+            guild.LoggingRules.Options = LoggingOptionsBitwise
+                    .SetValue(guild.LoggingRules.Options, LoggingOptions.Verbose, isVerbose);
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -53,8 +53,8 @@ namespace Zhongli.Bot.Modules.Configuration
             bool? isSilent = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Options
-                = LoggingOptionsBitwise.SetValue(guild.LoggingRules.Options, LoggingOptions.Silent, isSilent);
+            guild.LoggingRules.Options = LoggingOptionsBitwise
+                .SetValue(guild.LoggingRules.Options, LoggingOptions.Silent, isSilent);
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -67,8 +67,8 @@ namespace Zhongli.Bot.Modules.Configuration
             bool? shouldNotifyUser = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Options
-                = LoggingOptionsBitwise.SetValue(guild.LoggingRules.Options, LoggingOptions.NotifyUser, shouldNotifyUser);
+            guild.LoggingRules.Options = LoggingOptionsBitwise
+                .SetValue(guild.LoggingRules.Options, LoggingOptions.NotifyUser, shouldNotifyUser);
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -81,8 +81,8 @@ namespace Zhongli.Bot.Modules.Configuration
             bool? isAnonymous = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Options
-                = LoggingOptionsBitwise.SetValue(guild.LoggingRules.Options, LoggingOptions.Anonymous, isAnonymous);
+            guild.LoggingRules.Options = LoggingOptionsBitwise
+                .SetValue(guild.LoggingRules.Options, LoggingOptions.Anonymous, isAnonymous);
 
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));

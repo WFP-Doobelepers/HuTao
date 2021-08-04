@@ -1,15 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
@@ -72,13 +69,6 @@ namespace Zhongli.Services.Moderation
 
         public static bool IsActive(this IExpirable expirable)
             => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
-
-        public static async Task<AutoModerationRules> GetAutoModerationRulesAsync(this ReprimandDetails details, ZhongliContext db,
-            CancellationToken cancellationToken)
-        {
-            var guild = await details.GetGuildAsync(db, cancellationToken);
-            return guild.AutoModerationRules;
-        }
 
         public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,
             CancellationToken cancellationToken)
