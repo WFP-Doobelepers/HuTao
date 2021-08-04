@@ -77,20 +77,29 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(ban, cancellationToken);
         }
 
+        public void EnqueueExpirableReprimand(IExpirable expire, CancellationToken cancellationToken = default)
+        {
+            if (expire.ExpireAt is not null)
+            {
+                BackgroundJob.Schedule(()
+                        => ExpireReprimandAsync(expire.Id, cancellationToken),
+                    expire.ExpireAt.Value);
+            }
+        }
+
+        // ReSharper disable once MemberCanBePrivate.Global
         public async Task ExpireReprimandAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var reprimand = await _db.Set<ReprimandAction>().AsAsyncEnumerable().OfType<IExpire>()
+            var reprimand = await _db.Set<ReprimandAction>().AsAsyncEnumerable().OfType<IExpirable>()
                 .FirstAsync(e => e.Id == id, cancellationToken);
 
-            switch (reprimand)
+            await (reprimand switch
             {
-                case Mute mute:
-                    await ExpireMuteAsync(mute, cancellationToken);
-                    break;
-                case Ban ban:
-                    await ExpireBanAsync(ban, cancellationToken);
-                    break;
-            }
+                Ban ban         => ExpireBanAsync(ban, cancellationToken),
+                Mute mute       => ExpireMuteAsync(mute, cancellationToken),
+                Notice notice   => ExpireReprimandAsync(notice, cancellationToken),
+                Warning warning => ExpireReprimandAsync(warning, cancellationToken)
+            });
         }
 
         public async Task<Mute?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
@@ -119,12 +128,7 @@ namespace Zhongli.Services.Moderation
             var mute = _db.Add(new Mute(length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
-            var timeLeft = mute.TimeLeft();
-            if (timeLeft is not null)
-            {
-                BackgroundJob.Schedule(() => ExpireReprimandAsync(mute.Id, cancellationToken),
-                    timeLeft!.Value);
-            }
+            EnqueueExpirableReprimand(mute, cancellationToken);
 
             await _logging.PublishReprimandAsync(mute, details, cancellationToken);
             return mute;
@@ -133,10 +137,13 @@ namespace Zhongli.Services.Moderation
         public async Task<WarningResult> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var warning = new Warning(amount, details);
+            var guild = await details.GetGuildAsync(_db, cancellationToken);
+            var warning = new Warning(amount, guild.WarningAutoPardonLength, details);
 
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
+
+            EnqueueExpirableReprimand(warning, cancellationToken);
 
             var request = new ReprimandRequest<Warning, WarningResult>(details, warning);
             return await PublishReprimandAsync(request, details, cancellationToken);
@@ -155,10 +162,13 @@ namespace Zhongli.Services.Moderation
         public async Task<NoticeResult> NoticeAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var notice = new Notice(details);
+            var guild = await details.GetGuildAsync(_db, cancellationToken);
+            var notice = new Notice(guild.NoticeAutoPardonLength, details);
 
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
+
+            EnqueueExpirableReprimand(notice, cancellationToken);
 
             var request = new ReprimandRequest<Notice, NoticeResult>(details, notice);
             return await PublishReprimandAsync(request, details, cancellationToken);
@@ -209,12 +219,7 @@ namespace Zhongli.Services.Moderation
                 var ban = _db.Add(new Ban(days, length, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                var timeLeft = ban.TimeLeft();
-                if (timeLeft is not null)
-                {
-                    BackgroundJob.Schedule(() => ExpireReprimandAsync(ban.Id, cancellationToken),
-                        timeLeft!.Value);
-                }
+                EnqueueExpirableReprimand(ban, cancellationToken);
 
                 await _logging.PublishReprimandAsync(ban, details, cancellationToken);
                 return ban;
@@ -246,7 +251,7 @@ namespace Zhongli.Services.Moderation
         }
 
         private async Task ExpireReprimandAsync<T>(T reprimand, CancellationToken cancellationToken)
-            where T : ReprimandAction, IExpire
+            where T : ReprimandAction, IExpirable
         {
             reprimand.EndedAt = DateTimeOffset.Now;
 

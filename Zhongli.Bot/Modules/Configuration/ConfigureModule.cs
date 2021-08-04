@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -7,6 +8,7 @@ using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
@@ -25,6 +27,32 @@ namespace Zhongli.Bot.Modules.Configuration
             IRole? role)
         {
             await ModerationService.ConfigureMuteRoleAsync(Context.Guild, role);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("autoPardon notice")]
+        [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
+        public async Task ConfigureAutoPardonNoticeAsync(
+            [Summary("Leave empty to disable auto pardon of notices.")]
+            TimeSpan? length = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.NoticeAutoPardonLength = length;
+            await _db.SaveChangesAsync();
+
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("autoPardon warning")]
+        [Summary("Set the time for when a warning is automatically pardoned. This will not affect old cases.")]
+        public async Task ConfigureAutoPardonWarningAsync(
+            [Summary("Leave empty to disable auto pardon of notices.")]
+            TimeSpan? length = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.WarningAutoPardonLength = length;
+            await _db.SaveChangesAsync();
+
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 

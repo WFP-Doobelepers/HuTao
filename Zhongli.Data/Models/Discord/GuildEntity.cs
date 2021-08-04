@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
@@ -24,6 +25,10 @@ namespace Zhongli.Data.Models.Discord
         public virtual AutoModerationRules AutoModerationRules { get; set; } = new();
 
         public ulong? MuteRoleId { get; set; }
+
+        public TimeSpan? NoticeAutoPardonLength { get; set; }
+
+        public TimeSpan? WarningAutoPardonLength { get; set; }
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
 

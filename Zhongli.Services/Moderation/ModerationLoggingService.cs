@@ -41,9 +41,7 @@ namespace Zhongli.Services.Moderation
             var options = guild.LoggingRules.Options;
             if (!options.HasFlag(LoggingOptions.Verbose)
                 && reprimand.Status is ReprimandStatus.Added
-                && reprimand.Source
-                    is ModerationSource.Notice
-                    or ModerationSource.Warning)
+                && reprimand.Source is ModerationSource.Notice or ModerationSource.Warning)
                 return;
 
             var channelId = guild.LoggingRules.ModerationChannelId;
@@ -51,13 +49,13 @@ namespace Zhongli.Services.Moderation
                 return;
 
             var channel = await moderator.Guild.GetTextChannelAsync(channelId.Value);
-            await channel.SendMessageAsync(embed: embed.Build());
+            _ = channel.SendMessageAsync(embed: embed.Build());
 
             if (options.HasFlag(LoggingOptions.NotifyUser) && reprimand is not Note
                 && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Expired)
             {
                 var dm = await user.GetOrCreateDMChannelAsync();
-                await dm.SendMessageAsync(embed: embed.Build());
+                _ = dm?.SendMessageAsync(embed: embed.Build());
             }
         }
 

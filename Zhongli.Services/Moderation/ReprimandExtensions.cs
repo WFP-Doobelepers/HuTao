@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Moderation
 {
@@ -65,13 +70,18 @@ namespace Zhongli.Services.Moderation
             return user.WarningCount();
         }
 
-        public static bool IsActive(this IExpire expire)
-            => expire.EndedAt is null || expire.EndAt() >= DateTimeOffset.Now;
+        public static bool IsActive(this IExpirable expirable)
+            => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
 
-        private static DateTimeOffset? EndAt(this IExpire expire)
-            => expire.StartedAt + expire.Length;
+        public static async Task<AutoModerationRules> GetAutoModerationRulesAsync(this ReprimandDetails details, ZhongliContext db,
+            CancellationToken cancellationToken)
+        {
+            var guild = await details.GetGuildAsync(db, cancellationToken);
+            return guild.AutoModerationRules;
+        }
 
-        public static TimeSpan? TimeLeft(this IExpire expire)
-            => expire.EndAt() - DateTimeOffset.Now;
+        public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,
+            CancellationToken cancellationToken)
+            => db.Guilds.TrackGuildAsync(details.User.Guild, cancellationToken);
     }
 }

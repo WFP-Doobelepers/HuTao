@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Hangfire;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
@@ -25,17 +24,12 @@ namespace Zhongli.Bot.Behaviors
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
         {
             var active = _db.Set<ReprimandAction>().AsAsyncEnumerable()
-                .OfType<IExpire>()
+                .OfType<IExpirable>()
                 .Where(m => m.IsActive());
 
             await foreach (var entity in active.WithCancellation(cancellationToken))
             {
-                var timeLeft = entity.TimeLeft();
-                if (timeLeft is null) continue;
-
-                BackgroundJob.Schedule(()
-                        => _moderation.ExpireReprimandAsync(entity.Id, cancellationToken),
-                    timeLeft.Value);
+                _moderation.EnqueueExpirableReprimand(entity, cancellationToken);
             }
         }
     }

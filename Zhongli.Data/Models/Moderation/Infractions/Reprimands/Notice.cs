@@ -1,9 +1,11 @@
+using System;
+
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Notice : ReprimandAction
+    public class Notice : ExpirableReprimandAction
     {
         protected Notice() { }
 
-        public Notice(ReprimandDetails details) : base(details) { }
+        public Notice(TimeSpan? length, ReprimandDetails details) : base(length, details) { }
     }
 }
