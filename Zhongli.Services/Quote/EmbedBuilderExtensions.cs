@@ -46,10 +46,7 @@ namespace Zhongli.Services.Quote
 
             var embed = message.Embeds
                 .First()
-                .ToEmbedBuilder()
-                .AddField("Quoted by",
-                    $"{executingUser.Mention} from {Format.Bold(message.GetJumpUrlForEmbed())}",
-                    true);
+                .ToEmbedBuilder();
 
             if (firstEmbed.Color is null) embed.Color = Color.DarkGrey;
 
