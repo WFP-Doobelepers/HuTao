@@ -69,11 +69,11 @@ namespace Zhongli.Bot.Behaviors
         }
 
         private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand, int count,
-            Func<AutoModerationRules, IEnumerable<T>> selector,
+            Func<ModerationRules, IEnumerable<T>> selector,
             CancellationToken cancellationToken) where T : ITrigger
         {
             var user = await reprimand.GetUserAsync(_db, cancellationToken);
-            var rules = user.Guild.AutoModerationRules;
+            var rules = user.Guild.ModerationRules;
 
             var trigger = selector.Invoke(rules)
                 .Where(t => t.IsTriggered(count))

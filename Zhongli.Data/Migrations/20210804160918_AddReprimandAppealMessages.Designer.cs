@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zhongli.Data;
@@ -9,9 +10,10 @@ using Zhongli.Data;
 namespace Zhongli.Data.Migrations
 {
     [DbContext(typeof(ZhongliContext))]
-    partial class ZhongliContextModelSnapshot : ModelSnapshot
+    [Migration("20210804160918_AddReprimandAppealMessages")]
+    partial class AddReprimandAppealMessages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -56,8 +56,8 @@ namespace Zhongli.Services.Moderation
             var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
             var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
 
-            if (guildEntity?.MuteRoleId is not null)
-                await user.RemoveRoleAsync(guildEntity.MuteRoleId.Value);
+            if (guildEntity?.ModerationRules.MuteRoleId is not null)
+                await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
 
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = false);
@@ -114,7 +114,7 @@ namespace Zhongli.Services.Moderation
             var user = details.User;
             var guildEntity = await _db.Guilds.FindByIdAsync(user.Guild.Id, cancellationToken);
 
-            var muteRole = guildEntity?.MuteRoleId;
+            var muteRole = guildEntity?.ModerationRules.MuteRoleId;
             if (muteRole is null)
                 return null;
 
@@ -138,7 +138,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
-            var warning = new Warning(amount, guild.WarningAutoPardonLength, details);
+            var warning = new Warning(amount, guild.ModerationRules.WarningAutoPardonLength, details);
 
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
@@ -163,7 +163,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
-            var notice = new Notice(guild.NoticeAutoPardonLength, details);
+            var notice = new Notice(guild.ModerationRules.NoticeAutoPardonLength, details);
 
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);

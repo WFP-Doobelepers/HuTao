@@ -70,7 +70,7 @@ namespace Zhongli.Bot.Modules
             {
                 embed
                     .AddReprimands(userEntity)
-                    .AddField("Muted", guildUser?.HasRole(guild.MuteRoleId ?? 0), true);
+                    .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
             }
 
             await ReplyAsync(embed: embed.Build());

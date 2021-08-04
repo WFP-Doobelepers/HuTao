@@ -63,7 +63,7 @@ namespace Zhongli.Bot.Modules.Moderation
         private async Task AddCensor(Censor censor)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.AutoModerationRules.Censors
+            guild.ModerationRules.Censors
                 .Add(censor.WithModerator((IGuildUser) Context.User));
 
             await _db.SaveChangesAsync();

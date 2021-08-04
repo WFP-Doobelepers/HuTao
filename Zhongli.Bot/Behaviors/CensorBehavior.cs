@@ -52,7 +52,7 @@ namespace Zhongli.Bot.Behaviors
             var currentUser = await guild.GetCurrentUserAsync();
             var details = new ReprimandDetails(user, currentUser, ModerationSource.Censor, "[Censor trigger]");
 
-            foreach (var censor in guildEntity.AutoModerationRules.Censors
+            foreach (var censor in guildEntity.ModerationRules.Censors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
                 .Where(c => c.IsMatch(message)))
             {

@@ -37,7 +37,7 @@ namespace Zhongli.Bot.Modules.Configuration
             TimeSpan? length = null)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.NoticeAutoPardonLength = length;
+            guild.ModerationRules.NoticeAutoPardonLength = length;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -50,7 +50,20 @@ namespace Zhongli.Bot.Modules.Configuration
             TimeSpan? length = null)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.WarningAutoPardonLength = length;
+            guild.ModerationRules.WarningAutoPardonLength = length;
+            await _db.SaveChangesAsync();
+
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("appeal message")]
+        [Summary("Set the appeal message when someone is reprimanded.")]
+        public async Task ConfigureAppealMessageAsync(
+            [Summary("Leave empty to disable the appeal message.")] [Remainder]
+            string? message = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.ModerationRules.ReprimandAppealMessage = message;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));

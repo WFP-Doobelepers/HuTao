@@ -54,6 +54,10 @@ namespace Zhongli.Services.Moderation
             if (options.HasFlag(LoggingOptions.NotifyUser) && reprimand is not Note
                 && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Expired)
             {
+                var appealMessage = guild.ModerationRules.ReprimandAppealMessage;
+                if (!string.IsNullOrWhiteSpace(appealMessage))
+                    embed.AddField("Appeal", appealMessage);
+
                 var dm = await user.GetOrCreateDMChannelAsync();
                 _ = dm?.SendMessageAsync(embed: embed.Build());
             }

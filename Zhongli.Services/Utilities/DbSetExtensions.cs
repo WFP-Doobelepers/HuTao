@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Services.Utilities
 {
@@ -17,6 +19,11 @@ namespace Zhongli.Services.Utilities
         {
             var guildEntity = await set.FindByIdAsync(guild.Id, cancellationToken)
                 ?? set.Add(new GuildEntity(guild.Id)).Entity;
+
+            // ReSharper disable ConstantNullCoalescingCondition
+            guildEntity.ModerationRules ??= new ModerationRules();
+            guildEntity.LoggingRules    ??= new LoggingRules();
+            // ReSharper restore ConstantNullCoalescingCondition
 
             return guildEntity;
         }

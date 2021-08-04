@@ -6,7 +6,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data.Models.Moderation
 {
-    public class AutoModerationRules
+    public class ModerationRules
     {
         public Guid Id { get; set; }
 
@@ -24,5 +24,13 @@ namespace Zhongli.Data.Models.Moderation
 
         public virtual ICollection<Censor> Censors { get; set; }
             = new List<Censor>();
+
+        public ulong? MuteRoleId { get; set; }
+
+        public TimeSpan? NoticeAutoPardonLength { get; set; }
+
+        public TimeSpan? WarningAutoPardonLength { get; set; }
+
+        public string? ReprimandAppealMessage { get; set; }
     }
 }

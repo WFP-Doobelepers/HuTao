@@ -83,11 +83,11 @@ namespace Zhongli.Bot.Modules.Moderation
             if (existing is not null) _db.Remove((object) existing);
         }
 
-        private async Task<AutoModerationRules> GetModerationRules(ulong guildId)
+        private async Task<ModerationRules> GetModerationRules(ulong guildId)
         {
             var guildEntity = await _db.Guilds.FindAsync(guildId);
 
-            return guildEntity.AutoModerationRules;
+            return guildEntity.ModerationRules;
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
@@ -22,19 +21,13 @@ namespace Zhongli.Data.Models.Discord
         public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
             = new List<AuthorizationGroup>();
 
-        public virtual AutoModerationRules AutoModerationRules { get; set; } = new();
-
-        public ulong? MuteRoleId { get; set; }
-
-        public TimeSpan? NoticeAutoPardonLength { get; set; }
-
-        public TimeSpan? WarningAutoPardonLength { get; set; }
+        public virtual ModerationRules ModerationRules { get; set; } = null!;
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
 
         public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
 
-        public virtual LoggingRules LoggingRules { get; set; } = new();
+        public virtual LoggingRules LoggingRules { get; set; } = null!;
 
         public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
             = new List<ReprimandAction>();
