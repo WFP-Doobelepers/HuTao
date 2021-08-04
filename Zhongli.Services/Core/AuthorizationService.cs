@@ -41,7 +41,7 @@ namespace Zhongli.Services.Core
             return guildEntity;
         }
 
-        public async Task<bool> IsAuthorized(ICommandContext context, AuthorizationScope scope,
+        public async Task<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
             CancellationToken cancellationToken = default)
         {
             var user = (IGuildUser) context.User;

@@ -12,6 +12,7 @@ namespace Zhongli.Data.Models.Authorization
         Kick          = 1 << 3,
         Ban           = 1 << 4,
         Configuration = 1 << 5,
+        Quote         = 1 << 6,
         Moderator     = Warning | Mute | Kick | Ban,
         Helper        = Warning | Mute
     }

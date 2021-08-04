@@ -3,10 +3,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Zhongli.Data.Config;
+using Zhongli.Data.Models.Authorization;
+using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Utilities;
 using MessageExtensions = Zhongli.Services.Utilities.MessageExtensions;
@@ -17,22 +20,24 @@ namespace Zhongli.Services.Quote
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
+        private readonly AuthorizationService _auth;
         private readonly DiscordSocketClient _discordClient;
         private readonly ILogger<MessageLinkBehavior> _log;
         private readonly IQuoteService _quoteService;
 
-        public MessageLinkBehavior(DiscordSocketClient discordClient,
+        public MessageLinkBehavior(
+            AuthorizationService auth, DiscordSocketClient discordClient,
             IQuoteService quoteService, ILogger<MessageLinkBehavior> log)
         {
+            _auth          = auth;
             _discordClient = discordClient;
             _quoteService  = quoteService;
-
-            _log = log;
+            _log           = log;
         }
 
         public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
         {
-            await OnMessageReceivedAsync(notification.Message);
+            await OnMessageReceivedAsync(notification.Message, cancellationToken);
         }
 
         public async Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
@@ -45,17 +50,20 @@ namespace Zhongli.Services.Quote
             if (MessageExtensions.JumpUrlRegex.IsMatch(cachedMessage.Content))
                 return;
 
-            await OnMessageReceivedAsync(notification.NewMessage);
+            await OnMessageReceivedAsync(notification.NewMessage, cancellationToken);
         }
 
-        private async Task OnMessageReceivedAsync(IMessage message)
+        private async Task OnMessageReceivedAsync(IMessage message, CancellationToken cancellationToken)
         {
             if (message.Content?.StartsWith(ZhongliConfig.Configuration.Prefix) ?? true) return;
 
-            if (message is not IUserMessage { Author: IGuildUser guildUser } userMessage)
+            if (message is not SocketUserMessage { Author: IGuildUser guildUser } userMessage
+                || guildUser.IsBot || guildUser.IsWebhook)
                 return;
 
-            if (guildUser.IsBot || guildUser.IsWebhook)
+            var context = new SocketCommandContext(_discordClient, userMessage);
+
+            if (!await _auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
                 return;
 
             foreach (Match match in MessageExtensions.JumpUrlRegex.Matches(message.Content))

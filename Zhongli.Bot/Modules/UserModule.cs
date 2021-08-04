@@ -66,7 +66,7 @@ namespace Zhongli.Bot.Modules
                         string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
             }
 
-            if (await _auth.IsAuthorized(Context, AuthorizationScope.Moderator) && userEntity is not null)
+            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.Moderator) && userEntity is not null)
             {
                 embed
                     .AddReprimands(userEntity)
