@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Discord.Commands;
 using Namotion.Reflection;
@@ -62,7 +63,8 @@ namespace Zhongli.Services.CommandHelp
                     continue;
 
                 var name = n.ToString();
-                var summary = n.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text;
+                var summary = n.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text
+                    ?? n.GetAttributeOfEnum<DescriptionAttribute>()?.Description;
                 yield return new ParameterHelpData(name, type, summary);
             }
         }

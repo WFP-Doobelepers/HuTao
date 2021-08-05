@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -34,17 +37,13 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Interactively configure the permissions. This uses a template of having an admin and mod role.")]
         public async Task InteractiveConfigureAsync()
         {
-            var permissionOptionFields = new[]
+            var fields = new List<EmbedFieldBuilder>();
+            foreach (var field in Enum.GetValues<AuthorizationScope>())
             {
-                CreateField(nameof(AuthorizationScope.All), "All permissions. Dangerous!"),
-                CreateField(nameof(AuthorizationScope.Configuration), "Allows configuration of settings."),
-                CreateField(nameof(AuthorizationScope.Moderator), "Allows warning, mute, kick, and ban."),
-                CreateField(nameof(AuthorizationScope.Helper), "Allows warning and mute."),
-                CreateField(nameof(AuthorizationScope.Warning), "Allows warning."),
-                CreateField(nameof(AuthorizationScope.Mute), "Allows muting."),
-                CreateField(nameof(AuthorizationScope.Kick), "Allows kicking."),
-                CreateField(nameof(AuthorizationScope.Ban), "Allows banning.")
-            };
+                var description = field.GetAttributeOfEnum<DescriptionAttribute>();
+                if (!string.IsNullOrWhiteSpace(description?.Description))
+                    fields.Add(CreateField(field.ToString(), description.Description));
+            }
 
             static EmbedFieldBuilder CreateField(string name, string value)
                 => new EmbedFieldBuilder().WithName(name).WithValue(value);
@@ -58,7 +57,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 .ThatHas(new RoleTypeReader<IRole>())
                 .WithPrompt(ConfigureOptions.Permissions,
                     "What kind of permissions would you like moderators to have? Separate with spaces.",
-                    permissionOptionFields)
+                    fields)
                 .ThatHas(new EnumFlagsTypeReader<AuthorizationScope>());
 
             var results = await prompts.GetAnswersAsync();

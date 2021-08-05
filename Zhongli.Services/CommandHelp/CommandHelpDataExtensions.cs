@@ -82,8 +82,15 @@ namespace Zhongli.Services.CommandHelp
             {
                 builder
                     .AppendLine()
-                    .AppendLine($"Flags for {Format.Underline(Format.Bold(parameter.Name))}:")
+                    .AppendLine($"Summaries for {Format.Underline(Format.Bold(parameter.Name))}:")
                     .AppendSummaries(parameter.Options);
+
+                if (!parameter.Type.IsEnum)
+                {
+                    builder.AppendLine(
+                        $"▌Provide values by doing {Format.Code("name: value")} " +
+                        $"or {Format.Code("name: \"value with spaces\"")}.");
+                }
             }
 
             return builder;
@@ -100,7 +107,7 @@ namespace Zhongli.Services.CommandHelp
                 if (string.IsNullOrEmpty(parameter.Summary))
                     continue;
 
-                builder.AppendLine($"\x200b\t• `{parameter.Name}`: {parameter.Summary}");
+                builder.AppendLine($"\x200b\t• {Format.Code(parameter.Name)}: {parameter.Summary}");
             }
 
             return builder;
