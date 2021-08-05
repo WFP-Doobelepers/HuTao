@@ -68,7 +68,7 @@ namespace Zhongli.Bot.Behaviors
             return new WarningResult(reprimand, secondary);
         }
 
-        private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand, int count,
+        private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand, uint count,
             Func<ModerationRules, IEnumerable<T>> selector,
             CancellationToken cancellationToken) where T : ITrigger
         {

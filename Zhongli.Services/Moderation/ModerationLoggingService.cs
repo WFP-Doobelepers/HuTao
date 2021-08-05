@@ -156,7 +156,7 @@ namespace Zhongli.Services.Moderation
             };
         }
 
-        private async ValueTask<int> GetTotalAsync(ReprimandAction action, CancellationToken cancellationToken)
+        private async ValueTask<uint> GetTotalAsync(ReprimandAction action, CancellationToken cancellationToken)
         {
             var user = await action.GetUserAsync(_db, cancellationToken);
 

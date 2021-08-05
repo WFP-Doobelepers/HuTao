@@ -6,8 +6,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
     public class BanTrigger : WarningTrigger, IBan
     {
-        public BanTrigger(uint amount, bool retroactive, uint deleteDays, TimeSpan? length)
-            : base(amount, retroactive)
+        public BanTrigger(uint amount, TriggerMode mode, uint deleteDays, TimeSpan? length)
+            : base(amount, mode)
         {
             DeleteDays = deleteDays;
             Length     = length;

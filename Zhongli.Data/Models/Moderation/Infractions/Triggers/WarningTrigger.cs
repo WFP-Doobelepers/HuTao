@@ -4,10 +4,10 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
     public abstract class WarningTrigger : IModerationAction, ITrigger
     {
-        protected WarningTrigger(uint amount, bool retroactive)
+        protected WarningTrigger(uint amount, TriggerMode mode)
         {
-            Amount      = amount;
-            Retroactive = retroactive;
+            Amount = amount;
+            Mode   = mode;
         }
 
         public Guid Id { get; set; }
@@ -16,9 +16,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public uint Amount { get; set; }
 
-        public bool Retroactive { get; set; }
-
-        public bool IsTriggered(int amount)
-            => Retroactive ? amount >= Amount : amount == Amount;
+        public TriggerMode Mode { get; set; }
     }
 }
