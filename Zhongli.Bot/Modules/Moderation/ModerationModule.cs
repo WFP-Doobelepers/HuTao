@@ -9,7 +9,6 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
-using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -44,44 +43,6 @@ namespace Zhongli.Bot.Modules.Moderation
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
             else
                 await ReplyReprimandAsync(result, details);
-        }
-
-        [Command("delete")]
-        [Summary("Delete a reprimand, this completely removes the data.")]
-        [RequireAuthorization(AuthorizationScope.Moderator)]
-        public async Task DeleteReprimandAsync(Guid id)
-        {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
-            if (reprimand is null)
-            {
-                await _error.AssociateError(Context.Message, "Unable to find reprimand.");
-                return;
-            }
-
-            var user = Context.Client.GetUser(reprimand.UserId);
-            var details = GetDetails(user, null);
-
-            await _moderation.DeleteReprimandAsync(reprimand, details);
-            await ReplyReprimandAsync(reprimand, details);
-        }
-
-        [Command("hide")]
-        [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-        [RequireAuthorization(AuthorizationScope.Moderator)]
-        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
-        {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
-            if (reprimand is null)
-            {
-                await _error.AssociateError(Context.Message, "Unable to find reprimand.");
-                return;
-            }
-
-            var user = Context.Client.GetUser(reprimand.UserId);
-            var details = GetDetails(user, reason);
-
-            await _moderation.HideReprimandAsync(reprimand, details);
-            await ReplyReprimandAsync(reprimand, details);
         }
 
         [Command("kick")]
@@ -136,25 +97,6 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(result, details);
         }
 
-        [Command("update")]
-        [Summary("Update a reprimand's reason.")]
-        [RequireAuthorization(AuthorizationScope.Moderator)]
-        public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
-        {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
-            if (reprimand is null)
-            {
-                await _error.AssociateError(Context.Message, "Unable to find reprimand.");
-                return;
-            }
-
-            var user = Context.Client.GetUser(reprimand.UserId);
-            var details = GetDetails(user, reason);
-
-            await _moderation.UpdateReprimandAsync(reprimand, details);
-            await ReplyReprimandAsync(reprimand, details);
-        }
-
         [Command("warn")]
         [Summary("Warn a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Warning)]
@@ -171,23 +113,8 @@ namespace Zhongli.Bot.Modules.Moderation
         public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
             => WarnAsync(user, 1, reason);
 
-        private ModifiedReprimand GetDetails(IUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
-
         private ReprimandDetails GetDetails(IGuildUser user, string? reason)
             => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
-
-        private async Task ReplyReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
-        {
-            var guild = await reprimand.GetGuildAsync(_db);
-            if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
-            {
-                var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
-                await ReplyAsync(embed: embed.Build());
-            }
-            else
-                await Context.Message.DeleteAsync();
-        }
 
         private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)
         {
