@@ -161,14 +161,13 @@ namespace Zhongli.Services.Moderation
                 var user = details.User;
                 var days = deleteDays ?? 1;
 
-                await user.BanAsync((int) days, details.Reason);
-
                 var ban = _db.Add(new Ban(days, length, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
+                await _logging.PublishReprimandAsync(ban, details, cancellationToken);
 
+                await user.BanAsync((int) days, details.Reason);
                 EnqueueExpirableReprimand(ban, cancellationToken);
 
-                await _logging.PublishReprimandAsync(ban, details, cancellationToken);
                 return ban;
             }
             catch (HttpException e)
@@ -186,12 +185,13 @@ namespace Zhongli.Services.Moderation
             try
             {
                 var user = details.User;
-                await user.KickAsync(details.Reason);
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
-
                 await _logging.PublishReprimandAsync(kick, details, cancellationToken);
+
+                await user.KickAsync(details.Reason);
+
                 return kick;
             }
             catch (HttpException e)
