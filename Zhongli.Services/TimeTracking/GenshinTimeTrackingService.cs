@@ -41,29 +41,6 @@ namespace Zhongli.Services.TimeTracking
             [ServerRegion.SAR]     = ("SAR", 8)
         };
 
-        private static void AddRegion(EmbedBuilder builder, ServerRegion region, string language)
-        {
-            var (name, offset) = ServerOffsets[region];
-            var time = GetTime(offset);
-            builder
-                .AddField($"{region.Humanize()} Time", Format.Bold(Format.Code($"# {name} {time}", language)))
-                .AddField("Daily",
-                    $"Resets in {Format.Bold(GetDailyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
-                    true)
-                .AddField("Weekly",
-                    $"Resets in {Format.Bold(GetWeeklyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
-                    true);
-        }
-
-        private static Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
-        {
-            var (name, offset) = ServerOffsets[region];
-            return channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
-        }
-
-        private static DateTimeOffset GetTime(int offset) => DateTimeOffset.UtcNow
-            .ToOffset(TimeSpan.FromHours(offset));
-
         private static DateTimeOffset GetDailyReset(int offset)
         {
             var baseUtcOffset = TimeSpan.FromHours(offset);
@@ -73,6 +50,9 @@ namespace Zhongli.Services.TimeTracking
 
             return next!.Value;
         }
+
+        private static DateTimeOffset GetTime(int offset) => DateTimeOffset.UtcNow
+            .ToOffset(TimeSpan.FromHours(offset));
 
         private static DateTimeOffset GetWeeklyReset(int offset)
         {
@@ -84,9 +64,23 @@ namespace Zhongli.Services.TimeTracking
             return next!.Value;
         }
 
-        private async Task<IGuild?> GetGuildAsync(ulong guildId) =>
-            _socket.GetGuild(guildId) as IGuild
-            ?? await _rest.GetGuildAsync(guildId);
+        private static Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
+        {
+            var (name, offset) = ServerOffsets[region];
+            return channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
+        }
+
+        // ReSharper disable once MemberCanBePrivate.Global
+        public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
+        {
+            var guild = await GetGuildAsync(guildId);
+            if (guild is null) return;
+
+            var channel = await guild.GetTextChannelAsync(channelId);
+            if (channel is null) return;
+
+            await TrackRegionAsync(channel, region);
+        }
 
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
@@ -117,16 +111,37 @@ namespace Zhongli.Services.TimeTracking
             });
         }
 
-        // ReSharper disable once MemberCanBePrivate.Global
-        public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
+        private async Task<IGuild?> GetGuildAsync(ulong guildId) =>
+            _socket.GetGuild(guildId) as IGuild
+            ?? await _rest.GetGuildAsync(guildId);
+
+        private void AddJob(ChannelTimeTracking? tracking, ServerRegion region)
         {
-            var guild = await GetGuildAsync(guildId);
-            if (guild is null) return;
+            if (tracking is null) return;
 
-            var channel = await guild.GetTextChannelAsync(channelId);
-            if (channel is null) return;
+            var id = tracking.Id.ToString();
+            RecurringJob.AddOrUpdate(id, ()
+                    => UpdateChannelAsync(
+                        tracking.GuildId,
+                        tracking.ChannelId,
+                        region),
+                "*/5 * * * *");
 
-            await TrackRegionAsync(channel, region);
+            RecurringJob.Trigger(id);
+        }
+
+        private static void AddRegion(EmbedBuilder builder, ServerRegion region, string language)
+        {
+            var (name, offset) = ServerOffsets[region];
+            var time = GetTime(offset);
+            builder
+                .AddField($"{region.Humanize()} Time", Format.Bold(Format.Code($"# {name} {time}", language)))
+                .AddField("Daily",
+                    $"Resets in {Format.Bold(GetDailyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
+                    true)
+                .AddField("Weekly",
+                    $"Resets in {Format.Bold(GetWeeklyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
+                    true);
         }
 
         public void TrackGenshinTime(GenshinTimeTrackingRules rules)
@@ -149,21 +164,6 @@ namespace Zhongli.Services.TimeTracking
             AddJob(rules.EuropeChannel, ServerRegion.America);
             AddJob(rules.AsiaChannel, ServerRegion.America);
             AddJob(rules.SARChannel, ServerRegion.America);
-        }
-
-        private void AddJob(ChannelTimeTracking? tracking, ServerRegion region)
-        {
-            if (tracking is null) return;
-
-            var id = tracking.Id.ToString();
-            RecurringJob.AddOrUpdate(id, ()
-                    => UpdateChannelAsync(
-                        tracking.GuildId,
-                        tracking.ChannelId,
-                        region),
-                "*/5 * * * *");
-
-            RecurringJob.Trigger(id);
         }
     }
 }

@@ -48,57 +48,6 @@ namespace Zhongli.Services.Core.Listeners
         /// </summary>
         private DiscordSocketClient DiscordSocketClient { get; }
 
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            _cancellationToken                        =  cancellationToken;
-            DiscordSocketClient.ChannelCreated        += OnChannelCreatedAsync;
-            DiscordSocketClient.ChannelUpdated        += OnChannelUpdatedAsync;
-            DiscordSocketClient.GuildAvailable        += OnGuildAvailableAsync;
-            DiscordSocketClient.GuildMemberUpdated    += OnGuildMemberUpdatedAsync;
-            DiscordSocketClient.JoinedGuild           += OnJoinedGuildAsync;
-            DiscordSocketClient.MessageDeleted        += OnMessageDeletedAsync;
-            DiscordSocketClient.MessageReceived       += OnMessageReceivedAsync;
-            DiscordSocketClient.MessageUpdated        += OnMessageUpdatedAsync;
-            DiscordSocketClient.ReactionAdded         += OnReactionAddedAsync;
-            DiscordSocketClient.ReactionRemoved       += OnReactionRemovedAsync;
-            DiscordSocketClient.Ready                 += OnReadyAsync;
-            DiscordSocketClient.Connected             += OnConnectedAsync;
-            DiscordSocketClient.Disconnected          += OnDisconnectedAsync;
-            DiscordSocketClient.RoleCreated           += OnRoleCreatedAsync;
-            DiscordSocketClient.RoleUpdated           += OnRoleUpdatedAsync;
-            DiscordSocketClient.UserBanned            += OnUserBannedAsync;
-            DiscordSocketClient.UserJoined            += OnUserJoinedAsync;
-            DiscordSocketClient.UserLeft              += OnUserLeftAsync;
-            DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync;
-
-            return Task.CompletedTask;
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            DiscordSocketClient.ChannelCreated        -= OnChannelCreatedAsync;
-            DiscordSocketClient.ChannelUpdated        -= OnChannelUpdatedAsync;
-            DiscordSocketClient.GuildAvailable        -= OnGuildAvailableAsync;
-            DiscordSocketClient.GuildMemberUpdated    -= OnGuildMemberUpdatedAsync;
-            DiscordSocketClient.JoinedGuild           -= OnJoinedGuildAsync;
-            DiscordSocketClient.MessageDeleted        -= OnMessageDeletedAsync;
-            DiscordSocketClient.MessageReceived       -= OnMessageReceivedAsync;
-            DiscordSocketClient.MessageUpdated        -= OnMessageUpdatedAsync;
-            DiscordSocketClient.ReactionAdded         -= OnReactionAddedAsync;
-            DiscordSocketClient.ReactionRemoved       -= OnReactionRemovedAsync;
-            DiscordSocketClient.Ready                 -= OnReadyAsync;
-            DiscordSocketClient.Connected             -= OnConnectedAsync;
-            DiscordSocketClient.Disconnected          -= OnDisconnectedAsync;
-            DiscordSocketClient.RoleCreated           -= OnRoleCreatedAsync;
-            DiscordSocketClient.RoleUpdated           -= OnRoleUpdatedAsync;
-            DiscordSocketClient.UserBanned            -= OnUserBannedAsync;
-            DiscordSocketClient.UserJoined            -= OnUserJoinedAsync;
-            DiscordSocketClient.UserLeft              -= OnUserLeftAsync;
-            DiscordSocketClient.UserVoiceStateUpdated -= OnUserVoiceStateUpdatedAsync;
-
-            return Task.CompletedTask;
-        }
-
         private async Task OnChannelCreatedAsync(SocketChannel channel)
         {
             await Mediator.Publish(new ChannelCreatedNotification(channel), _cancellationToken);
@@ -197,6 +146,57 @@ namespace Zhongli.Services.Core.Listeners
         private async Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
         {
             await Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            _cancellationToken                        =  cancellationToken;
+            DiscordSocketClient.ChannelCreated        += OnChannelCreatedAsync;
+            DiscordSocketClient.ChannelUpdated        += OnChannelUpdatedAsync;
+            DiscordSocketClient.GuildAvailable        += OnGuildAvailableAsync;
+            DiscordSocketClient.GuildMemberUpdated    += OnGuildMemberUpdatedAsync;
+            DiscordSocketClient.JoinedGuild           += OnJoinedGuildAsync;
+            DiscordSocketClient.MessageDeleted        += OnMessageDeletedAsync;
+            DiscordSocketClient.MessageReceived       += OnMessageReceivedAsync;
+            DiscordSocketClient.MessageUpdated        += OnMessageUpdatedAsync;
+            DiscordSocketClient.ReactionAdded         += OnReactionAddedAsync;
+            DiscordSocketClient.ReactionRemoved       += OnReactionRemovedAsync;
+            DiscordSocketClient.Ready                 += OnReadyAsync;
+            DiscordSocketClient.Connected             += OnConnectedAsync;
+            DiscordSocketClient.Disconnected          += OnDisconnectedAsync;
+            DiscordSocketClient.RoleCreated           += OnRoleCreatedAsync;
+            DiscordSocketClient.RoleUpdated           += OnRoleUpdatedAsync;
+            DiscordSocketClient.UserBanned            += OnUserBannedAsync;
+            DiscordSocketClient.UserJoined            += OnUserJoinedAsync;
+            DiscordSocketClient.UserLeft              += OnUserLeftAsync;
+            DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync;
+
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            DiscordSocketClient.ChannelCreated        -= OnChannelCreatedAsync;
+            DiscordSocketClient.ChannelUpdated        -= OnChannelUpdatedAsync;
+            DiscordSocketClient.GuildAvailable        -= OnGuildAvailableAsync;
+            DiscordSocketClient.GuildMemberUpdated    -= OnGuildMemberUpdatedAsync;
+            DiscordSocketClient.JoinedGuild           -= OnJoinedGuildAsync;
+            DiscordSocketClient.MessageDeleted        -= OnMessageDeletedAsync;
+            DiscordSocketClient.MessageReceived       -= OnMessageReceivedAsync;
+            DiscordSocketClient.MessageUpdated        -= OnMessageUpdatedAsync;
+            DiscordSocketClient.ReactionAdded         -= OnReactionAddedAsync;
+            DiscordSocketClient.ReactionRemoved       -= OnReactionRemovedAsync;
+            DiscordSocketClient.Ready                 -= OnReadyAsync;
+            DiscordSocketClient.Connected             -= OnConnectedAsync;
+            DiscordSocketClient.Disconnected          -= OnDisconnectedAsync;
+            DiscordSocketClient.RoleCreated           -= OnRoleCreatedAsync;
+            DiscordSocketClient.RoleUpdated           -= OnRoleUpdatedAsync;
+            DiscordSocketClient.UserBanned            -= OnUserBannedAsync;
+            DiscordSocketClient.UserJoined            -= OnUserJoinedAsync;
+            DiscordSocketClient.UserLeft              -= OnUserLeftAsync;
+            DiscordSocketClient.UserVoiceStateUpdated -= OnUserVoiceStateUpdatedAsync;
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -127,23 +127,6 @@ namespace Zhongli.Services.Utilities
             return $"{humanizedTimeAgo} ago ({ago.UtcDateTime:yyyy-MM-ddTHH:mm:ssK})";
         }
 
-        /// <summary>
-        ///     Attempts to get the language of the code piece
-        /// </summary>
-        /// <param name="message">The code</param>
-        /// <returns>The code language if a match is found, null of none are found</returns>
-        public static string? GetCodeLanguage(string message)
-        {
-            var match = BuildContentRegex.Match(message);
-            if (match.Success)
-            {
-                var codeLanguage = match.Groups[1].Value;
-                return string.IsNullOrEmpty(codeLanguage) ? null : codeLanguage;
-            }
-
-            return null;
-        }
-
         public static string SanitizeAllMentions(string text)
         {
             var everyoneSanitized = SanitizeEveryone(text);
@@ -171,6 +154,23 @@ namespace Zhongli.Services.Utilities
             cleanCode = cleanCode.Replace("\t", "    "); //spaces > tabs
             cleanCode = FixIndentation(cleanCode);
             return cleanCode;
+        }
+
+        /// <summary>
+        ///     Attempts to get the language of the code piece
+        /// </summary>
+        /// <param name="message">The code</param>
+        /// <returns>The code language if a match is found, null of none are found</returns>
+        public static string? GetCodeLanguage(string message)
+        {
+            var match = BuildContentRegex.Match(message);
+            if (match.Success)
+            {
+                var codeLanguage = match.Groups[1].Value;
+                return string.IsNullOrEmpty(codeLanguage) ? null : codeLanguage;
+            }
+
+            return null;
         }
 
         /// <summary>

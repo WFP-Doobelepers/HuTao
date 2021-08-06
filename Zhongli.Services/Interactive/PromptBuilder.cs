@@ -125,15 +125,15 @@ namespace Zhongli.Services.Interactive
 
     public static class PromptBuilderExtensions
     {
-        public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue value)
-            where TKey : notnull
-            where TValue : notnull =>
-            dict.TryGetValue(key, out var result) ? result : value;
-
         internal static T Modify<T>(this T t, Action<T> action)
         {
             action(t);
             return t;
         }
+
+        public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue value)
+            where TKey : notnull
+            where TValue : notnull =>
+            dict.TryGetValue(key, out var result) ? result : value;
     }
 }

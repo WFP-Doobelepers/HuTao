@@ -39,22 +39,6 @@ namespace Zhongli.Services.CommandHelp
 
         public Type Type { get; set; }
 
-        public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
-        {
-            var type = parameter.Type.ToContextualType();
-
-            var options = type switch
-            {
-                var t when t.Type.IsEnum => FromEnum(t),
-                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null =>
-                    FromNamedArgumentInfo(type),
-                _ => null
-            };
-
-            return new ParameterHelpData(parameter.Name, type, parameter.Summary,
-                parameter.IsOptional, options?.ToList());
-        }
-
         private static IEnumerable<ParameterHelpData> FromEnum(Type type)
         {
             foreach (Enum? n in type.GetEnumValues())
@@ -79,6 +63,22 @@ namespace Zhongli.Services.CommandHelp
                 return new ParameterHelpData(info.Name, info,
                     p.GetAttribute<HelpSummaryAttribute>()?.Text, info.Nullability == Nullability.Nullable);
             });
+        }
+
+        public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
+        {
+            var type = parameter.Type.ToContextualType();
+
+            var options = type switch
+            {
+                var t when t.Type.IsEnum => FromEnum(t),
+                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null =>
+                    FromNamedArgumentInfo(type),
+                _ => null
+            };
+
+            return new ParameterHelpData(parameter.Name, type, parameter.Summary,
+                parameter.IsOptional, options?.ToList());
         }
     }
 }

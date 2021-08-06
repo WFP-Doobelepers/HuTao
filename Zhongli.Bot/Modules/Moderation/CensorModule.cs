@@ -39,22 +39,22 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add note")]
-        [Summary("A censor that deletes the message and does nothing to the user.")]
-        public async Task AddNoteCensorAsync(string pattern, RegexOptions options = RegexOptions.None)
-        {
-            var censor = new NoteCensor(pattern, options);
-
-            await AddCensor(censor);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
         [Command("add mute")]
         [Summary("A censor that deletes the message and mutes the user.")]
         public async Task AddMuteCensorAsync(string pattern, RegexOptions options = RegexOptions.None,
             TimeSpan? length = null)
         {
             var censor = new MuteCensor(length, pattern, options);
+
+            await AddCensor(censor);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("add note")]
+        [Summary("A censor that deletes the message and does nothing to the user.")]
+        public async Task AddNoteCensorAsync(string pattern, RegexOptions options = RegexOptions.None)
+        {
+            var censor = new NoteCensor(pattern, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));

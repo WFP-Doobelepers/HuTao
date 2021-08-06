@@ -12,6 +12,8 @@ namespace Zhongli.Services.CommandHelp
     /// </summary>
     public interface ICommandHelpService
     {
+        bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed);
+
         /// <summary>
         ///     Retrieves command help data for the supplied query.
         /// </summary>
@@ -21,6 +23,20 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         CommandHelpData? GetCommandHelpData(string query);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="CommandHelpData" />.
+        /// </summary>
+        /// <param name="command">The command's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
+        EmbedBuilder GetEmbedForCommand(CommandHelpData command);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="ModuleHelpData" />
+        /// </summary>
+        /// <param name="module">The module's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
+        EmbedBuilder GetEmbedForModule(ModuleHelpData module);
 
         /// <summary>
         ///     Retrieves help data for all available modules.
@@ -39,22 +55,6 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         ModuleHelpData? GetModuleHelpData(string query);
-
-        /// <summary>
-        ///     Retrieves an embed from a <see cref="CommandHelpData" />.
-        /// </summary>
-        /// <param name="command">The command's help data.</param>
-        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
-        EmbedBuilder GetEmbedForCommand(CommandHelpData command);
-
-        /// <summary>
-        ///     Retrieves an embed from a <see cref="ModuleHelpData" />
-        /// </summary>
-        /// <param name="module">The module's help data.</param>
-        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
-        EmbedBuilder GetEmbedForModule(ModuleHelpData module);
-
-        bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed);
     }
 
     /// <inheritdoc />

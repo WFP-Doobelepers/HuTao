@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,6 +44,20 @@ namespace Zhongli.Services.Utilities
             return builder;
         }
 
+        private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
+            string name, string iconUrl, AuthorOptions authorOptions)
+        {
+            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
+                name += $" ({entity.Id})";
+
+            if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
+                embed.WithThumbnailUrl(iconUrl);
+
+            return authorOptions.HasFlag(AuthorOptions.UseFooter)
+                ? embed.WithFooter(name, iconUrl)
+                : embed.WithAuthor(name, iconUrl);
+        }
+
         public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild guild,
             AuthorOptions authorOptions = AuthorOptions.None)
         {
@@ -62,20 +76,6 @@ namespace Zhongli.Services.Utilities
                 username = $"Requested by {username}";
 
             return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(), authorOptions);
-        }
-
-        private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
-            string name, string iconUrl, AuthorOptions authorOptions)
-        {
-            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
-                name += $" ({entity.Id})";
-
-            if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
-                embed.WithThumbnailUrl(iconUrl);
-
-            return authorOptions.HasFlag(AuthorOptions.UseFooter)
-                ? embed.WithFooter(name, iconUrl)
-                : embed.WithAuthor(name, iconUrl);
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,

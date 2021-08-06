@@ -24,32 +24,6 @@ namespace Zhongli.Services.Utilities
         private static readonly DictionaryCache<(Enum, Type), Attribute?> EnumAttributeCache =
             new(GetAttributeFromEnum);
 
-        private static IReadOnlyCollection<PropertyInfo> GetPrimitives(Type t)
-        {
-            return CachedProperties[t]
-                .Where(p => !p.PropertyType.IsGenericType)
-                .ToArray();
-        }
-
-        private static IReadOnlyCollection<PropertyInfo> GetLists(Type t)
-        {
-            return CachedProperties[t]
-                .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
-                .ToArray();
-        }
-
-        public static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t) =>
-            t.GetProperties()
-                .ToArray();
-
-        private static Type GetType(PropertyInfo property) =>
-            property.PropertyType.IsGenericType
-                ? property.PropertyType.GetGenericArguments()[0]
-                : property.PropertyType;
-
-        private static Attribute? GetAttributeFromMember((MemberInfo Member, Type Type) o) =>
-            o.Member.GetCustomAttribute(o.Type);
-
         private static Attribute? GetAttributeFromEnum((Enum @enum, Type attribute) o)
         {
             var (@enum, attribute) = o;
@@ -62,18 +36,44 @@ namespace Zhongli.Services.Utilities
             return field is null ? null : GetAttributeFromMember((field, attribute));
         }
 
-        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute =>
-            AttributeCache[(member, typeof(T))] as T;
+        private static Attribute? GetAttributeFromMember((MemberInfo Member, Type Type) o) =>
+            o.Member.GetCustomAttribute(o.Type);
 
-        public static Type GetRealType(this PropertyInfo property) => TypeCache[property];
-
-        public static IReadOnlyCollection<PropertyInfo> GetPrimitives<T>() => CachedPrimitives[typeof(T)];
+        private static IReadOnlyCollection<PropertyInfo> GetLists(Type t)
+        {
+            return CachedProperties[t]
+                .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+                .ToArray();
+        }
 
         public static IReadOnlyCollection<PropertyInfo> GetLists<T>() => CachedLists[typeof(T)];
 
+        private static IReadOnlyCollection<PropertyInfo> GetPrimitives(Type t)
+        {
+            return CachedProperties[t]
+                .Where(p => !p.PropertyType.IsGenericType)
+                .ToArray();
+        }
+
+        public static IReadOnlyCollection<PropertyInfo> GetPrimitives<T>() => CachedPrimitives[typeof(T)];
+
         public static IReadOnlyCollection<PropertyInfo> GetProperties<T>() => CachedProperties[typeof(T)];
+
+        public static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t) =>
+            t.GetProperties()
+                .ToArray();
+
+        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute =>
+            AttributeCache[(member, typeof(T))] as T;
 
         public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute =>
             EnumAttributeCache[(obj, typeof(T))] as T;
+
+        public static Type GetRealType(this PropertyInfo property) => TypeCache[property];
+
+        private static Type GetType(PropertyInfo property) =>
+            property.PropertyType.IsGenericType
+                ? property.PropertyType.GetGenericArguments()[0]
+                : property.PropertyType;
     }
 }

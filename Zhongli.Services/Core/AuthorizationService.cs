@@ -18,6 +18,19 @@ namespace Zhongli.Services.Core
 
         public AuthorizationService(ZhongliContext db) { _db = db; }
 
+        public async Task<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
+            CancellationToken cancellationToken = default)
+        {
+            var user = (IGuildUser) context.User;
+            var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
+            var groups = rules.AuthorizationGroups
+                .Scoped(scope)
+                .ToLookup(r => r.Access);
+
+            return groups[AccessType.Allow].Any(r => r.Judge(context, user))
+                && groups[AccessType.Deny].All(r => !r.Judge(context, user));
+        }
+
         public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
             CancellationToken cancellationToken = default)
         {
@@ -39,19 +52,6 @@ namespace Zhongli.Services.Core
             await _db.Users.TrackUserAsync(await guild.GetCurrentUserAsync(), cancellationToken);
 
             return guildEntity;
-        }
-
-        public async Task<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
-            CancellationToken cancellationToken = default)
-        {
-            var user = (IGuildUser) context.User;
-            var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
-            var groups = rules.AuthorizationGroups
-                .Scoped(scope)
-                .ToLookup(r => r.Access);
-
-            return groups[AccessType.Allow].Any(r => r.Judge(context, user))
-                && groups[AccessType.Deny].All(r => !r.Judge(context, user));
         }
     }
 }

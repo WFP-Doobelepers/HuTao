@@ -32,29 +32,18 @@ namespace Zhongli.Bot.Modules.Moderation
             _logging    = logging;
         }
 
-        private ReprimandDetails GetDetails(IGuildUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
-
-        private ModifiedReprimand GetDetails(IUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
-
-        [Command("hide")]
-        [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-        [RequireAuthorization(AuthorizationScope.Moderator)]
-        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
+        [Command("ban")]
+        [Summary("Ban a user from the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, TimeSpan? length = null,
+            [Remainder] string? reason = null)
         {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
-            if (reprimand is null)
-            {
-                await _error.AssociateError(Context.Message, "Unable to find reprimand.");
-                return;
-            }
-
-            var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
-
-            await _moderation.HideReprimandAsync(reprimand, details);
-            await ReplyReprimandAsync(reprimand, details);
+            var result = await _moderation.TryBanAsync(deleteDays, length, details);
+            if (result is null)
+                await _error.AssociateError(Context.Message, "Failed to ban user.");
+            else
+                await ReplyReprimandAsync(result, details);
         }
 
         [Command("delete")]
@@ -76,10 +65,10 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(reprimand, details);
         }
 
-        [Command("update")]
-        [Summary("Update a reprimand's reason.")]
+        [Command("hide")]
+        [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
         [RequireAuthorization(AuthorizationScope.Moderator)]
-        public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
+        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
             var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
             if (reprimand is null)
@@ -91,22 +80,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
 
-            await _moderation.UpdateReprimandAsync(reprimand, details);
+            await _moderation.HideReprimandAsync(reprimand, details);
             await ReplyReprimandAsync(reprimand, details);
-        }
-
-        [Command("ban")]
-        [Summary("Ban a user from the current guild.")]
-        [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, TimeSpan? length = null,
-            [Remainder] string? reason = null)
-        {
-            var details = GetDetails(user, reason);
-            var result = await _moderation.TryBanAsync(deleteDays, length, details);
-            if (result is null)
-                await _error.AssociateError(Context.Message, "Failed to ban user.");
-            else
-                await ReplyReprimandAsync(result, details);
         }
 
         [Command("kick")]
@@ -139,6 +114,47 @@ namespace Zhongli.Bot.Modules.Moderation
                 await ReplyReprimandAsync(result, details);
         }
 
+        [Command("note")]
+        [Summary("Add a note to a user. Notes are always silent.")]
+        [RequireUserPermission(GuildPermission.KickMembers)]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
+        {
+            var details = GetDetails(user, note);
+            await _moderation.NoteAsync(details);
+
+            await Context.Message.DeleteAsync();
+        }
+
+        [Command("notice")]
+        [Summary("Add a notice to a user. This counts as a minor warning.")]
+        [RequireAuthorization(AuthorizationScope.Warning)]
+        public async Task NoticeAsync(IGuildUser user, [Remainder] string? reason = null)
+        {
+            var details = GetDetails(user, reason);
+            var result = await _moderation.NoticeAsync(details);
+            await ReplyReprimandAsync(result, details);
+        }
+
+        [Command("update")]
+        [Summary("Update a reprimand's reason.")]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
+        public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
+        {
+            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
+            if (reprimand is null)
+            {
+                await _error.AssociateError(Context.Message, "Unable to find reprimand.");
+                return;
+            }
+
+            var user = await Context.Client.GetUserAsync(reprimand.UserId);
+            var details = GetDetails(user, reason);
+
+            await _moderation.UpdateReprimandAsync(reprimand, details);
+            await ReplyReprimandAsync(reprimand, details);
+        }
+
         [Command("warn")]
         [Summary("Warn a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Warning)]
@@ -154,6 +170,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
             => WarnAsync(user, 1, reason);
+
+        private ModifiedReprimand GetDetails(IUser user, string? reason)
+            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
+
+        private ReprimandDetails GetDetails(IGuildUser user, string? reason)
+            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
 
         private async Task ReplyReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
         {
@@ -177,28 +199,6 @@ namespace Zhongli.Bot.Modules.Moderation
             }
             else
                 await Context.Message.DeleteAsync();
-        }
-
-        [Command("notice")]
-        [Summary("Add a notice to a user. This counts as a minor warning.")]
-        [RequireAuthorization(AuthorizationScope.Warning)]
-        public async Task NoticeAsync(IGuildUser user, [Remainder] string? reason = null)
-        {
-            var details = GetDetails(user, reason);
-            var result = await _moderation.NoticeAsync(details);
-            await ReplyReprimandAsync(result, details);
-        }
-
-        [Command("note")]
-        [Summary("Add a note to a user. Notes are always silent.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
-        [RequireAuthorization(AuthorizationScope.Warning)]
-        public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
-        {
-            var details = GetDetails(user, note);
-            await _moderation.NoteAsync(details);
-
-            await Context.Message.DeleteAsync();
         }
     }
 }

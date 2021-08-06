@@ -10,10 +10,6 @@ namespace Zhongli.Services.Utilities
 {
     public static class DbSetExtensions
     {
-        public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
-            CancellationToken cancellationToken = default)
-            where T : class => dbSet.FindAsync(new[] { key }, cancellationToken)!;
-
         public static async Task<GuildEntity> TrackGuildAsync(this DbSet<GuildEntity> set, IGuild guild,
             CancellationToken cancellationToken = default)
         {
@@ -45,5 +41,9 @@ namespace Zhongli.Services.Utilities
 
             return userEntity;
         }
+
+        public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
+            CancellationToken cancellationToken = default)
+            where T : class => dbSet.FindAsync(new[] { key }, cancellationToken)!;
     }
 }

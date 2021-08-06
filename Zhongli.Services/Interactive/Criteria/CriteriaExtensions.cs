@@ -10,6 +10,16 @@ namespace Zhongli.Services.Interactive.Criteria
 {
     public static class CriteriaExtensions
     {
+        public static CriteriaCriterion<T> AsCriterion<T>(this IEnumerable<ICriterion<T>> criteria) =>
+            new(criteria);
+
+        public static CriteriaCriterion<T> AsCriterion<T>(this ICriterion<T> criteria) =>
+            new(criteria);
+
+        public static ICriterion<T> AsCriterion<T>(this TypeReader reader, IServiceProvider? services = null)
+            where T : SocketMessage =>
+            reader.AsCriterion(services);
+
         public static IEnumerable<ICriterion<T>> GetCriteria<T>(this IPromptCriteria<T> promptCriteria)
             where T : SocketMessage
         {
@@ -23,16 +33,6 @@ namespace Zhongli.Services.Interactive.Criteria
 
             return criteria;
         }
-
-        public static ICriterion<T> AsCriterion<T>(this TypeReader reader, IServiceProvider? services = null)
-            where T : SocketMessage =>
-            reader.AsCriterion(services);
-
-        public static CriteriaCriterion<T> AsCriterion<T>(this IEnumerable<ICriterion<T>> criteria) =>
-            new(criteria);
-
-        public static CriteriaCriterion<T> AsCriterion<T>(this ICriterion<T> criteria) =>
-            new(criteria);
 
         public static TryParseCriterion<T> AsCriterion<T>(this TryParseDelegate<T> tryParse) =>
             new(tryParse);

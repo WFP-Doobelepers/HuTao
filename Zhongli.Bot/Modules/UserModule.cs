@@ -43,48 +43,6 @@ namespace Zhongli.Bot.Modules
             _db   = db;
         }
 
-        [Command("user")]
-        [Summary("Views the information of a user")]
-        public async Task UserAsync(IUser? user = null)
-        {
-            user ??= Context.User;
-
-            var userEntity = await _db.Users.FindAsync(user.Id, Context.Guild.Id);
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            var guildUser = user as SocketGuildUser;
-
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .AddField($"Created {user.CreatedAt.Humanize()}", user.CreatedAt)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (guildUser is not null)
-            {
-                embed
-                    .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
-                    .AddField($"Roles ({guildUser.Roles.Count})",
-                        string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
-            }
-
-            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator) && userEntity is not null)
-            {
-                embed
-                    .AddReprimands(userEntity)
-                    .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
-            }
-
-            await ReplyAsync(embed: embed.Build());
-        }
-
-        [Priority(-1)]
-        [HiddenFromHelp]
-        [Command("user")]
-        public async Task UserAsync(ulong userId)
-        {
-            var user = Context.Client.GetUser(userId);
-            await UserAsync(user);
-        }
-
         [Command("history")]
         [Alias("infraction", "infractions", "reprimand", "reprimands")]
         [Summary("View a specific history of a user's infractions.")]
@@ -128,11 +86,54 @@ namespace Zhongli.Bot.Modules
                 Options = new PaginatedAppearanceOptions
                 {
                     DisplayInformationIcon = false,
-                    FieldsPerPage = 8
+                    FieldsPerPage          = 8
                 }
             };
 
             await PagedReplyAsync(message);
+        }
+
+        [Command("user")]
+        [Summary("Views the information of a user")]
+        public async Task UserAsync(IUser? user = null)
+        {
+            user ??= Context.User;
+
+            var userEntity = await _db.Users.FindAsync(user.Id, Context.Guild.Id);
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            var guildUser = user as SocketGuildUser;
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                .AddField($"Created {user.CreatedAt.Humanize()}", user.CreatedAt)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (guildUser is not null)
+            {
+                embed
+                    .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
+                    .AddField($"Roles ({guildUser.Roles.Count})",
+                        string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
+            }
+
+            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator) &&
+                userEntity is not null)
+            {
+                embed
+                    .AddReprimands(userEntity)
+                    .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
+            }
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
+        [Priority(-1)]
+        [HiddenFromHelp]
+        [Command("user")]
+        public async Task UserAsync(ulong userId)
+        {
+            var user = Context.Client.GetUser(userId);
+            await UserAsync(user);
         }
 
         private static EmbedFieldBuilder CreateEmbed(IUser user, ReprimandAction r)
@@ -157,26 +158,26 @@ namespace Zhongli.Bot.Modules
                 .WithValue(content.ToString());
         }
 
-        private static string GetReason(ModerationAction action)
-            => $"▌Reason: {Format.Bold(action.Reason ?? "None")}";
-
-        private static string GetModerator(GuildUserEntity user)
-            => $"▌Moderator: {GetUser(user)} ({user.Id})";
-
         private static string GetDate(DateTimeOffset date)
             => $"▌Date: {Format.Bold(date.Humanize())} ({date.ToUniversalTime()})";
 
-        private static string GetStatus(ReprimandStatus status)
-            => $"▌Status: {Format.Bold(status.Humanize())}";
-
-        private static string GetUser(GuildUserEntity user)
-            => Format.Bold($"{user.Username}#{user.DiscriminatorValue}");
+        private static string GetModerator(GuildUserEntity user)
+            => $"▌Moderator: {GetUser(user)} ({user.Id})";
 
         private static string GetModifiedInfo(ModerationAction action)
         {
             var modified = action.Moderator;
             return $"{GetUser(modified)} {modified.Id} ({action.Date.Humanize()})";
         }
+
+        private static string GetReason(ModerationAction action)
+            => $"▌Reason: {Format.Bold(action.Reason ?? "None")}";
+
+        private static string GetStatus(ReprimandStatus status)
+            => $"▌Status: {Format.Bold(status.Humanize())}";
+
+        private static string GetUser(GuildUserEntity user)
+            => Format.Bold($"{user.Username}#{user.DiscriminatorValue}");
 
         public async Task HideReprimandAsync(Guid id)
         {

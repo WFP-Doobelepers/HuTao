@@ -10,6 +10,9 @@ namespace Zhongli.Services.CommandHelp
 {
     public static class CommandHelpDataExtensions
     {
+        private static bool HasSummary(this IEnumerable<ParameterHelpData> parameters) =>
+            parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
+
         public static EmbedBuilder AddCommandFields(this EmbedBuilder embed, CommandHelpData command)
         {
             var builder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
@@ -27,16 +30,6 @@ namespace Zhongli.Services.CommandHelp
             return embed;
         }
 
-        private static string GetParams(this CommandHelpData info)
-        {
-            var sb = new StringBuilder();
-
-            var parameterInfo = info.Parameters.Select(p => Format.Code(GetParamName(p)));
-            sb.Append(string.Join(" ", parameterInfo));
-
-            return sb.ToString();
-        }
-
         private static string GetParamName(ParameterHelpData parameter)
         {
             static string Surround(string text, bool isNullable) => isNullable ? $"[{text}]" : $"<{text}>";
@@ -48,6 +41,16 @@ namespace Zhongli.Services.CommandHelp
             }
 
             return Surround(parameter.Name, parameter.IsOptional);
+        }
+
+        private static string GetParams(this CommandHelpData info)
+        {
+            var sb = new StringBuilder();
+
+            var parameterInfo = info.Parameters.Select(p => Format.Code(GetParamName(p)));
+            sb.Append(string.Join(" ", parameterInfo));
+
+            return sb.ToString();
         }
 
         private static StringBuilder AppendAliases(this StringBuilder builder, IReadOnlyCollection<string> aliases)
@@ -95,9 +98,6 @@ namespace Zhongli.Services.CommandHelp
 
             return builder;
         }
-
-        private static bool HasSummary(this IEnumerable<ParameterHelpData> parameters) =>
-            parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
 
         private static StringBuilder AppendSummaries(this StringBuilder builder,
             IEnumerable<ParameterHelpData> parameters)

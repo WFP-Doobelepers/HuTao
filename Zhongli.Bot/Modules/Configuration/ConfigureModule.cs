@@ -20,13 +20,16 @@ namespace Zhongli.Bot.Modules.Configuration
 
         public ConfigureModule(ZhongliContext db) { _db = db; }
 
-        [Command("mute")]
-        [Summary("Configures the Mute role.")]
-        public async Task ConfigureMuteAsync(
-            [Summary("Optionally provide a mention, ID, or name of an existing role.")]
-            IRole? role)
+        [Command("appeal message")]
+        [Summary("Set the appeal message when someone is reprimanded.")]
+        public async Task ConfigureAppealMessageAsync(
+            [Summary("Leave empty to disable the appeal message.")] [Remainder]
+            string? message = null)
         {
-            await ModerationService.ConfigureMuteRoleAsync(Context.Guild, role);
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.ModerationRules.ReprimandAppealMessage = message;
+            await _db.SaveChangesAsync();
+
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -56,16 +59,13 @@ namespace Zhongli.Bot.Modules.Configuration
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("appeal message")]
-        [Summary("Set the appeal message when someone is reprimanded.")]
-        public async Task ConfigureAppealMessageAsync(
-            [Summary("Leave empty to disable the appeal message.")] [Remainder]
-            string? message = null)
+        [Command("mute")]
+        [Summary("Configures the Mute role.")]
+        public async Task ConfigureMuteAsync(
+            [Summary("Optionally provide a mention, ID, or name of an existing role.")]
+            IRole? role)
         {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.ReprimandAppealMessage = message;
-            await _db.SaveChangesAsync();
-
+            await ModerationService.ConfigureMuteRoleAsync(Context.Guild, role);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 

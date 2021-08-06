@@ -16,8 +16,6 @@ namespace Zhongli.Services.Interactive
 
         public string Question { get; }
 
-        public static implicit operator string?(PromptResult? result) => result?.UserResponse?.ToString();
-
         public T As<T>()
         {
             if (UserResponse is TypeReaderResult result)
@@ -27,6 +25,8 @@ namespace Zhongli.Services.Interactive
         }
 
         public T As<T>(Func<TypeReaderResult, T> selector) => selector((TypeReaderResult) UserResponse!);
+
+        public static implicit operator string?(PromptResult? result) => result?.UserResponse?.ToString();
     }
 
     public static class PromptResultExtensions

@@ -36,6 +36,31 @@ namespace Zhongli.Bot.Behaviors
         public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
             => ProcessMessage(notification.NewMessage, cancellationToken);
 
+        private static async Task LogCensor(IMessage message, Censor censor, GuildEntity guildEntity, IGuild guild,
+            CancellationToken cancellationToken = default)
+        {
+            var channelId = guildEntity.LoggingRules.ModerationChannelId;
+            if (channelId is null || cancellationToken.IsCancellationRequested)
+                return;
+
+            var logChannel = await guild.GetTextChannelAsync(channelId.Value);
+            if (logChannel is null || cancellationToken.IsCancellationRequested)
+                return;
+
+            var content = Regex.Replace(
+                message.Content, censor.Pattern,
+                m => Format.Bold(m.Value),
+                censor.Options);
+
+            var embed = new EmbedBuilder()
+                .WithColor(Color.Red)
+                .WithTitle("Censor Triggered").WithDescription(content)
+                .AddMeta(message, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail).AddJumpLink(message)
+                .WithUserAsAuthor(await guild.GetCurrentUserAsync(), AuthorOptions.Requested | AuthorOptions.UseFooter);
+
+            await logChannel.SendMessageAsync(embed: embed.Build());
+        }
+
         private async Task ProcessMessage(SocketMessage message, CancellationToken cancellationToken = default)
         {
             var author = message.Author;
@@ -78,31 +103,6 @@ namespace Zhongli.Bot.Behaviors
                         break;
                 }
             }
-        }
-
-        private static async Task LogCensor(IMessage message, Censor censor, GuildEntity guildEntity, IGuild guild,
-            CancellationToken cancellationToken = default)
-        {
-            var channelId = guildEntity.LoggingRules.ModerationChannelId;
-            if (channelId is null || cancellationToken.IsCancellationRequested)
-                return;
-
-            var logChannel = await guild.GetTextChannelAsync(channelId.Value);
-            if (logChannel is null || cancellationToken.IsCancellationRequested)
-                return;
-
-            var content = Regex.Replace(
-                message.Content, censor.Pattern,
-                m => Format.Bold(m.Value),
-                censor.Options);
-
-            var embed = new EmbedBuilder()
-                .WithColor(Color.Red)
-                .WithTitle("Censor Triggered").WithDescription(content)
-                .AddMeta(message, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail).AddJumpLink(message)
-                .WithUserAsAuthor(await guild.GetCurrentUserAsync(), AuthorOptions.Requested | AuthorOptions.UseFooter);
-
-            await logChannel.SendMessageAsync(embed: embed.Build());
         }
     }
 }
