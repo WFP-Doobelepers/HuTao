@@ -20,19 +20,6 @@ namespace Zhongli.Bot.Modules.Configuration
 
         public ConfigureModule(ZhongliContext db) { _db = db; }
 
-        [Command("appeal message")]
-        [Summary("Set the appeal message when someone is reprimanded.")]
-        public async Task ConfigureAppealMessageAsync(
-            [Summary("Leave empty to disable the appeal message.")] [Remainder]
-            string? message = null)
-        {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.ReprimandAppealMessage = message;
-            await _db.SaveChangesAsync();
-
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
         [Command("autoPardon notice")]
         [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
         public async Task ConfigureAutoPardonNoticeAsync(

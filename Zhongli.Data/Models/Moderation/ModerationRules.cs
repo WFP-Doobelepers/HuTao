@@ -30,7 +30,5 @@ namespace Zhongli.Data.Models.Moderation
         public TimeSpan? NoticeAutoPardonLength { get; set; }
 
         public TimeSpan? WarningAutoPardonLength { get; set; }
-
-        public string? ReprimandAppealMessage { get; set; }
     }
 }

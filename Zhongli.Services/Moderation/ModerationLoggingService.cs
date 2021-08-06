@@ -18,6 +18,22 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
+        private static bool IsIncluded(ReprimandAction action, ReprimandNoticeType type)
+        {
+            if (type == ReprimandNoticeType.All)
+                return true;
+
+            return action switch
+            {
+                Ban     => type.HasFlag(ReprimandNoticeType.Ban),
+                Kick    => type.HasFlag(ReprimandNoticeType.Kick),
+                Mute    => type.HasFlag(ReprimandNoticeType.Mute),
+                Notice  => type.HasFlag(ReprimandNoticeType.Notice),
+                Warning => type.HasFlag(ReprimandNoticeType.Warning),
+                _       => false
+            };
+        }
+
         private static Color GetColor(ReprimandAction action)
         {
             return action switch
@@ -125,14 +141,18 @@ namespace Zhongli.Services.Moderation
 
             if (options.HasFlag(LoggingOptions.NotifyUser)
                 && reprimand is not Note
+                && IsIncluded(reprimand, guild.LoggingRules.NotifyReprimands)
                 && reprimand.Status
                     is ReprimandStatus.Added
                     or ReprimandStatus.Expired
                     or ReprimandStatus.Updated)
             {
-                var appealMessage = guild.ModerationRules.ReprimandAppealMessage;
-                if (!string.IsNullOrWhiteSpace(appealMessage))
-                    embed.AddField("Appeal", appealMessage);
+                if (IsIncluded(reprimand, guild.LoggingRules.ShowAppealOnReprimands))
+                {
+                    var appealMessage = guild.LoggingRules.ReprimandAppealMessage;
+                    if (!string.IsNullOrWhiteSpace(appealMessage))
+                        embed.AddField("Appeal", appealMessage);
+                }
 
                 var dm = await user.GetOrCreateDMChannelAsync();
                 _ = dm?.SendMessageAsync(embed: embed.Build());

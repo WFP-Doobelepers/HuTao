@@ -1,16 +1,22 @@
 using System;
+using Zhongli.Data.Models.Logging;
 
 namespace Zhongli.Services.Utilities
 {
     public static class EnumExtensions
     {
-        public static T SetValue<T>(this T @enum, T flag, bool? state) where T : Enum
-        {
-            var generic = new GenericBitwise<T>();
-            return generic.SetValue(@enum, flag, state);
-        }
+        private static readonly GenericBitwise<ReprimandNoticeType> ReprimandNoticeTypeBitwise = new();
+        private static readonly GenericBitwise<LoggingOptions> LoggingOptionsBitwise = new();
 
-        public static T SetValue<T>(this GenericBitwise<T> generic, T @enum, T flag, bool? state) where T : Enum
+        public static LoggingOptions SetValue(this LoggingOptions options, LoggingOptions flag, bool? state)
+            => LoggingOptionsBitwise.SetValue(options, flag, state);
+
+        public static ReprimandNoticeType SetValue(this ReprimandNoticeType options, ReprimandNoticeType flag,
+            bool? state)
+            => ReprimandNoticeTypeBitwise.SetValue(options, flag, state);
+
+        public static T SetValue<T>(this GenericBitwise<T> generic, T @enum, T flag, bool? state)
+            where T : Enum
         {
             if (state is null)
                 return generic.Xor(@enum, flag);
