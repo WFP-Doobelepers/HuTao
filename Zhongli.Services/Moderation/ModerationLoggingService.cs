@@ -123,8 +123,12 @@ namespace Zhongli.Services.Moderation
             var channel = await moderator.Guild.GetTextChannelAsync(channelId.Value);
             _ = channel.SendMessageAsync(embed: embed.Build());
 
-            if (options.HasFlag(LoggingOptions.NotifyUser) && reprimand is not Note
-                && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Expired)
+            if (options.HasFlag(LoggingOptions.NotifyUser)
+                && reprimand is not Note
+                && reprimand.Status
+                    is ReprimandStatus.Added
+                    or ReprimandStatus.Expired
+                    or ReprimandStatus.Updated)
             {
                 var appealMessage = guild.ModerationRules.ReprimandAppealMessage;
                 if (!string.IsNullOrWhiteSpace(appealMessage))
