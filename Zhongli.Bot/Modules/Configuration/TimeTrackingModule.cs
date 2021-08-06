@@ -15,7 +15,7 @@ namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("time")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class TimeTrackingModule : ModuleBase
+    public class TimeTrackingModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;

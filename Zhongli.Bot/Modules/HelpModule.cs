@@ -13,7 +13,7 @@ namespace Zhongli.Bot.Modules
     [Name("Help")]
     [Group("help")]
     [Summary("Provides commands for helping users to understand how to interact with the bot.")]
-    public sealed class HelpModule : ModuleBase
+    public sealed class HelpModule : ModuleBase<SocketCommandContext>
     {
         private readonly ICommandHelpService _commandHelpService;
 

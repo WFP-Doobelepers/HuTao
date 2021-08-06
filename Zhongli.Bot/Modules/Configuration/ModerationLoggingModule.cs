@@ -12,7 +12,7 @@ namespace Zhongli.Bot.Modules.Configuration
     [Group("logging")]
     [Name("Logging Configuration")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class ModerationLoggingModule : ModuleBase
+    public class ModerationLoggingModule : ModuleBase<SocketCommandContext>
     {
         private static readonly GenericBitwise<LoggingOptions> LoggingOptionsBitwise = new();
         private readonly ZhongliContext _db;

@@ -15,7 +15,7 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Name("Moderation")]
     [Summary("Guild moderation commands.")]
-    public class ModerationModule : ModuleBase
+    public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
@@ -58,7 +58,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 return;
             }
 
-            var user = await Context.Client.GetUserAsync(reprimand.UserId);
+            var user = Context.Client.GetUser(reprimand.UserId);
             var details = GetDetails(user, null);
 
             await _moderation.DeleteReprimandAsync(reprimand, details);
@@ -77,7 +77,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 return;
             }
 
-            var user = await Context.Client.GetUserAsync(reprimand.UserId);
+            var user = Context.Client.GetUser(reprimand.UserId);
             var details = GetDetails(user, reason);
 
             await _moderation.HideReprimandAsync(reprimand, details);
@@ -148,7 +148,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 return;
             }
 
-            var user = await Context.Client.GetUserAsync(reprimand.UserId);
+            var user = Context.Client.GetUser(reprimand.UserId);
             var details = GetDetails(user, reason);
 
             await _moderation.UpdateReprimandAsync(reprimand, details);

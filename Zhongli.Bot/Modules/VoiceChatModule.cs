@@ -9,7 +9,7 @@ using Zhongli.Data.Models.VoiceChat;
 namespace Zhongli.Bot.Modules
 {
     [Group("voice")]
-    public class VoiceChatModule : ModuleBase
+    public class VoiceChatModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;
 
@@ -55,15 +55,14 @@ namespace Zhongli.Bot.Modules
                 return;
             }
 
-            var voiceChannel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
-            var users = await voiceChannel.GetUsersAsync().FlattenAsync();
-            if (users.Any(u => u.Id == voiceChat.OwnerId))
+            var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
+            if (voiceChannel.Users.Any(u => u.Id == voiceChat.OwnerId))
             {
                 await ReplyAsync("You cannot claim this VC.");
                 return;
             }
 
-            var owner = await Context.Guild.GetUserAsync(voiceChat.OwnerId);
+            var owner = Context.Guild.GetUser(voiceChat.OwnerId);
             await voiceChannel.RemovePermissionOverwriteAsync(owner);
             await voiceChannel.AddPermissionOverwriteAsync(Context.User,
                 new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
@@ -85,16 +84,12 @@ namespace Zhongli.Bot.Modules
 
             var voiceChats = guild.VoiceChatRules.VoiceChats.ToList();
             var empty = voiceChats.ToAsyncEnumerable()
-                .SelectAwait(async v => new
+                .Select(v => new
                 {
-                    VoiceChannel = await Context.Guild.GetVoiceChannelAsync(v.VoiceChannelId),
-                    VoiceChat    = await Context.Guild.GetTextChannelAsync(v.TextChannelId)
+                    VoiceChannel = Context.Guild.GetVoiceChannel(v.VoiceChannelId),
+                    VoiceChat    = Context.Guild.GetTextChannel(v.TextChannelId)
                 })
-                .WhereAwait(async v =>
-                {
-                    var users = await v.VoiceChannel.GetUsersAsync().FlattenAsync();
-                    return users.All(u => u.IsBot || u.IsWebhook);
-                });
+                .Where(v => v.VoiceChannel.Users.All(u => u.IsBot || u.IsWebhook));
 
             await foreach (var link in empty)
             {
@@ -120,7 +115,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
                 return;
 
-            var channel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
                 new OverwritePermissions(viewChannel: PermValue.Deny));
 
@@ -154,7 +149,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
                 return;
 
-            var channel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             await channel.ModifyAsync(c => c.UserLimit = new Optional<int?>((int?) limit));
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -171,7 +166,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
                 return;
 
-            var channel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
             var overwrite = everyone?.Modify(connect: PermValue.Deny)
                 ?? new OverwritePermissions(connect: PermValue.Deny);
@@ -189,7 +184,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null)
                 return;
 
-            var owner = await Context.Guild.GetUserAsync(voiceChat.OwnerId);
+            var owner = Context.Guild.GetUser(voiceChat.OwnerId);
             await ReplyAsync($"The current owner is {owner}.");
         }
 
@@ -203,7 +198,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
                 return;
 
-            var channel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
             var overwrite = everyone?.Modify(viewChannel: PermValue.Inherit)
                 ?? new OverwritePermissions(viewChannel: PermValue.Inherit);
@@ -228,7 +223,7 @@ namespace Zhongli.Bot.Modules
                 return;
             }
 
-            var voiceChannel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
 
             await voiceChannel.RemovePermissionOverwriteAsync(Context.User);
             await voiceChannel.AddPermissionOverwriteAsync(user,
@@ -250,7 +245,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
-            var voiceChannel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             await voiceChannel.RemovePermissionOverwriteAsync(user);
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -266,7 +261,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
                 return;
 
-            var channel = await Context.Guild.GetVoiceChannelAsync(voiceChat.VoiceChannelId);
+            var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
             var overwrite = everyone?.Modify(connect: PermValue.Inherit)
                 ?? new OverwritePermissions(connect: PermValue.Inherit);

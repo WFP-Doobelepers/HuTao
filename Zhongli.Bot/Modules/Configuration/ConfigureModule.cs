@@ -14,7 +14,7 @@ namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("configure")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class ConfigureModule : ModuleBase
+    public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;
 
