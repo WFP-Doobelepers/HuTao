@@ -168,6 +168,6 @@ namespace Zhongli.Services.CommandHelp
     public enum HelpDataType
     {
         Command = 1 << 1,
-        Module = 1 << 2
+        Module  = 1 << 2
     }
 }

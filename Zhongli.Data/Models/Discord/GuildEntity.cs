@@ -18,18 +18,18 @@ namespace Zhongli.Data.Models.Discord
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public ulong Id { get; set; }
 
+        public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
+
         public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
             = new List<AuthorizationGroup>();
+
+        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
+            = new List<ReprimandAction>();
+
+        public virtual LoggingRules LoggingRules { get; set; } = null!;
 
         public virtual ModerationRules ModerationRules { get; set; } = null!;
 
         public virtual VoiceChatRules? VoiceChatRules { get; set; }
-
-        public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
-
-        public virtual LoggingRules LoggingRules { get; set; } = null!;
-
-        public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
-            = new List<ReprimandAction>();
     }
 }

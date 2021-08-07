@@ -9,13 +9,13 @@ namespace Zhongli.Services.TimeTracking
 {
     public class GenshinTimeTrackingBehavior : INotificationHandler<ReadyNotification>
     {
-        private readonly ZhongliContext _db;
         private readonly GenshinTimeTrackingService _tracking;
+        private readonly ZhongliContext _db;
 
-        public GenshinTimeTrackingBehavior(ZhongliContext db, GenshinTimeTrackingService tracking)
+        public GenshinTimeTrackingBehavior(GenshinTimeTrackingService tracking, ZhongliContext db)
         {
-            _db       = db;
             _tracking = tracking;
+            _db       = db;
         }
 
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)

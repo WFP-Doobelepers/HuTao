@@ -8,8 +8,8 @@ namespace Zhongli.Services.Interactive.TypeReaders
 {
     public class TypeReaderCriterion : ICriterion<SocketMessage>
     {
-        private readonly TypeReader _reader;
         private readonly IServiceProvider? _services;
+        private readonly TypeReader _reader;
 
         public TypeReaderCriterion(TypeReader reader, IServiceProvider? services = null)
         {

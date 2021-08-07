@@ -88,16 +88,16 @@ namespace Zhongli.Bot.Modules.Configuration
         [NamedArgumentType]
         public class VoiceChatOptions
         {
+            [HelpSummary("Purge empty channels after 1 minute automatically.")]
+            public bool PurgeEmpty { get; init; } = true;
+
+            [HelpSummary("Show join messages.")] public bool ShowJoinLeave { get; init; } = true;
+
             [HelpSummary("The category where Voice Channels will be made.")]
             public ICategoryChannel? VoiceChannelCategory { get; init; }
 
             [HelpSummary("The category where Voice Chat channels will be made.")]
             public ICategoryChannel? VoiceChatCategory { get; init; }
-
-            [HelpSummary("Purge empty channels after 1 minute automatically.")]
-            public bool PurgeEmpty { get; init; } = true;
-
-            [HelpSummary("Show join messages.")] public bool ShowJoinLeave { get; init; } = true;
         }
     }
 }

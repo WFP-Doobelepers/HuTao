@@ -38,25 +38,6 @@ namespace Zhongli.Services.Utilities
             return await GetMessageAsync(textChannel, messageId);
         }
 
-        private static async Task<IMessage?> GetMessageAsync(this ITextChannel channel, ulong messageId,
-            bool allowHidden = false, bool allowNsfw = false)
-        {
-            if (channel.IsNsfw && !allowNsfw)
-                return null;
-
-            var currentUser = await channel.Guild.GetCurrentUserAsync();
-            var channelPermissions = currentUser.GetPermissions(channel);
-
-            if (!channelPermissions.ViewChannel && !allowHidden)
-                return null;
-
-            var cacheMode = channelPermissions.ReadMessageHistory
-                ? CacheMode.AllowDownload
-                : CacheMode.CacheOnly;
-
-            return await channel.GetMessageAsync(messageId, cacheMode);
-        }
-
         public static async Task<IMessage?> GetMessageFromUrlAsync(this ICommandContext context, string jumpUrl,
             bool allowNsfw = false)
         {
@@ -80,6 +61,25 @@ namespace Zhongli.Services.Utilities
                 !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) return null;
 
             return await client.GetMessageAsync(channelId, messageId, allowNsfw);
+        }
+
+        private static async Task<IMessage?> GetMessageAsync(this ITextChannel channel, ulong messageId,
+            bool allowHidden = false, bool allowNsfw = false)
+        {
+            if (channel.IsNsfw && !allowNsfw)
+                return null;
+
+            var currentUser = await channel.Guild.GetCurrentUserAsync();
+            var channelPermissions = currentUser.GetPermissions(channel);
+
+            if (!channelPermissions.ViewChannel && !allowHidden)
+                return null;
+
+            var cacheMode = channelPermissions.ReadMessageHistory
+                ? CacheMode.AllowDownload
+                : CacheMode.CacheOnly;
+
+            return await channel.GetMessageAsync(messageId, cacheMode);
         }
     }
 }

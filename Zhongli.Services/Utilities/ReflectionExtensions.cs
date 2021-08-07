@@ -24,6 +24,24 @@ namespace Zhongli.Services.Utilities
         private static readonly DictionaryCache<(Enum, Type), Attribute?> EnumAttributeCache =
             new(GetAttributeFromEnum);
 
+        public static IReadOnlyCollection<PropertyInfo> GetLists<T>() => CachedLists[typeof(T)];
+
+        public static IReadOnlyCollection<PropertyInfo> GetPrimitives<T>() => CachedPrimitives[typeof(T)];
+
+        public static IReadOnlyCollection<PropertyInfo> GetProperties<T>() => CachedProperties[typeof(T)];
+
+        public static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t) =>
+            t.GetProperties()
+                .ToArray();
+
+        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute =>
+            AttributeCache[(member, typeof(T))] as T;
+
+        public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute =>
+            EnumAttributeCache[(obj, typeof(T))] as T;
+
+        public static Type GetRealType(this PropertyInfo property) => TypeCache[property];
+
         private static Attribute? GetAttributeFromEnum((Enum @enum, Type attribute) o)
         {
             var (@enum, attribute) = o;
@@ -46,30 +64,12 @@ namespace Zhongli.Services.Utilities
                 .ToArray();
         }
 
-        public static IReadOnlyCollection<PropertyInfo> GetLists<T>() => CachedLists[typeof(T)];
-
         private static IReadOnlyCollection<PropertyInfo> GetPrimitives(Type t)
         {
             return CachedProperties[t]
                 .Where(p => !p.PropertyType.IsGenericType)
                 .ToArray();
         }
-
-        public static IReadOnlyCollection<PropertyInfo> GetPrimitives<T>() => CachedPrimitives[typeof(T)];
-
-        public static IReadOnlyCollection<PropertyInfo> GetProperties<T>() => CachedProperties[typeof(T)];
-
-        public static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t) =>
-            t.GetProperties()
-                .ToArray();
-
-        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute =>
-            AttributeCache[(member, typeof(T))] as T;
-
-        public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute =>
-            EnumAttributeCache[(obj, typeof(T))] as T;
-
-        public static Type GetRealType(this PropertyInfo property) => TypeCache[property];
 
         private static Type GetType(PropertyInfo property) =>
             property.PropertyType.IsGenericType

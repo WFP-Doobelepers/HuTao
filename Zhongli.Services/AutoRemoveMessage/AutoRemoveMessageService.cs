@@ -59,10 +59,9 @@ namespace Zhongli.Services.AutoRemoveMessage
     internal class AutoRemoveMessageService : IAutoRemoveMessageService
     {
         private const string FooterReactMessage = "React with ❌ to remove this embed.";
+        private readonly IMediator _messageDispatcher;
 
-        public AutoRemoveMessageService(IMediator messageDispatcher) { MessageDispatcher = messageDispatcher; }
-
-        protected internal IMediator MessageDispatcher { get; }
+        public AutoRemoveMessageService(IMediator messageDispatcher) { _messageDispatcher = messageDispatcher; }
 
         /// <inheritdoc />
         public Task RegisterRemovableMessageAsync(IUser user, EmbedBuilder embed,
@@ -81,11 +80,11 @@ namespace Zhongli.Services.AutoRemoveMessage
             else if (!embed.Footer.Text.Contains(FooterReactMessage)) embed.Footer.Text += $" | {FooterReactMessage}";
 
             var msg = await callback.Invoke(embed);
-            await MessageDispatcher.Publish(new RemovableMessageSentNotification(msg, user));
+            await _messageDispatcher.Publish(new RemovableMessageSentNotification(msg, user));
         }
 
         /// <inheritdoc />
         public void UnregisterRemovableMessage(IMessage message)
-            => MessageDispatcher.Publish(new RemovableMessageRemovedNotification(message));
+            => _messageDispatcher.Publish(new RemovableMessageRemovedNotification(message));
     }
 }

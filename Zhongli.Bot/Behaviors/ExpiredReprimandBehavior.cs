@@ -12,13 +12,13 @@ namespace Zhongli.Bot.Behaviors
 {
     public class ExpiredReprimandBehavior : INotificationHandler<ReadyNotification>
     {
-        private readonly ZhongliContext _db;
         private readonly ModerationService _moderation;
+        private readonly ZhongliContext _db;
 
-        public ExpiredReprimandBehavior(ZhongliContext db, ModerationService moderation)
+        public ExpiredReprimandBehavior(ModerationService moderation, ZhongliContext db)
         {
-            _db         = db;
             _moderation = moderation;
+            _db         = db;
         }
 
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)

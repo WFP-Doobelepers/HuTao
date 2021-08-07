@@ -16,13 +16,13 @@ namespace Zhongli.Bot.Behaviors
         IRequestHandler<ReprimandRequest<Warning, WarningResult>, WarningResult>,
         IRequestHandler<ReprimandRequest<Notice, NoticeResult>, NoticeResult>
     {
-        private readonly ZhongliContext _db;
         private readonly ModerationService _moderation;
+        private readonly ZhongliContext _db;
 
-        public ReprimandBehavior(ZhongliContext db, ModerationService moderation)
+        public ReprimandBehavior(ModerationService moderation, ZhongliContext db)
         {
-            _db         = db;
             _moderation = moderation;
+            _db         = db;
         }
 
         public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,

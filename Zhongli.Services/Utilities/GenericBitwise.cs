@@ -20,6 +20,26 @@ namespace Zhongli.Services.Utilities
             _xor = Xor().Compile();
         }
 
+        public T All()
+        {
+            var allFlags = Enum.GetValues(typeof(T)).Cast<T>();
+            return Or(allFlags);
+        }
+
+        public T And(T value1, T value2) => _and(value1, value2);
+
+        public T And(IEnumerable<T> list) => list.Aggregate(And);
+
+        public T Not(T value) => _not(value);
+
+        public T Or(T value1, T value2) => _or(value1, value2);
+
+        public T Or(IEnumerable<T> list) => list.Aggregate(Or);
+
+        public T Xor(T value1, T value2) => _xor(value1, value2);
+
+        public T Xor(IEnumerable<T> list) => list.Aggregate(Xor);
+
         private static Expression<Func<T, T, T>> And()
         {
             Type underlyingType = Enum.GetUnderlyingType(typeof(T));
@@ -95,25 +115,5 @@ namespace Zhongli.Services.Utilities
                 v1 // the argument of the function
             );
         }
-
-        public T All()
-        {
-            var allFlags = Enum.GetValues(typeof(T)).Cast<T>();
-            return Or(allFlags);
-        }
-
-        public T And(T value1, T value2) => _and(value1, value2);
-
-        public T And(IEnumerable<T> list) => list.Aggregate(And);
-
-        public T Not(T value) => _not(value);
-
-        public T Or(T value1, T value2) => _or(value1, value2);
-
-        public T Or(IEnumerable<T> list) => list.Aggregate(Or);
-
-        public T Xor(T value1, T value2) => _xor(value1, value2);
-
-        public T Xor(IEnumerable<T> list) => list.Aggregate(Xor);
     }
 }

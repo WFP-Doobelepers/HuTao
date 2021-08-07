@@ -21,13 +21,13 @@ namespace Zhongli.Bot.Behaviors
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
-        private readonly ZhongliContext _db;
         private readonly ModerationService _moderation;
+        private readonly ZhongliContext _db;
 
-        public CensorBehavior(ZhongliContext db, ModerationService moderation)
+        public CensorBehavior(ModerationService moderation, ZhongliContext db)
         {
-            _db         = db;
             _moderation = moderation;
+            _db         = db;
         }
 
         public Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)

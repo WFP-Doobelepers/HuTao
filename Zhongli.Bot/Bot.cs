@@ -34,6 +34,8 @@ namespace Zhongli.Bot
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
         private CancellationTokenSource _reconnectCts = null!;
 
+        public static async Task Main() { await new Bot().StartAsync(); }
+
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
                 .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
@@ -131,8 +133,6 @@ namespace Zhongli.Bot
 
             return Task.CompletedTask;
         }
-
-        public static async Task Main() { await new Bot().StartAsync(); }
 
         private async Task StartAsync()
         {

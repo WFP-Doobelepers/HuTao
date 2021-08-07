@@ -16,17 +16,16 @@ namespace Zhongli.Services.AutoRemoveMessage
         private static readonly MemoryCacheEntryOptions MessageCacheOptions =
             new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(60));
 
+        private readonly IAutoRemoveMessageService _autoRemove;
+        private readonly IMemoryCache _cache;
+
         public AutoRemoveMessageHandler(
-            IMemoryCache cache,
-            IAutoRemoveMessageService autoRemoveMessageService)
+            IAutoRemoveMessageService autoRemove,
+            IMemoryCache cache)
         {
-            Cache                    = cache;
-            AutoRemoveMessageService = autoRemoveMessageService;
+            _autoRemove = autoRemove;
+            _cache      = cache;
         }
-
-        protected IAutoRemoveMessageService AutoRemoveMessageService { get; }
-
-        protected IMemoryCache Cache { get; }
 
         public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
@@ -34,13 +33,13 @@ namespace Zhongli.Services.AutoRemoveMessage
 
             if (cancellationToken.IsCancellationRequested
                 || notification.Reaction.Emote.Name != "❌"
-                || !Cache.TryGetValue(key, out RemovableMessage cachedMessage)
-                || !cachedMessage.Users.Any(user => user.Id == notification.Reaction.UserId))
+                || !_cache.TryGetValue(key, out RemovableMessage cachedMessage)
+                || cachedMessage.Users.All(user => user.Id != notification.Reaction.UserId))
                 return;
 
             await cachedMessage.Message.DeleteAsync();
 
-            AutoRemoveMessageService.UnregisterRemovableMessage(cachedMessage.Message);
+            _autoRemove.UnregisterRemovableMessage(cachedMessage.Message);
         }
 
         public Task Handle(RemovableMessageRemovedNotification notification, CancellationToken cancellationToken)
@@ -48,10 +47,10 @@ namespace Zhongli.Services.AutoRemoveMessage
             var key = GetKey(notification.Message.Id);
 
             if (cancellationToken.IsCancellationRequested
-                || !Cache.TryGetValue(key, out _))
+                || !_cache.TryGetValue(key, out _))
                 return Task.CompletedTask;
 
-            Cache.Remove(key);
+            _cache.Remove(key);
 
             return Task.CompletedTask;
         }
@@ -61,7 +60,7 @@ namespace Zhongli.Services.AutoRemoveMessage
             if (cancellationToken.IsCancellationRequested)
                 return Task.CompletedTask;
 
-            Cache.Set(
+            _cache.Set(
                 GetKey(notification.Message.Id),
                 new RemovableMessage
                 {

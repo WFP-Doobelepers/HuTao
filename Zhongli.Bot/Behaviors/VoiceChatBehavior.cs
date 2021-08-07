@@ -24,10 +24,10 @@ namespace Zhongli.Bot.Behaviors
         private readonly ICommandHelpService _commandHelp;
         private readonly ZhongliContext _db;
 
-        public VoiceChatBehavior(ZhongliContext db, ICommandHelpService commandHelp)
+        public VoiceChatBehavior(ICommandHelpService commandHelp, ZhongliContext db)
         {
-            _db          = db;
             _commandHelp = commandHelp;
+            _db          = db;
         }
 
         private static ConcurrentDictionary<ulong, CancellationTokenSource> PurgeTasks { get; } = new();

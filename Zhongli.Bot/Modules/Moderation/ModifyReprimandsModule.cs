@@ -24,17 +24,20 @@ namespace Zhongli.Bot.Modules.Moderation
     public class ModifyReprimandsModule : InteractivePromptBase
     {
         private const string NullReprimandReason = "Unable to find reprimand. Provide at least 2 characters.";
-        private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
         private readonly ModerationLoggingService _logging;
         private readonly ModerationService _moderation;
+        private readonly ZhongliContext _db;
 
         public ModifyReprimandsModule(
-            ZhongliContext db, CommandErrorHandler error,
-            ModerationLoggingService logging, ModerationService moderation)
+            CommandErrorHandler error,
+            ZhongliContext db,
+            ModerationLoggingService logging,
+            ModerationService moderation)
         {
-            _db         = db;
-            _error      = error;
+            _error = error;
+            _db    = db;
+
             _logging    = logging;
             _moderation = moderation;
         }

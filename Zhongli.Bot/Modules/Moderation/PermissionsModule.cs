@@ -22,14 +22,14 @@ namespace Zhongli.Bot.Modules.Moderation
     public class PermissionsModule : InteractivePromptBase
     {
         private readonly AuthorizationService _auth;
-        private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
+        private readonly ZhongliContext _db;
 
-        public PermissionsModule(ZhongliContext db, CommandErrorHandler error, AuthorizationService auth)
+        public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, ZhongliContext db)
         {
             _auth  = auth;
-            _db    = db;
             _error = error;
+            _db    = db;
         }
 
         [Command("add")]
@@ -118,6 +118,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [NamedArgumentType]
         public class RuleOptions
         {
+            [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
+            public AccessType AccessType { get; set; } = AccessType.Allow;
+
+            [HelpSummary("The permissions that the user must have.")]
+            public GuildPermission? Permission { get; set; }
+
             [HelpSummary("The text or category channel this permission will work on.")]
             public IChannel? Channel { get; set; }
 
@@ -126,12 +132,6 @@ namespace Zhongli.Bot.Modules.Moderation
 
             [HelpSummary("The specific role that the user must have.")]
             public IRole? Role { get; set; }
-
-            [HelpSummary("The permissions that the user must have.")]
-            public GuildPermission? Permission { get; set; }
-
-            [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
-            public AccessType AccessType { get; set; } = AccessType.Allow;
         }
 
         private enum ConfigureOptions

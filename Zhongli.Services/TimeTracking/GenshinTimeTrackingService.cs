@@ -41,35 +41,6 @@ namespace Zhongli.Services.TimeTracking
             [ServerRegion.SAR]     = ("SAR", 8)
         };
 
-        private static DateTimeOffset GetDailyReset(int offset)
-        {
-            var baseUtcOffset = TimeSpan.FromHours(offset);
-            var timezone = TimeZoneInfo.CreateCustomTimeZone(offset.ToString(), baseUtcOffset, null, null);
-            var expression = CronExpression.Parse(Cron.Daily(4));
-            var next = expression.GetNextOccurrence(DateTime.UtcNow, timezone);
-
-            return next!.Value;
-        }
-
-        private static DateTimeOffset GetTime(int offset) => DateTimeOffset.UtcNow
-            .ToOffset(TimeSpan.FromHours(offset));
-
-        private static DateTimeOffset GetWeeklyReset(int offset)
-        {
-            var baseUtcOffset = TimeSpan.FromHours(offset);
-            var timezone = TimeZoneInfo.CreateCustomTimeZone(offset.ToString(), baseUtcOffset, null, null);
-            var expression = CronExpression.Parse(Cron.Weekly(DayOfWeek.Monday, 4));
-            var next = expression.GetNextOccurrence(DateTime.UtcNow, timezone);
-
-            return next!.Value;
-        }
-
-        private static Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
-        {
-            var (name, offset) = ServerOffsets[region];
-            return channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
-        }
-
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
         {
@@ -111,6 +82,57 @@ namespace Zhongli.Services.TimeTracking
             });
         }
 
+        public void TrackGenshinTime(GenshinTimeTrackingRules rules)
+        {
+            var serverStatus = rules.ServerStatus?.Adapt<MessageTimeTracking>();
+            if (serverStatus is not null)
+            {
+                var id = serverStatus.Id.ToString();
+                RecurringJob.AddOrUpdate(id, ()
+                        => UpdateMessageAsync(
+                            serverStatus.GuildId,
+                            serverStatus.ChannelId,
+                            serverStatus.MessageId),
+                    Cron.Minutely);
+
+                RecurringJob.Trigger(id);
+            }
+
+            AddJob(rules.AmericaChannel, ServerRegion.America);
+            AddJob(rules.EuropeChannel, ServerRegion.America);
+            AddJob(rules.AsiaChannel, ServerRegion.America);
+            AddJob(rules.SARChannel, ServerRegion.America);
+        }
+
+        private static DateTimeOffset GetDailyReset(int offset)
+        {
+            var baseUtcOffset = TimeSpan.FromHours(offset);
+            var timezone = TimeZoneInfo.CreateCustomTimeZone(offset.ToString(), baseUtcOffset, null, null);
+            var expression = CronExpression.Parse(Cron.Daily(4));
+            var next = expression.GetNextOccurrence(DateTime.UtcNow, timezone);
+
+            return next!.Value;
+        }
+
+        private static DateTimeOffset GetTime(int offset) => DateTimeOffset.UtcNow
+            .ToOffset(TimeSpan.FromHours(offset));
+
+        private static DateTimeOffset GetWeeklyReset(int offset)
+        {
+            var baseUtcOffset = TimeSpan.FromHours(offset);
+            var timezone = TimeZoneInfo.CreateCustomTimeZone(offset.ToString(), baseUtcOffset, null, null);
+            var expression = CronExpression.Parse(Cron.Weekly(DayOfWeek.Monday, 4));
+            var next = expression.GetNextOccurrence(DateTime.UtcNow, timezone);
+
+            return next!.Value;
+        }
+
+        private static Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
+        {
+            var (name, offset) = ServerOffsets[region];
+            return channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
+        }
+
         private async Task<IGuild?> GetGuildAsync(ulong guildId) =>
             _socket.GetGuild(guildId) as IGuild
             ?? await _rest.GetGuildAsync(guildId);
@@ -142,28 +164,6 @@ namespace Zhongli.Services.TimeTracking
                 .AddField("Weekly",
                     $"Resets in {Format.Bold(GetWeeklyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
                     true);
-        }
-
-        public void TrackGenshinTime(GenshinTimeTrackingRules rules)
-        {
-            var serverStatus = rules.ServerStatus?.Adapt<MessageTimeTracking>();
-            if (serverStatus is not null)
-            {
-                var id = serverStatus.Id.ToString();
-                RecurringJob.AddOrUpdate(id, ()
-                        => UpdateMessageAsync(
-                            serverStatus.GuildId,
-                            serverStatus.ChannelId,
-                            serverStatus.MessageId),
-                    Cron.Minutely);
-
-                RecurringJob.Trigger(id);
-            }
-
-            AddJob(rules.AmericaChannel, ServerRegion.America);
-            AddJob(rules.EuropeChannel, ServerRegion.America);
-            AddJob(rules.AsiaChannel, ServerRegion.America);
-            AddJob(rules.SARChannel, ServerRegion.America);
         }
     }
 }

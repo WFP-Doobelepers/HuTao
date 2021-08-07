@@ -32,13 +32,13 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
         public Guid Id { get; set; }
 
-        public string? Reason { get; set; }
-
         public DateTimeOffset Date { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
 
         public virtual GuildUserEntity Moderator { get; set; }
+
+        public string? Reason { get; set; }
 
         public ulong GuildId { get; set; }
 

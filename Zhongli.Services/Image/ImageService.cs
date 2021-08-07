@@ -41,15 +41,14 @@ namespace Zhongli.Services.Image
 
     public sealed class ImageService : IImageService
     {
-        private readonly IMemoryCache _cache;
-        private readonly ColorThief _colorThief;
+        private readonly ColorThief _colorThief = new();
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IMemoryCache _cache;
 
-        public ImageService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache)
+        public ImageService(IHttpClientFactory httpClientFactory, IMemoryCache cache)
         {
             _httpClientFactory = httpClientFactory;
-            _cache             = memoryCache;
-            _colorThief        = new ColorThief();
+            _cache             = cache;
         }
 
         /// <inheritdoc />
@@ -57,13 +56,12 @@ namespace Zhongli.Services.Image
         {
             var key = GetKey(location);
 
-            if (!_cache.TryGetValue(key, out Color color))
-            {
-                var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
-                color = GetDominantColor(imageBytes);
+            if (_cache.TryGetValue(key, out Color color)) return color;
 
-                _cache.Set(key, color, TimeSpan.FromDays(7));
-            }
+            var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
+            color = GetDominantColor(imageBytes);
+
+            _cache.Set(key, color, TimeSpan.FromDays(7));
 
             return color;
         }
@@ -87,6 +85,6 @@ namespace Zhongli.Services.Image
             return colorTask;
         }
 
-        private object GetKey(Uri uri) => new { Target = "DominantColor", uri.AbsoluteUri };
+        private static object GetKey(Uri uri) => new { Target = "DominantColor", uri.AbsoluteUri };
     }
 }

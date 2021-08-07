@@ -18,11 +18,11 @@ namespace Zhongli.Data.Models.Authorization
 
         public Guid Id { get; set; }
 
+        public AccessType Access { get; set; }
+
         public AuthorizationScope Scope { get; set; }
 
         public virtual ICollection<Criterion> Collection { get; set; } = new List<Criterion>();
-
-        public AccessType Access { get; set; }
 
         public virtual ModerationAction Action { get; set; }
     }

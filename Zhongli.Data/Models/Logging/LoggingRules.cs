@@ -7,18 +7,18 @@ namespace Zhongli.Data.Models.Logging
     {
         public Guid Id { get; set; }
 
-        public ulong GuildId { get; set; }
+        public virtual GuildEntity Guild { get; set; }
 
-        public ulong? ModerationChannelId { get; set; }
-
-        public string? ReprimandAppealMessage { get; set; }
+        public LoggingOptions Options { get; set; }
 
         public ReprimandNoticeType NotifyReprimands { get; set; }
 
         public ReprimandNoticeType ShowAppealOnReprimands { get; set; }
 
-        public virtual GuildEntity Guild { get; set; }
+        public string? ReprimandAppealMessage { get; set; }
 
-        public LoggingOptions Options { get; set; }
+        public ulong GuildId { get; set; }
+
+        public ulong? ModerationChannelId { get; set; }
     }
 }

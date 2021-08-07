@@ -17,15 +17,15 @@ namespace Zhongli.Bot.Modules.Configuration
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class TimeTrackingModule : ModuleBase<SocketCommandContext>
     {
-        private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
         private readonly GenshinTimeTrackingService _time;
+        private readonly ZhongliContext _db;
 
-        public TimeTrackingModule(ZhongliContext db, CommandErrorHandler error, GenshinTimeTrackingService time)
+        public TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingService time, ZhongliContext db)
         {
-            _db    = db;
-            _time  = time;
             _error = error;
+            _time  = time;
+            _db    = db;
         }
 
         [Command("genshin")]

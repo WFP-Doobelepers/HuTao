@@ -18,11 +18,11 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 
         public Guid Id { get; set; }
 
-        public string Pattern { get; set; }
+        public virtual ICollection<Criterion> Exclusions { get; set; }
 
         public RegexOptions Options { get; set; }
 
-        public virtual ICollection<Criterion> Exclusions { get; set; }
+        public string Pattern { get; set; }
 
         public virtual ModerationAction Action { get; set; }
 

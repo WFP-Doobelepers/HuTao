@@ -22,19 +22,19 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public Guid Id { get; set; }
 
+        public virtual GuildEntity? Guild { get; set; }
+
+        public virtual GuildUserEntity? User { get; set; }
+
+        public virtual ModerationAction? ModifiedAction { get; set; }
+
         public ModerationSource Source { get; set; }
 
         public ReprimandStatus Status { get; set; }
 
-        public virtual GuildUserEntity? User { get; set; }
-
         public ulong GuildId { get; set; }
 
-        public virtual GuildEntity? Guild { get; set; }
-
         public ulong UserId { get; set; }
-
-        public virtual ModerationAction? ModifiedAction { get; set; }
 
         public virtual ModerationAction Action { get; set; }
 

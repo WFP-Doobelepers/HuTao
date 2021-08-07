@@ -7,8 +7,6 @@ namespace Zhongli.Data.Models.Moderation
     {
         public Guid Id { get; set; }
 
-        public ulong GuildId { get; set; }
-
         public virtual GuildEntity Guild { get; set; }
 
         public int? DuplicateTolerance { get; set; }
@@ -22,5 +20,7 @@ namespace Zhongli.Data.Models.Moderation
         public uint? MessageLimit { get; set; }
 
         public uint? NewlineLimit { get; set; }
+
+        public ulong GuildId { get; set; }
     }
 }

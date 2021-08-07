@@ -16,19 +16,22 @@ namespace Zhongli.Bot.Modules.Moderation
     [Summary("Guild moderation commands.")]
     public class ModerationModule : ModuleBase<SocketCommandContext>
     {
-        private readonly ZhongliContext _db;
         private readonly CommandErrorHandler _error;
         private readonly ModerationLoggingService _logging;
         private readonly ModerationService _moderation;
+        private readonly ZhongliContext _db;
 
-        public ModerationModule(ZhongliContext db, CommandErrorHandler error,
-            ModerationService moderation, ModerationLoggingService logging)
+        public ModerationModule(
+            CommandErrorHandler error,
+            ZhongliContext db,
+            ModerationLoggingService logging,
+            ModerationService moderation)
         {
-            _db    = db;
             _error = error;
+            _db    = db;
 
-            _moderation = moderation;
             _logging    = logging;
+            _moderation = moderation;
         }
 
         [Command("ban")]

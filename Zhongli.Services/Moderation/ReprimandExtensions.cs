@@ -20,9 +20,6 @@ namespace Zhongli.Services.Moderation
         public static bool IsActive(this IExpirable expirable)
             => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
 
-        private static bool IsCounted(ReprimandAction reprimand)
-            => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
-
         public static bool IsTriggered(this ITrigger trigger, uint amount)
         {
             return trigger.Mode switch
@@ -33,29 +30,12 @@ namespace Zhongli.Services.Moderation
             };
         }
 
-        private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
-            where T : ReprimandAction => embed
-            .AddField(typeof(T).Name.Pluralize(), $"{user.HistoryCount<T>()}/{user.HistoryCount<T>(true)}", true);
-
         public static EmbedBuilder AddReprimands(this EmbedBuilder embed, GuildUserEntity user) => embed
             .AddField("Warnings", $"{user.WarningCount()}/{user.WarningCount(true)}", true)
             .AddReprimand<Notice>(user)
             .AddReprimand<Ban>(user)
             .AddReprimand<Kick>(user)
             .AddReprimand<Note>(user);
-
-        private static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = false)
-            where T : ReprimandAction
-        {
-            var reprimands = user.Guild.ReprimandHistory
-                .Where(r => r.UserId == user.Id
-                    && r.Status is not ReprimandStatus.Deleted)
-                .OfType<T>();
-
-            return countHidden
-                ? reprimands
-                : reprimands.Where(IsCounted);
-        }
 
         public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,
             CancellationToken cancellationToken)
@@ -96,6 +76,26 @@ namespace Zhongli.Services.Moderation
             return reprimand.User ??
                 await db.FindAsync<GuildUserEntity>(new object[] { reprimand.UserId, reprimand.GuildId },
                     cancellationToken);
+        }
+
+        private static bool IsCounted(ReprimandAction reprimand)
+            => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
+
+        private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
+            where T : ReprimandAction => embed
+            .AddField(typeof(T).Name.Pluralize(), $"{user.HistoryCount<T>()}/{user.HistoryCount<T>(true)}", true);
+
+        private static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = false)
+            where T : ReprimandAction
+        {
+            var reprimands = user.Guild.ReprimandHistory
+                .Where(r => r.UserId == user.Id
+                    && r.Status is not ReprimandStatus.Deleted)
+                .OfType<T>();
+
+            return countHidden
+                ? reprimands
+                : reprimands.Where(IsCounted);
         }
     }
 }

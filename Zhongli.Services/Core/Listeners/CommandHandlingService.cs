@@ -20,24 +20,24 @@ namespace Zhongli.Services.Core.Listeners
 {
     public class CommandHandlingService : INotificationHandler<MessageReceivedNotification>
     {
+        private readonly CommandErrorHandler _errorHandler;
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _discord;
-        private readonly CommandErrorHandler _errorHandler;
         private readonly ILogger<CommandHandlingService> _log;
         private readonly IServiceProvider _services;
 
         public CommandHandlingService(
-            IServiceProvider services, ILogger<CommandHandlingService> log,
-            CommandService commands, CommandErrorHandler errorHandler,
-            DiscordSocketClient discord)
+            CommandErrorHandler errorHandler,
+            CommandService commands,
+            DiscordSocketClient discord,
+            ILogger<CommandHandlingService> log,
+            IServiceProvider services)
         {
-            _services = services;
-            _log      = log;
-
-            _commands     = commands;
             _errorHandler = errorHandler;
-
-            _discord = discord;
+            _commands     = commands;
+            _discord      = discord;
+            _log          = log;
+            _services     = services;
 
             _commands.CommandExecuted += CommandExecutedAsync;
         }
@@ -67,6 +67,25 @@ namespace Zhongli.Services.Core.Listeners
             }
         }
 
+        public async Task InitializeAsync()
+        {
+            _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+            _commands.AddTypeReader<IUserMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+
+            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
+
+            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
+            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
+
+            _commands.AddTypeReader<RegexOptions>(
+                new EnumFlagsTypeReader<RegexOptions>(
+                    splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+            _commands.AddTypeReader<Guid>(new TryParseTypeReader<Guid>(Guid.TryParse));
+
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        }
+
         private static Task CommandExecutedAsync(
             Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;
 
@@ -86,25 +105,6 @@ namespace Zhongli.Services.Core.Listeners
             }
             else
                 await _errorHandler.AssociateError(context.Message, error);
-        }
-
-        public async Task InitializeAsync()
-        {
-            _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
-            _commands.AddTypeReader<IUserMessage>(new TypeReaders.MessageTypeReader<IMessage>());
-
-            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-
-            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
-            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
-
-            _commands.AddTypeReader<RegexOptions>(
-                new EnumFlagsTypeReader<RegexOptions>(
-                    splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
-
-            _commands.AddTypeReader<Guid>(new TryParseTypeReader<Guid>(Guid.TryParse));
-
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
     }
 }

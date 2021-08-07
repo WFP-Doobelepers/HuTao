@@ -19,9 +19,9 @@ namespace Zhongli.Services.Moderation
     public class ModerationService
     {
         private readonly DiscordSocketClient _client;
-        private readonly ZhongliContext _db;
-        private readonly ModerationLoggingService _logging;
         private readonly IServiceScopeFactory _scope;
+        private readonly ModerationLoggingService _logging;
+        private readonly ZhongliContext _db;
 
         public ModerationService(DiscordSocketClient client, ZhongliContext db,
             ModerationLoggingService logging,
@@ -32,15 +32,6 @@ namespace Zhongli.Services.Moderation
 
             _logging = logging;
             _scope   = scope;
-        }
-
-        private static ReprimandAction ModifyReprimand(ReprimandAction reprimand, ModifiedReprimand details,
-            ReprimandStatus status)
-        {
-            reprimand.Status         = status;
-            reprimand.ModifiedAction = new ModerationAction(details);
-
-            return reprimand;
         }
 
         public static async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
@@ -73,32 +64,6 @@ namespace Zhongli.Services.Moderation
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
-        private async Task ExpireBanAsync(Ban ban, CancellationToken cancellationToken)
-        {
-            var guild = _client.GetGuild(ban.GuildId);
-            var user = guild.GetUser(ban.UserId);
-
-            await guild.RemoveBanAsync(user);
-            if (user.VoiceChannel is not null)
-                await user.ModifyAsync(u => u.Mute = false);
-
-            await ExpireReprimandAsync(ban, cancellationToken);
-        }
-
-        private async Task ExpireMuteAsync(Mute mute, CancellationToken cancellationToken)
-        {
-            var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
-            var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
-
-            if (guildEntity?.ModerationRules.MuteRoleId is not null)
-                await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
-
-            if (user.VoiceChannel is not null)
-                await user.ModifyAsync(u => u.Mute = false);
-
-            await ExpireReprimandAsync(mute, cancellationToken);
-        }
-
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task ExpireReprimandAsync(Guid id, CancellationToken cancellationToken = default)
         {
@@ -112,19 +77,6 @@ namespace Zhongli.Services.Moderation
                 Notice notice   => ExpireReprimandAsync(notice, cancellationToken),
                 Warning warning => ExpireReprimandAsync(warning, cancellationToken)
             });
-        }
-
-        private async Task ExpireReprimandAsync<T>(T reprimand, CancellationToken cancellationToken)
-            where T : ReprimandAction, IExpirable
-        {
-            reprimand.EndedAt = DateTimeOffset.Now;
-
-            var guild = _client.GetGuild(reprimand.GuildId);
-            var user = guild.GetUser(reprimand.UserId);
-            var moderator = guild.CurrentUser;
-            var details = new ModifiedReprimand(user, moderator, ModerationSource.Expiry, "[Reprimand Expired]");
-
-            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
         public Task HideReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
@@ -143,15 +95,6 @@ namespace Zhongli.Services.Moderation
         public Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
-
-        private async Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
-            ReprimandStatus status, CancellationToken cancellationToken)
-        {
-            _db.Update(ModifyReprimand(reprimand, details, status));
-            await _db.SaveChangesAsync(cancellationToken);
-
-            await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
-        }
 
         public async Task<Ban?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
@@ -250,16 +193,6 @@ namespace Zhongli.Services.Moderation
             return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        private async Task<T> PublishReprimandAsync<T>(IRequest<T> request, ReprimandDetails details,
-            CancellationToken cancellationToken) where T : ReprimandResult
-        {
-            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
-            var result = await mediator.Send(request, cancellationToken);
-            await _logging.PublishReprimandAsync(result, details, cancellationToken);
-
-            return result;
-        }
-
         public async Task<WarningResult> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
@@ -283,6 +216,73 @@ namespace Zhongli.Services.Moderation
                         => ExpireReprimandAsync(expire.Id, cancellationToken),
                     expire.ExpireAt.Value);
             }
+        }
+
+        private static ReprimandAction ModifyReprimand(ReprimandAction reprimand, ModifiedReprimand details,
+            ReprimandStatus status)
+        {
+            reprimand.Status         = status;
+            reprimand.ModifiedAction = new ModerationAction(details);
+
+            return reprimand;
+        }
+
+        private async Task ExpireBanAsync(Ban ban, CancellationToken cancellationToken)
+        {
+            var guild = _client.GetGuild(ban.GuildId);
+            var user = guild.GetUser(ban.UserId);
+
+            await guild.RemoveBanAsync(user);
+            if (user.VoiceChannel is not null)
+                await user.ModifyAsync(u => u.Mute = false);
+
+            await ExpireReprimandAsync(ban, cancellationToken);
+        }
+
+        private async Task ExpireMuteAsync(Mute mute, CancellationToken cancellationToken)
+        {
+            var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
+            var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
+
+            if (guildEntity?.ModerationRules.MuteRoleId is not null)
+                await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
+
+            if (user.VoiceChannel is not null)
+                await user.ModifyAsync(u => u.Mute = false);
+
+            await ExpireReprimandAsync(mute, cancellationToken);
+        }
+
+        private async Task ExpireReprimandAsync<T>(T reprimand, CancellationToken cancellationToken)
+            where T : ReprimandAction, IExpirable
+        {
+            reprimand.EndedAt = DateTimeOffset.Now;
+
+            var guild = _client.GetGuild(reprimand.GuildId);
+            var user = guild.GetUser(reprimand.UserId);
+            var moderator = guild.CurrentUser;
+            var details = new ModifiedReprimand(user, moderator, ModerationSource.Expiry, "[Reprimand Expired]");
+
+            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
+        }
+
+        private async Task UpdateReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
+            ReprimandStatus status, CancellationToken cancellationToken)
+        {
+            _db.Update(ModifyReprimand(reprimand, details, status));
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
+        }
+
+        private async Task<T> PublishReprimandAsync<T>(IRequest<T> request, ReprimandDetails details,
+            CancellationToken cancellationToken) where T : ReprimandResult
+        {
+            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
+            var result = await mediator.Send(request, cancellationToken);
+            await _logging.PublishReprimandAsync(result, details, cancellationToken);
+
+            return result;
         }
     }
 }

@@ -16,10 +16,10 @@ namespace Zhongli.Bot.Behaviors
         private readonly AuthorizationService _auth;
         private readonly ZhongliContext _db;
 
-        public GuildConfigureBehavior(ZhongliContext db, AuthorizationService auth)
+        public GuildConfigureBehavior(AuthorizationService auth, ZhongliContext db)
         {
-            _db   = db;
             _auth = auth;
+            _db   = db;
         }
 
         public Task Handle(GuildAvailableNotification notification, CancellationToken cancellationToken)
