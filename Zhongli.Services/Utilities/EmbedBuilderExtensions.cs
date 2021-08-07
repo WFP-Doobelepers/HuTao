@@ -18,8 +18,6 @@ namespace Zhongli.Services.Utilities
 
     public static class EmbedBuilderExtensions
     {
-        private const int FieldMaxSize = 1024;
-
         public static EmbedBuilder AddLinesIntoFields<T>(this EmbedBuilder builder, string title,
             IEnumerable<T> lines, Func<T, string> lineSelector) =>
             builder.AddLinesIntoFields(title, lines.Select(lineSelector));
@@ -44,20 +42,6 @@ namespace Zhongli.Services.Utilities
             return builder;
         }
 
-        private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
-            string name, string iconUrl, AuthorOptions authorOptions)
-        {
-            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
-                name += $" ({entity.Id})";
-
-            if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
-                embed.WithThumbnailUrl(iconUrl);
-
-            return authorOptions.HasFlag(AuthorOptions.UseFooter)
-                ? embed.WithFooter(name, iconUrl)
-                : embed.WithAuthor(name, iconUrl);
-        }
-
         public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild guild,
             AuthorOptions authorOptions = AuthorOptions.None)
         {
@@ -79,7 +63,7 @@ namespace Zhongli.Services.Utilities
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,
-            int maxLength = FieldMaxSize)
+            int maxLength = EmbedFieldBuilder.MaxFieldValueLength)
         {
             var sb = new StringBuilder(0, maxLength);
             var builders = new List<StringBuilder>();
@@ -100,6 +84,20 @@ namespace Zhongli.Services.Utilities
             return builders
                 .Where(s => s.Length > 0)
                 .Select(s => s.ToString());
+        }
+
+        private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
+            string name, string iconUrl, AuthorOptions authorOptions)
+        {
+            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
+                name += $" ({entity.Id})";
+
+            if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
+                embed.WithThumbnailUrl(iconUrl);
+
+            return authorOptions.HasFlag(AuthorOptions.UseFooter)
+                ? embed.WithFooter(name, iconUrl)
+                : embed.WithAuthor(name, iconUrl);
         }
     }
 }

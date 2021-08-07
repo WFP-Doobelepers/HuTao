@@ -10,48 +10,43 @@ namespace Zhongli.Services.CommandHelp
 {
     public static class CommandHelpDataExtensions
     {
-        private static bool HasSummary(this IEnumerable<ParameterHelpData> parameters) =>
-            parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
-
         public static EmbedBuilder AddCommandFields(this EmbedBuilder embed, CommandHelpData command)
         {
             var builder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
             var name = command.Aliases.FirstOrDefault();
 
             builder
-                .AppendAliases(command.Aliases.Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList())
+                .AppendAliases(command.Aliases
+                    .Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList())
                 .AppendParameters(command.Parameters);
 
             var prefix = ZhongliConfig.Configuration.Prefix;
-            embed.AddField(new EmbedFieldBuilder()
-                .WithName($"Command: {prefix}{name} {GetParams(command)}")
-                .WithValue(builder.ToString()));
+
+            var lines = builder.ToString().Split(Environment.NewLine);
+            embed.AddLinesIntoFields($"Command: {prefix}{name} {GetParams(command)}", lines);
 
             return embed;
         }
 
+        private static bool HasSummary(this IEnumerable<ParameterHelpData> parameters) =>
+            parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
+
         private static string GetParamName(ParameterHelpData parameter)
-        {
-            static string Surround(string text, bool isNullable) => isNullable ? $"[{text}]" : $"<{text}>";
-
-            if (parameter.Type.IsEnum)
-            {
-                var parameters = parameter.Options.Select(p => p.Name);
-                return Surround(string.Join("|", parameters), parameter.IsOptional);
-            }
-
-            return Surround(parameter.Name, parameter.IsOptional);
-        }
+            => Surround(parameter.Name, parameter.IsOptional);
 
         private static string GetParams(this CommandHelpData info)
         {
             var sb = new StringBuilder();
 
-            var parameterInfo = info.Parameters.Select(p => Format.Code(GetParamName(p)));
+            var parameterInfo = info.Parameters
+                .Select(p => Format.Code(GetParamName(p)));
+
             sb.Append(string.Join(" ", parameterInfo));
 
             return sb.ToString();
         }
+
+        private static string Surround(string text, bool isNullable) => isNullable ? $"[{text}]" : $"<{text}>";
 
         private static StringBuilder AppendAliases(this StringBuilder builder, IReadOnlyCollection<string> aliases)
         {
@@ -68,46 +63,75 @@ namespace Zhongli.Services.CommandHelp
             return builder;
         }
 
-        private static StringBuilder AppendParameters(this StringBuilder builder,
-            IReadOnlyCollection<ParameterHelpData>? parameters)
+        private static StringBuilder AppendParameter(this StringBuilder builder,
+            ParameterHelpData parameter, ISet<Type> seenTypes)
         {
-            if (parameters is null || parameters.Count == 0)
+            if (!parameter.Options.Any() || seenTypes.Contains(parameter.Type))
+                return builder;
+
+            seenTypes.Add(parameter.Type);
+
+            builder
+                .AppendLine()
+                .AppendLine($"Arguments for {Format.Underline(Format.Bold(parameter.Name))}:");
+
+            if (!parameter.Type.IsEnum)
+            {
+                builder
+                    .AppendSummaries(parameter.Options, false)
+                    .AppendLine(
+                        $"▌Provide values by doing {Format.Code("name: value")} " +
+                        $"or {Format.Code("name: \"value with spaces\"")}.");
+            }
+            else
+            {
+                var names = parameter.Options.Select(p => p.Name);
+                var values = Surround(string.Join("|\x200b", names), parameter.IsOptional);
+                builder
+                    .AppendLine(Format.Code(values))
+                    .AppendSummaries(parameter.Options, true);
+            }
+
+            foreach (var nestedParameter in parameter.Options)
+            {
+                builder.AppendParameter(nestedParameter, seenTypes);
+            }
+
+            return builder;
+        }
+
+        private static StringBuilder AppendParameters(this StringBuilder builder,
+            IReadOnlyCollection<ParameterHelpData> parameters)
+        {
+            if (parameters.Count == 0)
                 return builder;
 
             if (parameters.HasSummary())
             {
                 builder
                     .AppendLine(Format.Bold("Parameters:"))
-                    .AppendSummaries(parameters);
+                    .AppendSummaries(parameters, true);
             }
 
-            foreach (var parameter in parameters.Where(p => p.Options.HasSummary()))
+            var seenTypes = new HashSet<Type>();
+            foreach (var parameter in parameters)
             {
-                builder
-                    .AppendLine()
-                    .AppendLine($"Summaries for {Format.Underline(Format.Bold(parameter.Name))}:")
-                    .AppendSummaries(parameter.Options);
-
-                if (!parameter.Type.IsEnum)
-                {
-                    builder.AppendLine(
-                        $"▌Provide values by doing {Format.Code("name: value")} " +
-                        $"or {Format.Code("name: \"value with spaces\"")}.");
-                }
+                builder.AppendParameter(parameter, seenTypes);
             }
 
             return builder;
         }
 
         private static StringBuilder AppendSummaries(this StringBuilder builder,
-            IEnumerable<ParameterHelpData> parameters)
+            IEnumerable<ParameterHelpData> parameters, bool hideEmpty)
         {
             foreach (var parameter in parameters)
             {
-                if (string.IsNullOrEmpty(parameter.Summary))
+                if (string.IsNullOrEmpty(parameter.Summary) && hideEmpty)
                     continue;
 
-                builder.AppendLine($"\x200b\t• {Format.Code(parameter.Name)}: {parameter.Summary}");
+                builder.AppendLine(
+                    $"\x200b\t• {Format.Code(GetParamName(parameter))}: {parameter.Summary ?? "No Summary."}");
             }
 
             return builder;
