@@ -32,7 +32,13 @@ namespace Zhongli.Services.CommandHelp
             parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
 
         private static string GetParamName(ParameterHelpData parameter)
-            => Surround(parameter.Name, parameter.IsOptional);
+            => parameter.Options.Any()
+                ? Surround(parameter.Name, parameter.IsOptional)
+                : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
+
+        private static string GetParamTypeName(this ParameterHelpData parameter) => parameter.Type.IsIEnumerableOfT()
+            ? $"{parameter.GetRealType().Name} [...]"
+            : parameter.GetRealType().Name;
 
         private static string GetParams(this CommandHelpData info)
         {
@@ -82,6 +88,11 @@ namespace Zhongli.Services.CommandHelp
                     .AppendLine(
                         $"▌Provide values by doing {Format.Code("name: value")} " +
                         $"or {Format.Code("name: \"value with spaces\"")}.");
+
+                foreach (var nestedParameter in parameter.Options)
+                {
+                    builder.AppendParameter(nestedParameter, seenTypes);
+                }
             }
             else
             {
@@ -90,11 +101,6 @@ namespace Zhongli.Services.CommandHelp
                 builder
                     .AppendLine(Format.Code(values))
                     .AppendSummaries(parameter.Options, true);
-            }
-
-            foreach (var nestedParameter in parameter.Options)
-            {
-                builder.AppendParameter(nestedParameter, seenTypes);
             }
 
             return builder;

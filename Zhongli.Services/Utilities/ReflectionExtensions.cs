@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Services.Utilities
 {
@@ -16,13 +17,16 @@ namespace Zhongli.Services.Utilities
         private static readonly DictionaryCache<Type, IReadOnlyCollection<PropertyInfo>> CachedProperties =
             new(GetPublicProperties);
 
-        private static readonly DictionaryCache<PropertyInfo, Type> TypeCache = new(GetType);
+        private static readonly DictionaryCache<Type, Type> TypeCache = new(GetRealTypeInternal);
 
         private static readonly DictionaryCache<(MemberInfo, Type), Attribute?> AttributeCache =
             new DictionaryCache<(MemberInfo Member, Type Type), Attribute?>(GetAttributeFromMember);
 
         private static readonly DictionaryCache<(Enum, Type), Attribute?> EnumAttributeCache =
             new(GetAttributeFromEnum);
+
+        public static bool IsIEnumerableOfT(this Type type)
+            => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
 
         public static IReadOnlyCollection<PropertyInfo> GetLists<T>() => CachedLists[typeof(T)];
 
@@ -40,7 +44,11 @@ namespace Zhongli.Services.Utilities
         public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute =>
             EnumAttributeCache[(obj, typeof(T))] as T;
 
-        public static Type GetRealType(this PropertyInfo property) => TypeCache[property];
+        public static Type GetRealType(this Type type) => TypeCache[type];
+
+        public static Type GetRealType(this PropertyInfo property) => TypeCache[property.PropertyType];
+
+        public static Type GetRealType(this ParameterHelpData type) => TypeCache[type.Type];
 
         private static Attribute? GetAttributeFromEnum((Enum @enum, Type attribute) o)
         {
@@ -71,9 +79,9 @@ namespace Zhongli.Services.Utilities
                 .ToArray();
         }
 
-        private static Type GetType(PropertyInfo property) =>
-            property.PropertyType.IsGenericType
-                ? property.PropertyType.GetGenericArguments()[0]
-                : property.PropertyType;
+        private static Type GetRealTypeInternal(Type type) =>
+            type.IsGenericType
+                ? type.GetGenericArguments()[0]
+                : type;
     }
 }

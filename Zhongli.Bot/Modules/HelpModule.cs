@@ -24,20 +24,31 @@ namespace Zhongli.Bot.Modules
         public async Task HelpAsync()
         {
             var modules = _commandHelpService.GetModuleHelpData()
-                .Select(d => d.Name)
-                .OrderBy(d => d);
+                .OrderBy(d => d.Name)
+                .Select(d => Format.Bold(Format.Code(d.Name)));
 
             var prefix = ZhongliConfig.Configuration.Prefix;
             var descriptionBuilder = new StringBuilder()
                 .AppendLine("Modules:")
                 .AppendJoin(", ", modules)
                 .AppendLine().AppendLine()
-                .AppendLine($"Do \"{prefix}help dm\" to have everything DMed to you. (Spammy!)")
-                .AppendLine($"Do \"{prefix}help [module name] to have that module's commands listed.");
+                .AppendLine($"Do {Format.Code($"{prefix}help dm")} to have everything DMed to you.")
+                .AppendLine($"Do {Format.Code($"{prefix}help [module name]")} to have that module's commands listed.");
+
+            var argumentBuilder = new StringBuilder()
+                .AppendLine($"{Format.Code("[ ]")}: Optional arguments.")
+                .AppendLine($"{Format.Code("< >")}: Required arguments.")
+                .AppendLine($"{Format.Code("[...]")}: List of arguments separated by spaces.")
+                .AppendLine(
+                    $"▌Provide values by doing {Format.Code("name: value")} " +
+                    $"or {Format.Code("name: \"value with spaces\"")}.");
 
             var embed = new EmbedBuilder()
                 .WithTitle("Help")
-                .WithDescription(descriptionBuilder.ToString());
+                .WithCurrentTimestamp()
+                .WithDescription(descriptionBuilder.ToString())
+                .AddField("Arguments", argumentBuilder.ToString())
+                .WithGuildAsAuthor(Context.Guild, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());
         }
