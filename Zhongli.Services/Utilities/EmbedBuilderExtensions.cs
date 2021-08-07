@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
+using Discord.WebSocket;
 
 namespace Zhongli.Services.Utilities
 {
@@ -53,13 +54,13 @@ namespace Zhongli.Services.Utilities
         }
 
         public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder embed, IUser user,
-            AuthorOptions authorOptions = AuthorOptions.None)
+            AuthorOptions authorOptions = AuthorOptions.None, ushort size = 128)
         {
             var username = user.GetFullUsername();
             if (authorOptions.HasFlag(AuthorOptions.Requested))
                 username = $"Requested by {username}";
 
-            return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(), authorOptions);
+            return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
         }
 
         public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,

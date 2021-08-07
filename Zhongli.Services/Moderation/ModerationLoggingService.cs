@@ -33,7 +33,7 @@ namespace Zhongli.Services.Moderation
                     nameof(action), action, "An unknown reprimand was given.")
             };
 
-            static string GetLength(IMute mute)
+            static string GetLength(ILength mute)
                 => mute.Length?.Humanize(5,
                     minUnit: TimeUnit.Second,
                     maxUnit: TimeUnit.Year) ?? "indefinitely";
@@ -61,32 +61,22 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
-            await HandleReprimandAsync(reprimand, details.User, details.Moderator, embed, cancellationToken);
+            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
         }
 
         public async Task PublishReprimandAsync(ReprimandResult reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
-            await HandleReprimandAsync(reprimand, details.User, details.Moderator, embed, cancellationToken);
+            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
         }
 
         public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var reprimand = result.Primary;
+            var embed = CreateReprimandEmbed(details.User);
 
-            var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
-            var options = guild.LoggingRules.Options;
-
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(details.User, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithCurrentTimestamp();
-
-            if (!options.HasFlag(LoggingOptions.Anonymous))
-                embed.WithUserAsAuthor(details.Moderator, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            await AddPrimaryAsync(embed, details, reprimand, cancellationToken);
+            await AddPrimaryAsync(embed, details, result.Primary, cancellationToken);
             foreach (var secondary in result.Secondary)
             {
                 await AddSecondaryAsync(embed, details, secondary, cancellationToken);
@@ -98,21 +88,12 @@ namespace Zhongli.Services.Moderation
         public async Task<EmbedBuilder> UpdatedEmbedAsync(ReprimandAction reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
-            var modifyName = reprimand.Status.Humanize();
+            var embed = CreateReprimandEmbed(details.User)
+                .WithTitle($"{reprimand.Status.Humanize()} {GetTitle(reprimand)}")
+                .WithColor(Color.Purple);
 
-            var embed = new EmbedBuilder()
-                .WithTitle($"{modifyName} {GetTitle(reprimand)}")
-                .WithColor(Color.Purple)
-                .WithUserAsAuthor(details.User, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithUserAsAuthor(details.Moderator, AuthorOptions.UseFooter | AuthorOptions.Requested)
-                .WithCurrentTimestamp();
-
-            if (!string.IsNullOrWhiteSpace(reprimand.ModifiedAction?.Reason))
-                embed.AddField("Reason", reprimand.ModifiedAction.Reason);
-
-            embed
-                .AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true)
-                .AddField("Source", reprimand.Source.Humanize(), true);
+            AddReason(embed, reprimand.ModifiedAction);
+            await AddReprimandDetailsAsync(embed, reprimand, cancellationToken);
 
             return embed;
         }
@@ -149,6 +130,10 @@ namespace Zhongli.Services.Moderation
             };
         }
 
+        private static EmbedBuilder CreateReprimandEmbed(IUser user) => new EmbedBuilder()
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail, ushort.MaxValue)
+            .WithCurrentTimestamp();
+
         private async Task AddPrimaryAsync(EmbedBuilder embed, ReprimandDetails details, ReprimandAction? reprimand,
             CancellationToken cancellationToken)
         {
@@ -159,14 +144,16 @@ namespace Zhongli.Services.Moderation
                     .WithColor(GetColor(reprimand))
                     .WithDescription(GetMessage(reprimand, details.User));
 
-                if (!string.IsNullOrWhiteSpace(reprimand.Action.Reason))
-                    embed.AddField("Reason", reprimand.Action.Reason);
-
-                embed
-                    .AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true)
-                    .AddField("Source", reprimand.Source.Humanize(), true);
+                AddReason(embed, reprimand.Action);
+                await AddReprimandDetailsAsync(embed, reprimand, cancellationToken);
             }
         }
+
+        private async Task AddReprimandDetailsAsync(EmbedBuilder embed, ReprimandAction reprimand,
+            CancellationToken cancellationToken)
+            => embed
+                .AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true)
+                .AddField("Source", reprimand.Source.Humanize(), true);
 
         private async Task AddSecondaryAsync(EmbedBuilder embed, ReprimandDetails details, ReprimandAction? reprimand,
             CancellationToken cancellationToken)
@@ -180,8 +167,10 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        private async Task HandleReprimandAsync(ReprimandResult result, IUser user, IGuildUser moderator,
+        private async Task HandleReprimandAsync(
             EmbedBuilder embed,
+            ReprimandResult result,
+            IUser user, IGuildUser moderator,
             CancellationToken cancellationToken)
         {
             var reprimand = result.Primary;
@@ -196,6 +185,7 @@ namespace Zhongli.Services.Moderation
             if (channelId is null)
                 return;
 
+            AddReprimandAuthor(moderator, false, embed);
             var channel = await moderator.Guild.GetTextChannelAsync(channelId.Value);
             _ = channel.SendMessageAsync(embed: embed.Build());
 
@@ -207,6 +197,7 @@ namespace Zhongli.Services.Moderation
                     or ReprimandStatus.Expired
                     or ReprimandStatus.Updated)
             {
+                AddReprimandAuthor(moderator, options.HasFlag(LoggingOptions.Anonymous), embed);
                 if (IsIncluded(reprimand, guild.LoggingRules.ShowAppealOnReprimands))
                 {
                     var appealMessage = guild.LoggingRules.ReprimandAppealMessage;
@@ -235,6 +226,20 @@ namespace Zhongli.Services.Moderation
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
             };
+        }
+
+        private static void AddReason(EmbedBuilder embed, ModerationAction? action)
+        {
+            if (!string.IsNullOrWhiteSpace(action?.Reason))
+                embed.AddField("Reason", action.Reason);
+        }
+
+        private static void AddReprimandAuthor(IGuildUser moderator, bool isAnonymous, EmbedBuilder embed)
+        {
+            if (isAnonymous)
+                embed.WithGuildAsAuthor(moderator.Guild, AuthorOptions.UseFooter | AuthorOptions.Requested);
+            else
+                embed.WithUserAsAuthor(moderator, AuthorOptions.UseFooter | AuthorOptions.Requested);
         }
     }
 }
