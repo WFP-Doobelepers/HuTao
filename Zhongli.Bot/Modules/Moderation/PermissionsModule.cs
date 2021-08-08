@@ -54,7 +54,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 AddRules(channels, c => new ChannelCriterion(c.Id, c is ICategoryChannel));
 
             if (options.Roles is not null)
-                AddRules(options.Roles, u => new UserCriterion(u.Id));
+                AddRules(options.Roles, u => new RoleCriterion(u.Id));
 
             if (options.Permission is not null)
                 rules.Add(new PermissionCriterion(options.Permission.Value));
