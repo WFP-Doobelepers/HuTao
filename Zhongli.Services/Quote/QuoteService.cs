@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Zhongli.Services.AutoRemoveMessage;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Quote
 {
@@ -48,7 +49,7 @@ namespace Zhongli.Services.Quote
                 .AddContent(message)
                 .AddOtherEmbed(message)
                 .AddActivity(message)
-                .AddMeta(message)
+                .AddMeta(message, AuthorOptions.IncludeId)
                 .AddJumpLink(message, executingUser);
 
             return embed;

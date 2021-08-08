@@ -62,11 +62,13 @@ namespace Zhongli.Services.Quote
         public static EmbedBuilder AddContent(this EmbedBuilder embed, IMessage message)
             => embed.AddContent(message.Content);
 
-        public static EmbedBuilder AddContent(this EmbedBuilder embed, string content) =>
-            string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
+        public static EmbedBuilder AddContent(this EmbedBuilder embed, string content)
+            => string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
 
         public static EmbedBuilder AddJumpLink(this EmbedBuilder embed, IMessage message, IMentionable executingUser)
-            => embed.AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);
+            => embed
+                .AddField("Quoted by", executingUser.Mention, true)
+                .AddField("Author", $"{message.Author.Mention} from {Format.Bold(message.GetJumpUrlForEmbed())}", true);
 
         public static EmbedBuilder AddJumpLink(this EmbedBuilder embed, IMessage message, bool useTitle = false)
             => useTitle
