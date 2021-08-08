@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -73,8 +72,6 @@ namespace Zhongli.Services.Core.Listeners
             _commands.AddTypeReader<IUserMessage>(new TypeReaders.MessageTypeReader<IMessage>());
 
             _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-
-            _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
 
             _commands.AddTypeReader<RegexOptions>(
                 new EnumFlagsTypeReader<RegexOptions>(
