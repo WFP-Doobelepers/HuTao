@@ -74,7 +74,6 @@ namespace Zhongli.Services.Core.Listeners
 
             _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
 
-            _commands.AddTypeReader<IEmote>(new EmoteTypeReader());
             _commands.AddTypeReader<IEnumerable<IEmote>>(new EnumerableTypeReader<EmoteTypeReader, IEmote>());
 
             _commands.AddTypeReader<RegexOptions>(
