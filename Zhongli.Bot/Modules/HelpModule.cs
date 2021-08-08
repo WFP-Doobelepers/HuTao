@@ -38,7 +38,7 @@ namespace Zhongli.Bot.Modules
             var argumentBuilder = new StringBuilder()
                 .AppendLine($"{Format.Code("[ ]")}: Optional arguments.")
                 .AppendLine($"{Format.Code("< >")}: Required arguments.")
-                .AppendLine($"{Format.Code("[...]")}: List of arguments separated by spaces.")
+                .AppendLine($"{Format.Code("[...]")}: List of arguments separated by {Format.Code(",")}.")
                 .AppendLine(
                     $"▌Provide values by doing {Format.Code("name: value")} " +
                     $"or {Format.Code("name: \"value with spaces\"")}.");

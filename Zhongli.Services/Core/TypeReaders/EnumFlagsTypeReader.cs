@@ -12,8 +12,8 @@ namespace Zhongli.Services.Core.TypeReaders
         private readonly string _separator;
         private readonly StringSplitOptions _splitOptions;
 
-        public EnumFlagsTypeReader(bool ignoreCase = true,
-            string separator = " ", StringSplitOptions splitOptions = StringSplitOptions.None)
+        public EnumFlagsTypeReader(bool ignoreCase = true, string separator = ",",
+            StringSplitOptions splitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
         {
             _splitOptions = splitOptions;
             _ignoreCase   = ignoreCase;

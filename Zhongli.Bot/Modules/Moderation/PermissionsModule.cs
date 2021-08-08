@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -42,16 +43,18 @@ namespace Zhongli.Bot.Modules.Moderation
             var moderator = (IGuildUser) Context.User;
             var rules = new List<Criterion>();
 
-            var channel = options.Channel;
+            void AddRules<T>(IEnumerable<T> source, Func<T, Criterion> factory)
+                => rules.AddRange(source.Select(factory.Invoke));
 
-            if (options.User is not null)
-                rules.Add(new UserCriterion(options.User.Id));
+            if (options.Users is not null)
+                AddRules(options.Users, u => new UserCriterion(u.Id));
 
-            if (channel is ITextChannel or ICategoryChannel)
-                rules.Add(new ChannelCriterion(channel.Id, channel is ICategoryChannel));
+            var channels = options.Channels?.Where(c => c is ICategoryChannel or ITextChannel);
+            if (channels is not null)
+                AddRules(channels, c => new ChannelCriterion(c.Id, c is ICategoryChannel));
 
-            if (options.Role is not null)
-                rules.Add(new RoleCriterion(options.Role.Id));
+            if (options.Roles is not null)
+                AddRules(options.Roles, u => new UserCriterion(u.Id));
 
             if (options.Permission is not null)
                 rules.Add(new PermissionCriterion(options.Permission.Value));
@@ -99,7 +102,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var results = await prompts.GetAnswersAsync();
 
             var moderator = (IGuildUser) Context.User;
-            var user = await _db.Users.TrackUserAsync(moderator);
+            _ = await _db.Users.TrackUserAsync(moderator);
             var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
             guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow,
@@ -124,14 +127,14 @@ namespace Zhongli.Bot.Modules.Moderation
             [HelpSummary("The permissions that the user must have.")]
             public GuildPermission? Permission { get; set; }
 
-            [HelpSummary("The text or category channel this permission will work on.")]
-            public IChannel? Channel { get; set; }
+            [HelpSummary("The text or category channels this permission will work on.")]
+            public IEnumerable<IGuildChannel>? Channels { get; set; }
 
-            [HelpSummary("The user(s) that are allowed to use the command.")]
-            public IGuildUser? User { get; set; }
+            [HelpSummary("The users that are allowed to use the command.")]
+            public IEnumerable<IGuildUser>? Users { get; set; }
 
-            [HelpSummary("The specific role that the user must have.")]
-            public IRole? Role { get; set; }
+            [HelpSummary("The roles that the user must have.")]
+            public IEnumerable<IRole>? Roles { get; set; }
         }
 
         private enum ConfigureOptions

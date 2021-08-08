@@ -13,7 +13,7 @@ namespace Zhongli.Services.Core.TypeReaders
         private readonly StringSplitOptions _splitOptions;
         private readonly TReader _typeReader;
 
-        public EnumerableTypeReader(TReader? typeReader = null, string separator = " ",
+        public EnumerableTypeReader(TReader? typeReader = null, string separator = ",",
             StringSplitOptions splitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
         {
             _typeReader   = typeReader ?? new TReader();
