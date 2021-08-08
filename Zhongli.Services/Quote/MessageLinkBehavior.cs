@@ -47,7 +47,7 @@ namespace Zhongli.Services.Quote
             if (cachedMessage is null)
                 return;
 
-            if (MessageExtensions.JumpUrlRegex.IsMatch(cachedMessage.Content))
+            if (RegexUtilities.JumpUrl.IsMatch(cachedMessage.Content))
                 return;
 
             await OnMessageReceivedAsync(notification.NewMessage, cancellationToken);
@@ -66,15 +66,14 @@ namespace Zhongli.Services.Quote
             if (!await _auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
                 return;
 
-            foreach (Match match in MessageExtensions.JumpUrlRegex.Matches(message.Content))
+            foreach (Match match in RegexUtilities.JumpUrl.Matches(message.Content))
             {
                 // check if the link is surrounded with < and >. This was too annoying to do in regex
                 if (match.Groups["OpenBrace"].Success && match.Groups["CloseBrace"].Success)
                     continue;
 
-                if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
-                    !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
-                    !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) continue;
+                if (!MessageExtensions.TryGetJumpUrl(match, out _, out var channelId, out var messageId))
+                    continue;
 
                 try
                 {

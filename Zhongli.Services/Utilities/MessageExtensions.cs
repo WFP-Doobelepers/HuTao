@@ -8,11 +8,10 @@ namespace Zhongli.Services.Utilities
 {
     public static class MessageExtensions
     {
-        private const string Pattern =
-            @"(?<Prelink>\S+\s+\S*)?(?<OpenBrace><)?https?://(?:(?:ptb|canary)\.)?discord(app)?\.com/channels/(?<GuildId>\d+)/(?<ChannelId>\d+)/(?<MessageId>\d+)/?(?<CloseBrace>>)?(?<Postlink>\S*\s+\S+)?";
-
-        public static readonly Regex JumpUrlRegex =
-            new(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        public static bool TryGetJumpUrl(Match match, out ulong guildId, out ulong channelId, out ulong messageId) =>
+            ulong.TryParse(match.Groups["GuildId"].Value, out guildId)
+            & ulong.TryParse(match.Groups["ChannelId"].Value, out channelId)
+            & ulong.TryParse(match.Groups["MessageId"].Value, out messageId);
 
         public static string GetJumpUrlForEmbed(this IMessage message)
             => Format.Url($"#{message.Channel.Name} (click here)", message.GetJumpUrl());
@@ -41,11 +40,8 @@ namespace Zhongli.Services.Utilities
         public static async Task<IMessage?> GetMessageFromUrlAsync(this ICommandContext context, string jumpUrl,
             bool allowNsfw = false)
         {
-            var match = JumpUrlRegex.Match(jumpUrl);
-
-            if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
-                !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
-                !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) return null;
+            if (!TryGetJumpUrl(RegexUtilities.JumpUrl.Match(jumpUrl), out _, out var channelId, out var messageId))
+                return null;
 
             var channel = await context.Guild.GetTextChannelAsync(channelId);
             return await GetMessageAsync(channel, messageId);
@@ -54,11 +50,8 @@ namespace Zhongli.Services.Utilities
         public static async Task<IMessage?> GetMessageFromUrlAsync(this BaseSocketClient client, string jumpUrl,
             bool allowNsfw = false)
         {
-            var match = JumpUrlRegex.Match(jumpUrl);
-
-            if (!ulong.TryParse(match.Groups["GuildId"].Value, out _) ||
-                !ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId) ||
-                !ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)) return null;
+            if (!TryGetJumpUrl(RegexUtilities.JumpUrl.Match(jumpUrl), out _, out var channelId, out var messageId))
+                return null;
 
             return await client.GetMessageAsync(channelId, messageId, allowNsfw);
         }

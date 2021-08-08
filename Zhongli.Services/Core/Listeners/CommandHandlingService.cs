@@ -68,10 +68,9 @@ namespace Zhongli.Services.Core.Listeners
 
         public async Task InitializeAsync()
         {
+            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
             _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
             _commands.AddTypeReader<IUserMessage>(new TypeReaders.MessageTypeReader<IMessage>());
-
-            _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
 
             _commands.AddTypeReader<RegexOptions>(
                 new EnumFlagsTypeReader<RegexOptions>(
