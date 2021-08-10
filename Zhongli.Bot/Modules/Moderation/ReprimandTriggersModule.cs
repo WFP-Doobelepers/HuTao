@@ -20,9 +20,8 @@ namespace Zhongli.Bot.Modules.Moderation
         public ReprimandTriggersModule(ZhongliContext db) { _db = db; }
 
         [Command("banAt")]
-        public async Task BanAtAsync(uint amount, TriggerSource source,
-            TriggerMode mode = TriggerMode.Default, uint deleteDays = 0,
-            TimeSpan? length = null)
+        public async Task BanAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default,
+            uint deleteDays = 0, TimeSpan? length = null)
         {
             var trigger = new BanTrigger(amount, source, mode, deleteDays, length);
             await TryAddTriggerAsync(trigger);
@@ -44,9 +43,10 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("warnAt")]
-        public async Task WarnAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default)
+        public async Task WarnAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default,
+            uint count = 1)
         {
-            var trigger = new WarningTrigger(amount, source, mode);
+            var trigger = new WarningTrigger(amount, source, mode, count);
             await TryAddTriggerAsync(trigger);
         }
 

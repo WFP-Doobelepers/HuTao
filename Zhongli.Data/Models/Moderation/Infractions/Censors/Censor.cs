@@ -5,7 +5,7 @@ using Zhongli.Data.Models.Criteria;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
-    public abstract class Censor : IModerationAction, ICensor
+    public abstract class Censor : ICensor, IModerationAction
     {
         protected Censor() { }
 

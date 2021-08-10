@@ -51,7 +51,7 @@ namespace Zhongli.Services.Moderation
                 KickCensor            => TryKickAsync(details, cancellationToken)!,
                 MuteCensor mute       => TryMuteAsync(mute.Length, details, cancellationToken)!,
                 NoticeCensor          => NoticeAsync(details, cancellationToken),
-                WarningCensor warning => WarnAsync(warning.Amount, details, cancellationToken),
+                WarningCensor warning => WarnAsync(warning.Count, details, cancellationToken),
                 _                     => null
             };
 

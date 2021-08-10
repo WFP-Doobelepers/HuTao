@@ -2,15 +2,12 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Warning : ExpirableReprimandAction
+    public class Warning : ExpirableReprimandAction, IWarning
     {
         protected Warning() { }
 
-        public Warning(uint amount, TimeSpan? length, ReprimandDetails details) : base(length, details)
-        {
-            Amount = amount;
-        }
+        public Warning(uint count, TimeSpan? length, ReprimandDetails details) : base(length, details) { Count = count; }
 
-        public uint Amount { get; set; }
+        public uint Count { get; set; }
     }
 }

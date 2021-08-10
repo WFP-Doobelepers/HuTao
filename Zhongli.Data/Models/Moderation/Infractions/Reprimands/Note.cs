@@ -1,6 +1,6 @@
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Note : ReprimandAction
+    public class Note : ReprimandAction, INote
     {
         protected Note() { }
 

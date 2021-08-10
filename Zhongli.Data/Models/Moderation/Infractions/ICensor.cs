@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Zhongli.Data.Models.Moderation.Infractions.Censors
+namespace Zhongli.Data.Models.Moderation.Infractions
 {
     public interface ICensor
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 using Discord;
-using Zhongli.Data.Models.Moderation.Infractions.Censors;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Services.Moderation

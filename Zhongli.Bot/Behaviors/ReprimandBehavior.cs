@@ -62,7 +62,7 @@ namespace Zhongli.Bot.Behaviors
             BanTrigger b     => await _moderation.TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
             KickTrigger      => await _moderation.TryKickAsync(details, cancellationToken),
             MuteTrigger m    => await _moderation.TryMuteAsync(m.Length, details, cancellationToken),
-            WarningTrigger w => await _moderation.WarnAsync(1, details, cancellationToken),
+            WarningTrigger w => await _moderation.WarnAsync(w.Count, details, cancellationToken),
             NoticeTrigger    => await _moderation.NoticeAsync(details, cancellationToken),
             _                => null
         };

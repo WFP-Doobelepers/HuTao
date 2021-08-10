@@ -61,7 +61,7 @@ namespace Zhongli.Services.Moderation
             => (uint) Reprimands<T>(user, showHidden).LongCount();
 
         public static uint WarningCount(this GuildUserEntity user, bool showHidden = false)
-            => (uint) Reprimands<Warning>(user, showHidden).Sum(w => w.Amount);
+            => (uint) Reprimands<Warning>(user, showHidden).Sum(w => w.Count);
 
         public static async ValueTask<GuildEntity> GetGuildAsync(this ReprimandAction reprimand, DbContext db,
             CancellationToken cancellationToken = default)

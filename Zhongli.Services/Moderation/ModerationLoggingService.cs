@@ -28,7 +28,7 @@ namespace Zhongli.Services.Moderation
                 Mute m     => $"{user} was muted for {GetLength(m)}.",
                 Note       => $"{user} was given a note.",
                 Notice     => $"{user} was given a notice.",
-                Warning w  => $"{user} was warned {w.Amount} times.",
+                Warning w  => $"{user} was warned {w.Count} times.",
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
