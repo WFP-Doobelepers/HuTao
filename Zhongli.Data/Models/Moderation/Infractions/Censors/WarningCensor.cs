@@ -1,16 +1,10 @@
-using System.Text.RegularExpressions;
-
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
     public class WarningCensor : Censor, IWarning
     {
         protected WarningCensor() { }
 
-        public WarningCensor(uint amount, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
-            options)
-        {
-            Count = amount;
-        }
+        public WarningCensor(string pattern, ICensorOptions? options, uint count) : base(pattern, options) { Count = count; }
 
         public uint Count { get; set; }
     }

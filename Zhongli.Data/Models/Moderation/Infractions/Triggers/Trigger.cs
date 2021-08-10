@@ -13,11 +13,11 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 
         public Guid Id { get; set; }
 
+        public TriggerSource Source { get; set; }
+
         public ModerationAction Action { get; set; }
 
         public TriggerMode Mode { get; set; }
-
-        public TriggerSource Source { get; set; }
 
         public uint Amount { get; set; }
     }

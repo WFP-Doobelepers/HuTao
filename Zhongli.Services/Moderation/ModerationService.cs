@@ -11,9 +11,10 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
-using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Utilities;
+using IBan = Zhongli.Data.Models.Moderation.Infractions.IBan;
 
 namespace Zhongli.Services.Moderation
 {
@@ -35,28 +36,17 @@ namespace Zhongli.Services.Moderation
             _scope   = scope;
         }
 
-        public async Task CensorAsync(Censor censor, SocketMessage message,
-            ReprimandDetails details,
+        public async Task CensorAsync(Censored censored, SocketMessage message, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            var censored = new Censored(censor, message.Content, details);
-
-            _db.Add(censored);
-            await _db.SaveChangesAsync(cancellationToken);
-
             await message.DeleteAsync();
-            var secondary = censor switch
-            {
-                BanCensor ban         => TryBanAsync(ban.DeleteDays, ban.Length, details, cancellationToken)!,
-                KickCensor            => TryKickAsync(details, cancellationToken)!,
-                MuteCensor mute       => TryMuteAsync(mute.Length, details, cancellationToken)!,
-                NoticeCensor          => NoticeAsync(details, cancellationToken),
-                WarningCensor warning => WarnAsync(warning.Count, details, cancellationToken),
-                _                     => null
-            };
 
-            if (secondary is not null)
-                await secondary;
+            var user = await censored.GetUserAsync(_db, cancellationToken);
+            var count = user.Reprimands<Censored>()
+                .Where(t => t.Censor.Id == censored.Censor.Id);
+
+            if (censored.Censor.IsTriggered((uint) count.LongCount()))
+                await TryReprimandTriggerAsync(censored.Censor, details, cancellationToken);
 
             var request = new ReprimandRequest<Censored>(details, censored);
             await PublishReprimandAsync(request, details, cancellationToken);
@@ -205,6 +195,17 @@ namespace Zhongli.Services.Moderation
             await _logging.PublishReprimandAsync(mute, details, cancellationToken);
             return mute;
         }
+
+        public async Task<ReprimandResult?> TryReprimandTriggerAsync(ITrigger? trigger, ReprimandDetails details,
+            CancellationToken cancellationToken) => trigger switch
+        {
+            IBan b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+            IKick      => await TryKickAsync(details, cancellationToken),
+            IMute m    => await TryMuteAsync(m.Length, details, cancellationToken),
+            IWarning w => await WarnAsync(w.Count, details, cancellationToken),
+            INotice    => await NoticeAsync(details, cancellationToken),
+            _          => null
+        };
 
         public async Task<ReprimandResult> NoticeAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)

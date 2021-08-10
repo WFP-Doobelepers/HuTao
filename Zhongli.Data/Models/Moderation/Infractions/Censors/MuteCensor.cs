@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,11 +8,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected MuteCensor() { }
 
-        public MuteCensor(TimeSpan? length, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
-            options)
-        {
-            Length = length;
-        }
+        public MuteCensor(string pattern, ICensorOptions? options, TimeSpan? length) : base(pattern, options) { Length = length; }
 
         public TimeSpan? Length { get; set; }
     }

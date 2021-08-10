@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zhongli.Data;
@@ -9,9 +10,10 @@ using Zhongli.Data;
 namespace Zhongli.Data.Migrations
 {
     [DbContext(typeof(ZhongliContext))]
-    partial class ZhongliContextModelSnapshot : ModelSnapshot
+    [Migration("20210810111748_AddCensorTriggers")]
+    partial class AddCensorTriggers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -597,9 +599,6 @@ namespace Zhongli.Data.Migrations
                 {
                     b.HasBaseType("Zhongli.Data.Models.Moderation.Infractions.Reprimands.ReprimandAction");
 
-                    b.Property<Guid>("CensorId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text");
@@ -610,8 +609,6 @@ namespace Zhongli.Data.Migrations
                     b.Property<string>("Pattern")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.HasIndex("CensorId");
 
                     b.HasDiscriminator().HasValue("Censored");
                 });
@@ -985,17 +982,6 @@ namespace Zhongli.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Guild");
-                });
-
-            modelBuilder.Entity("Zhongli.Data.Models.Moderation.Infractions.Reprimands.Censored", b =>
-                {
-                    b.HasOne("Zhongli.Data.Models.Moderation.Infractions.Censors.Censor", "Censor")
-                        .WithMany()
-                        .HasForeignKey("CensorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Censor");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Authorization.AuthorizationGroup", b =>

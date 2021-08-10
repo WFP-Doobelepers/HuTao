@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 
@@ -7,13 +8,19 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Censored() { }
 
-        public Censored(ICensor censor, string content, ReprimandDetails details) : base(details)
+        public Censored(Censor censor, string content, ReprimandDetails details) : base(details)
         {
+            Censor = censor;
+
             Pattern = censor.Pattern;
             Options = censor.Options;
 
             Content = content;
         }
+
+        public Guid CensorId { get; set; }
+
+        public virtual Censor Censor { get; set; }
 
         public string Content { get; set; }
 

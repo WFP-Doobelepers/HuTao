@@ -1,11 +1,9 @@
-using System.Text.RegularExpressions;
-
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
     public class NoticeCensor : Censor, INotice
     {
         protected NoticeCensor() { }
 
-        public NoticeCensor(string pattern, RegexOptions options = RegexOptions.None) : base(pattern, options) { }
+        public NoticeCensor(string pattern, ICensorOptions? options) : base(pattern, options) { }
     }
 }

@@ -56,17 +56,6 @@ namespace Zhongli.Bot.Behaviors
                 .FirstOrDefault();
         }
 
-        private async Task<ReprimandResult?> TrySecondaryReprimandAsync(ITrigger? trigger, ReprimandDetails details,
-            CancellationToken cancellationToken) => trigger switch
-        {
-            BanTrigger b     => await _moderation.TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-            KickTrigger      => await _moderation.TryKickAsync(details, cancellationToken),
-            MuteTrigger m    => await _moderation.TryMuteAsync(m.Length, details, cancellationToken),
-            WarningTrigger w => await _moderation.WarnAsync(w.Count, details, cancellationToken),
-            NoticeTrigger    => await _moderation.NoticeAsync(details, cancellationToken),
-            _                => null
-        };
-
         private async Task<ReprimandResult> HandleReprimand<T>(ReprimandRequest<T> request,
             CancellationToken cancellationToken) where T : ReprimandAction
         {
@@ -81,7 +70,7 @@ namespace Zhongli.Bot.Behaviors
             var currentUser = await moderator.Guild.GetCurrentUserAsync();
             var details = new ReprimandDetails(user, currentUser, source, reason);
 
-            var secondary = await TrySecondaryReprimandAsync(trigger, details, cancellationToken);
+            var secondary = await _moderation.TryReprimandTriggerAsync(trigger, details, cancellationToken);
             return new ReprimandResult(reprimand, secondary);
         }
     }

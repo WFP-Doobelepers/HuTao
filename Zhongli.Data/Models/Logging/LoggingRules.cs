@@ -9,7 +9,7 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual GuildEntity Guild { get; set; }
 
-        public LoggingOptions Options { get; set; } = LoggingOptions.Default;
+        public LoggingOptions Options { get; set; } = LoggingOptions.None;
 
         public ReprimandNoticeType NotifyReprimands { get; set; } = ReprimandNoticeType.None;
 

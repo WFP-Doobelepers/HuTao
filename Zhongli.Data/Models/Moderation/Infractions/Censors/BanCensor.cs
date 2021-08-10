@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,9 +8,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected BanCensor() { }
 
-        public BanCensor(uint deleteDays, TimeSpan? length, string pattern,
-            RegexOptions options = RegexOptions.None) : base(pattern,
-            options)
+        public BanCensor(string pattern, ICensorOptions? options, uint deleteDays, TimeSpan? length) : base(pattern, options)
         {
             DeleteDays = deleteDays;
             Length     = length;

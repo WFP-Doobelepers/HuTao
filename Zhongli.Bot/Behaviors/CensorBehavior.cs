@@ -52,7 +52,12 @@ namespace Zhongli.Bot.Behaviors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
                 .Where(c => c.Regex().IsMatch(message.Content)))
             {
-                await _moderation.CensorAsync(censor, message, details, cancellationToken);
+                var censored = new Censored(censor, message.Content, details);
+
+                _db.Add(censored);
+                await _db.SaveChangesAsync(cancellationToken);
+
+                await _moderation.CensorAsync(censored, message, details, cancellationToken);
             }
         }
     }

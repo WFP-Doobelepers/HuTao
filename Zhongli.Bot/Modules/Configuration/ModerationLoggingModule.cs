@@ -23,13 +23,13 @@ namespace Zhongli.Bot.Modules.Configuration
         [Summary("Configure the moderation logging options.")]
         public async Task AnonymousAsync(
             [Summary("The logging option to configure. Leave blank for default (none).")]
-            LoggingOptions type = LoggingOptions.Default,
+            LoggingOptions type = LoggingOptions.None,
             [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
             bool? state = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.Options = type is LoggingOptions.Default
-                ? LoggingOptions.Default
+            guild.LoggingRules.Options = type is LoggingOptions.All
+                ? LoggingOptions.All
                 : guild.LoggingRules.Options.SetValue(type, state);
 
             await _db.SaveChangesAsync();

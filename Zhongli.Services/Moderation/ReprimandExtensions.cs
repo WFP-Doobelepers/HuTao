@@ -37,6 +37,19 @@ namespace Zhongli.Services.Moderation
             .AddReprimand<Kick>(user)
             .AddReprimand<Note>(user);
 
+        public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = false)
+            where T : ReprimandAction
+        {
+            var reprimands = user.Guild.ReprimandHistory
+                .Where(r => r.UserId == user.Id
+                    && r.Status is not ReprimandStatus.Deleted)
+                .OfType<T>();
+
+            return countHidden
+                ? reprimands
+                : reprimands.Where(IsCounted);
+        }
+
         public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,
             CancellationToken cancellationToken)
             => db.Guilds.TrackGuildAsync(details.User.Guild, cancellationToken);
@@ -84,18 +97,5 @@ namespace Zhongli.Services.Moderation
         private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
             where T : ReprimandAction => embed
             .AddField(typeof(T).Name.Pluralize(), $"{user.HistoryCount<T>()}/{user.HistoryCount<T>(true)}", true);
-
-        private static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = false)
-            where T : ReprimandAction
-        {
-            var reprimands = user.Guild.ReprimandHistory
-                .Where(r => r.UserId == user.Id
-                    && r.Status is not ReprimandStatus.Deleted)
-                .OfType<T>();
-
-            return countHidden
-                ? reprimands
-                : reprimands.Where(IsCounted);
-        }
     }
 }

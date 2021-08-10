@@ -4,8 +4,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
     {
         TriggerMode Mode { get; set; }
 
-        TriggerSource Source { get; set; }
-
         uint Amount { get; set; }
     }
 }
