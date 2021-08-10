@@ -59,8 +59,8 @@ namespace Zhongli.Bot.Modules.Configuration
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
-            guild.LoggingRules.NotifyReprimands = type is ReprimandNoticeType.All
-                ? ReprimandNoticeType.All
+            guild.LoggingRules.NotifyReprimands = type is ReprimandNoticeType.None
+                ? ReprimandNoticeType.None
                 : guild.LoggingRules.NotifyReprimands.SetValue(type, notifyUser);
 
             await _db.SaveChangesAsync();
