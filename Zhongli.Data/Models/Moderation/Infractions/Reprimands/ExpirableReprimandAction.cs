@@ -15,13 +15,13 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             ExpireAt  = StartedAt + Length;
         }
 
-        public TimeSpan? Length { get; set; }
+        public DateTimeOffset StartedAt { get; set; }
 
         public DateTimeOffset? EndedAt { get; set; }
 
         public DateTimeOffset? ExpireAt { get; set; }
 
-        public DateTimeOffset StartedAt { get; set; }
+        public TimeSpan? Length { get; set; }
     }
 
     public class ExpireReprimandActionConfiguration : IEntityTypeConfiguration<ExpirableReprimandAction>

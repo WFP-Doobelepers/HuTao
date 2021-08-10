@@ -6,7 +6,10 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Warning() { }
 
-        public Warning(uint count, TimeSpan? length, ReprimandDetails details) : base(length, details) { Count = count; }
+        public Warning(uint count, TimeSpan? length, ReprimandDetails details) : base(length, details)
+        {
+            Count = count;
+        }
 
         public uint Count { get; set; }
     }

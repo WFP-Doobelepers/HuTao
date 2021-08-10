@@ -6,7 +6,10 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Ban() { }
 
-        public Ban(uint deleteDays, TimeSpan? length, ReprimandDetails details) : base(length, details) { DeleteDays = deleteDays; }
+        public Ban(uint deleteDays, TimeSpan? length, ReprimandDetails details) : base(length, details)
+        {
+            DeleteDays = deleteDays;
+        }
 
         public uint DeleteDays { get; set; }
     }

@@ -52,21 +52,6 @@ namespace Zhongli.Services.Image
         }
 
         /// <inheritdoc />
-        public async ValueTask<Color> GetDominantColorAsync(Uri location)
-        {
-            var key = GetKey(location);
-
-            if (_cache.TryGetValue(key, out Color color)) return color;
-
-            var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
-            color = GetDominantColor(imageBytes);
-
-            _cache.Set(key, color, TimeSpan.FromDays(7));
-
-            return color;
-        }
-
-        /// <inheritdoc />
         public Color GetDominantColor(byte[] imageBytes)
         {
             var quantizedColor = _colorThief.GetColor(imageBytes.ToBitmap(), 8);
@@ -83,6 +68,21 @@ namespace Zhongli.Services.Image
                 colorTask = GetDominantColorAsync(new Uri(avatarUrl));
 
             return colorTask;
+        }
+
+        /// <inheritdoc />
+        public async ValueTask<Color> GetDominantColorAsync(Uri location)
+        {
+            var key = GetKey(location);
+
+            if (_cache.TryGetValue(key, out Color color)) return color;
+
+            var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
+            color = GetDominantColor(imageBytes);
+
+            _cache.Set(key, color, TimeSpan.FromDays(7));
+
+            return color;
         }
 
         private static object GetKey(Uri uri) => new { Target = "DominantColor", uri.AbsoluteUri };

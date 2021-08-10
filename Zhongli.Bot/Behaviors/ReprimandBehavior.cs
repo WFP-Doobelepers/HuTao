@@ -33,7 +33,7 @@ namespace Zhongli.Bot.Behaviors
         public Task<ReprimandResult> Handle(ReprimandRequest<Warning> request, CancellationToken cancellationToken)
             => HandleReprimand(request, cancellationToken);
 
-        private static (string Reason, TriggerSource Trigger, ModerationSource Source) GetDetails<T>(ReprimandRequest<T> request)
+        private static (string, TriggerSource, ModerationSource) GetDetails<T>(ReprimandRequest<T> request)
             where T : ReprimandAction => request.Reprimand switch
         {
             Censored => ($"[{nameof(Censored)} Count Trigger]", TriggerSource.Censored, ModerationSource.Censor),

@@ -36,10 +36,6 @@ namespace Zhongli.Services.CommandHelp
                 ? Surround(parameter.Name, parameter.IsOptional)
                 : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
 
-        private static string GetParamTypeName(this ParameterHelpData parameter) => parameter.Type.IsIEnumerableOfT()
-            ? $"{parameter.GetRealType().Name} [...]"
-            : parameter.GetRealType().Name;
-
         private static string GetParams(this CommandHelpData info)
         {
             var sb = new StringBuilder();
@@ -51,6 +47,10 @@ namespace Zhongli.Services.CommandHelp
 
             return sb.ToString();
         }
+
+        private static string GetParamTypeName(this ParameterHelpData parameter) => parameter.Type.IsIEnumerableOfT()
+            ? $"{parameter.GetRealType().Name} [...]"
+            : parameter.GetRealType().Name;
 
         private static string Surround(string text, bool isNullable) => isNullable ? $"[{text}]" : $"<{text}>";
 

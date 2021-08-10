@@ -8,7 +8,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected BanCensor() { }
 
-        public BanCensor(string pattern, ICensorOptions? options, uint deleteDays, TimeSpan? length) : base(pattern, options)
+        public BanCensor(string pattern, ICensorOptions? options, uint deleteDays, TimeSpan? length)
+            : base(pattern, options)
         {
             DeleteDays = deleteDays;
             Length     = length;

@@ -12,8 +12,8 @@ namespace Zhongli.Data.Models.Criteria
             IsCategory = isCategory;
         }
 
-        public ulong ChannelId { get; set; }
-
         public bool IsCategory { get; set; }
+
+        public ulong ChannelId { get; set; }
     }
 }

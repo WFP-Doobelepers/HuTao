@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
-using Discord.WebSocket;
 
 namespace Zhongli.Services.Utilities
 {

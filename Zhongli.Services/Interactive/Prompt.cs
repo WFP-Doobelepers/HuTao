@@ -32,8 +32,8 @@ namespace Zhongli.Services.Interactive
 
         public T Key { get; }
 
-        public TypeReader? TypeReader { get; set; }
-
         public ICollection<ICriterion<SocketMessage>>? Criteria { get; }
+
+        public TypeReader? TypeReader { get; set; }
     }
 }

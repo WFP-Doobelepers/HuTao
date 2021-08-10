@@ -4,7 +4,10 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected WarningCensor() { }
 
-        public WarningCensor(string pattern, ICensorOptions? options, uint count) : base(pattern, options) { Count = count; }
+        public WarningCensor(string pattern, ICensorOptions? options, uint count) : base(pattern, options)
+        {
+            Count = count;
+        }
 
         public uint Count { get; set; }
     }

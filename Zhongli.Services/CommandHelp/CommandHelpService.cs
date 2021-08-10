@@ -65,39 +65,32 @@ namespace Zhongli.Services.CommandHelp
 
         public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
-        /// <inheritdoc />
-        public IReadOnlyCollection<ModuleHelpData> GetModuleHelpData()
-            => LazyInitializer.EnsureInitialized(ref _cachedHelpData, () =>
-                _commandService.Modules
-                    .Where(x => !x.Attributes.Any(attr => attr is HiddenFromHelpAttribute))
-                    .Select(ModuleHelpData.FromModuleInfo)
-                    .ToArray());
-
-        /// <inheritdoc />
-        public ModuleHelpData? GetModuleHelpData(string query)
+        public bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
         {
-            var allHelpData = GetModuleHelpData();
+            embed = null!;
 
-            var byNameExact = allHelpData.FirstOrDefault(x => x.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
-            if (byNameExact is not null)
-                return byNameExact;
+            // Prioritize module over command.
+            if (queries.HasFlag(HelpDataType.Module))
+            {
+                var byModule = GetModuleHelpData(query);
+                if (byModule is not null)
+                {
+                    embed = GetEmbedForModule(byModule);
+                    return true;
+                }
+            }
 
-            var byTagsExact = allHelpData.FirstOrDefault(x =>
-                x.HelpTags.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
-            if (byTagsExact is not null)
-                return byTagsExact;
+            if (queries.HasFlag(HelpDataType.Command))
+            {
+                var byCommand = GetCommandHelpData(query);
+                if (byCommand is not null)
+                {
+                    embed = GetEmbedForCommand(byCommand);
+                    return true;
+                }
+            }
 
-            var byNameContains =
-                allHelpData.FirstOrDefault(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
-            if (byNameContains is not null)
-                return byNameContains;
-
-            var byTagsContains = allHelpData.FirstOrDefault(x =>
-                x.HelpTags.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
-            if (byTagsContains is not null)
-                return byTagsContains;
-
-            return null;
+            return false;
         }
 
         /// <inheritdoc />
@@ -135,32 +128,39 @@ namespace Zhongli.Services.CommandHelp
             return builder;
         }
 
-        public bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
+        /// <inheritdoc />
+        public IReadOnlyCollection<ModuleHelpData> GetModuleHelpData()
+            => LazyInitializer.EnsureInitialized(ref _cachedHelpData, () =>
+                _commandService.Modules
+                    .Where(x => !x.Attributes.Any(attr => attr is HiddenFromHelpAttribute))
+                    .Select(ModuleHelpData.FromModuleInfo)
+                    .ToArray());
+
+        /// <inheritdoc />
+        public ModuleHelpData? GetModuleHelpData(string query)
         {
-            embed = null!;
+            var allHelpData = GetModuleHelpData();
 
-            // Prioritize module over command.
-            if (queries.HasFlag(HelpDataType.Module))
-            {
-                var byModule = GetModuleHelpData(query);
-                if (byModule is not null)
-                {
-                    embed = GetEmbedForModule(byModule);
-                    return true;
-                }
-            }
+            var byNameExact = allHelpData.FirstOrDefault(x => x.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
+            if (byNameExact is not null)
+                return byNameExact;
 
-            if (queries.HasFlag(HelpDataType.Command))
-            {
-                var byCommand = GetCommandHelpData(query);
-                if (byCommand is not null)
-                {
-                    embed = GetEmbedForCommand(byCommand);
-                    return true;
-                }
-            }
+            var byTagsExact = allHelpData.FirstOrDefault(x =>
+                x.HelpTags.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
+            if (byTagsExact is not null)
+                return byTagsExact;
 
-            return false;
+            var byNameContains =
+                allHelpData.FirstOrDefault(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+            if (byNameContains is not null)
+                return byNameContains;
+
+            var byTagsContains = allHelpData.FirstOrDefault(x =>
+                x.HelpTags.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
+            if (byTagsContains is not null)
+                return byTagsContains;
+
+            return null;
         }
     }
 
@@ -168,6 +168,6 @@ namespace Zhongli.Services.CommandHelp
     public enum HelpDataType
     {
         Command = 1 << 1,
-        Module  = 1 << 2
+        Module = 1 << 2
     }
 }
