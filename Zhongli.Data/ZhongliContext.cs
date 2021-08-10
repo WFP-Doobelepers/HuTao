@@ -18,6 +18,8 @@ namespace Zhongli.Data
 
         public DbSet<BanTrigger> BanTriggers { get; init; }
 
+        public DbSet<Censored> CensoredHistory { get; set; }
+
         public DbSet<ChannelCriterion> ChannelCriteria { get; init; }
 
         public DbSet<GuildCriterion> GuildCriteria { get; init; }

@@ -50,6 +50,13 @@ namespace Zhongli.Bot.Modules.Moderation
             await TryAddTriggerAsync(trigger);
         }
 
+        [Command("noticeAt")]
+        public async Task NoticeAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default)
+        {
+            var trigger = new NoticeTrigger(amount, source, mode);
+            await TryAddTriggerAsync(trigger);
+        }
+
         private async Task TryAddTriggerAsync(Trigger trigger)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);

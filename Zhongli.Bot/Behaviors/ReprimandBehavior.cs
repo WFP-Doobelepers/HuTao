@@ -11,6 +11,7 @@ using Zhongli.Services.Moderation;
 namespace Zhongli.Bot.Behaviors
 {
     public class ReprimandBehavior :
+        IRequestHandler<ReprimandRequest<Censored>, ReprimandResult>,
         IRequestHandler<ReprimandRequest<Notice>, ReprimandResult>,
         IRequestHandler<ReprimandRequest<Warning>, ReprimandResult>
     {
@@ -23,24 +24,26 @@ namespace Zhongli.Bot.Behaviors
             _db         = db;
         }
 
+        public Task<ReprimandResult> Handle(ReprimandRequest<Censored> request, CancellationToken cancellationToken)
+            => HandleReprimand(request, cancellationToken);
+
         public Task<ReprimandResult> Handle(ReprimandRequest<Notice> request, CancellationToken cancellationToken)
             => HandleReprimand(request, cancellationToken);
 
         public Task<ReprimandResult> Handle(ReprimandRequest<Warning> request, CancellationToken cancellationToken)
             => HandleReprimand(request, cancellationToken);
 
-        private static (string Reason, TriggerSource Trigger, ModerationSource Source) GetDetails<T>(
-            ReprimandRequest<T> request) where T : ReprimandAction
-            => request.Reprimand switch
-            {
-                Notice  => ("[Notice Trigger]", TriggerSource.Notice, ModerationSource.Notice),
-                Warning => ("[Warning Trigger]", TriggerSource.Warning, ModerationSource.Warning),
-                _ => throw new ArgumentOutOfRangeException(nameof(request), request,
-                    "Unknown kind of reprimand request.")
-            };
+        private static (string Reason, TriggerSource Trigger, ModerationSource Source) GetDetails<T>(ReprimandRequest<T> request)
+            where T : ReprimandAction => request.Reprimand switch
+        {
+            Censored => ($"[{nameof(Censored)} Count Trigger]", TriggerSource.Censored, ModerationSource.Censor),
+            Notice   => ($"[{nameof(Notice)} Count Trigger]", TriggerSource.Notice, ModerationSource.Notice),
+            Warning  => ($"[{nameof(Warning)} Count Trigger]", TriggerSource.Warning, ModerationSource.Warning),
+            _ => throw new ArgumentOutOfRangeException(nameof(request), request,
+                "Unknown kind of reprimand request.")
+        };
 
-        private async Task<ITrigger?> TryGetTriggerAsync(ReprimandAction reprimand,
-            uint count, TriggerSource source,
+        private async Task<ITrigger?> TryGetTriggerAsync(ReprimandAction reprimand, uint count, TriggerSource source,
             CancellationToken cancellationToken)
         {
             var user = await reprimand.GetUserAsync(_db, cancellationToken);
@@ -54,16 +57,15 @@ namespace Zhongli.Bot.Behaviors
         }
 
         private async Task<ReprimandResult?> TrySecondaryReprimandAsync(ITrigger? trigger, ReprimandDetails details,
-            CancellationToken cancellationToken)
-            => trigger switch
-            {
-                BanTrigger b   => await _moderation.TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-                KickTrigger    => await _moderation.TryKickAsync(details, cancellationToken),
-                MuteTrigger m  => await _moderation.TryMuteAsync(m.Length, details, cancellationToken),
-                WarningTrigger => await _moderation.WarnAsync(1, details, cancellationToken),
-                NoticeTrigger  => await _moderation.NoticeAsync(details, cancellationToken),
-                _              => null
-            };
+            CancellationToken cancellationToken) => trigger switch
+        {
+            BanTrigger b     => await _moderation.TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+            KickTrigger      => await _moderation.TryKickAsync(details, cancellationToken),
+            MuteTrigger m    => await _moderation.TryMuteAsync(m.Length, details, cancellationToken),
+            WarningTrigger w => await _moderation.WarnAsync(1, details, cancellationToken),
+            NoticeTrigger    => await _moderation.NoticeAsync(details, cancellationToken),
+            _                => null
+        };
 
         private async Task<ReprimandResult> HandleReprimand<T>(ReprimandRequest<T> request,
             CancellationToken cancellationToken) where T : ReprimandAction

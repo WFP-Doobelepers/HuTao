@@ -11,6 +11,7 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Utilities;
 
@@ -32,6 +33,33 @@ namespace Zhongli.Services.Moderation
 
             _logging = logging;
             _scope   = scope;
+        }
+
+        public async Task CensorAsync(Censor censor, SocketMessage message,
+            ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            var censored = new Censored(censor, message.Content, details);
+
+            _db.Add(censored);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await message.DeleteAsync();
+            var secondary = censor switch
+            {
+                BanCensor ban         => TryBanAsync(ban.DeleteDays, ban.Length, details, cancellationToken)!,
+                KickCensor            => TryKickAsync(details, cancellationToken)!,
+                MuteCensor mute       => TryMuteAsync(mute.Length, details, cancellationToken)!,
+                NoticeCensor          => NoticeAsync(details, cancellationToken),
+                WarningCensor warning => WarnAsync(warning.Amount, details, cancellationToken),
+                _                     => null
+            };
+
+            if (secondary is not null)
+                await secondary;
+
+            var request = new ReprimandRequest<Censored>(details, censored);
+            await PublishReprimandAsync(request, details, cancellationToken);
         }
 
         public static async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)

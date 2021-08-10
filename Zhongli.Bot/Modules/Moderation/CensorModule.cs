@@ -6,6 +6,7 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -60,11 +61,31 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command("add notice")]
+        [Summary("A censor that deletes the message and gives a notice.")]
+        public async Task AddNoticeCensorAsync(string pattern, RegexOptions options = RegexOptions.None)
+        {
+            var censor = new NoticeCensor(pattern, options);
+
+            await AddCensor(censor);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("add warning")]
+        [Summary("A censor that deletes the message and does nothing to the user.")]
+        public async Task AddWarningCensorAsync(string pattern, uint amount, RegexOptions options = RegexOptions.None)
+        {
+            var censor = new WarningCensor(amount, pattern, options);
+
+            await AddCensor(censor);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         private async Task AddCensor(Censor censor)
         {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             guild.ModerationRules.Censors
-                .Add(censor.WithModerator((IGuildUser) Context.User));
+                .Add(censor.WithModerator(Context));
 
             await _db.SaveChangesAsync();
         }

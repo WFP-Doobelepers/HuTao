@@ -2,7 +2,7 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Mute : ExpirableReprimandAction, IMute, IExpirable
+    public class Mute : ExpirableReprimandAction, IMute
     {
         protected Mute() { }
 

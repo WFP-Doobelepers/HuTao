@@ -22,12 +22,13 @@ namespace Zhongli.Services.Moderation
         {
             return action switch
             {
-                Ban       => $"{user} was banned.",
-                Kick      => $"{user} was kicked.",
-                Mute m    => $"{user} was muted for {GetLength(m)}.",
-                Note      => $"{user} was given a note.",
-                Notice    => $"{user} was given a notice.",
-                Warning w => $"{user} was warned {w.Amount} times.",
+                Ban        => $"{user} was banned.",
+                Censored c => $"{user} was censored. Message: {c.CensoredMessage()}",
+                Kick       => $"{user} was kicked.",
+                Mute m     => $"{user} was muted for {GetLength(m)}.",
+                Note       => $"{user} was given a note.",
+                Notice     => $"{user} was given a notice.",
+                Warning w  => $"{user} was warned {w.Amount} times.",
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
@@ -43,12 +44,13 @@ namespace Zhongli.Services.Moderation
         {
             var title = action switch
             {
-                Ban     => nameof(Ban),
-                Kick    => nameof(Kick),
-                Mute    => nameof(Mute),
-                Note    => nameof(Note),
-                Notice  => nameof(Notice),
-                Warning => nameof(Warning),
+                Ban      => nameof(Ban),
+                Censored => nameof(Censored),
+                Kick     => nameof(Kick),
+                Mute     => nameof(Mute),
+                Note     => nameof(Note),
+                Notice   => nameof(Notice),
+                Warning  => nameof(Warning),
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
@@ -105,12 +107,13 @@ namespace Zhongli.Services.Moderation
 
             return action switch
             {
-                Ban     => type.HasFlag(ReprimandNoticeType.Ban),
-                Kick    => type.HasFlag(ReprimandNoticeType.Kick),
-                Mute    => type.HasFlag(ReprimandNoticeType.Mute),
-                Notice  => type.HasFlag(ReprimandNoticeType.Notice),
-                Warning => type.HasFlag(ReprimandNoticeType.Warning),
-                _       => false
+                Ban      => type.HasFlag(ReprimandNoticeType.Ban),
+                Censored => type.HasFlag(ReprimandNoticeType.Censor),
+                Kick     => type.HasFlag(ReprimandNoticeType.Kick),
+                Mute     => type.HasFlag(ReprimandNoticeType.Mute),
+                Notice   => type.HasFlag(ReprimandNoticeType.Notice),
+                Warning  => type.HasFlag(ReprimandNoticeType.Warning),
+                _        => false
             };
         }
 
@@ -118,12 +121,13 @@ namespace Zhongli.Services.Moderation
         {
             return action switch
             {
-                Ban     => Color.Red,
-                Kick    => Color.Red,
-                Mute    => Color.Orange,
-                Note    => Color.Blue,
-                Notice  => Color.Gold,
-                Warning => Color.Gold,
+                Ban      => Color.Red,
+                Censored => Color.Blue,
+                Kick     => Color.Red,
+                Mute     => Color.Orange,
+                Note     => Color.Blue,
+                Notice   => Color.Gold,
+                Warning  => Color.Gold,
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
@@ -216,12 +220,13 @@ namespace Zhongli.Services.Moderation
 
             return action switch
             {
-                Ban     => user.HistoryCount<Ban>(),
-                Kick    => user.HistoryCount<Kick>(),
-                Mute    => user.HistoryCount<Mute>(),
-                Note    => user.HistoryCount<Note>(),
-                Notice  => user.HistoryCount<Notice>(),
-                Warning => user.WarningCount(),
+                Ban      => user.HistoryCount<Ban>(),
+                Censored => user.HistoryCount<Censored>(),
+                Kick     => user.HistoryCount<Kick>(),
+                Mute     => user.HistoryCount<Mute>(),
+                Note     => user.HistoryCount<Note>(),
+                Notice   => user.HistoryCount<Notice>(),
+                Warning  => user.WarningCount(),
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")

@@ -7,9 +7,10 @@ namespace Zhongli.Data.Models.Logging
     {
         All     = 0,
         Ban     = 1 << 0,
-        Kick    = 1 << 1,
-        Mute    = 1 << 2,
-        Notice  = 1 << 3,
-        Warning = 1 << 4
+        Censor  = 1 << 1,
+        Kick    = 1 << 2,
+        Mute    = 1 << 3,
+        Notice  = 1 << 4,
+        Warning = 1 << 5
     }
 }
