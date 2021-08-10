@@ -12,6 +12,6 @@ namespace Zhongli.Services.Moderation
             => new(censor.Pattern, censor.Options |= RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
         public static string CensoredMessage(this Censored censored)
-            => censored.Regex().Replace(censored.Content, m => Format.Bold(m.Value));
+            => censored.Censor.Regex().Replace(censored.Content, m => Format.Bold(m.Value));
     }
 }
