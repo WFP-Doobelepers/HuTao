@@ -96,7 +96,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
 
-        public async Task<Ban?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
+        public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
@@ -122,7 +122,7 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        public async Task<Kick?> TryKickAsync(ReprimandDetails details,
+        public async Task<ReprimandResult?> TryKickAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             try
@@ -146,7 +146,7 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        public async Task<Mute?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
+        public async Task<ReprimandResult?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var activeMute = await _db.MuteHistory
@@ -178,7 +178,7 @@ namespace Zhongli.Services.Moderation
             return mute;
         }
 
-        public async Task<NoticeResult> NoticeAsync(ReprimandDetails details,
+        public async Task<ReprimandResult> NoticeAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
@@ -189,11 +189,11 @@ namespace Zhongli.Services.Moderation
 
             EnqueueExpirableReprimand(notice, cancellationToken);
 
-            var request = new ReprimandRequest<Notice, NoticeResult>(details, notice);
+            var request = new ReprimandRequest<Notice>(details, notice);
             return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        public async Task<WarningResult> WarnAsync(uint amount, ReprimandDetails details,
+        public async Task<ReprimandResult> WarnAsync(uint amount, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
@@ -204,7 +204,7 @@ namespace Zhongli.Services.Moderation
 
             EnqueueExpirableReprimand(warning, cancellationToken);
 
-            var request = new ReprimandRequest<Warning, WarningResult>(details, warning);
+            var request = new ReprimandRequest<Warning>(details, warning);
             return await PublishReprimandAsync(request, details, cancellationToken);
         }
 

@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public class MuteTrigger : WarningTrigger, IMute
+    public class MuteTrigger : Trigger, IMute
     {
-        public MuteTrigger(uint amount, TriggerMode mode, TimeSpan? length)
-            : base(amount, mode)
+        public MuteTrigger(uint amount, TriggerMode mode, TriggerSource source, TimeSpan? length)
+            : base(amount, source, mode)
         {
             Length = length;
         }

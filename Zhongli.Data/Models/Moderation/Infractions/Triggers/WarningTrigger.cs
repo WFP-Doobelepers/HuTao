@@ -1,21 +1,7 @@
-﻿using System;
-
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public abstract class WarningTrigger : IModerationAction, ITrigger
+    public class WarningTrigger : Trigger
     {
-        protected WarningTrigger(uint amount, TriggerMode mode)
-        {
-            Amount = amount;
-            Mode   = mode;
-        }
-
-        public Guid Id { get; set; }
-
-        public virtual ModerationAction Action { get; set; }
-
-        public uint Amount { get; set; }
-
-        public TriggerMode Mode { get; set; }
+        public WarningTrigger(uint amount, TriggerSource source, TriggerMode mode) : base(amount, source, mode) { }
     }
 }

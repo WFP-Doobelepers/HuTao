@@ -1,7 +1,7 @@
 ﻿namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public class KickTrigger : WarningTrigger
+    public class KickTrigger : Trigger
     {
-        public KickTrigger(uint amount, TriggerMode mode) : base(amount, mode) { }
+        public KickTrigger(uint amount, TriggerSource source, TriggerMode mode) : base(amount, source, mode) { }
     }
 }

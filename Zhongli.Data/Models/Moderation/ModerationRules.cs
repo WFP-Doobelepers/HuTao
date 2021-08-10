@@ -17,11 +17,8 @@ namespace Zhongli.Data.Models.Moderation
         public virtual ICollection<Censor> Censors { get; set; }
             = new List<Censor>();
 
-        public virtual ICollection<NoticeTrigger> NoticeTriggers { get; set; }
-            = new List<NoticeTrigger>();
-
-        public virtual ICollection<WarningTrigger> WarningTriggers { get; set; }
-            = new List<WarningTrigger>();
+        public virtual ICollection<Trigger> Triggers { get; set; }
+            = new List<Trigger>();
 
         public TimeSpan? NoticeAutoPardonLength { get; set; }
 

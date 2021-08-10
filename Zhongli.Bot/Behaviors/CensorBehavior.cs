@@ -75,7 +75,7 @@ namespace Zhongli.Bot.Behaviors
             await _db.Users.TrackUserAsync(user, cancellationToken);
 
             var currentUser = await guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(user, currentUser, ModerationSource.Censor, "[Censor trigger]");
+            var details = new ReprimandDetails(user, currentUser, ModerationSource.Censor, "[Censor Trigger]");
 
             foreach (var censor in guildEntity.ModerationRules.Censors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
@@ -98,7 +98,7 @@ namespace Zhongli.Bot.Behaviors
                     case MuteCensor mute:
                         await _moderation.TryMuteAsync(mute.Length, details, cancellationToken);
                         break;
-                    case WarnCensor warn:
+                    case WarningCensor warn:
                         await _moderation.WarnAsync(warn.Amount, details, cancellationToken);
                         break;
                 }

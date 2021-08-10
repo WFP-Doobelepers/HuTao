@@ -44,6 +44,10 @@ namespace Zhongli.Data
 
         public DbSet<Notice> NoticeHistory { get; init; }
 
+        public DbSet<NoticeCensor> NoticeCensors { get; init; }
+
+        public DbSet<NoticeTrigger> NoticeTriggers { get; init; }
+
         public DbSet<PermissionCriterion> PermissionCriteria { get; init; }
 
         public DbSet<RoleCriterion> RoleCriteria { get; init; }
@@ -52,9 +56,9 @@ namespace Zhongli.Data
 
         public DbSet<UserCriterion> UserCriteria { get; init; }
 
-        public DbSet<WarnCensor> WarnCensors { get; init; }
-
         public DbSet<Warning> WarningHistory { get; init; }
+
+        public DbSet<WarningCensor> WarnCensors { get; init; }
 
         public DbSet<WarningTrigger> WarningTriggers { get; init; }
 

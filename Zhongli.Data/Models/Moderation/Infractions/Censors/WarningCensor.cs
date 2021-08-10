@@ -2,11 +2,11 @@ using System.Text.RegularExpressions;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
-    public class WarnCensor : Censor
+    public class WarningCensor : Censor
     {
-        protected WarnCensor() { }
+        protected WarningCensor() { }
 
-        public WarnCensor(uint amount, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
+        public WarningCensor(uint amount, string pattern, RegexOptions options = RegexOptions.None) : base(pattern,
             options)
         {
             Amount = amount;

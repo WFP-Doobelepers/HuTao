@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public class BanTrigger : WarningTrigger, IBan
+    public class BanTrigger : Trigger, IBan
     {
-        public BanTrigger(uint amount, TriggerMode mode, uint deleteDays, TimeSpan? length)
-            : base(amount, mode)
+        public BanTrigger(uint amount, TriggerSource source, TriggerMode mode, uint deleteDays, TimeSpan? length)
+            : base(amount, source, mode)
         {
             DeleteDays = deleteDays;
             Length     = length;

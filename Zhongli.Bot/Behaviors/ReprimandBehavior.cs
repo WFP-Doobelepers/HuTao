@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Zhongli.Data;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Moderation;
@@ -13,8 +11,8 @@ using Zhongli.Services.Moderation;
 namespace Zhongli.Bot.Behaviors
 {
     public class ReprimandBehavior :
-        IRequestHandler<ReprimandRequest<Warning, WarningResult>, WarningResult>,
-        IRequestHandler<ReprimandRequest<Notice, NoticeResult>, NoticeResult>
+        IRequestHandler<ReprimandRequest<Notice>, ReprimandResult>,
+        IRequestHandler<ReprimandRequest<Warning>, ReprimandResult>
     {
         private readonly ModerationService _moderation;
         private readonly ZhongliContext _db;
@@ -25,62 +23,64 @@ namespace Zhongli.Bot.Behaviors
             _db         = db;
         }
 
-        public async Task<NoticeResult> Handle(ReprimandRequest<Notice, NoticeResult> request,
-            CancellationToken cancellationToken)
-        {
-            var ((user, moderator, _, _), reprimand) = request;
+        public Task<ReprimandResult> Handle(ReprimandRequest<Notice> request, CancellationToken cancellationToken)
+            => HandleReprimand(request, cancellationToken);
 
-            var trigger = await TryGetTriggerAsync(reprimand, await reprimand.CountAsync(_db, cancellationToken),
-                rules => rules.NoticeTriggers, cancellationToken);
+        public Task<ReprimandResult> Handle(ReprimandRequest<Warning> request, CancellationToken cancellationToken)
+            => HandleReprimand(request, cancellationToken);
 
-            if (trigger is null) return new NoticeResult(reprimand);
-
-            var currentUser = await moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(user, currentUser,
-                ModerationSource.Notice, "[Notice Trigger]");
-
-            var secondary = await _moderation.WarnAsync(1, details, cancellationToken);
-            return new NoticeResult(reprimand, secondary);
-        }
-
-        public async Task<WarningResult> Handle(ReprimandRequest<Warning, WarningResult> request,
-            CancellationToken cancellationToken)
-        {
-            var ((user, moderator, _, _), reprimand) = request;
-
-            var trigger = await TryGetTriggerAsync(reprimand, await reprimand.CountAsync(_db, cancellationToken),
-                rules => rules.WarningTriggers, cancellationToken);
-
-            if (trigger is null) return new WarningResult(reprimand);
-
-            var currentUser = await moderator.Guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(user, currentUser,
-                ModerationSource.Warning, "[Warning Trigger]");
-
-            ReprimandAction? secondary = trigger switch
+        private static (string Reason, TriggerSource Trigger, ModerationSource Source) GetDetails<T>(
+            ReprimandRequest<T> request) where T : ReprimandAction
+            => request.Reprimand switch
             {
-                BanTrigger ban => await _moderation.TryBanAsync(ban.DeleteDays, ban.Length, details, cancellationToken),
-                KickTrigger => await _moderation.TryKickAsync(details, cancellationToken),
-                MuteTrigger mute => await _moderation.TryMuteAsync(mute.Length, details, cancellationToken),
-                _ => null
+                Notice  => ("[Notice Trigger]", TriggerSource.Notice, ModerationSource.Notice),
+                Warning => ("[Warning Trigger]", TriggerSource.Warning, ModerationSource.Warning),
+                _ => throw new ArgumentOutOfRangeException(nameof(request), request,
+                    "Unknown kind of reprimand request.")
             };
 
-            return new WarningResult(reprimand, secondary);
-        }
-
-        private async Task<T?> TryGetTriggerAsync<T>(ReprimandAction reprimand, uint count,
-            Func<ModerationRules, IEnumerable<T>> selector,
-            CancellationToken cancellationToken) where T : ITrigger
+        private async Task<ITrigger?> TryGetTriggerAsync(ReprimandAction reprimand,
+            uint count, TriggerSource source,
+            CancellationToken cancellationToken)
         {
             var user = await reprimand.GetUserAsync(_db, cancellationToken);
             var rules = user.Guild.ModerationRules;
 
-            var trigger = selector.Invoke(rules)
+            return rules.Triggers
+                .Where(t => t.Source == source)
                 .Where(t => t.IsTriggered(count))
                 .OrderByDescending(t => t.Amount)
                 .FirstOrDefault();
+        }
 
-            return trigger;
+        private async Task<ReprimandResult?> TrySecondaryReprimandAsync(ITrigger? trigger, ReprimandDetails details,
+            CancellationToken cancellationToken)
+            => trigger switch
+            {
+                BanTrigger b   => await _moderation.TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+                KickTrigger    => await _moderation.TryKickAsync(details, cancellationToken),
+                MuteTrigger m  => await _moderation.TryMuteAsync(m.Length, details, cancellationToken),
+                WarningTrigger => await _moderation.WarnAsync(1, details, cancellationToken),
+                NoticeTrigger  => await _moderation.NoticeAsync(details, cancellationToken),
+                _              => null
+            };
+
+        private async Task<ReprimandResult> HandleReprimand<T>(ReprimandRequest<T> request,
+            CancellationToken cancellationToken) where T : ReprimandAction
+        {
+            var ((user, moderator, _, _), reprimand) = request;
+
+            var count = await reprimand.CountAsync(_db, cancellationToken);
+            var (reason, type, source) = GetDetails(request);
+            var trigger = await TryGetTriggerAsync(reprimand, count, type, cancellationToken);
+
+            if (trigger is null) return new ReprimandResult(reprimand);
+
+            var currentUser = await moderator.Guild.GetCurrentUserAsync();
+            var details = new ReprimandDetails(user, currentUser, source, reason);
+
+            var secondary = await TrySecondaryReprimandAsync(trigger, details, cancellationToken);
+            return new ReprimandResult(reprimand, secondary);
         }
     }
 }

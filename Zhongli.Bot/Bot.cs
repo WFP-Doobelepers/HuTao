@@ -31,7 +31,7 @@ namespace Zhongli.Bot
     {
         private const bool AttemptReset = true;
         private static CancellationTokenSource? _mediatorToken;
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
         private CancellationTokenSource _reconnectCts = null!;
 
         public static async Task Main() { await new Bot().StartAsync(); }
@@ -68,7 +68,7 @@ namespace Zhongli.Bot
             {
                 Log.Information("Attempting to reset the client");
 
-                var timeout = Task.Delay(Timeout);
+                var timeout = Task.Delay(ResetTimeout);
                 var connect = client.StartAsync();
                 var task = await Task.WhenAny(timeout, connect);
 
@@ -106,7 +106,7 @@ namespace Zhongli.Bot
         {
             // Check the state after <timeout> to see if we reconnected
             Log.Information("Client disconnected, starting timeout task...");
-            _ = Task.Delay(Timeout, _reconnectCts.Token).ContinueWith(async _ =>
+            _ = Task.Delay(ResetTimeout, _reconnectCts.Token).ContinueWith(async _ =>
             {
                 Log.Debug("Timeout expired, continuing to check client state...");
                 await CheckStateAsync(client);
@@ -179,7 +179,7 @@ namespace Zhongli.Bot
 
             using var server = new BackgroundJobServer();
 
-            await Task.Delay(-1);
+            await Task.Delay(Timeout.Infinite);
         }
 
         private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)

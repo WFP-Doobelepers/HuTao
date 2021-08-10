@@ -1,4 +1,5 @@
 using Discord;
+using Discord.Commands;
 
 namespace Zhongli.Data.Models.Moderation.Infractions
 {
@@ -10,5 +11,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
             return action;
         }
+
+        public static T WithModerator<T>(this T action, ICommandContext context) where T : IModerationAction
+            => action.WithModerator((IGuildUser) context.User);
     }
 }

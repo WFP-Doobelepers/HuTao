@@ -1,28 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public record ReprimandResult(ReprimandAction Reprimand)
+    public class ReprimandResult
     {
-        public virtual IEnumerable<ReprimandAction?> Secondary { get; } = Array.Empty<ReprimandAction?>();
+        public ReprimandResult(ReprimandAction primary, ReprimandResult? secondary = null)
+        {
+            Primary = primary;
+            Secondary = secondary?.Secondary.Append(secondary.Primary)
+                ?? Array.Empty<ReprimandAction>();
+        }
 
-        public virtual ReprimandAction Primary { get; } = Reprimand!;
-    }
+        public IEnumerable<ReprimandAction?> Secondary { get; }
 
-    public record WarningResult(ReprimandAction Warning, ReprimandAction? Reprimand = null)
-        : ReprimandResult(Reprimand!)
-    {
-        public override IEnumerable<ReprimandAction?> Secondary { get; } = new[] { Reprimand };
-
-        public override ReprimandAction Primary { get; } = Warning!;
-    }
-
-    public record NoticeResult(ReprimandAction Notice, WarningResult? Result = null)
-        : WarningResult(Result?.Warning!, Result?.Reprimand)
-    {
-        public override IEnumerable<ReprimandAction?> Secondary { get; } = new[] { Result?.Warning, Result?.Reprimand };
-
-        public override ReprimandAction Primary { get; } = Notice;
+        public ReprimandAction Primary { get; }
     }
 }
