@@ -136,20 +136,6 @@ namespace Zhongli.Bot.Modules
             await UserAsync(user);
         }
 
-        public async Task HideReprimandAsync(Guid id)
-        {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
-            var reprimand = guild.ReprimandHistory.FirstOrDefault(r => r.Id == id);
-            if (reprimand is null)
-                return;
-
-            reprimand.Status = ReprimandStatus.Hidden;
-            await _db.SaveChangesAsync();
-
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
         private static EmbedFieldBuilder CreateEmbed(IUser user, ReprimandAction r)
         {
             var moderator = r.Action.Moderator;
