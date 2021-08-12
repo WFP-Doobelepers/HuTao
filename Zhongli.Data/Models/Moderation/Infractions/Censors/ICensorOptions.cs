@@ -12,6 +12,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 
         public TriggerMode TriggerMode { get; set; }
 
-        public uint TriggerAt { get; set; }
+        public uint? TriggerAt { get; set; }
     }
 }
