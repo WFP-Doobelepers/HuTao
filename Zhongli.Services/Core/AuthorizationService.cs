@@ -23,12 +23,13 @@ namespace Zhongli.Services.Core
         {
             var user = (IGuildUser) context.User;
             var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
-            var groups = rules.AuthorizationGroups
-                .Scoped(scope)
-                .ToLookup(r => r.Access);
-
-            return groups[AccessType.Allow].Any(r => r.Judge(context, user))
-                && groups[AccessType.Deny].All(r => !r.Judge(context, user));
+            return rules.AuthorizationGroups.Scoped(scope)
+                .OrderBy(r => r.Action.Date)
+                .Aggregate(false, (current, rule) =>
+                {
+                    var passed = rule.Judge(context, user);
+                    return passed ? rule.Access == AccessType.Allow : current;
+                });
         }
 
         public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
