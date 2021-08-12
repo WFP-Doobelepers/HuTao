@@ -7,6 +7,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
@@ -96,11 +97,17 @@ namespace Zhongli.Bot.Modules.Moderation
         [NamedArgumentType]
         public class CensorOptions : ICensorOptions
         {
-            public RegexOptions Options { get; set; } = RegexOptions.None;
+            [HelpSummary("Comma separated regex flags.")]
+            public RegexOptions Flags { get; set; } = RegexOptions.None;
 
-            public TriggerMode Mode { get; set; } = TriggerMode.Default;
+            [HelpSummary("Time for when the censored reprimand should expire.")]
+            public TimeSpan? ExpireAfter { get; set; }
 
-            public uint Amount { get; set; } = 1;
+            [HelpSummary("The behavior in which the censor triggers.")]
+            public TriggerMode TriggerMode { get; set; } = TriggerMode.Default;
+
+            [HelpSummary("The amount of times the censor should be triggered before taking action.")]
+            public uint TriggerAt { get; set; } = 1;
         }
     }
 }

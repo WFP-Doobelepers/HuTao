@@ -3,11 +3,11 @@ using Zhongli.Data.Models.Moderation.Infractions.Censors;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Censored : ReprimandAction
+    public class Censored : ExpirableReprimandAction
     {
         protected Censored() { }
 
-        public Censored(Censor censor, string content, ReprimandDetails details) : base(details)
+        public Censored(Censor censor, string content, ReprimandDetails details) : base(censor.Length, details)
         {
             Censor  = censor;
             Content = content;

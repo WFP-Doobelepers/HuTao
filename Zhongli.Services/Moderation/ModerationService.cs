@@ -48,6 +48,8 @@ namespace Zhongli.Services.Moderation
             if (censored.Censor.IsTriggered((uint) count.LongCount()))
                 await TryReprimandTriggerAsync(censored.Censor, details, cancellationToken);
 
+            EnqueueExpirableReprimand(censored, cancellationToken);
+
             var request = new ReprimandRequest<Censored>(details, censored);
             await PublishReprimandAsync(request, details, cancellationToken);
         }
@@ -90,10 +92,11 @@ namespace Zhongli.Services.Moderation
 
             await (reprimand switch
             {
-                Ban ban         => ExpireBanAsync(ban, cancellationToken),
-                Mute mute       => ExpireMuteAsync(mute, cancellationToken),
-                Notice notice   => ExpireReprimandAsync(notice, cancellationToken),
-                Warning warning => ExpireReprimandAsync(warning, cancellationToken)
+                Ban ban           => ExpireBanAsync(ban, cancellationToken),
+                Mute mute         => ExpireMuteAsync(mute, cancellationToken),
+                Censored censored => ExpireReprimandAsync(censored, cancellationToken),
+                Notice notice     => ExpireReprimandAsync(notice, cancellationToken),
+                Warning warning   => ExpireReprimandAsync(warning, cancellationToken)
             });
         }
 

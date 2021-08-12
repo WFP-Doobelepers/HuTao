@@ -6,17 +6,19 @@ using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
-    public abstract class Censor : ICensor, ITrigger, IModerationAction
+    public abstract class Censor : ICensor, ITrigger, IModerationAction, ILength
     {
         protected Censor() { }
 
         protected Censor(string pattern, ICensorOptions? options)
         {
             Pattern = pattern;
+            Options = options?.Flags ?? RegexOptions.None;
 
-            Options = options?.Options ?? RegexOptions.None;
-            Mode    = options?.Mode ?? TriggerMode.Default;
-            Amount  = options?.Amount ?? 1;
+            Mode   = options?.TriggerMode ?? TriggerMode.Default;
+            Amount = options?.TriggerAt ?? 1;
+
+            Length = options?.ExpireAfter;
         }
 
         public Guid Id { get; set; }
@@ -26,6 +28,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
         public RegexOptions Options { get; set; }
 
         public string Pattern { get; set; }
+
+        public TimeSpan? Length { get; set; }
 
         public virtual ModerationAction Action { get; set; }
 
