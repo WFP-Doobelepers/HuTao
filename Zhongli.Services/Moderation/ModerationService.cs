@@ -87,16 +87,17 @@ namespace Zhongli.Services.Moderation
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task ExpireReprimandAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var reprimand = await _db.Set<ReprimandAction>().AsAsyncEnumerable().OfType<IExpirable>()
-                .FirstAsync(e => e.Id == id, cancellationToken);
+            var reprimand = await _db.Set<ExpirableReprimandAction>().AsAsyncEnumerable()
+                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+
+            if (reprimand is null)
+                return;
 
             await (reprimand switch
             {
-                Ban ban           => ExpireBanAsync(ban, cancellationToken),
-                Mute mute         => ExpireMuteAsync(mute, cancellationToken),
-                Censored censored => ExpireReprimandAsync(censored, cancellationToken),
-                Notice notice     => ExpireReprimandAsync(notice, cancellationToken),
-                Warning warning   => ExpireReprimandAsync(warning, cancellationToken)
+                Ban ban   => ExpireBanAsync(ban, cancellationToken),
+                Mute mute => ExpireMuteAsync(mute, cancellationToken),
+                _         => ExpireReprimandAsync(reprimand, cancellationToken)
             });
         }
 
@@ -240,7 +241,8 @@ namespace Zhongli.Services.Moderation
             return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        public void EnqueueExpirableReprimand(IExpirable expire, CancellationToken cancellationToken = default)
+        public void EnqueueExpirableReprimand(ExpirableReprimandAction expire,
+            CancellationToken cancellationToken = default)
         {
             if (expire.ExpireAt is not null)
             {
@@ -259,7 +261,7 @@ namespace Zhongli.Services.Moderation
             return reprimand;
         }
 
-        private async Task ExpireBanAsync(Ban ban, CancellationToken cancellationToken)
+        private async Task ExpireBanAsync(ExpirableReprimandAction ban, CancellationToken cancellationToken)
         {
             var guild = _client.GetGuild(ban.GuildId);
             var user = guild.GetUser(ban.UserId);
@@ -271,7 +273,7 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(ban, cancellationToken);
         }
 
-        private async Task ExpireMuteAsync(Mute mute, CancellationToken cancellationToken)
+        private async Task ExpireMuteAsync(ExpirableReprimandAction mute, CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
             var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
@@ -285,8 +287,7 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(mute, cancellationToken);
         }
 
-        private async Task ExpireReprimandAsync<T>(T reprimand, CancellationToken cancellationToken)
-            where T : ReprimandAction, IExpirable
+        private async Task ExpireReprimandAsync(ExpirableReprimandAction reprimand, CancellationToken cancellationToken)
         {
             reprimand.EndedAt = DateTimeOffset.Now;
 
