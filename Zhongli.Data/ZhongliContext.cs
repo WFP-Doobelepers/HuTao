@@ -22,8 +22,6 @@ namespace Zhongli.Data
 
         public DbSet<ChannelCriterion> ChannelCriteria { get; init; }
 
-        public DbSet<GuildCriterion> GuildCriteria { get; init; }
-
         public DbSet<GuildEntity> Guilds { get; init; }
 
         public DbSet<GuildUserEntity> Users { get; init; }

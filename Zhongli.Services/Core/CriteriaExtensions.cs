@@ -16,12 +16,11 @@ namespace Zhongli.Services.Core
         {
             return rule switch
             {
-                IUserEntity auth       => auth.Judge(user),
-                IRoleEntity auth       => auth.Judge(user),
-                IPermissionEntity auth => auth.Judge(user),
-                IChannelEntity auth    => auth.Judge(channel),
-                IGuildEntity           => true,
-                _                      => false
+                UserCriterion auth       => auth.Judge(user),
+                RoleCriterion auth       => auth.Judge(user),
+                PermissionCriterion auth => auth.Judge(user),
+                ChannelCriterion auth    => auth.Judge(channel),
+                _                        => false
             };
         }
 
