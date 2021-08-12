@@ -32,8 +32,8 @@ namespace Zhongli.Bot.Modules.Moderation
                 var rules = options.GetRules();
                 var result = options.FilterMode switch
                 {
-                    FilterType.All      => messages.Where(m => rules.All(r => r.Invoke(m))),
-                    FilterType.Any or _ => messages.Where(m => rules.Any(r => r.Invoke(m)))
+                    FilterType.All      => messages.Where(m => rules.All(rule => rule(m))),
+                    FilterType.Any or _ => messages.Where(m => rules.Any(rule => rule(m)))
                 };
 
                 if (options.Invert ?? false)

@@ -79,7 +79,7 @@ namespace Zhongli.Services.AutoRemoveMessage
                 embed.WithFooter(FooterReactMessage);
             else if (!embed.Footer.Text.Contains(FooterReactMessage)) embed.Footer.Text += $" | {FooterReactMessage}";
 
-            var msg = await callback.Invoke(embed);
+            var msg = await callback(embed);
             await _messageDispatcher.Publish(new RemovableMessageSentNotification(msg, user));
         }
 
