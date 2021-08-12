@@ -9,5 +9,7 @@ namespace Zhongli.Data.Models.Criteria
         public RoleCriterion(ulong roleId) { RoleId = roleId; }
 
         public ulong RoleId { get; set; }
+
+        public override string ToString() => $"<@&{RoleId}>";
     }
 }

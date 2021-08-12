@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -13,6 +17,7 @@ using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
+using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
@@ -31,6 +36,23 @@ namespace Zhongli.Bot.Modules.Moderation
             _auth  = auth;
             _error = error;
             _db    = db;
+        }
+
+        [Command("remove")]
+        [Alias("delete")]
+        [Summary("Remove an authorization group.")]
+        public async Task RemovePermissionAsync(Guid id, [Remainder] string? reason)
+        {
+            var reprimand = await _db.Set<AuthorizationGroup>().FindByIdAsync(id);
+            await RemoveRuleAsync(reprimand);
+        }
+
+        [HiddenFromHelp]
+        [Command("remove")]
+        public async Task RemovePermissionAsync(string id, [Remainder] string? reason)
+        {
+            var reprimand = await TryFindAuthorizationGroup(id);
+            await RemoveRuleAsync(reprimand);
         }
 
         [Command("add")]
@@ -116,6 +138,114 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("view")]
+        [Summary("View the configured authorization groups.")]
+        public async Task ViewPermissionsAsync()
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+
+            var rules = guild.AuthorizationGroups
+                .OrderBy(g => g.Action.Date)
+                .Select(r => new EmbedFieldBuilder()
+                    .WithName($"{r.Id}")
+                    .WithValue(GetAuthorizationGroupDetails(r).ToString()));
+
+            var paginated = new PaginatedMessage
+            {
+                Pages  = rules,
+                Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
+                Options = new PaginatedAppearanceOptions
+                {
+                    DisplayInformationIcon = false,
+                    FieldsPerPage          = 8
+                }
+            };
+
+            await PagedReplyAsync(paginated);
+        }
+
+        private static StringBuilder GetAuthorizationGroupDetails(AuthorizationGroup group)
+        {
+            var sb = new StringBuilder()
+                .AppendLine($"▌Date: {group.Action.Date.Humanize()}")
+                .AppendLine($"▌Type: {group.Access.Humanize()}")
+                .AppendLine($"▌Scope: {group.Scope.Humanize()}");
+            foreach (var rules in group.Collection.ToLookup(GetCriterionType))
+            {
+                string GetGroupingName() => rules.Key.Name
+                    .Replace(nameof(Criterion), string.Empty)
+                    .Pluralize().Humanize(LetterCasing.Title);
+
+                sb.AppendLine($"▌▌{GetGroupingName()}: {rules.Humanize()}");
+            }
+
+            return sb;
+        }
+
+        private async Task RemoveRuleAsync(AuthorizationGroup? auth)
+        {
+            if (auth is null || auth.Action.GuildId != Context.Guild.Id)
+            {
+                await _error.AssociateError(Context.Message,
+                    "Unable to find authorization group. Provide at least 2 characters.");
+                return;
+            }
+
+            _db.RemoveRange(auth.Collection);
+            _db.Remove(auth.Action);
+            _db.Remove(auth);
+
+            await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        private async Task<AuthorizationGroup?> TryFindAuthorizationGroup(string id,
+            CancellationToken cancellationToken = default)
+        {
+            if (id.Length < 2)
+                return null;
+
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild, cancellationToken);
+            var group = await guild.AuthorizationGroups.ToAsyncEnumerable()
+                .Where(r => r.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase))
+                .ToListAsync(cancellationToken);
+
+            if (group.Count <= 1)
+                return group.Count == 1 ? group.First() : null;
+
+            var lines = group.Select(r
+                => new StringBuilder()
+                    .AppendLine($"{r.Id}")
+                    .Append(GetAuthorizationGroupDetails(r))
+                    .ToString());
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Multiple authorization groups found. Reply with the number of the group that you want.")
+                .AddLinesIntoFields("Reprimands", lines);
+
+            await ReplyAsync(embed: embed.Build());
+
+            var containsCriterion = new FuncCriterion(m =>
+                int.TryParse(m.Content, out var selection)
+                && selection < group.Count && selection > -1);
+
+            var selected = await NextMessageAsync(containsCriterion, token: cancellationToken);
+            return selected is null ? null : group.ElementAtOrDefault(int.Parse(selected.Content));
+        }
+
+        private static Type GetCriterionType(Criterion rule)
+        {
+            return rule switch
+            {
+                UserCriterion       => typeof(UserCriterion),
+                RoleCriterion       => typeof(RoleCriterion),
+                PermissionCriterion => typeof(PermissionCriterion),
+                ChannelCriterion    => typeof(ChannelCriterion),
+                _ => throw new ArgumentOutOfRangeException(nameof(rule), rule,
+                    "Unknown kind of Criterion.")
+            };
         }
 
         [NamedArgumentType]

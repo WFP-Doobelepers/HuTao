@@ -127,8 +127,8 @@ namespace Zhongli.Bot.Modules.Moderation
             if (id.Length < 2)
                 return null;
 
-            var reprimands = await _db.Set<ReprimandAction>().ToAsyncEnumerable()
-                .Where(r => r.Guild?.Id == Context.Guild.Id)
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild, cancellationToken);
+            var reprimands = await guild.ReprimandHistory.ToAsyncEnumerable()
                 .Where(r => r.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase))
                 .ToListAsync(cancellationToken);
 

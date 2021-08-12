@@ -18,6 +18,16 @@ namespace Zhongli.Services.Utilities
 
     public static class EmbedBuilderExtensions
     {
+        public static EmbedAuthorBuilder WithGuildAsAuthor(this EmbedAuthorBuilder embed, IGuild guild,
+            AuthorOptions authorOptions = AuthorOptions.None)
+        {
+            var name = guild.Name;
+            if (authorOptions.HasFlag(AuthorOptions.Requested))
+                name = $"Requested from {name}";
+
+            return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
+        }
+
         public static EmbedBuilder AddLinesIntoFields<T>(this EmbedBuilder builder, string title,
             IEnumerable<T> lines, Func<T, string> lineSelector) =>
             builder.AddLinesIntoFields(title, lines.Select(lineSelector));
@@ -84,6 +94,15 @@ namespace Zhongli.Services.Utilities
             return builders
                 .Where(s => s.Length > 0)
                 .Select(s => s.ToString());
+        }
+
+        private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
+            string name, string iconUrl, AuthorOptions authorOptions)
+        {
+            if (authorOptions.HasFlag(AuthorOptions.IncludeId))
+                name += $" ({entity.Id})";
+
+            return embed.WithName(name).WithIconUrl(iconUrl);
         }
 
         private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,

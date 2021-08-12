@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -47,8 +47,8 @@ namespace Zhongli.Services.CommandHelp
         public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
         {
             var type = parameter.Type.ToContextualType();
-
-            return new ParameterHelpData(parameter.Name, type, parameter.Summary, parameter.IsOptional);
+            return new ParameterHelpData(parameter.Name, parameter.Type, parameter.Summary,
+                parameter.IsOptional || type.Nullability == Nullability.Nullable);
         }
 
         private static IEnumerable<ParameterHelpData> FromEnum(Type type)

@@ -1,4 +1,5 @@
-﻿using Zhongli.Data.Models.Discord;
+﻿using Humanizer;
+using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Criteria
 {
@@ -9,5 +10,7 @@ namespace Zhongli.Data.Models.Criteria
         public PermissionCriterion(GuildPermission permission) { Permission = permission; }
 
         public GuildPermission Permission { get; set; }
+
+        public override string ToString() => Permission.Humanize();
     }
 }

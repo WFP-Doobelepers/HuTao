@@ -9,5 +9,7 @@ namespace Zhongli.Data.Models.Criteria
         public UserCriterion(ulong userId) { UserId = userId; }
 
         public ulong UserId { get; set; }
+
+        public override string ToString() => $"<@{UserId}>";
     }
 }

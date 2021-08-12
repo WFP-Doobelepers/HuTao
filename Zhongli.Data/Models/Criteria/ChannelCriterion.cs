@@ -15,5 +15,7 @@ namespace Zhongli.Data.Models.Criteria
         public bool IsCategory { get; set; }
 
         public ulong ChannelId { get; set; }
+
+        public override string ToString() => $"<#{ChannelId}>";
     }
 }
