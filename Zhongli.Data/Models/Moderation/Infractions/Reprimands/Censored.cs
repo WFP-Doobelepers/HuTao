@@ -3,7 +3,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Censors;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Censored : ExpirableReprimandAction
+    public class Censored : ExpirableReprimand
     {
         protected Censored() { }
 

@@ -87,7 +87,7 @@ namespace Zhongli.Services.Moderation
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task ExpireReprimandAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var reprimand = await _db.Set<ExpirableReprimandAction>().AsAsyncEnumerable()
+            var reprimand = await _db.Set<ExpirableReprimand>().AsAsyncEnumerable()
                 .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
             if (reprimand is null)
@@ -241,7 +241,7 @@ namespace Zhongli.Services.Moderation
             return await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        public void EnqueueExpirableReprimand(ExpirableReprimandAction expire,
+        public void EnqueueExpirableReprimand(ExpirableReprimand expire,
             CancellationToken cancellationToken = default)
         {
             if (expire.ExpireAt is not null)
@@ -261,7 +261,7 @@ namespace Zhongli.Services.Moderation
             return reprimand;
         }
 
-        private async Task ExpireBanAsync(ExpirableReprimandAction ban, CancellationToken cancellationToken)
+        private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken)
         {
             var guild = _client.GetGuild(ban.GuildId);
             var user = guild.GetUser(ban.UserId);
@@ -273,7 +273,7 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(ban, cancellationToken);
         }
 
-        private async Task ExpireMuteAsync(ExpirableReprimandAction mute, CancellationToken cancellationToken)
+        private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
             var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
@@ -287,7 +287,7 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(mute, cancellationToken);
         }
 
-        private async Task ExpireReprimandAsync(ExpirableReprimandAction reprimand, CancellationToken cancellationToken)
+        private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken)
         {
             reprimand.EndedAt = DateTimeOffset.Now;
 

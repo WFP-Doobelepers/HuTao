@@ -2,7 +2,7 @@ using System;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Ban : ExpirableReprimandAction, IBan
+    public class Ban : ExpirableReprimand, IBan
     {
         protected Ban() { }
 

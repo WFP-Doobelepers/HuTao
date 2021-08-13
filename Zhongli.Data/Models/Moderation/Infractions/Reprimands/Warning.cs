@@ -2,7 +2,7 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Warning : ExpirableReprimandAction, IWarning
+    public class Warning : ExpirableReprimand, IWarning
     {
         protected Warning() { }
 

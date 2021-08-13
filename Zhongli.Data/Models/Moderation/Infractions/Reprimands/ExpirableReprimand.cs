@@ -4,14 +4,14 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public abstract class ExpirableReprimandAction : ReprimandAction, IExpirable
+    public abstract class ExpirableReprimand : ReprimandAction, IExpirable
     {
-        protected ExpirableReprimandAction() { }
+        protected ExpirableReprimand() { }
 
-        protected ExpirableReprimandAction(TimeSpan? length, ReprimandDetails details) : base(details)
+        protected ExpirableReprimand(TimeSpan? length, ReprimandDetails details) : base(details)
         {
-            StartedAt = DateTimeOffset.Now;
             Length    = length;
+            StartedAt = DateTimeOffset.Now;
             ExpireAt  = StartedAt + Length;
         }
 
@@ -24,21 +24,21 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
         public TimeSpan? Length { get; set; }
     }
 
-    public class ExpireReprimandActionConfiguration : IEntityTypeConfiguration<ExpirableReprimandAction>
+    public class ExpireReprimandActionConfiguration : IEntityTypeConfiguration<ExpirableReprimand>
     {
-        public void Configure(EntityTypeBuilder<ExpirableReprimandAction> builder)
+        public void Configure(EntityTypeBuilder<ExpirableReprimand> builder)
         {
             builder
                 .Property(r => r.EndedAt)
-                .HasColumnName(nameof(ExpirableReprimandAction.EndedAt));
+                .HasColumnName(nameof(ExpirableReprimand.EndedAt));
 
             builder
                 .Property(r => r.StartedAt)
-                .HasColumnName(nameof(ExpirableReprimandAction.StartedAt));
+                .HasColumnName(nameof(ExpirableReprimand.StartedAt));
 
             builder
                 .Property(r => r.Length)
-                .HasColumnName(nameof(ExpirableReprimandAction.Length));
+                .HasColumnName(nameof(ExpirableReprimand.Length));
         }
     }
 }

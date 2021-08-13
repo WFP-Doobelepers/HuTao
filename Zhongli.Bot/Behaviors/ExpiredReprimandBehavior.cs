@@ -22,7 +22,7 @@ namespace Zhongli.Bot.Behaviors
 
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
         {
-            var active = _db.Set<ExpirableReprimandAction>().AsAsyncEnumerable()
+            var active = _db.Set<ExpirableReprimand>().AsAsyncEnumerable()
                 .Where(m => m.IsActive());
 
             await foreach (var entity in active.WithCancellation(cancellationToken))
