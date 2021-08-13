@@ -61,7 +61,7 @@ namespace Zhongli.Bot.Behaviors
         {
             var ((user, moderator, _, _), reprimand) = request;
 
-            var count = await reprimand.CountAsync(_db, cancellationToken);
+            var count = await reprimand.CountAsync(_db, false, cancellationToken);
             var (reason, type, source) = GetDetails(request);
             var trigger = await TryGetTriggerAsync(reprimand, count, type, cancellationToken);
 

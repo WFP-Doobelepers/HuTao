@@ -26,7 +26,9 @@ namespace Zhongli.Services.Moderation
             {
                 TriggerMode.Default     => amount == trigger.Amount,
                 TriggerMode.Retroactive => amount >= trigger.Amount,
-                TriggerMode.Multiple    => amount % trigger.Amount is 0
+                TriggerMode.Multiple    => amount % trigger.Amount is 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger.Mode,
+                    "Invalid trigger mode.")
             };
         }
 
@@ -54,27 +56,22 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken)
             => db.Guilds.TrackGuildAsync(details.User.Guild, cancellationToken);
 
-        public static async Task<uint> CountAsync<T>(this T reprimand, DbContext db,
+        public static async Task<uint> CountAsync<T>(this T reprimand,
+            DbContext db, bool countHidden = false,
             CancellationToken cancellationToken = default) where T : ReprimandAction
         {
             var user = await reprimand.GetUserAsync(db, cancellationToken);
+            if (reprimand is Warning)
+                return user.WarningCount();
 
-            return user.HistoryCount<T>();
+            return (uint) user.Reprimands<T>(countHidden).LongCount();
         }
 
-        public static async Task<uint> CountAsync(this Warning reprimand, DbContext db,
-            CancellationToken cancellationToken = default)
-        {
-            var user = await reprimand.GetUserAsync(db, cancellationToken);
+        public static uint HistoryCount<T>(this GuildUserEntity user) where T : ReprimandAction
+            => user.HistoryCount<T>(false);
 
-            return user.WarningCount();
-        }
-
-        public static uint HistoryCount<T>(this GuildUserEntity user, bool showHidden = false) where T : ReprimandAction
-            => (uint) Reprimands<T>(user, showHidden).LongCount();
-
-        public static uint WarningCount(this GuildUserEntity user, bool showHidden = false)
-            => (uint) Reprimands<Warning>(user, showHidden).Sum(w => w.Count);
+        public static uint WarningCount(this GuildUserEntity user, bool countHidden = false)
+            => (uint) user.Reprimands<Warning>(countHidden).Sum(w => w.Count);
 
         public static async ValueTask<GuildEntity> GetGuildAsync(this ReprimandAction reprimand, DbContext db,
             CancellationToken cancellationToken = default)
@@ -95,7 +92,10 @@ namespace Zhongli.Services.Moderation
             => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
 
         private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
-            where T : ReprimandAction => embed
-            .AddField(typeof(T).Name.Pluralize(), $"{user.HistoryCount<T>()}/{user.HistoryCount<T>(true)}", true);
+            where T : ReprimandAction => embed.AddField(typeof(T).Name.Pluralize(),
+            $"{user.HistoryCount<T>()}/{user.HistoryCount<T>(true)}", true);
+
+        private static uint HistoryCount<T>(this GuildUserEntity user, bool countHidden) where T : ReprimandAction
+            => (uint) user.Reprimands<T>(countHidden).LongCount();
     }
 }
