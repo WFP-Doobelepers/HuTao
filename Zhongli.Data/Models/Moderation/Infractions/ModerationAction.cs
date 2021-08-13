@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         public ModerationAction Action { get; set; }
     }
 
-    public class ModerationAction
+    public class ModerationAction : IMentionable
     {
         protected ModerationAction() { }
 
@@ -43,6 +43,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         public ulong GuildId { get; set; }
 
         public ulong ModeratorId { get; set; }
+
+        public string Mention => Moderator.Mention;
     }
 
     public class ModerationActionConfiguration : IEntityTypeConfiguration<ModerationAction>

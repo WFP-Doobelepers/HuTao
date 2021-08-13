@@ -18,6 +18,7 @@ using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Interactive.Functions;
+using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
@@ -169,9 +170,10 @@ namespace Zhongli.Bot.Modules.Moderation
         private static StringBuilder GetAuthorizationGroupDetails(AuthorizationGroup group)
         {
             var sb = new StringBuilder()
-                .AppendLine($"▌Date: {group.Action.Date.Humanize()}")
-                .AppendLine($"▌Type: {group.Access.Humanize()}")
-                .AppendLine($"▌Scope: {group.Scope.Humanize()}");
+                .AppendLine($"▌Scope: {Format.Bold(group.Scope.Humanize())}")
+                .AppendLine($"▌Type: {Format.Bold(group.Access.Humanize())}")
+                .AppendLine($"▌Moderator: {group.GetModerator()}")
+                .AppendLine($"▌Date: {group.GetDate()}");
             foreach (var rules in group.Collection.ToLookup(GetCriterionType))
             {
                 string GetGroupingName() => rules.Key.Name

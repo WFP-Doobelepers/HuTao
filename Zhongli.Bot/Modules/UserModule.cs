@@ -10,8 +10,6 @@ using Discord.WebSocket;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
@@ -138,45 +136,24 @@ namespace Zhongli.Bot.Modules
 
         private static EmbedFieldBuilder CreateEmbed(IUser user, ReprimandAction r)
         {
-            var moderator = r.Action.Moderator;
             var content = new StringBuilder()
                 .AppendLine($"▌{ModerationLoggingService.GetMessage(r, user)}")
-                .AppendLine(GetReason(r.Action))
-                .AppendLine(GetModerator(moderator))
-                .AppendLine(GetDate(r.Action.Date))
-                .AppendLine(GetStatus(r.Status));
+                .AppendLine($"▌Reason: {r.GetReason()}")
+                .AppendLine($"▌Moderator: {r.GetModerator()}")
+                .AppendLine($"▌Date: {r.GetDate()}")
+                .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
 
             if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
             {
                 content
-                    .AppendLine($"▌▌{r.Status.Humanize()} by {GetModifiedInfo(r.ModifiedAction)}")
-                    .AppendLine($"▌{GetReason(r.ModifiedAction)}");
+                    .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
             }
 
             return new EmbedFieldBuilder()
                 .WithName(ModerationLoggingService.GetTitle(r))
                 .WithValue(content.ToString());
         }
-
-        private static string GetDate(DateTimeOffset date)
-            => $"▌Date: {Format.Bold(date.Humanize())} ({date.ToUniversalTime()})";
-
-        private static string GetModerator(GuildUserEntity user)
-            => $"▌Moderator: {GetUser(user)} ({user.Id})";
-
-        private static string GetModifiedInfo(ModerationAction action)
-        {
-            var modified = action.Moderator;
-            return $"{GetUser(modified)} {modified.Id} ({action.Date.Humanize()})";
-        }
-
-        private static string GetReason(ModerationAction action)
-            => $"▌Reason: {Format.Bold(action.Reason ?? "None")}";
-
-        private static string GetStatus(ReprimandStatus status)
-            => $"▌Status: {Format.Bold(status.Humanize())}";
-
-        private static string GetUser(GuildUserEntity user)
-            => Format.Bold($"{user.Username}#{user.DiscriminatorValue}");
     }
 }
