@@ -77,7 +77,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 AddRules(channels, c => new ChannelCriterion(c.Id, c is ICategoryChannel));
 
             if (options.Roles is not null)
-                AddRules(options.Roles, u => new RoleCriterion(u.Id));
+                AddRules(options.Roles, r => new RoleCriterion(r));
 
             if (options.Permission is not null)
                 rules.Add(new PermissionCriterion(options.Permission.Value));
@@ -129,11 +129,11 @@ namespace Zhongli.Bot.Modules.Moderation
             var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
             guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow,
-                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin).Id));
+                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin)));
 
             guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions),
                 moderator, AccessType.Allow,
-                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator).Id));
+                new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator)));
 
             _db.Update(guild);
             await _db.SaveChangesAsync();

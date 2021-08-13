@@ -7,7 +7,13 @@ namespace Zhongli.Data.Models.Criteria
     {
         protected RoleCriterion() { }
 
-        public RoleCriterion(ulong roleId) { RoleId = roleId; }
+        public RoleCriterion(IRole role)
+        {
+            RoleId  = role.Id;
+            GuildId = role.Guild.Id;
+        }
+
+        public ulong GuildId { get; set; }
 
         public ulong RoleId { get; set; }
 
