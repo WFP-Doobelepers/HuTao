@@ -2,10 +2,12 @@
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.Net;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
@@ -13,7 +15,7 @@ namespace Zhongli.Bot.Modules
     [Name("Help")]
     [Group("help")]
     [Summary("Provides commands for helping users to understand how to interact with the bot.")]
-    public sealed class HelpModule : ModuleBase<SocketCommandContext>
+    public sealed class HelpModule : InteractiveBase
     {
         private readonly ICommandHelpService _commandHelpService;
 
@@ -85,7 +87,7 @@ namespace Zhongli.Bot.Modules
 
                 try
                 {
-                    await userDM.SendMessageAsync(embed: embed.Build());
+                    await this.PagedDMAsync(embed);
                 }
                 catch (HttpException ex) when (ex.DiscordCode == 50007)
                 {
@@ -112,9 +114,11 @@ namespace Zhongli.Bot.Modules
         {
             var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-            if (_commandHelpService.TryGetEmbed(query, type, out var embed))
+            if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
             {
-                await ReplyAsync($"Results for \"{sanitizedQuery}\":", embed: embed.Build());
+                paginated.Content = $"Results for \"{sanitizedQuery}\":";
+
+                await PagedReplyAsync(paginated);
                 return;
             }
 

@@ -21,7 +21,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         public CensorModule(ZhongliContext db) { _db = db; }
 
-        [Command("add ban")]
+        [Command("ban")]
         [Summary("A censor that deletes the message and also bans the user.")]
         public async Task AddBanCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -37,7 +37,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add kick")]
+        [Command("kick")]
         [Summary("A censor that deletes the message and also kicks the user.")]
         public async Task AddKickCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -49,7 +49,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add mute")]
+        [Command("mute")]
         [Summary("A censor that deletes the message and mutes the user.")]
         public async Task AddMuteCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -63,7 +63,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add note")]
+        [Command("note")]
         [Summary("A censor that deletes the message and does nothing to the user.")]
         public async Task AddNoteCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -75,7 +75,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add notice")]
+        [Command("notice")]
         [Summary("A censor that deletes the message and gives a notice.")]
         public async Task AddNoticeCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -87,7 +87,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("add warning")]
+        [Command("warning")]
         [Summary("A censor that deletes the message and does nothing to the user.")]
         public async Task AddWarningCensorAsync(
             [Summary(PatternSummary)] string pattern,

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Behaviors
@@ -22,11 +24,13 @@ namespace Zhongli.Bot.Behaviors
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly ICommandHelpService _commandHelp;
+        private readonly InteractiveService _interactive;
         private readonly ZhongliContext _db;
 
-        public VoiceChatBehavior(ICommandHelpService commandHelp, ZhongliContext db)
+        public VoiceChatBehavior(ICommandHelpService commandHelp, InteractiveService interactive, ZhongliContext db)
         {
             _commandHelp = commandHelp;
+            _interactive = interactive;
             _db          = db;
         }
 
@@ -87,8 +91,9 @@ namespace Zhongli.Bot.Behaviors
                     await textChannel.AddPermissionOverwriteAsync(guild.EveryoneRole,
                         new OverwritePermissions(viewChannel: PermValue.Deny));
 
-                    if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var embed))
+                    if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                     {
+                        var embed = paginated.ToEmbed();
                         var message = await textChannel.SendMessageAsync(embed: embed.Build());
                         await message.PinAsync();
                     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Discord;
+using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 
 namespace Zhongli.Services.CommandHelp
@@ -12,7 +13,7 @@ namespace Zhongli.Services.CommandHelp
     /// </summary>
     public interface ICommandHelpService
     {
-        bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed);
+        bool TryGetEmbed(string query, HelpDataType queries, out PaginatedMessage embed);
 
         /// <summary>
         ///     Retrieves command help data for the supplied query.
@@ -23,20 +24,6 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         CommandHelpData? GetCommandHelpData(string query);
-
-        /// <summary>
-        ///     Retrieves an embed from a <see cref="CommandHelpData" />.
-        /// </summary>
-        /// <param name="command">The command's help data.</param>
-        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
-        EmbedBuilder GetEmbedForCommand(CommandHelpData command);
-
-        /// <summary>
-        ///     Retrieves an embed from a <see cref="ModuleHelpData" />
-        /// </summary>
-        /// <param name="module">The module's help data.</param>
-        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
-        EmbedBuilder GetEmbedForModule(ModuleHelpData module);
 
         /// <summary>
         ///     Retrieves help data for all available modules.
@@ -55,6 +42,20 @@ namespace Zhongli.Services.CommandHelp
         ///     supplied query.
         /// </returns>
         ModuleHelpData? GetModuleHelpData(string query);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="CommandHelpData" />.
+        /// </summary>
+        /// <param name="command">The command's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
+        PaginatedMessage GetEmbedForCommand(CommandHelpData command);
+
+        /// <summary>
+        ///     Retrieves an embed from a <see cref="ModuleHelpData" />
+        /// </summary>
+        /// <param name="module">The module's help data.</param>
+        /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
+        PaginatedMessage GetEmbedForModule(ModuleHelpData module);
     }
 
     /// <inheritdoc />
@@ -65,9 +66,9 @@ namespace Zhongli.Services.CommandHelp
 
         public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
-        public bool TryGetEmbed(string query, HelpDataType queries, out EmbedBuilder embed)
+        public bool TryGetEmbed(string query, HelpDataType queries, out PaginatedMessage message)
         {
-            embed = null!;
+            message = null!;
 
             // Prioritize module over command.
             if (queries.HasFlag(HelpDataType.Module))
@@ -75,7 +76,7 @@ namespace Zhongli.Services.CommandHelp
                 var byModule = GetModuleHelpData(query);
                 if (byModule is not null)
                 {
-                    embed = GetEmbedForModule(byModule);
+                    message = GetEmbedForModule(byModule);
                     return true;
                 }
             }
@@ -85,7 +86,7 @@ namespace Zhongli.Services.CommandHelp
                 var byCommand = GetCommandHelpData(query);
                 if (byCommand is not null)
                 {
-                    embed = GetEmbedForCommand(byCommand);
+                    message = GetEmbedForCommand(byCommand);
                     return true;
                 }
             }
@@ -110,22 +111,6 @@ namespace Zhongli.Services.CommandHelp
                 return byNameContains;
 
             return null;
-        }
-
-        public EmbedBuilder GetEmbedForCommand(CommandHelpData command) => new EmbedBuilder().AddCommandFields(command);
-
-        public EmbedBuilder GetEmbedForModule(ModuleHelpData module)
-        {
-            var builder = new EmbedBuilder()
-                .WithTitle($"Module: {module.Name}")
-                .WithDescription(module.Summary);
-
-            foreach (var command in module.Commands)
-            {
-                builder.AddCommandFields(command);
-            }
-
-            return builder;
         }
 
         /// <inheritdoc />
@@ -161,6 +146,41 @@ namespace Zhongli.Services.CommandHelp
                 return byTagsContains;
 
             return null;
+        }
+
+        public PaginatedMessage GetEmbedForCommand(CommandHelpData command)
+        {
+            var embed = new EmbedBuilder()
+                .AddCommandFields(command);
+
+            return new PaginatedMessage
+            {
+                Pages = embed.Fields,
+                Options = new PaginatedAppearanceOptions
+                {
+                    DisplayInformationIcon = false
+                }
+            };
+        }
+
+        public PaginatedMessage GetEmbedForModule(ModuleHelpData module)
+        {
+            var embed = new EmbedBuilder();
+            foreach (var command in module.Commands)
+            {
+                embed.AddCommandFields(command);
+            }
+
+            return new PaginatedMessage
+            {
+                Title                = $"Module: {module.Name}",
+                AlternateDescription = module.Summary,
+                Pages                = embed.Fields,
+                Options = new PaginatedAppearanceOptions
+                {
+                    DisplayInformationIcon = false
+                }
+            };
         }
     }
 
