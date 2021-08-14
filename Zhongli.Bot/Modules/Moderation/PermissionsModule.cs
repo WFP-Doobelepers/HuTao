@@ -39,23 +39,6 @@ namespace Zhongli.Bot.Modules.Moderation
             _db    = db;
         }
 
-        [Command("remove")]
-        [Alias("delete")]
-        [Summary("Remove an authorization group.")]
-        public async Task RemovePermissionAsync(Guid id, [Remainder] string? reason)
-        {
-            var reprimand = await _db.Set<AuthorizationGroup>().FindByIdAsync(id);
-            await RemoveRuleAsync(reprimand);
-        }
-
-        [HiddenFromHelp]
-        [Command("remove")]
-        public async Task RemovePermissionAsync(string id, [Remainder] string? reason)
-        {
-            var reprimand = await TryFindAuthorizationGroup(id);
-            await RemoveRuleAsync(reprimand);
-        }
-
         [Command("add")]
         [Summary(
             "Add a permission for a specific scope. At least one rule option must be filled. " +
@@ -139,6 +122,23 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("remove")]
+        [Alias("delete")]
+        [Summary("Remove an authorization group.")]
+        public async Task RemovePermissionAsync(Guid id, [Remainder] string? reason)
+        {
+            var reprimand = await _db.Set<AuthorizationGroup>().FindByIdAsync(id);
+            await RemoveRuleAsync(reprimand);
+        }
+
+        [HiddenFromHelp]
+        [Command("remove")]
+        public async Task RemovePermissionAsync(string id, [Remainder] string? reason)
+        {
+            var reprimand = await TryFindAuthorizationGroup(id);
+            await RemoveRuleAsync(reprimand);
         }
 
         [Command("view")]

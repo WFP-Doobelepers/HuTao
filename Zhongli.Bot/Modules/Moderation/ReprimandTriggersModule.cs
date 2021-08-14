@@ -42,18 +42,18 @@ namespace Zhongli.Bot.Modules.Moderation
             await TryAddTriggerAsync(trigger);
         }
 
+        [Command("noticeAt")]
+        public async Task NoticeAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default)
+        {
+            var trigger = new NoticeTrigger(amount, source, mode);
+            await TryAddTriggerAsync(trigger);
+        }
+
         [Command("warnAt")]
         public async Task WarnAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default,
             uint count = 1)
         {
             var trigger = new WarningTrigger(amount, source, mode, count);
-            await TryAddTriggerAsync(trigger);
-        }
-
-        [Command("noticeAt")]
-        public async Task NoticeAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Default)
-        {
-            var trigger = new NoticeTrigger(amount, source, mode);
             await TryAddTriggerAsync(trigger);
         }
 

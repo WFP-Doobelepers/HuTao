@@ -36,6 +36,37 @@ namespace Zhongli.Bot.Modules.Configuration
             await ReplyAsync($"New value: {guild.LoggingRules.Options.Humanize()}");
         }
 
+        [Command("appeal")]
+        [Summary("Show the appeal message on a reprimand type.")]
+        public async Task ConfigureAppealAsync(
+            [Summary("The type of reprimand to show the appeal message on. Leave blank for all.")]
+            ReprimandNoticeType type = ReprimandNoticeType.All,
+            [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
+            bool? showAppeal = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+
+            guild.LoggingRules.ShowAppealOnReprimands = type is ReprimandNoticeType.All
+                ? ReprimandNoticeType.All
+                : guild.LoggingRules.ShowAppealOnReprimands.SetValue(type, showAppeal);
+
+            await _db.SaveChangesAsync();
+            await ReplyAsync($"New value: {guild.LoggingRules.ShowAppealOnReprimands.Humanize()}");
+        }
+
+        [Command("appeal message")]
+        [Summary("Set the appeal message when someone is reprimanded.")]
+        public async Task ConfigureAppealMessageAsync(
+            [Summary("Leave empty to disable the appeal message.")] [Remainder]
+            string? message = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.LoggingRules.ReprimandAppealMessage = message;
+            await _db.SaveChangesAsync();
+
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         [Command("channel")]
         [Summary("Configures the Logging Channel that logs will be sent on.")]
         public async Task ConfigureLoggingAsync(
@@ -65,37 +96,6 @@ namespace Zhongli.Bot.Modules.Configuration
 
             await _db.SaveChangesAsync();
             await ReplyAsync($"New value: {guild.LoggingRules.NotifyReprimands.Humanize()}");
-        }
-
-        [Command("appeal message")]
-        [Summary("Set the appeal message when someone is reprimanded.")]
-        public async Task ConfigureAppealMessageAsync(
-            [Summary("Leave empty to disable the appeal message.")] [Remainder]
-            string? message = null)
-        {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.LoggingRules.ReprimandAppealMessage = message;
-            await _db.SaveChangesAsync();
-
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("appeal")]
-        [Summary("Show the appeal message on a reprimand type.")]
-        public async Task ConfigureAppealAsync(
-            [Summary("The type of reprimand to show the appeal message on. Leave blank for all.")]
-            ReprimandNoticeType type = ReprimandNoticeType.All,
-            [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
-            bool? showAppeal = null)
-        {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
-            guild.LoggingRules.ShowAppealOnReprimands = type is ReprimandNoticeType.All
-                ? ReprimandNoticeType.All
-                : guild.LoggingRules.ShowAppealOnReprimands.SetValue(type, showAppeal);
-
-            await _db.SaveChangesAsync();
-            await ReplyAsync($"New value: {guild.LoggingRules.ShowAppealOnReprimands.Humanize()}");
         }
     }
 }

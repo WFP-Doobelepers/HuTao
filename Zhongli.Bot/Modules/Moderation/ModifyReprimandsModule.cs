@@ -41,22 +41,6 @@ namespace Zhongli.Bot.Modules.Moderation
             _moderation = moderation;
         }
 
-        [Command("hide")]
-        [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
-        {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
-        }
-
-        [HiddenFromHelp]
-        [Command("hide")]
-        public async Task HideReprimandAsync(string id, [Remainder] string? reason = null)
-        {
-            var reprimand = await TryFindReprimandAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
-        }
-
         [Command("delete")]
         [Summary("Delete a reprimand, this completely removes the data.")]
         public async Task DeleteReprimandAsync(Guid id)
@@ -71,6 +55,22 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             var reprimand = await TryFindReprimandAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.DeleteReprimandAsync);
+        }
+
+        [Command("hide")]
+        [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
+        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
+        {
+            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
+            await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
+        }
+
+        [HiddenFromHelp]
+        [Command("hide")]
+        public async Task HideReprimandAsync(string id, [Remainder] string? reason = null)
+        {
+            var reprimand = await TryFindReprimandAsync(id);
+            await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
         }
 
         [Command("update")]
