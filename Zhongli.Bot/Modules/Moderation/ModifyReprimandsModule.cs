@@ -137,7 +137,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
             var embed = new EmbedBuilder()
                 .WithTitle("Multiple reprimands found. Reply with the number of the reprimand that you want.")
-                .AddLinesIntoFields("Reprimands", reprimands,
+                .AddItemsIntoFields("Reprimands", reprimands,
                     (r, i) => $"{Format.Code($"{i}")}: {ModerationLoggingService.GetTitle(r)}");
 
             await ReplyAsync(embed: embed.Build());

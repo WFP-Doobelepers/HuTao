@@ -28,18 +28,18 @@ namespace Zhongli.Services.Utilities
             return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
         }
 
-        public static EmbedBuilder AddLinesIntoFields<T>(this EmbedBuilder builder, string title,
-            IEnumerable<T> lines, Func<T, string> lineSelector) =>
-            builder.AddLinesIntoFields(title, lines.Select(lineSelector));
+        public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
+            IEnumerable<T> items, Func<T, string> selector, string? separator = null) =>
+            builder.AddItemsIntoFields(title, items.Select(selector), separator);
 
-        public static EmbedBuilder AddLinesIntoFields<T>(this EmbedBuilder builder, string title,
-            IEnumerable<T> lines, Func<T, int, string> lineSelector) =>
-            builder.AddLinesIntoFields(title, lines.Select(lineSelector));
+        public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
+            IEnumerable<T> items, Func<T, int, string> selector, string? separator = null) =>
+            builder.AddItemsIntoFields(title, items.Select(selector), separator);
 
-        public static EmbedBuilder AddLinesIntoFields(this EmbedBuilder builder, string title,
-            IEnumerable<string> lines)
+        public static EmbedBuilder AddItemsIntoFields(this EmbedBuilder builder, string title,
+            IEnumerable<string> items, string? separator = null)
         {
-            var splitLines = SplitLinesIntoChunks(lines).ToArray();
+            var splitLines = SplitItemsIntoChunks(items, separator: separator).ToArray();
 
             if (!splitLines.Any()) return builder;
 
@@ -72,21 +72,24 @@ namespace Zhongli.Services.Utilities
             return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
         }
 
-        public static IEnumerable<string> SplitLinesIntoChunks(this IEnumerable<string> lines,
-            int maxLength = EmbedFieldBuilder.MaxFieldValueLength)
+        public static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
+            int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
         {
             var sb = new StringBuilder(0, maxLength);
             var builders = new List<StringBuilder>();
 
-            foreach (var line in lines)
+            foreach (var item in items)
             {
-                if (sb.Length + Environment.NewLine.Length + line.Length > maxLength)
+                if (sb.Length + (separator ?? Environment.NewLine).Length + item.Length > maxLength)
                 {
                     builders.Add(sb);
                     sb = new StringBuilder(0, maxLength);
                 }
 
-                sb.AppendLine(line);
+                if (separator is null)
+                    sb.AppendLine(item);
+                else
+                    sb.Append(item).Append(separator);
             }
 
             builders.Add(sb);
@@ -106,7 +109,7 @@ namespace Zhongli.Services.Utilities
         }
 
         private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
-            string name, string iconUrl, AuthorOptions authorOptions)
+            string name, string? iconUrl, AuthorOptions authorOptions)
         {
             if (authorOptions.HasFlag(AuthorOptions.IncludeId))
                 name += $" ({entity.Id})";

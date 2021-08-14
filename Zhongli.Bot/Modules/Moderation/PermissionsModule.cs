@@ -225,7 +225,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
             var embed = new EmbedBuilder()
                 .WithTitle("Multiple authorization groups found. Reply with the number of the group that you want.")
-                .AddLinesIntoFields("Reprimands", lines);
+                .AddItemsIntoFields("Reprimands", lines);
 
             await ReplyAsync(embed: embed.Build());
 

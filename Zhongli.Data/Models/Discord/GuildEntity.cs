@@ -26,6 +26,9 @@ namespace Zhongli.Data.Models.Discord
         public virtual ICollection<ReprimandAction> ReprimandHistory { get; set; }
             = new List<ReprimandAction>();
 
+        public virtual ICollection<TemporaryRole> TemporaryRoles { get; set; }
+            = new List<TemporaryRole>();
+
         public virtual LoggingRules LoggingRules { get; set; } = null!;
 
         public virtual ModerationRules ModerationRules { get; set; } = null!;

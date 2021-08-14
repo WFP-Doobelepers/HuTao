@@ -52,6 +52,7 @@ namespace Zhongli.Bot
                 .AddScoped<AuthorizationService>()
                 .AddScoped<ModerationService>()
                 .AddScoped<ModerationLoggingService>()
+                .AddScoped<TemporaryRoleService>()
                 .AddScoped<GenshinTimeTrackingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddAutoRemoveMessage()

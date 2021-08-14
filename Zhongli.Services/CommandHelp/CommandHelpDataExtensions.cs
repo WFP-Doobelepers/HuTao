@@ -23,7 +23,7 @@ namespace Zhongli.Services.CommandHelp
             var prefix = ZhongliConfig.Configuration.Prefix;
 
             var lines = builder.ToString().Split(Environment.NewLine);
-            embed.AddLinesIntoFields($"Command: {prefix}{name} {GetParams(command)}", lines);
+            embed.AddItemsIntoFields($"Command: {prefix}{name} {GetParams(command)}", lines);
 
             return embed;
         }
