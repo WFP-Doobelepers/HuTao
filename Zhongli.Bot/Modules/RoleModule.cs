@@ -49,12 +49,9 @@ namespace Zhongli.Bot.Modules
                 {
                     await user.AddRolesAsync(roles);
                 }
-                catch (HttpException e)
+                catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
                 {
-                    if (e.HttpCode == HttpStatusCode.Forbidden)
-                        continue;
-
-                    throw;
+                    // Ignored
                 }
             }
 
@@ -118,12 +115,9 @@ namespace Zhongli.Bot.Modules
                     {
                         await member.RemoveRoleAsync(role);
                     }
-                    catch (HttpException e)
+                    catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
                     {
-                        if (e.HttpCode == HttpStatusCode.Forbidden)
-                            continue;
-
-                        throw;
+                        // Ignored
                     }
                 }
             }

@@ -135,12 +135,9 @@ namespace Zhongli.Services.Moderation
 
                 return ban;
             }
-            catch (HttpException e)
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
             {
-                if (e.HttpCode == HttpStatusCode.Forbidden)
-                    return null;
-
-                throw;
+                return null;
             }
         }
 
@@ -159,12 +156,9 @@ namespace Zhongli.Services.Moderation
 
                 return kick;
             }
-            catch (HttpException e)
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
             {
-                if (e.HttpCode == HttpStatusCode.Forbidden)
-                    return null;
-
-                throw;
+                return null;
             }
         }
 
