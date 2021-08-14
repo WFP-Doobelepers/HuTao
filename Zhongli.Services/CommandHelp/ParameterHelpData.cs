@@ -72,7 +72,7 @@ namespace Zhongli.Services.CommandHelp
             return properties.Select(p =>
             {
                 var info = p.ToContextualProperty();
-                return new ParameterHelpData(info.Name, info.Type,
+                return new ParameterHelpData(info.Name, type,
                     p.GetAttribute<HelpSummaryAttribute>()?.Text,
                     info.Nullability == Nullability.Nullable);
             });
