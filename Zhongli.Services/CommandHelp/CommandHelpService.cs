@@ -62,6 +62,13 @@ namespace Zhongli.Services.CommandHelp
     internal class CommandHelpService : ICommandHelpService
     {
         private readonly CommandService _commandService;
+
+        private readonly PaginatedAppearanceOptions _paginatedOptions = new()
+        {
+            DisplayInformationIcon = false,
+            FieldsPerPage          = 1
+        };
+
         private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
         public CommandHelpService(CommandService commandService) { _commandService = commandService; }
@@ -155,11 +162,8 @@ namespace Zhongli.Services.CommandHelp
 
             return new PaginatedMessage
             {
-                Pages = embed.Fields,
-                Options = new PaginatedAppearanceOptions
-                {
-                    DisplayInformationIcon = false
-                }
+                Pages   = embed.Fields,
+                Options = _paginatedOptions
             };
         }
 
@@ -176,10 +180,7 @@ namespace Zhongli.Services.CommandHelp
                 Title                = $"Module: {module.Name}",
                 AlternateDescription = module.Summary,
                 Pages                = embed.Fields,
-                Options = new PaginatedAppearanceOptions
-                {
-                    DisplayInformationIcon = false
-                }
+                Options              = _paginatedOptions
             };
         }
     }
