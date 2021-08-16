@@ -11,7 +11,7 @@ using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
-using Zhongli.Services.Core;
+using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules

@@ -20,6 +20,7 @@ using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Expirable;
 using Zhongli.Services.Image;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
@@ -52,9 +53,9 @@ namespace Zhongli.Bot
                 .AddScoped<AuthorizationService>()
                 .AddScoped<ModerationService>()
                 .AddScoped<ModerationLoggingService>()
-                .AddScoped<TemporaryRoleService>()
                 .AddScoped<GenshinTimeTrackingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
+                .AddExpirableServices()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
                 .AddImages()
