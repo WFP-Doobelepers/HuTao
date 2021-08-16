@@ -52,10 +52,18 @@ namespace Zhongli.Services.Moderation
             await PublishReprimandAsync(request, details, cancellationToken);
         }
 
-        public static async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
+        public async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
         {
+            var guildEntity = await _db.Guilds.TrackGuildAsync(guild);
+            var rules = guildEntity.ModerationRules;
+            var roleId = rules.MuteRoleId;
+
+            role ??= guild.Roles.FirstOrDefault(r => r.Id == roleId);
             role ??= guild.Roles.FirstOrDefault(r => r.Name == "Muted");
             role ??= await guild.CreateRoleAsync("Muted", isMentionable: false);
+
+            rules.MuteRoleId = role.Id;
+            await _db.SaveChangesAsync();
 
             var permissions = new OverwritePermissions(
                 addReactions: PermValue.Deny,

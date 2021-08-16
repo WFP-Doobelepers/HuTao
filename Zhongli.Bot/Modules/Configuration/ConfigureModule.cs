@@ -16,9 +16,14 @@ namespace Zhongli.Bot.Modules.Configuration
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
+        private readonly ModerationService _moderation;
         private readonly ZhongliContext _db;
 
-        public ConfigureModule(ZhongliContext db) { _db = db; }
+        public ConfigureModule(ModerationService moderation, ZhongliContext db)
+        {
+            _moderation = moderation;
+            _db         = db;
+        }
 
         [Command("autoPardon notice")]
         [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
@@ -46,13 +51,26 @@ namespace Zhongli.Bot.Modules.Configuration
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command("censor range")]
+        [Summary("Set the time for when a censor is considered.")]
+        public async Task ConfigureCensorTimeRangeAsync(
+            [Summary("Leave empty to disable auto pardon of notices.")]
+            TimeSpan? length = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.ModerationRules.CensorTimeRange = length;
+            await _db.SaveChangesAsync();
+
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         [Command("mute")]
         [Summary("Configures the Mute role.")]
         public async Task ConfigureMuteAsync(
             [Summary("Optionally provide a mention, ID, or name of an existing role.")]
-            IRole? role)
+            IRole? role = null)
         {
-            await ModerationService.ConfigureMuteRoleAsync(Context.Guild, role);
+            await _moderation.ConfigureMuteRoleAsync(Context.Guild, role);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 

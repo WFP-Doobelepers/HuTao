@@ -7,7 +7,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         protected Censored() { }
 
-        public Censored(Censor censor, string content, ReprimandDetails details) : base(censor.Length, details)
+        public Censored(Censor censor, string content, TimeSpan? length, ReprimandDetails details)
+            : base(length, details)
         {
             Censor  = censor;
             Content = content;

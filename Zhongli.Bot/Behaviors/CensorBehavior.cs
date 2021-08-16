@@ -52,7 +52,8 @@ namespace Zhongli.Bot.Behaviors
                 .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
                 .Where(c => c.Regex().IsMatch(message.Content)))
             {
-                var censored = new Censored(censor, message.Content, details);
+                var length = guildEntity.ModerationRules.CensorTimeRange;
+                var censored = new Censored(censor, message.Content, length, details);
 
                 _db.Add(censored);
                 await _db.SaveChangesAsync(cancellationToken);

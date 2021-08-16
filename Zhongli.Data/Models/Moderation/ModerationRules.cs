@@ -20,6 +20,8 @@ namespace Zhongli.Data.Models.Moderation
         public virtual ICollection<Trigger> Triggers { get; set; }
             = new List<Trigger>();
 
+        public TimeSpan? CensorTimeRange { get; set; }
+
         public TimeSpan? NoticeAutoPardonLength { get; set; }
 
         public TimeSpan? WarningAutoPardonLength { get; set; }
