@@ -6,15 +6,15 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
     public class ReprimandResult
     {
-        public ReprimandResult(ReprimandAction primary, ReprimandResult? secondary = null)
+        public ReprimandResult(Reprimand primary, ReprimandResult? secondary = null)
         {
             Primary = primary;
             Secondary = secondary?.Secondary.Append(secondary.Primary)
-                ?? Array.Empty<ReprimandAction>();
+                ?? Array.Empty<Reprimand>();
         }
 
-        public IEnumerable<ReprimandAction?> Secondary { get; }
+        public IEnumerable<Reprimand?> Secondary { get; }
 
-        public ReprimandAction Primary { get; }
+        public Reprimand Primary { get; }
     }
 }

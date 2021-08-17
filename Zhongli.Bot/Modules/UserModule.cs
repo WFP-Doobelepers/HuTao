@@ -134,7 +134,7 @@ namespace Zhongli.Bot.Modules
             await UserAsync(user);
         }
 
-        private static EmbedFieldBuilder CreateEmbed(IUser user, ReprimandAction r)
+        private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r)
         {
             var content = new StringBuilder()
                 .AppendLine($"▌{ModerationLoggingService.GetMessage(r, user)}")

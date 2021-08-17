@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Moderation

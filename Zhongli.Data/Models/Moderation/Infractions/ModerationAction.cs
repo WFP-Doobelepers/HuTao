@@ -9,7 +9,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 {
     public interface IModerationAction
     {
-        public ModerationAction Action { get; set; }
+        public ModerationAction? Action { get; set; }
     }
 
     public class ModerationAction : IMentionable

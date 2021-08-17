@@ -5,6 +5,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.CommandHelp;
@@ -31,7 +32,8 @@ namespace Zhongli.Bot.Modules.Moderation
             TimeSpan? length = null,
             CensorOptions? options = null)
         {
-            var censor = new BanCensor(pattern, options, deleteDays, length);
+            var trigger = new BanAction(deleteDays, length);
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -43,7 +45,8 @@ namespace Zhongli.Bot.Modules.Moderation
             [Summary(PatternSummary)] string pattern,
             CensorOptions? options = null)
         {
-            var censor = new KickCensor(pattern, options);
+            var trigger = new KickAction();
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -57,7 +60,8 @@ namespace Zhongli.Bot.Modules.Moderation
             TimeSpan? length = null,
             CensorOptions? options = null)
         {
-            var censor = new MuteCensor(pattern, options, length);
+            var trigger = new MuteAction(length);
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -69,7 +73,8 @@ namespace Zhongli.Bot.Modules.Moderation
             [Summary(PatternSummary)] string pattern,
             CensorOptions? options = null)
         {
-            var censor = new NoteCensor(pattern, options);
+            var trigger = new NoteAction();
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -81,7 +86,8 @@ namespace Zhongli.Bot.Modules.Moderation
             [Summary(PatternSummary)] string pattern,
             CensorOptions? options = null)
         {
-            var censor = new NoticeCensor(pattern, options);
+            var trigger = new NoticeAction();
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -95,7 +101,8 @@ namespace Zhongli.Bot.Modules.Moderation
             uint count = 1,
             CensorOptions? options = null)
         {
-            var censor = new WarningCensor(pattern, options, count);
+            var trigger = new WarningAction(count);
+            var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -104,7 +111,7 @@ namespace Zhongli.Bot.Modules.Moderation
         private async Task AddCensor(Censor censor)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.Censors
+            guild.ModerationRules.Triggers
                 .Add(censor.WithModerator(Context));
 
             await _db.SaveChangesAsync();
@@ -116,14 +123,11 @@ namespace Zhongli.Bot.Modules.Moderation
             [HelpSummary("Comma separated regex flags.")]
             public RegexOptions Flags { get; set; } = RegexOptions.None;
 
-            [HelpSummary("Time for when the censored reprimand should expire.")]
-            public TimeSpan? ExpireAfter { get; set; }
-
-            [HelpSummary("The behavior in which the censor triggers.")]
-            public TriggerMode TriggerMode { get; set; } = TriggerMode.Default;
+            [HelpSummary("The behavior in which the reprimand action triggers.")]
+            public TriggerMode Mode { get; set; } = TriggerMode.Exact;
 
             [HelpSummary("The amount of times the censor should be triggered before taking action.")]
-            public uint? TriggerAt { get; set; } = 1;
+            public uint Amount { get; set; } = 1;
         }
     }
 }

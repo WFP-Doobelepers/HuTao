@@ -5,6 +5,7 @@ using Discord;
 using Discord.WebSocket;
 using MediatR;
 using Zhongli.Data;
+using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
@@ -35,10 +36,12 @@ namespace Zhongli.Bot.Behaviors
         private async Task ProcessMessage(SocketMessage message, CancellationToken cancellationToken = default)
         {
             var author = message.Author;
-            if (author.IsBot || author.IsWebhook || author is not IGuildUser user)
+            if (author.IsBot || author.IsWebhook
+                || author is not IGuildUser user
+                || message.Channel is not ITextChannel channel)
                 return;
 
-            var guild = ((IGuildChannel) message.Channel).Guild;
+            var guild = channel.Guild;
             var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
             if (guildEntity is null || cancellationToken.IsCancellationRequested)
                 return;
@@ -46,19 +49,15 @@ namespace Zhongli.Bot.Behaviors
             await _db.Users.TrackUserAsync(user, cancellationToken);
 
             var currentUser = await guild.GetCurrentUserAsync();
-            var details = new ReprimandDetails(user, currentUser, ModerationSource.Censor, "[Censor Triggered]");
 
-            foreach (var censor in guildEntity.ModerationRules.Censors
-                .Where(c => c.Exclusions.All(e => !e.Judge((ITextChannel) message.Channel, user)))
+            foreach (var censor in guildEntity.ModerationRules.Triggers.OfType<Censor>()
+                .Where(c => c.Exclusions.All(e => !e.Judge(channel, user)))
                 .Where(c => c.Regex().IsMatch(message.Content)))
             {
+                var details = new ReprimandDetails(user, currentUser, "[Censor Triggered]", censor);
                 var length = guildEntity.ModerationRules.CensorTimeRange;
-                var censored = new Censored(censor, message.Content, length, details);
 
-                _db.Add(censored);
-                await _db.SaveChangesAsync(cancellationToken);
-
-                await _moderation.CensorAsync(censored, message, details, cancellationToken);
+                await _moderation.CensorAsync(message, length, details, cancellationToken);
             }
         }
     }

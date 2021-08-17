@@ -7,7 +7,9 @@ using Humanizer.Localisation;
 using Zhongli.Data;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Moderation
@@ -18,7 +20,7 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
-        public static string GetMessage(ReprimandAction action, IUser user)
+        public static string GetMessage(Reprimand action, IUser user)
         {
             return action switch
             {
@@ -40,7 +42,7 @@ namespace Zhongli.Services.Moderation
                     maxUnit: TimeUnit.Year) ?? "indefinitely";
         }
 
-        public static string GetTitle(ReprimandAction action)
+        public static string GetTitle(Reprimand action)
         {
             var title = action switch
             {
@@ -59,7 +61,7 @@ namespace Zhongli.Services.Moderation
             return $"{title.Humanize()}: {action.Id}";
         }
 
-        public async Task PublishReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details,
+        public async Task PublishReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
             var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
@@ -87,7 +89,7 @@ namespace Zhongli.Services.Moderation
             return embed;
         }
 
-        public async Task<EmbedBuilder> UpdatedEmbedAsync(ReprimandAction reprimand, ModifiedReprimand details,
+        public async Task<EmbedBuilder> UpdatedEmbedAsync(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
             var embed = CreateReprimandEmbed(details.User)
@@ -100,12 +102,12 @@ namespace Zhongli.Services.Moderation
             return embed;
         }
 
-        private static bool IsIncluded(ReprimandAction action, ReprimandNoticeType type)
+        private static bool IsIncluded(Reprimand reprimand, ReprimandNoticeType type)
         {
             if (type == ReprimandNoticeType.All)
                 return true;
 
-            return action switch
+            return reprimand switch
             {
                 Ban      => type.HasFlag(ReprimandNoticeType.Ban),
                 Censored => type.HasFlag(ReprimandNoticeType.Censor),
@@ -117,9 +119,9 @@ namespace Zhongli.Services.Moderation
             };
         }
 
-        private static Color GetColor(ReprimandAction action)
+        private static Color GetColor(Reprimand reprimand)
         {
-            return action switch
+            return reprimand switch
             {
                 Ban      => Color.Red,
                 Censored => Color.Blue,
@@ -130,7 +132,7 @@ namespace Zhongli.Services.Moderation
                 Warning  => Color.Gold,
 
                 _ => throw new ArgumentOutOfRangeException(
-                    nameof(action), action, "An unknown reprimand was given.")
+                    nameof(reprimand), reprimand, "An unknown reprimand was given.")
             };
         }
 
@@ -138,7 +140,19 @@ namespace Zhongli.Services.Moderation
             .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail, ushort.MaxValue)
             .WithCurrentTimestamp();
 
-        private async Task AddPrimaryAsync(EmbedBuilder embed, ReprimandDetails details, ReprimandAction? reprimand,
+        private static string GetTriggerDetails(Trigger trigger)
+        {
+            return trigger switch
+            {
+                Censor c           => $"{nameof(Censor)}: {Format.Code(c.Pattern)}",
+                ReprimandTrigger r => $"{r.Amount} {r.Source.Humanize().Pluralize()} ({r.Mode})",
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(trigger), trigger, "An unknown trigger was given.")
+            };
+        }
+
+        private async Task AddPrimaryAsync(EmbedBuilder embed, ReprimandDetails details, Reprimand? reprimand,
             CancellationToken cancellationToken)
         {
             if (reprimand is not null)
@@ -153,13 +167,20 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        private async Task AddReprimandDetailsAsync(EmbedBuilder embed, ReprimandAction reprimand,
+        private async Task AddReprimandDetailsAsync(EmbedBuilder embed, Reprimand reprimand,
             CancellationToken cancellationToken)
-            => embed
-                .AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true)
-                .AddField("Source", reprimand.Source.Humanize(), true);
+        {
+            embed.AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true);
 
-        private async Task AddSecondaryAsync(EmbedBuilder embed, ReprimandDetails details, ReprimandAction? reprimand,
+            var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
+            if (trigger is null) return;
+
+            embed
+                .AddField("Trigger", GetTriggerDetails(trigger), true)
+                .AddField("Trigger ID", trigger.Id, true);
+        }
+
+        private async Task AddSecondaryAsync(EmbedBuilder embed, ReprimandDetails details, Reprimand? reprimand,
             CancellationToken cancellationToken)
         {
             if (reprimand is not null)
@@ -180,10 +201,15 @@ namespace Zhongli.Services.Moderation
             var reprimand = result.Primary;
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
             var options = guild.LoggingRules.Options;
+
             if (!options.HasFlag(LoggingOptions.Verbose)
                 && reprimand.Status is ReprimandStatus.Added
-                && reprimand.Source is ModerationSource.Notice or ModerationSource.Warning)
-                return;
+                && reprimand.TriggerId is not null)
+            {
+                var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
+                if (trigger is ReprimandTrigger { Source: TriggerSource.Warning or TriggerSource.Notice })
+                    return;
+            }
 
             var channelId = guild.LoggingRules.ModerationChannelId;
             if (channelId is null)
@@ -214,11 +240,11 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        private async ValueTask<uint> GetTotalAsync(ReprimandAction action, CancellationToken cancellationToken)
+        private async ValueTask<uint> GetTotalAsync(Reprimand reprimand, CancellationToken cancellationToken)
         {
-            var user = await action.GetUserAsync(_db, cancellationToken);
+            var user = await reprimand.GetUserAsync(_db, cancellationToken);
 
-            return action switch
+            return reprimand switch
             {
                 Ban      => user.HistoryCount<Ban>(),
                 Censored => user.HistoryCount<Censored>(),
@@ -229,7 +255,7 @@ namespace Zhongli.Services.Moderation
                 Warning  => user.WarningCount(),
 
                 _ => throw new ArgumentOutOfRangeException(
-                    nameof(action), action, "An unknown reprimand was given.")
+                    nameof(reprimand), reprimand, "An unknown reprimand was given.")
             };
         }
 

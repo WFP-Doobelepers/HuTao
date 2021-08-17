@@ -117,7 +117,7 @@ namespace Zhongli.Bot.Modules.Moderation
             => WarnAsync(user, 1, reason);
 
         private ReprimandDetails GetDetails(IGuildUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
+            => new(user, (IGuildUser) Context.User, reason);
 
         private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)
         {

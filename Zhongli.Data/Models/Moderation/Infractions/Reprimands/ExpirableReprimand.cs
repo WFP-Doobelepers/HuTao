@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public abstract class ExpirableReprimand : ReprimandAction, IExpirable
+    public abstract class ExpirableReprimand : Reprimand, IExpirable
     {
         protected ExpirableReprimand() { }
 

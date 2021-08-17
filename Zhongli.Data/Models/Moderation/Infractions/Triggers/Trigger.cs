@@ -2,20 +2,19 @@
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
 {
-    public abstract class Trigger : IModerationAction, ITrigger
+    public abstract class Trigger : ITrigger, IModerationAction
     {
-        protected Trigger(uint amount, TriggerSource source, TriggerMode mode)
+        protected Trigger() { }
+
+        protected Trigger(ITrigger? options)
         {
-            Amount = amount;
-            Mode   = mode;
-            Source = source;
+            Mode   = options?.Mode ?? TriggerMode.Exact;
+            Amount = options?.Amount ?? 1;
         }
 
         public Guid Id { get; set; }
 
-        public TriggerSource Source { get; set; }
-
-        public ModerationAction Action { get; set; }
+        public virtual ModerationAction Action { get; set; }
 
         public TriggerMode Mode { get; set; }
 

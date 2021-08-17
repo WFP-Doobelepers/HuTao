@@ -1,6 +1,6 @@
 ﻿namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public class Kick : ReprimandAction, IKick
+    public class Kick : Reprimand, IKick
     {
         protected Kick() { }
 

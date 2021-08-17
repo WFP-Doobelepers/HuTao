@@ -45,7 +45,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Delete a reprimand, this completely removes the data.")]
         public async Task DeleteReprimandAsync(Guid id)
         {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
+            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.DeleteReprimandAsync);
         }
 
@@ -61,7 +61,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
         public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
+            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
         }
 
@@ -77,7 +77,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Update a reprimand's reason.")]
         public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
         {
-            var reprimand = await _db.Set<ReprimandAction>().FindByIdAsync(id);
+            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
         }
 
@@ -90,9 +90,9 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         private ModifiedReprimand GetDetails(IUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, ModerationSource.Command, reason);
+            => new(user, (IGuildUser) Context.User, reason);
 
-        private async Task ModifyReprimandAsync(ReprimandAction? reprimand,
+        private async Task ModifyReprimandAsync(Reprimand? reprimand,
             UpdateReprimandDelegate update, string? reason = null)
         {
             if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
@@ -109,7 +109,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(reprimand, details);
         }
 
-        private async Task ReplyReprimandAsync(ReprimandAction reprimand, ModifiedReprimand details)
+        private async Task ReplyReprimandAsync(Reprimand reprimand, ModifiedReprimand details)
         {
             var guild = await reprimand.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
@@ -121,7 +121,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 await Context.Message.DeleteAsync();
         }
 
-        private async Task<ReprimandAction?> TryFindReprimandAsync(string id,
+        private async Task<Reprimand?> TryFindReprimandAsync(string id,
             CancellationToken cancellationToken = default)
         {
             if (id.Length < 2)
@@ -150,7 +150,7 @@ namespace Zhongli.Bot.Modules.Moderation
             return selected is null ? null : reprimands.ElementAtOrDefault(int.Parse(selected.Content));
         }
 
-        private delegate Task UpdateReprimandDelegate(ReprimandAction reprimand, ModifiedReprimand details,
+        private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default);
     }
 }

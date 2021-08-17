@@ -1,25 +1,28 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Criteria;
+using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 {
-    public abstract class Censor : ICensor, ITrigger, IModerationAction
+    public class Censor : Trigger, ICensor, ITriggerAction
     {
         protected Censor() { }
 
-        protected Censor(string pattern, ICensorOptions? options)
+        public Censor(string pattern, ReprimandAction action, ICensorOptions? options)
+            : base(options)
         {
-            Pattern = pattern;
-            Options = options?.Flags ?? RegexOptions.None;
+            Pattern   = pattern;
+            Reprimand = action;
 
-            Mode   = options?.TriggerMode ?? TriggerMode.Default;
-            Amount = options?.TriggerAt ?? 1;
+            Options = options?.Flags ?? RegexOptions.None;
         }
 
-        public Guid Id { get; set; }
+        public Guid? ReprimandId { get; set; }
 
         public virtual ICollection<Criterion> Exclusions { get; set; }
 
@@ -27,10 +30,16 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 
         public string Pattern { get; set; }
 
-        public virtual ModerationAction Action { get; set; }
+        public virtual ReprimandAction Reprimand { get; set; }
+    }
 
-        public TriggerMode Mode { get; set; }
-
-        public uint Amount { get; set; }
+    public class CensorConfiguration : IEntityTypeConfiguration<Censor>
+    {
+        public void Configure(EntityTypeBuilder<Censor> builder)
+        {
+            builder
+                .Property(t => t.ReprimandId)
+                .HasColumnName(nameof(ITriggerAction.ReprimandId));
+        }
     }
 }
