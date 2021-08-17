@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -68,13 +69,6 @@ namespace Zhongli.Services.Moderation
             await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
         }
 
-        public async Task PublishReprimandAsync(ReprimandResult reprimand, ReprimandDetails details,
-            CancellationToken cancellationToken = default)
-        {
-            var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
-            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
-        }
-
         public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
@@ -100,6 +94,15 @@ namespace Zhongli.Services.Moderation
             await AddReprimandDetailsAsync(embed, reprimand, cancellationToken);
 
             return embed;
+        }
+
+        public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult reprimand, ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
+            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
+
+            return reprimand;
         }
 
         private static bool IsIncluded(Reprimand reprimand, ReprimandNoticeType type)
@@ -137,15 +140,15 @@ namespace Zhongli.Services.Moderation
         }
 
         private static EmbedBuilder CreateReprimandEmbed(IUser user) => new EmbedBuilder()
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail, ushort.MaxValue)
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
             .WithCurrentTimestamp();
 
         private static string GetTriggerDetails(Trigger trigger)
         {
             return trigger switch
             {
-                Censor c           => $"{nameof(Censor)}: {Format.Code(c.Pattern)}",
-                ReprimandTrigger r => $"{r.Amount} {r.Source.Humanize().Pluralize()} ({r.Mode})",
+                Censor c           => $"{c.Mode} {c.Amount}: {Format.Code(c.Pattern)}",
+                ReprimandTrigger r => $"{r.Mode} {r.Amount}: {r.Source.Humanize().Pluralize()}",
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(trigger), trigger, "An unknown trigger was given.")
@@ -193,8 +196,7 @@ namespace Zhongli.Services.Moderation
         }
 
         private async Task HandleReprimandAsync(
-            EmbedBuilder embed,
-            ReprimandResult result,
+            EmbedBuilder embed, ReprimandResult result,
             IUser user, IGuildUser moderator,
             CancellationToken cancellationToken)
         {
@@ -238,6 +240,14 @@ namespace Zhongli.Services.Moderation
                 var dm = await user.GetOrCreateDMChannelAsync();
                 _ = dm?.SendMessageAsync(embed: embed.Build());
             }
+        }
+
+        private async Task<int> GetReprimandsOfTrigger(ITriggerAction action, Reprimand reprimand)
+        {
+            var user = await reprimand.GetUserAsync(_db);
+            return user
+                .Reprimands<Reprimand>()
+                .Count(r => r.TriggerId == action.ReprimandId);
         }
 
         private async ValueTask<uint> GetTotalAsync(Reprimand reprimand, CancellationToken cancellationToken)

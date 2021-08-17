@@ -13,7 +13,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     {
         protected Censor() { }
 
-        public Censor(string pattern, ReprimandAction action, ICensorOptions? options)
+        public Censor(string pattern, ReprimandAction? action, ICensorOptions? options)
             : base(options)
         {
             Pattern   = pattern;
@@ -30,7 +30,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
 
         public string Pattern { get; set; }
 
-        public virtual ReprimandAction Reprimand { get; set; }
+        public virtual ReprimandAction? Reprimand { get; set; }
     }
 
     public class CensorConfiguration : IEntityTypeConfiguration<Censor>

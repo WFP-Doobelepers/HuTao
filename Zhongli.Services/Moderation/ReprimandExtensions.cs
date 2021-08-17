@@ -26,7 +26,7 @@ namespace Zhongli.Services.Moderation
             {
                 TriggerMode.Exact       => amount == trigger.Amount,
                 TriggerMode.Retroactive => amount >= trigger.Amount,
-                TriggerMode.Multiple    => amount % trigger.Amount is 0,
+                TriggerMode.Multiple    => amount % trigger.Amount is 0 && amount is not 0,
                 _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger.Mode,
                     "Invalid trigger mode.")
             };
@@ -65,6 +65,15 @@ namespace Zhongli.Services.Moderation
                 return user.WarningCount();
 
             return (uint) user.Reprimands<T>(countHidden).LongCount();
+        }
+
+        public static async Task<uint> CountAsync<T>(
+            this T reprimand, Trigger trigger,
+            DbContext db, CancellationToken cancellationToken = default) where T : Reprimand
+        {
+            var user = await reprimand.GetUserAsync(db, cancellationToken);
+            return (uint) user.Reprimands<T>()
+                .LongCount(r => r.TriggerId == trigger.Id);
         }
 
         public static uint HistoryCount<T>(this GuildUserEntity user) where T : Reprimand

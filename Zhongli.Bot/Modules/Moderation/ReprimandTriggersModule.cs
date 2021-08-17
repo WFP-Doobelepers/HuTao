@@ -44,6 +44,13 @@ namespace Zhongli.Bot.Modules.Moderation
             await TryAddTriggerAsync(action, amount, source, mode);
         }
 
+        [Command("noteAt")]
+        public async Task NoteAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
+        {
+            var action = new NoteAction();
+            await TryAddTriggerAsync(action, amount, source, mode);
+        }
+
         [Command("noticeAt")]
         public async Task NoticeAtAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
         {

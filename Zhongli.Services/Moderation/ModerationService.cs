@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
 using IBan = Zhongli.Data.Models.Moderation.Infractions.IBan;
@@ -22,15 +21,13 @@ namespace Zhongli.Services.Moderation
     public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         private readonly DiscordSocketClient _client;
-        private readonly IServiceScopeFactory _scope;
         private readonly ModerationLoggingService _logging;
         private readonly ZhongliContext _db;
 
-        public ModerationService(ZhongliContext db, DiscordSocketClient client, IServiceScopeFactory scope,
-            ModerationLoggingService logging) : base(db)
+        public ModerationService(ZhongliContext db, DiscordSocketClient client, ModerationLoggingService logging)
+            : base(db)
         {
             _client  = client;
-            _scope   = scope;
             _logging = logging;
             _db      = db;
         }
@@ -45,18 +42,19 @@ namespace Zhongli.Services.Moderation
             _db.Add(censored);
             await _db.SaveChangesAsync(cancellationToken);
 
-            var censor = await censored.GetTriggerAsync(_db, cancellationToken) as Censor;
-            var user = await censored.GetUserAsync(_db, cancellationToken);
-            var count = user.Reprimands<Censored>()
-                .Where(t => t.Trigger?.Id == censor?.Id);
+            if (details.Trigger is Censor censor)
+            {
+                var triggerCount = await censored.CountAsync(censor, _db, cancellationToken);
+                if (censor.IsTriggered(triggerCount))
+                {
+                    var triggerDetails = new ReprimandDetails(
+                        details.User, details.Moderator, $"[Reprimand Triggered] at {triggerCount}", censor);
 
-            if (censor?.IsTriggered((uint) count.LongCount()) ?? false)
-                await TryReprimandTriggerAsync(censor.Reprimand, details, cancellationToken);
+                    await ReprimandAsync(censor.Reprimand, triggerDetails, cancellationToken);
+                }
+            }
 
-            EnqueueExpirableEntity(censored, cancellationToken);
-
-            var request = new ReprimandRequest<Censored>(details, censored);
-            await PublishReprimandAsync(request, details, cancellationToken);
+            await PublishReprimandAsync(censored, details, cancellationToken);
         }
 
         public async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
@@ -107,15 +105,6 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden, cancellationToken);
 
-        public async Task NoteAsync(ReprimandDetails details,
-            CancellationToken cancellationToken = default)
-        {
-            var note = _db.Add(new Note(details)).Entity;
-            await _db.SaveChangesAsync(cancellationToken);
-
-            await _logging.PublishReprimandAsync(note, details, cancellationToken);
-        }
-
         public Task UpdateReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
@@ -130,12 +119,9 @@ namespace Zhongli.Services.Moderation
 
                 var ban = _db.Add(new Ban(days, length, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
-                await _logging.PublishReprimandAsync(ban, details, cancellationToken);
 
                 await user.BanAsync((int) days, details.Reason);
-                EnqueueExpirableEntity(ban, cancellationToken);
-
-                return ban;
+                return await PublishReprimandAsync(ban, details, cancellationToken);
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
             {
@@ -152,11 +138,9 @@ namespace Zhongli.Services.Moderation
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
-                await _logging.PublishReprimandAsync(kick, details, cancellationToken);
 
                 await user.KickAsync(details.Reason);
-
-                return kick;
+                return await PublishReprimandAsync(kick, details, cancellationToken);
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
             {
@@ -190,23 +174,17 @@ namespace Zhongli.Services.Moderation
             var mute = _db.Add(new Mute(length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
-            EnqueueExpirableEntity(mute, cancellationToken);
-
-            await _logging.PublishReprimandAsync(mute, details, cancellationToken);
-            return mute;
+            return await PublishReprimandAsync(mute, details, cancellationToken);
         }
 
-        public async Task<ReprimandResult?> TryReprimandTriggerAsync(ReprimandAction? reprimand,
-            ReprimandDetails details,
-            CancellationToken cancellationToken) => reprimand switch
+        public async Task<ReprimandResult> NoteAsync(ReprimandDetails details,
+            CancellationToken cancellationToken = default)
         {
-            IBan b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-            IKick      => await TryKickAsync(details, cancellationToken),
-            IMute m    => await TryMuteAsync(m.Length, details, cancellationToken),
-            IWarning w => await WarnAsync(w.Count, details, cancellationToken),
-            INotice    => await NoticeAsync(details, cancellationToken),
-            _          => null
-        };
+            var note = _db.Add(new Note(details)).Entity;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return await PublishReprimandAsync(note, details, cancellationToken);
+        }
 
         public async Task<ReprimandResult> NoticeAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
@@ -217,10 +195,7 @@ namespace Zhongli.Services.Moderation
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
 
-            EnqueueExpirableEntity(notice, cancellationToken);
-
-            var request = new ReprimandRequest<Notice>(details, notice);
-            return await PublishReprimandAsync(request, details, cancellationToken);
+            return await PublishReprimandAsync(notice, details, cancellationToken);
         }
 
         public async Task<ReprimandResult> WarnAsync(uint amount, ReprimandDetails details,
@@ -232,10 +207,7 @@ namespace Zhongli.Services.Moderation
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
 
-            EnqueueExpirableEntity(warning, cancellationToken);
-
-            var request = new ReprimandRequest<Warning>(details, warning);
-            return await PublishReprimandAsync(request, details, cancellationToken);
+            return await PublishReprimandAsync(warning, details, cancellationToken);
         }
 
         protected override async Task OnExpiredEntity(ExpirableReprimand reprimand,
@@ -247,6 +219,19 @@ namespace Zhongli.Services.Moderation
                 Mute mute => ExpireMuteAsync(mute, cancellationToken),
                 _         => ExpireReprimandAsync(reprimand, cancellationToken)
             });
+        }
+
+        private static bool TryGetTriggerSource(Reprimand reprimand, out TriggerSource? source)
+        {
+            source = reprimand switch
+            {
+                Censored => TriggerSource.Censored,
+                Notice   => TriggerSource.Notice,
+                Warning  => TriggerSource.Warning,
+                _        => null
+            };
+
+            return source is not null;
         }
 
         private static Reprimand ModifyReprimand(Reprimand reprimand, ModifiedReprimand details,
@@ -303,14 +288,60 @@ namespace Zhongli.Services.Moderation
             await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
         }
 
-        private async Task<T> PublishReprimandAsync<T>(IRequest<T> request, ReprimandDetails details,
-            CancellationToken cancellationToken) where T : ReprimandResult
+        private async Task<ReprimandResult?> ReprimandAsync(ReprimandAction? reprimand, ReprimandDetails details,
+            CancellationToken cancellationToken) => reprimand switch
         {
-            var mediator = _scope.CreateScope().ServiceProvider.GetRequiredService<IMediator>();
-            var result = await mediator.Send(request, cancellationToken);
-            await _logging.PublishReprimandAsync(result, details, cancellationToken);
+            IBan b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+            IKick      => await TryKickAsync(details, cancellationToken),
+            IMute m    => await TryMuteAsync(m.Length, details, cancellationToken),
+            IWarning w => await WarnAsync(w.Count, details, cancellationToken),
+            INotice    => await NoticeAsync(details, cancellationToken),
+            INote      => await NoteAsync(details, cancellationToken),
+            _          => null
+        };
 
-            return result;
+        private async Task<ReprimandResult> PublishReprimandAsync<T>(T reprimand, ReprimandDetails details,
+            CancellationToken cancellationToken) where T : Reprimand
+        {
+            if (reprimand is ExpirableReprimand expirable)
+                EnqueueExpirableEntity(expirable, cancellationToken);
+
+            var result = await TriggerReprimand(details, reprimand, cancellationToken);
+            return await _logging.PublishReprimandAsync(result, details, cancellationToken);
+        }
+
+        private async Task<ReprimandResult> TriggerReprimand<T>(ReprimandDetails details, T reprimand,
+            CancellationToken cancellationToken) where T : Reprimand
+        {
+            if (!TryGetTriggerSource(reprimand, out var source))
+                return reprimand;
+
+            var count = await reprimand.CountAsync(_db, false, cancellationToken);
+            var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
+            if (trigger is null) return new ReprimandResult(reprimand);
+
+            var (_, moderator, _, _) = details;
+            var currentUser = await moderator.Guild.GetCurrentUserAsync();
+
+            var countDetails = new ReprimandDetails(
+                details.User, currentUser, $"[Reprimand Count Triggered] at {count}", trigger);
+            var secondary = await ReprimandAsync(trigger.Reprimand, countDetails, cancellationToken);
+
+            return new ReprimandResult(reprimand, secondary);
+        }
+
+        private async Task<ReprimandTrigger?> GetCountTriggerAsync(Reprimand reprimand, uint count,
+            TriggerSource source, CancellationToken cancellationToken)
+        {
+            var user = await reprimand.GetUserAsync(_db, cancellationToken);
+            var rules = user.Guild.ModerationRules;
+
+            return rules.Triggers
+                .OfType<ReprimandTrigger>()
+                .Where(t => t.Source == source)
+                .Where(t => t.IsTriggered(count))
+                .OrderByDescending(t => t.Amount)
+                .FirstOrDefault();
         }
     }
 }

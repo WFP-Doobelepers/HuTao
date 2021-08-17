@@ -39,6 +39,19 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command("add")]
+        [Alias("create")]
+        [Summary("A censor that deletes the message and does nothing to the user.")]
+        public async Task AddCensorAsync(
+            [Summary(PatternSummary)] string pattern,
+            CensorOptions? options = null)
+        {
+            var censor = new Censor(pattern, null, options);
+
+            await AddCensor(censor);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         [Command("kick")]
         [Summary("A censor that deletes the message and also kicks the user.")]
         public async Task AddKickCensorAsync(
