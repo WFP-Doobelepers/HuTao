@@ -86,13 +86,12 @@ namespace Zhongli.Services.Quote
             ? embed
             : embed.AddField("Embed Type", message.Embeds.First().Type);
 
-        public static EmbedBuilder? GetRichEmbed(this IMessage message, IMentionable executingUser)
+        public static EmbedBuilder? GetRichEmbed(this IMessage message)
         {
             var firstEmbed = message.Embeds.FirstOrDefault();
             if (firstEmbed?.Type != EmbedType.Rich) return null;
 
-            var embed = message.Embeds
-                .First()
+            var embed = message.Embeds.First()
                 .ToEmbedBuilder();
 
             if (firstEmbed.Color is null) embed.Color = Color.DarkGrey;

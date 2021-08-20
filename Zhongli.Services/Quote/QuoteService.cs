@@ -34,7 +34,7 @@ namespace Zhongli.Services.Quote
         {
             if (IsQuote(message)) return null;
 
-            var embed = message.GetRichEmbed(executingUser) ?? new EmbedBuilder();
+            var embed = message.GetRichEmbed() ?? new EmbedBuilder();
 
             if (!embed.TryAddImageAttachment(message))
             {
