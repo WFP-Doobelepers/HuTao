@@ -32,7 +32,7 @@ namespace Zhongli.Services.CommandHelp
             parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
 
         private static string GetParamName(ParameterHelpData parameter)
-            => parameter.Options.Any()
+            => parameter.Type.IsEnum
                 ? Surround(parameter.Name, parameter.IsOptional)
                 : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
 
@@ -81,7 +81,15 @@ namespace Zhongli.Services.CommandHelp
                 .AppendLine()
                 .AppendLine($"Arguments for {Format.Underline(Format.Bold(parameter.Name))}:");
 
-            if (!parameter.Type.IsEnum)
+            if (parameter.Type.IsEnum)
+            {
+                var names = parameter.Options.Select(p => p.Name);
+                var values = Surround(string.Join("|\x200b", names), parameter.IsOptional);
+                builder
+                    .AppendLine(Format.Code(values))
+                    .AppendSummaries(parameter.Options, true);
+            }
+            else
             {
                 builder
                     .AppendSummaries(parameter.Options, false)
@@ -93,14 +101,6 @@ namespace Zhongli.Services.CommandHelp
                 {
                     builder.AppendParameter(nestedParameter, seenTypes);
                 }
-            }
-            else
-            {
-                var names = parameter.Options.Select(p => p.Name);
-                var values = Surround(string.Join("|\x200b", names), parameter.IsOptional);
-                builder
-                    .AppendLine(Format.Code(values))
-                    .AppendSummaries(parameter.Options, true);
             }
 
             return builder;

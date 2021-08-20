@@ -47,7 +47,7 @@ namespace Zhongli.Services.CommandHelp
         public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
         {
             var type = parameter.Type.ToContextualType();
-            return new ParameterHelpData(parameter.Name, parameter.Type, parameter.Summary,
+            return new ParameterHelpData(parameter.Name, type.Type, parameter.Summary,
                 parameter.IsOptional || type.Nullability == Nullability.Nullable);
         }
 
@@ -72,7 +72,7 @@ namespace Zhongli.Services.CommandHelp
             return properties.Select(p =>
             {
                 var info = p.ToContextualProperty();
-                return new ParameterHelpData(info.Name, type,
+                return new ParameterHelpData(info.Name, info.PropertyType,
                     p.GetAttribute<HelpSummaryAttribute>()?.Text,
                     info.Nullability == Nullability.Nullable);
             });
