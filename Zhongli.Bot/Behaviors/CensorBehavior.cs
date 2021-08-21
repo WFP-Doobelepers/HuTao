@@ -46,8 +46,10 @@ namespace Zhongli.Bot.Behaviors
             if (guildEntity is null || cancellationToken.IsCancellationRequested)
                 return;
 
-            await _db.Users.TrackUserAsync(user, cancellationToken);
+            if (guildEntity.ModerationRules.CensorExclusions.Any(e => e.Judge(channel, user)))
+                return;
 
+            await _db.Users.TrackUserAsync(user, cancellationToken);
             var currentUser = await guild.GetCurrentUserAsync();
 
             foreach (var censor in guildEntity.ModerationRules.Triggers.OfType<Censor>()

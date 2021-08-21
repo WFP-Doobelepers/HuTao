@@ -5,6 +5,8 @@ namespace Zhongli.Data.Models.Discord
     [Flags]
     public enum GuildPermission
     {
+        None = 0,
+
         /// <summary>Allows kicking members.</summary>
         /// <remarks>
         ///     This permission requires the owner account to use two-factor

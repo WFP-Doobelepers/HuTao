@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
@@ -12,6 +13,9 @@ namespace Zhongli.Data.Models.Moderation
         public virtual AntiSpamRules? AntiSpamRules { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
+
+        public virtual ICollection<Criterion> CensorExclusions { get; set; }
+            = new List<Criterion>();
 
         public virtual ICollection<Trigger> Triggers { get; set; }
             = new List<Trigger>();

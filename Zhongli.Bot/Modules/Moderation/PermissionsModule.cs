@@ -46,31 +46,14 @@ namespace Zhongli.Bot.Modules.Moderation
             "An Authorization Group must have all pass before the permission is allowed.")]
         public async Task AddPermissionAsync(AuthorizationScope scope, RuleOptions options)
         {
-            var moderator = (IGuildUser) Context.User;
-            var rules = new List<Criterion>();
-
-            void AddRules<T>(IEnumerable<T> source, Func<T, Criterion> factory)
-                => rules.AddRange(source.Select(factory.Invoke));
-
-            if (options.Users is not null)
-                AddRules(options.Users, u => new UserCriterion(u.Id));
-
-            var channels = options.Channels?.Where(c => c is ICategoryChannel or ITextChannel);
-            if (channels is not null)
-                AddRules(channels, c => new ChannelCriterion(c.Id, c is ICategoryChannel));
-
-            if (options.Roles is not null)
-                AddRules(options.Roles, r => new RoleCriterion(r));
-
-            if (options.Permission is not null)
-                rules.Add(new PermissionCriterion(options.Permission.Value));
-
+            var rules = options.ToCriteria();
             if (rules.Count == 0)
             {
                 await _error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
                 return;
             }
 
+            var moderator = (IGuildUser) Context.User;
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             guild.AuthorizationGroups.AddRules(scope, moderator, options.AccessType, rules);
 
@@ -174,7 +157,8 @@ namespace Zhongli.Bot.Modules.Moderation
                 .AppendLine($"▌Type: {Format.Bold(group.Access.Humanize())}")
                 .AppendLine($"▌Moderator: {group.GetModerator()}")
                 .AppendLine($"▌Date: {group.GetDate()}");
-            foreach (var rules in group.Collection.ToLookup(GetCriterionType))
+
+            foreach (var rules in group.Collection.ToLookup(g => g.GetCriterionType()))
             {
                 string GetGroupingName() => rules.Key.Name
                     .Replace(nameof(Criterion), string.Empty)
@@ -237,27 +221,14 @@ namespace Zhongli.Bot.Modules.Moderation
             return selected is null ? null : group.ElementAtOrDefault(int.Parse(selected.Content));
         }
 
-        private static Type GetCriterionType(Criterion rule)
-        {
-            return rule switch
-            {
-                UserCriterion       => typeof(UserCriterion),
-                RoleCriterion       => typeof(RoleCriterion),
-                PermissionCriterion => typeof(PermissionCriterion),
-                ChannelCriterion    => typeof(ChannelCriterion),
-                _ => throw new ArgumentOutOfRangeException(nameof(rule), rule,
-                    "Unknown kind of Criterion.")
-            };
-        }
-
         [NamedArgumentType]
-        public class RuleOptions
+        public class RuleOptions : ICriteriaOptions
         {
             [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
             public AccessType AccessType { get; set; } = AccessType.Allow;
 
             [HelpSummary("The permissions that the user must have.")]
-            public GuildPermission? Permission { get; set; }
+            public GuildPermission Permission { get; set; }
 
             [HelpSummary("The text or category channels this permission will work on.")]
             public IEnumerable<IGuildChannel>? Channels { get; set; }
