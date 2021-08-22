@@ -63,7 +63,7 @@ namespace Zhongli.Services.CommandHelp
 
             foreach (var alias in FormatUtilities.CollapsePlurals(aliases))
             {
-                builder.AppendLine($"• {alias}");
+                builder.AppendLine($"• {ZhongliConfig.Configuration.Prefix}{alias}");
             }
 
             return builder;

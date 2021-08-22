@@ -15,7 +15,8 @@ namespace Zhongli.Services.Utilities
             LongDate,
             ShortDateTime,
             LongDateTime,
-            RelativeTime
+            RelativeTime,
+            Default = ShortDateTime
         }
 
         private static readonly Dictionary<TimestampStyle, string> TimestampStyles = new()
@@ -32,11 +33,11 @@ namespace Zhongli.Services.Utilities
         public static string ToDiscordTimestamp(this TimeSpan length, TimestampStyle style = RelativeTime)
             => ToDiscordTimestamp(DateTimeOffset.Now + length, style);
 
-        public static string ToDiscordTimestamp(this DateTimeOffset date, TimestampStyle style = ShortDateTime)
+        public static string ToDiscordTimestamp(this DateTimeOffset date, TimestampStyle style = Default)
             => $"<t:{date.ToUnixTimeSeconds()}:{TimestampStyles[style]}>";
 
         public static string ToUniversalTimestamp(this DateTimeOffset date,
-            TimestampStyle style = ShortDateTime)
+            TimestampStyle style = Default)
             => $"{Format.Bold(date.ToDiscordTimestamp(style))} ({date.ToUniversalTime()})";
 
         public static string ToUniversalTimestamp(this TimeSpan length, TimestampStyle style = RelativeTime)

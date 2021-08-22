@@ -19,13 +19,6 @@ namespace Zhongli.Services.Core
 
         public static void AddRules(this ICollection<AuthorizationGroup> group,
             AuthorizationScope scope, IGuildUser moderator, AccessType accessType,
-            ICollection<Criterion> rules)
-        {
-            group.Add(new AuthorizationGroup(scope, accessType, rules).WithModerator(moderator));
-        }
-
-        public static void AddRules(this ICollection<AuthorizationGroup> group,
-            AuthorizationScope scope, IGuildUser moderator, AccessType accessType,
             params Criterion[] rules)
         {
             group.Add(new AuthorizationGroup(scope, accessType, rules).WithModerator(moderator));

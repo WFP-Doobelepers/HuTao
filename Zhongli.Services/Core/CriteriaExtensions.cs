@@ -45,15 +45,15 @@ namespace Zhongli.Services.Core
         public static ICollection<Criterion> ToCriteria(this ICriteriaOptions options)
             => new List<Criterion>().AddCriteria(options);
 
-        public static Type GetCriterionType(this Criterion rule)
+        public static Type GetCriterionType(this Criterion criterion)
         {
-            return rule switch
+            return criterion switch
             {
                 UserCriterion       => typeof(UserCriterion),
                 RoleCriterion       => typeof(RoleCriterion),
                 PermissionCriterion => typeof(PermissionCriterion),
                 ChannelCriterion    => typeof(ChannelCriterion),
-                _ => throw new ArgumentOutOfRangeException(nameof(rule), rule,
+                _ => throw new ArgumentOutOfRangeException(nameof(criterion), criterion,
                     "Unknown kind of Criterion.")
             };
         }

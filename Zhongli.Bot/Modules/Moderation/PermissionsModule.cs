@@ -6,12 +6,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
@@ -26,13 +26,14 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("permissions")]
     [Name("Permissions")]
-    public class PermissionsModule : InteractivePromptBase
+    public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
         private readonly AuthorizationService _auth;
         private readonly CommandErrorHandler _error;
         private readonly ZhongliContext _db;
 
-        public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, ZhongliContext db)
+        public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, ZhongliContext db) : base(error,
+            db)
         {
             _auth  = auth;
             _error = error;
@@ -54,11 +55,9 @@ namespace Zhongli.Bot.Modules.Moderation
             }
 
             var moderator = (IGuildUser) Context.User;
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.AuthorizationGroups.AddRules(scope, moderator, options.AccessType, rules);
+            var group = new AuthorizationGroup(scope, options.AccessType, rules).WithModerator(moderator);
 
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await AddEntityAsync(group);
         }
 
         [Command("configure")]
@@ -107,47 +106,34 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("remove")]
-        [Alias("delete")]
         [Summary("Remove an authorization group.")]
-        public async Task RemovePermissionAsync(Guid id, [Remainder] string? reason)
-        {
-            var reprimand = await _db.Set<AuthorizationGroup>().FindByIdAsync(id);
-            await RemoveRuleAsync(reprimand);
-        }
+        protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-        [HiddenFromHelp]
-        [Command("remove")]
-        public async Task RemovePermissionAsync(string id, [Remainder] string? reason)
-        {
-            var reprimand = await TryFindAuthorizationGroup(id);
-            await RemoveRuleAsync(reprimand);
-        }
-
-        [Command("view")]
         [Summary("View the configured authorization groups.")]
-        public async Task ViewPermissionsAsync()
+        protected override Task ViewEntityAsync() => base.ViewEntityAsync();
+
+        protected override (string Title, StringBuilder Value) EntityViewer(AuthorizationGroup entity)
+        {
+            var details = GetAuthorizationGroupDetails(entity);
+            return (entity.Id.ToString(), details);
+        }
+
+        protected override bool IsMatch(AuthorizationGroup entity, string id)
+            => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+        protected override async Task RemoveEntityAsync(AuthorizationGroup censor)
+        {
+            _db.RemoveRange(censor.Collection);
+            _db.Remove(censor.Action);
+            _db.Remove(censor);
+
+            await _db.SaveChangesAsync();
+        }
+
+        protected override async Task<ICollection<AuthorizationGroup>> GetCollectionAsync()
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
-            var rules = guild.AuthorizationGroups
-                .OrderBy(g => g.Action.Date)
-                .Select(r => new EmbedFieldBuilder()
-                    .WithName($"{r.Id}")
-                    .WithValue(GetAuthorizationGroupDetails(r).ToString()));
-
-            var paginated = new PaginatedMessage
-            {
-                Pages  = rules,
-                Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
-                Options = new PaginatedAppearanceOptions
-                {
-                    DisplayInformationIcon = false,
-                    FieldsPerPage          = 8
-                }
-            };
-
-            await PagedReplyAsync(paginated);
+            return guild.AuthorizationGroups;
         }
 
         private static StringBuilder GetAuthorizationGroupDetails(AuthorizationGroup group)
@@ -168,23 +154,6 @@ namespace Zhongli.Bot.Modules.Moderation
             }
 
             return sb;
-        }
-
-        private async Task RemoveRuleAsync(AuthorizationGroup? auth)
-        {
-            if (auth is null || auth.Action.GuildId != Context.Guild.Id)
-            {
-                await _error.AssociateError(Context.Message,
-                    "Unable to find authorization group. Provide at least 2 characters.");
-                return;
-            }
-
-            _db.RemoveRange(auth.Collection);
-            _db.Remove(auth.Action);
-            _db.Remove(auth);
-
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
         private async Task<AuthorizationGroup?> TryFindAuthorizationGroup(string id,

@@ -1,16 +1,16 @@
 using Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
-using Zhongli.Services.Utilities;
+using static Zhongli.Services.Utilities.DateTimeExtensions;
 
 namespace Zhongli.Services.Moderation
 {
     public static class ModerationActionExtensions
     {
-        public static string GetDate(this ModerationAction action)
-            => action.Date.ToUniversalTimestamp();
+        public static string GetDate(this ModerationAction action, TimestampStyle style = TimestampStyle.RelativeTime)
+            => action.Date.ToUniversalTimestamp(style);
 
-        public static string GetDate(this IModerationAction action)
-            => action.Action?.GetDate() ?? "Unknown";
+        public static string GetDate(this IModerationAction action, TimestampStyle style = TimestampStyle.RelativeTime)
+            => action.Action?.GetDate(style) ?? "Unknown";
 
         public static string GetModerator(this ModerationAction action)
             => $"{Format.Bold(action.Mention)} ({action.ModeratorId})";

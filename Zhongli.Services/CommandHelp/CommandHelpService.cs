@@ -65,8 +65,7 @@ namespace Zhongli.Services.CommandHelp
 
         private readonly PaginatedAppearanceOptions _paginatedOptions = new()
         {
-            DisplayInformationIcon = false,
-            FieldsPerPage          = 1
+            DisplayInformationIcon = false
         };
 
         private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;

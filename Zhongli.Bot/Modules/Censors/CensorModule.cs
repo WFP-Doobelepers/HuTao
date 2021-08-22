@@ -1,41 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
-using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Interactive.Functions;
+using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
-using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
-namespace Zhongli.Bot.Modules.Moderation
+namespace Zhongli.Bot.Modules.Censors
 {
-    [Name("Censor")]
+    [Name("Censors")]
     [Group("censor")]
-    public class CensorModule : InteractiveBase
+    [Alias("censors")]
+    public class CensorModule : InteractiveEntity<Censor>
     {
         private const string PatternSummary = "The .NET flavor regex pattern to be used.";
-        private readonly CommandErrorHandler _error;
         private readonly ZhongliContext _db;
 
-        public CensorModule(ZhongliContext db, CommandErrorHandler error)
-        {
-            _db    = db;
-            _error = error;
-        }
+        public CensorModule(CommandErrorHandler error, ZhongliContext db) : base(error, db) { _db = db; }
+
+        protected override string Title { get; } = "Censors";
 
         [Command("ban")]
         [Summary("A censor that deletes the message and also bans the user.")]
@@ -122,6 +118,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("warning")]
+        [Alias("warn")]
         [Summary("A censor that deletes the message and does nothing to the user.")]
         public async Task AddWarningCensorAsync(
             [Summary(PatternSummary)] string pattern,
@@ -136,58 +133,45 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("exclude")]
-        [Summary("Exclude the set criteria globally in all censors.")]
-        public async Task ExcludeAsync(Exclusions exclusions)
+        [Summary("View the censor list.")]
+        protected override Task ViewEntityAsync() => base.ViewEntityAsync();
+
+        protected override (string Title, StringBuilder Value) EntityViewer(Censor entity)
         {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.CensorExclusions.AddCriteria(exclusions);
+            var value = new StringBuilder()
+                .AppendLine($"▌Pattern: {entity.Pattern}")
+                .AppendLine($"▌Options: {entity.Options.Humanize()}")
+                .AppendLine($"▌Reprimand: {entity.Reprimand?.Action ?? "None"}")
+                .AppendLine($"▌Exclusions: {entity.Exclusions.Humanize()}");
+
+            return (entity.Id.ToString(), value);
+        }
+
+        protected override bool IsMatch(Censor entity, string id)
+            => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+        protected override async Task RemoveEntityAsync(Censor censor)
+        {
+            foreach (var reprimand in _db.Set<Reprimand>().ToEnumerable()
+                .Where(r => r.TriggerId == censor.Id))
+            {
+                reprimand.TriggerId = null;
+            }
+
+            if (censor.Reprimand is not null)
+                _db.Remove(censor.Reprimand);
+
+            _db.RemoveRange(censor.Exclusions);
+            _db.Remove(censor.Action);
+            _db.Remove(censor);
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("exclusions")]
-        [Summary("View the configured censor exclusions.")]
-        public async Task ExclusionsViewAsync()
+        protected override async Task<ICollection<Censor>> GetCollectionAsync()
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
-            var rules = guild.ModerationRules.CensorExclusions
-                .Select(c => new EmbedFieldBuilder()
-                    .WithName($"{c.Id}")
-                    .WithValue(c.ToString()));
-
-            var paginated = new PaginatedMessage
-            {
-                Pages  = rules,
-                Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
-                Options = new PaginatedAppearanceOptions
-                {
-                    FieldsPerPage = 8
-                }
-            };
-
-            await PagedReplyAsync(paginated);
-        }
-
-        [Command("include")]
-        [Alias("delete")]
-        [Summary("Remove an exclusion.")]
-        public async Task RemovePermissionAsync(Guid id, [Remainder] string? reason)
-        {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
-            var reprimand = guild.ModerationRules.CensorExclusions.FirstOrDefault(c => c.Id == id);
-            await RemoveCriterionAsync(reprimand);
-        }
-
-        [HiddenFromHelp]
-        [Command("include")]
-        public async Task RemovePermissionAsync(string id, [Remainder] string? reason)
-        {
-            var reprimand = await TryFindCensorExclusions(id);
-            await RemoveCriterionAsync(reprimand);
+            return guild.ModerationRules.Triggers.OfType<Censor>().ToList();
         }
 
         private async Task AddCensor(Censor censor, Exclusions? exclusions)
@@ -202,49 +186,6 @@ namespace Zhongli.Bot.Modules.Moderation
             await _db.SaveChangesAsync();
         }
 
-        private async Task RemoveCriterionAsync(Criterion? criterion)
-        {
-            if (criterion is null)
-            {
-                await _error.AssociateError(Context.Message,
-                    "Unable to find authorization group. Provide at least 2 characters.");
-                return;
-            }
-
-            _db.Remove(criterion);
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        private async Task<Criterion?> TryFindCensorExclusions(string id,
-            CancellationToken cancellationToken = default)
-        {
-            if (id.Length < 2)
-                return null;
-
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild, cancellationToken);
-            var group = guild.ModerationRules.CensorExclusions
-                .Where(r => r.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (group.Count <= 1)
-                return group.Count == 1 ? group.First() : null;
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Multiple censor exclusions found. Reply with the number of the group that you want.")
-                .AddItemsIntoFields("Censors", group,
-                    (criterion, i) => $"{i}. {criterion.Id}: {criterion}");
-
-            await ReplyAsync(embed: embed.Build());
-
-            var containsCriterion = new FuncCriterion(m =>
-                int.TryParse(m.Content, out var selection)
-                && selection < group.Count && selection > -1);
-
-            var selected = await NextMessageAsync(containsCriterion, token: cancellationToken);
-            return selected is null ? null : group.ElementAtOrDefault(int.Parse(selected.Content));
-        }
-
         [NamedArgumentType]
         public class CensorOptions : ICensorOptions
         {
@@ -256,22 +197,6 @@ namespace Zhongli.Bot.Modules.Moderation
 
             [HelpSummary("The amount of times the censor should be triggered before reprimanding.")]
             public uint Amount { get; set; } = 1;
-        }
-
-        [NamedArgumentType]
-        public class Exclusions : ICriteriaOptions
-        {
-            [HelpSummary("The permissions that the user must have.")]
-            public GuildPermission Permission { get; set; } = GuildPermission.None;
-
-            [HelpSummary("The text or category channels that will be excluded.")]
-            public IEnumerable<IGuildChannel>? Channels { get; set; }
-
-            [HelpSummary("The users that are excluded.")]
-            public IEnumerable<IGuildUser>? Users { get; set; }
-
-            [HelpSummary("The roles that are excluded.")]
-            public IEnumerable<IRole>? Roles { get; set; }
         }
     }
 }

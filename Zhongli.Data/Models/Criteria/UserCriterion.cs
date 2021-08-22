@@ -1,5 +1,4 @@
-﻿using Discord;
-using Zhongli.Data.Models.Discord;
+﻿using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Data.Models.Criteria
 {
@@ -11,6 +10,6 @@ namespace Zhongli.Data.Models.Criteria
 
         public ulong UserId { get; set; }
 
-        public override string ToString() => ((IMentionable) this).Mention;
+        public override string ToString() => ((IUserEntity) this).Mention;
     }
 }
