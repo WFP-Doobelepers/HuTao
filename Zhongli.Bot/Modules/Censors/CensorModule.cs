@@ -133,8 +133,14 @@ namespace Zhongli.Bot.Modules.Censors
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command]
+        [Alias("list", "view")]
         [Summary("View the censor list.")]
-        protected override Task ViewEntityAsync() => base.ViewEntityAsync();
+        protected async Task ViewCensorsAsync()
+        {
+            var collection = await GetCollectionAsync();
+            await PagedViewAsync(collection);
+        }
 
         protected override (string Title, StringBuilder Value) EntityViewer(Censor entity)
         {

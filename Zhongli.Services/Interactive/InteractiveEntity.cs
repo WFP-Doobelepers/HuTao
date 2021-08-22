@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive.Paginator;
-using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Interactive.Functions;
@@ -26,31 +25,6 @@ namespace Zhongli.Services.Interactive
 
         protected virtual string? Title { get; } = null;
 
-        [Command("remove")]
-        [Alias("delete")]
-        protected virtual async Task RemoveEntityAsync(string id)
-        {
-            var collection = await GetCollectionAsync();
-            var entity = await TryFindEntityAsync(collection, id);
-
-            if (entity is null)
-            {
-                await _error.AssociateError(Context.Message, EmptyMatchMessage);
-                return;
-            }
-
-            await RemoveEntityAsync(entity);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("view")]
-        [Alias("list")]
-        protected virtual async Task ViewEntityAsync()
-        {
-            var entities = await GetCollectionAsync();
-            await PagedViewAsync(entities);
-        }
-
         protected abstract (string Title, StringBuilder Value) EntityViewer(T entity);
 
         protected abstract bool IsMatch(T entity, string id);
@@ -64,11 +38,7 @@ namespace Zhongli.Services.Interactive
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        protected abstract Task RemoveEntityAsync(T entity);
-
-        protected abstract Task<ICollection<T>> GetCollectionAsync();
-
-        private async Task PagedViewAsync(IEnumerable<T> collection, string? title = null)
+        protected async Task PagedViewAsync(IEnumerable<T> collection, string? title = null)
         {
             var pages = collection
                 .Select(EntityViewer)
@@ -87,11 +57,31 @@ namespace Zhongli.Services.Interactive
             await PagedReplyAsync(paginated);
         }
 
-        private async Task<T?> TryFindEntityAsync(IEnumerable<T> collection, string id)
+        protected virtual async Task RemoveEntityAsync(string id)
+        {
+            var collection = await GetCollectionAsync();
+            var entity = await TryFindEntityAsync(id, collection);
+
+            if (entity is null)
+            {
+                await _error.AssociateError(Context.Message, EmptyMatchMessage);
+                return;
+            }
+
+            await RemoveEntityAsync(entity);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        protected abstract Task RemoveEntityAsync(T entity);
+
+        protected abstract Task<ICollection<T>> GetCollectionAsync();
+
+        protected async Task<T?> TryFindEntityAsync(string id, IEnumerable<T>? collection = null)
         {
             if (id.Length < 2)
                 return null;
 
+            collection ??= await GetCollectionAsync();
             var filtered = collection
                 .Where(e => IsMatch(e, id))
                 .ToList();

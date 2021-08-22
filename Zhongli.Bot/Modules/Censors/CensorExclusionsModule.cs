@@ -41,7 +41,6 @@ namespace Zhongli.Bot.Modules.Censors
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Alias]
         [Command("include")]
         [Summary("Remove a global censor exclusion by ID.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
@@ -49,7 +48,11 @@ namespace Zhongli.Bot.Modules.Censors
         [Command("exclusions")]
         [Alias("view exclusions", "list exclusions")]
         [Summary("View the configured censor exclusions.")]
-        protected override Task ViewEntityAsync() => base.ViewEntityAsync();
+        protected async Task ViewExclusionsAsync()
+        {
+            var collection = await GetCollectionAsync();
+            await PagedViewAsync(collection);
+        }
 
         protected override (string Title, StringBuilder Value) EntityViewer(Criterion entity)
             => (entity.Id.ToString(), new StringBuilder($"{entity}"));

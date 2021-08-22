@@ -39,6 +39,23 @@ namespace Zhongli.Services.Moderation
             .AddReprimand<Kick>(user)
             .AddReprimand<Note>(user);
 
+        public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, InfractionType type)
+        {
+            return type switch
+            {
+                InfractionType.Ban      => reprimands.OfType<Ban>(),
+                InfractionType.Censored => reprimands.OfType<Censored>(),
+                InfractionType.Kick     => reprimands.OfType<Kick>(),
+                InfractionType.Mute     => reprimands.OfType<Mute>(),
+                InfractionType.Note     => reprimands.OfType<Note>(),
+                InfractionType.Notice   => reprimands.OfType<Notice>(),
+                InfractionType.Warning  => reprimands.OfType<Warning>(),
+                InfractionType.All      => reprimands,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type,
+                    "Invalid Infraction type.")
+            };
+        }
+
         public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = false)
             where T : Reprimand
         {

@@ -1,5 +1,6 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -8,11 +9,9 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
-using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 
@@ -21,7 +20,7 @@ namespace Zhongli.Bot.Modules.Moderation
     [Name("Reprimand Modification")]
     [Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
-    public class ModifyReprimandsModule : InteractivePromptBase
+    public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     {
         private readonly CommandErrorHandler _error;
         private readonly ModerationLoggingService _logging;
@@ -29,10 +28,9 @@ namespace Zhongli.Bot.Modules.Moderation
         private readonly ZhongliContext _db;
 
         public ModifyReprimandsModule(
-            CommandErrorHandler error,
-            ZhongliContext db,
-            ModerationLoggingService logging,
-            ModerationService moderation)
+            CommandErrorHandler error, ZhongliContext db,
+            ModerationLoggingService logging, ModerationService moderation)
+            : base(error, db)
         {
             _error = error;
             _db    = db;
@@ -41,52 +39,56 @@ namespace Zhongli.Bot.Modules.Moderation
             _moderation = moderation;
         }
 
-        [Command("delete")]
-        [Summary("Delete a reprimand, this completely removes the data.")]
-        public async Task DeleteReprimandAsync(Guid id)
-        {
-            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.DeleteReprimandAsync);
-        }
-
-        [HiddenFromHelp]
-        [Command("delete")]
-        public async Task DeleteReprimandAsync(string id)
-        {
-            var reprimand = await TryFindReprimandAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.DeleteReprimandAsync);
-        }
-
         [Command("hide")]
         [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-        public async Task HideReprimandAsync(Guid id, [Remainder] string? reason = null)
-        {
-            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
-        }
-
-        [HiddenFromHelp]
-        [Command("hide")]
         public async Task HideReprimandAsync(string id, [Remainder] string? reason = null)
         {
-            var reprimand = await TryFindReprimandAsync(id);
+            var reprimand = await TryFindEntityAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
         }
 
-        [Command("update")]
         [Summary("Update a reprimand's reason.")]
-        public async Task UpdateReprimandAsync(Guid id, [Remainder] string? reason = null)
+        public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
         {
-            var reprimand = await _db.Set<Reprimand>().FindByIdAsync(id);
+            var reprimand = await TryFindEntityAsync(id);
             await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
         }
 
-        [HiddenFromHelp]
-        [Command("update")]
-        public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
+        [Command("delete")]
+        [Summary("Delete a reprimand, this completely removes the data.")]
+        protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+
+        [Command("reprimand history")]
+        [Summary("Views the entire reprimand history of the server.")]
+        protected async Task ViewEntityAsync(
+            [Summary("Leave empty to show everything.")]
+            InfractionType type = InfractionType.All)
         {
-            var reprimand = await TryFindReprimandAsync(id);
-            await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
+            var collection = await GetCollectionAsync();
+            await PagedViewAsync(collection.OfType(type));
+        }
+
+        protected override (string Title, StringBuilder Value) EntityViewer(Reprimand r)
+        {
+            var user = Context.Client.GetUser(r.UserId);
+
+            var title = ModerationLoggingService.GetTitle(r);
+            var content = ModerationLoggingService.GetReprimandDetails(user, r);
+            return (title, content);
+        }
+
+        protected override bool IsMatch(Reprimand entity, string id)
+            => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+        protected override async Task RemoveEntityAsync(Reprimand entity)
+        {
+            await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
+        }
+
+        protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            return guild.ReprimandHistory;
         }
 
         private ModifiedReprimand GetDetails(IUser user, string? reason)
@@ -119,35 +121,6 @@ namespace Zhongli.Bot.Modules.Moderation
             }
             else
                 await Context.Message.DeleteAsync();
-        }
-
-        private async Task<Reprimand?> TryFindReprimandAsync(string id,
-            CancellationToken cancellationToken = default)
-        {
-            if (id.Length < 2)
-                return null;
-
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild, cancellationToken);
-            var reprimands = await guild.ReprimandHistory.ToAsyncEnumerable()
-                .Where(r => r.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase))
-                .ToListAsync(cancellationToken);
-
-            if (reprimands.Count <= 1)
-                return reprimands.Count == 1 ? reprimands.First() : null;
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Multiple reprimands found. Reply with the number of the reprimand that you want.")
-                .AddItemsIntoFields("Reprimands", reprimands,
-                    (r, i) => $"{Format.Code($"{i}")}: {ModerationLoggingService.GetTitle(r)}");
-
-            await ReplyAsync(embed: embed.Build());
-
-            var containsCriterion = new FuncCriterion(m =>
-                int.TryParse(m.Content, out var selection)
-                && selection < reprimands.Count && selection > -1);
-
-            var selected = await NextMessageAsync(containsCriterion, token: cancellationToken);
-            return selected is null ? null : reprimands.ElementAtOrDefault(int.Parse(selected.Content));
         }
 
         private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ModifiedReprimand details,

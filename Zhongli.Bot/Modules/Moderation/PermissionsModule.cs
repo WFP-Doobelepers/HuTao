@@ -106,11 +106,19 @@ namespace Zhongli.Bot.Modules.Moderation
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command]
+        [Alias("view", "list")]
+        [Summary("View the configured authorization groups.")]
+        public async Task ViewPermissionsAsync()
+        {
+            var collection = await GetCollectionAsync();
+            await PagedViewAsync(collection);
+        }
+
+        [Command("remove")]
+        [Alias("delete")]
         [Summary("Remove an authorization group.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
-
-        [Summary("View the configured authorization groups.")]
-        protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
         protected override (string Title, StringBuilder Value) EntityViewer(AuthorizationGroup entity)
         {

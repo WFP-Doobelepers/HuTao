@@ -1,6 +1,4 @@
-using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
@@ -21,17 +19,6 @@ namespace Zhongli.Bot.Modules
 {
     public class UserModule : InteractiveBase
     {
-        public enum InfractionType
-        {
-            All,
-            Ban,
-            Kick,
-            Mute,
-            Note,
-            Notice,
-            Warning
-        }
-
         private readonly AuthorizationService _auth;
         private readonly ZhongliContext _db;
 
@@ -57,24 +44,14 @@ namespace Zhongli.Bot.Modules
                 return;
 
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            var history = guild.ReprimandHistory.Where(u => u.UserId == user.Id);
-            history = type switch
-            {
-                InfractionType.Ban     => history.OfType<Ban>(),
-                InfractionType.Kick    => history.OfType<Kick>(),
-                InfractionType.Mute    => history.OfType<Mute>(),
-                InfractionType.Note    => history.OfType<Note>(),
-                InfractionType.Notice  => history.OfType<Notice>(),
-                InfractionType.Warning => history.OfType<Warning>(),
-                InfractionType.All     => history,
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type,
-                    "Invalid Infraction type.")
-            };
+            var history = guild.ReprimandHistory
+                .Where(u => u.UserId == user.Id)
+                .OfType(type);
 
             var reprimands = new EmbedBuilder().AddReprimands(userEntity)
                 .AddField("Reprimands", "Active/Total", true).Fields;
             var pages = history
-                .OrderByDescending(r => r.Action.Date)
+                .OrderByDescending(r => r.Action?.Date)
                 .Select(r => CreateEmbed(user, r));
 
             var message = new PaginatedMessage
@@ -134,26 +111,8 @@ namespace Zhongli.Bot.Modules
             await UserAsync(user);
         }
 
-        private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r)
-        {
-            var content = new StringBuilder()
-                .AppendLine($"▌{ModerationLoggingService.GetMessage(r, user)}")
-                .AppendLine($"▌Reason: {r.GetReason()}")
-                .AppendLine($"▌Moderator: {r.GetModerator()}")
-                .AppendLine($"▌Date: {r.GetDate()}")
-                .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
-
-            if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
-            {
-                content
-                    .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
-                    .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
-                    .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
-            }
-
-            return new EmbedFieldBuilder()
-                .WithName(ModerationLoggingService.GetTitle(r))
-                .WithValue(content.ToString());
-        }
+        private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
+            .WithName(ModerationLoggingService.GetTitle(r))
+            .WithValue(ModerationLoggingService.GetReprimandDetails(user, r).ToString());
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -21,28 +22,6 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
-        public static string GetMessage(Reprimand action, IUser user)
-        {
-            return action switch
-            {
-                Ban        => $"{user} was banned.",
-                Censored c => $"{user} was censored. Message: {c.CensoredMessage()}",
-                Kick       => $"{user} was kicked.",
-                Mute m     => $"{user} was muted for {GetLength(m)}.",
-                Note       => $"{user} was given a note.",
-                Notice     => $"{user} was given a notice.",
-                Warning w  => $"{user} was warned {w.Count} times.",
-
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(action), action, "An unknown reprimand was given.")
-            };
-
-            static string GetLength(ILength mute)
-                => mute.Length?.Humanize(5,
-                    minUnit: TimeUnit.Second,
-                    maxUnit: TimeUnit.Year) ?? "indefinitely";
-        }
-
         public static string GetTitle(Reprimand action)
         {
             var title = action switch
@@ -62,11 +41,31 @@ namespace Zhongli.Services.Moderation
             return $"{title.Humanize()}: {action.Id}";
         }
 
+        public static StringBuilder GetReprimandDetails(IUser user, Reprimand r)
+        {
+            var content = new StringBuilder()
+                .AppendLine($"▌{GetMessage(r)}")
+                .AppendLine($"▌Reason: {r.GetReason()}")
+                .AppendLine($"▌Moderator: {r.GetModerator()}")
+                .AppendLine($"▌Date: {r.GetDate()}")
+                .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
+
+            if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
+            {
+                content
+                    .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
+            }
+
+            return content;
+        }
+
         public async Task PublishReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
             var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
-            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
+            await LogReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
         }
 
         public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
@@ -100,7 +99,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
-            await HandleReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
+            await LogReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
 
             return reprimand;
         }
@@ -143,6 +142,29 @@ namespace Zhongli.Services.Moderation
             .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
             .WithCurrentTimestamp();
 
+        private static string GetMessage(Reprimand action)
+        {
+            var mention = $"<@{action.UserId}>";
+            return action switch
+            {
+                Ban        => $"{mention} was banned.",
+                Censored c => $"{mention} was censored. Message: {c.CensoredMessage()}",
+                Kick       => $"{mention} was kicked.",
+                Mute m     => $"{mention} was muted for {GetLength(m)}.",
+                Note       => $"{mention} was given a note.",
+                Notice     => $"{mention} was given a notice.",
+                Warning w  => $"{mention} was warned {w.Count} times.",
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(action), action, "An unknown reprimand was given.")
+            };
+
+            static string GetLength(ILength mute)
+                => mute.Length?.Humanize(5,
+                    minUnit: TimeUnit.Second,
+                    maxUnit: TimeUnit.Year) ?? "indefinitely";
+        }
+
         private static string GetTriggerDetails(Trigger trigger)
         {
             return trigger switch
@@ -163,7 +185,7 @@ namespace Zhongli.Services.Moderation
                 embed
                     .WithTitle(GetTitle(reprimand))
                     .WithColor(GetColor(reprimand))
-                    .WithDescription(GetMessage(reprimand, details.User));
+                    .WithDescription(GetMessage(reprimand));
 
                 AddReason(embed, reprimand.Action);
                 await AddReprimandDetailsAsync(embed, reprimand, cancellationToken);
@@ -191,11 +213,11 @@ namespace Zhongli.Services.Moderation
                 var total = await GetTotalAsync(reprimand, cancellationToken);
                 embed
                     .WithColor(GetColor(reprimand))
-                    .AddField($"{GetTitle(reprimand)} [{total}]", $"{GetMessage(reprimand, details.User)}");
+                    .AddField($"{GetTitle(reprimand)} [{total}]", $"{GetMessage(reprimand)}");
             }
         }
 
-        private async Task HandleReprimandAsync(
+        private async Task LogReprimandAsync(
             EmbedBuilder embed, ReprimandResult result,
             IUser user, IGuildUser moderator,
             CancellationToken cancellationToken)
