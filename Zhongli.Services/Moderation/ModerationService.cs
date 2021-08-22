@@ -85,6 +85,8 @@ namespace Zhongli.Services.Moderation
         public async Task DeleteReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
             CancellationToken cancellationToken = default)
         {
+            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Deleted, cancellationToken);
+
             var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
             if (trigger is not null)
                 _db.Remove(trigger);
@@ -97,8 +99,6 @@ namespace Zhongli.Services.Moderation
 
             _db.Remove(reprimand);
             await _db.SaveChangesAsync(cancellationToken);
-
-            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
         public Task HideReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
