@@ -52,9 +52,11 @@ namespace Zhongli.Services.Utilities
             return builder;
         }
 
-        public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild guild,
+        public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
             AuthorOptions authorOptions = AuthorOptions.None)
         {
+            if (guild is null) return embed;
+
             var name = guild.Name;
             if (authorOptions.HasFlag(AuthorOptions.Requested))
                 name = $"Requested from {name}";
