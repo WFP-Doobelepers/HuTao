@@ -23,6 +23,12 @@ namespace Zhongli.Data.Models.Discord
         public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
             = new List<AuthorizationGroup>();
 
+        public virtual ICollection<MessageLog> MessageLogs { get; set; }
+            = new List<MessageLog>();
+
+        public virtual ICollection<ReactionLog> ReactionLogs { get; set; }
+            = new List<ReactionLog>();
+
         public virtual ICollection<Reprimand> ReprimandHistory { get; set; }
             = new List<Reprimand>();
 

@@ -8,6 +8,6 @@ namespace Zhongli.Data.Models.Discord
 
         ulong ChannelId { get; set; }
 
-        string IMentionable.Mention => $"<#{ChannelId}>";
+        string IMentionable.Mention => this.MentionChannel();
     }
 }

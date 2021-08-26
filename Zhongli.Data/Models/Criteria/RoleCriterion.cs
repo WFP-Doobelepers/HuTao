@@ -17,6 +17,6 @@ namespace Zhongli.Data.Models.Criteria
 
         public ulong RoleId { get; set; }
 
-        public override string ToString() => ((IRoleEntity) this).Mention;
+        public override string ToString() => this.MentionRole();
     }
 }

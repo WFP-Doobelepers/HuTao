@@ -64,6 +64,19 @@ namespace Zhongli.Bot.Modules.Configuration
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
+        [Command("message logging")]
+        [Summary("Configures the Logging Channel that logs for messages will be sent on.")]
+        public async Task ConfigureLoggingAsync(
+            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
+            ITextChannel channel)
+        {
+            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            guild.LoggingRules.MessageLogChannelId = channel.Id;
+
+            await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         [Command("mute")]
         [Summary("Configures the Mute role.")]
         public async Task ConfigureMuteAsync(

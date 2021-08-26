@@ -19,6 +19,8 @@ namespace Zhongli.Data.Models.Logging
 
         public ulong GuildId { get; set; }
 
+        public ulong? MessageLogChannelId { get; set; }
+
         public ulong? ModerationChannelId { get; set; }
     }
 }

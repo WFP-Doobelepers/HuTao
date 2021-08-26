@@ -16,6 +16,6 @@ namespace Zhongli.Data.Models.Criteria
 
         public ulong ChannelId { get; set; }
 
-        public override string ToString() => ((IChannelEntity) this).Mention;
+        public override string ToString() => this.MentionChannel();
     }
 }

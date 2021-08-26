@@ -2,6 +2,8 @@
 {
     public class BotConfig
     {
+        public int MessageCacheSize { get; set; }
+
         public string HangfireContext { get; init; }
 
         public string Prefix { get; init; }

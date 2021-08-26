@@ -1,8 +1,10 @@
-﻿using System.Threading;
+﻿using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 
@@ -22,6 +24,25 @@ namespace Zhongli.Services.Utilities
             // ReSharper restore ConstantNullCoalescingCondition
 
             return guildEntity;
+        }
+
+        public static async Task<ReactionEntity> TrackEmoteAsync(this DbContext db, IEmote reaction,
+            CancellationToken cancellationToken = default)
+        {
+            if (reaction is Emote emote)
+            {
+                var entity = await db.Set<EmoteEntity>().ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(e => e.EmoteId == emote.Id, cancellationToken);
+
+                return entity ?? db.Add(new EmoteEntity(emote)).Entity;
+            }
+            else
+            {
+                var entity = await db.Set<EmojiEntity>().ToAsyncEnumerable()
+                    .FirstOrDefaultAsync(e => e.Name == reaction.Name, cancellationToken);
+
+                return entity ?? db.Add(new EmojiEntity(reaction)).Entity;
+            }
         }
 
         public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,

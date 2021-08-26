@@ -6,6 +6,6 @@ namespace Zhongli.Data.Models.Discord
     {
         ulong UserId { get; set; }
 
-        string IMentionable.Mention => $"<@{UserId}>";
+        string IMentionable.Mention => this.MentionUser();
     }
 }

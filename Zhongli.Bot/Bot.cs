@@ -22,6 +22,7 @@ using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Image;
+using Zhongli.Services.Logging;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.TimeTracking;
@@ -44,7 +45,11 @@ namespace Zhongli.Bot
                     typeof(Bot), typeof(DiscordSocketListener))
                 .AddLogging(l => l.AddSerilog())
                 .AddSingleton<DiscordRestClient>()
-                .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true }))
+                .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
+                {
+                    AlwaysDownloadUsers = true,
+                    MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
+                }))
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandErrorHandler>()
                 .AddSingleton<CommandHandlingService>()
@@ -53,6 +58,7 @@ namespace Zhongli.Bot
                 .AddScoped<AuthorizationService>()
                 .AddScoped<ModerationService>()
                 .AddScoped<ModerationLoggingService>()
+                .AddScoped<LoggingService>()
                 .AddScoped<GenshinTimeTrackingService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddExpirableServices()

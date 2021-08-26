@@ -56,13 +56,10 @@ namespace Zhongli.Services.Quote
         private async Task OnMessageReceivedAsync(IMessage message, CancellationToken cancellationToken)
         {
             if (message.Content?.StartsWith(ZhongliConfig.Configuration.Prefix) ?? true) return;
-
-            if (message is not SocketUserMessage { Author: IGuildUser guildUser } userMessage
-                || guildUser.IsBot || guildUser.IsWebhook)
+            if (message is not SocketUserMessage { Author: IGuildUser guildUser } userMessage || guildUser.IsBot)
                 return;
 
             var context = new SocketCommandContext(_discordClient, userMessage);
-
             if (!await _auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
                 return;
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -22,6 +23,10 @@ namespace Zhongli.Data
         public DbSet<Censored> CensoredHistory { get; set; }
 
         public DbSet<ChannelCriterion> ChannelCriteria { get; init; }
+
+        public DbSet<EmojiEntity> Emojis { get; set; }
+
+        public DbSet<EmoteEntity> Emotes { get; set; }
 
         public DbSet<GuildEntity> Guilds { get; init; }
 
