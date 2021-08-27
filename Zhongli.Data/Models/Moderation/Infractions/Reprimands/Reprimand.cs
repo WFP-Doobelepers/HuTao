@@ -6,7 +6,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
 namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 {
-    public abstract class Reprimand : IModerationAction
+    public abstract class Reprimand : IModerationAction, IGuildUserEntity
     {
         protected Reprimand() { }
 
@@ -37,19 +37,15 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
 
         public ulong GuildId { get; set; }
 
-        public ulong UserId { get; set; }
-
         public virtual ModerationAction? Action { get; set; }
+
+        public ulong UserId { get; set; }
 
         public static implicit operator ReprimandResult(Reprimand reprimand) => new(reprimand);
     }
 
     public class ReprimandConfiguration : IEntityTypeConfiguration<Reprimand>
     {
-        public void Configure(EntityTypeBuilder<Reprimand> builder)
-        {
-            builder.HasOne(r => r.User)
-                .WithMany().HasForeignKey(r => new { r.UserId, r.GuildId });
-        }
+        public void Configure(EntityTypeBuilder<Reprimand> builder) { builder.AddUserNavigation(r => r.User); }
     }
 }

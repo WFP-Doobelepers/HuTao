@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         public ModerationAction? Action { get; set; }
     }
 
-    public class ModerationAction : IMentionable
+    public class ModerationAction : IGuildUserEntity
     {
         protected ModerationAction() { }
 
@@ -24,8 +24,8 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         {
             Date = DateTimeOffset.UtcNow;
 
-            GuildId     = moderator.Guild.Id;
-            ModeratorId = moderator.Id;
+            GuildId = moderator.Guild.Id;
+            UserId  = moderator.Id;
 
             Reason = reason;
         }
@@ -42,17 +42,14 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
         public ulong GuildId { get; set; }
 
-        public ulong ModeratorId { get; set; }
-
-        public string Mention => Moderator.Mention;
+        public ulong UserId { get; set; }
     }
 
     public class ModerationActionConfiguration : IEntityTypeConfiguration<ModerationAction>
     {
         public void Configure(EntityTypeBuilder<ModerationAction> builder)
         {
-            builder.HasOne(r => r.Moderator)
-                .WithMany().HasForeignKey(r => new { r.ModeratorId, r.GuildId });
+            builder.AddUserNavigation(m => m.Moderator);
         }
     }
 }

@@ -1,11 +1,7 @@
-using Discord;
-
 namespace Zhongli.Data.Models.Discord
 {
-    public interface IUserEntity : IMentionable
+    public interface IUserEntity
     {
         ulong UserId { get; set; }
-
-        string IMentionable.Mention => this.MentionUser();
     }
 }

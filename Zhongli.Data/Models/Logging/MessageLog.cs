@@ -69,10 +69,10 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual MessageLog? UpdatedLog { get; set; }
 
+        public string Mention { get; }
+
         /// <inheritdoc cref="IMessage.Content" />
         public string? Content { get; set; }
-
-        public ulong UserId { get; set; }
 
         public ulong? ReferencedMessageId { get; set; }
 
@@ -87,19 +87,12 @@ namespace Zhongli.Data.Models.Logging
         public LogType LogType { get; set; }
 
         public ulong MessageId { get; set; }
+
+        public ulong UserId { get; set; }
     }
 
     public class MessageEntityConfiguration : IEntityTypeConfiguration<MessageLog>
     {
-        public void Configure(EntityTypeBuilder<MessageLog> builder)
-        {
-            builder
-                .HasOne(m => m.Guild)
-                .WithMany().HasForeignKey(m => m.GuildId);
-
-            builder
-                .HasOne(m => m.User)
-                .WithMany().HasForeignKey(m => new { m.UserId, m.GuildId });
-        }
+        public void Configure(EntityTypeBuilder<MessageLog> builder) { builder.AddUserNavigation(m => m.User); }
     }
 }

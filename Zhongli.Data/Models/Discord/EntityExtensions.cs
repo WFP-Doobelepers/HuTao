@@ -1,4 +1,7 @@
+using System;
+using System.Linq.Expressions;
 using Discord;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord.Message;
 
 namespace Zhongli.Data.Models.Discord
@@ -19,5 +22,14 @@ namespace Zhongli.Data.Models.Discord
 
         public static Thumbnail ToThumbnail(this EmbedThumbnail thumbnail)
             => new(thumbnail);
+
+        public static void AddUserNavigation<T>(
+            this EntityTypeBuilder<T> builder,
+            Expression<Func<T, GuildUserEntity?>> navigationExpression) where T : class, IGuildUserEntity
+        {
+            builder
+                .HasOne(navigationExpression).WithMany()
+                .HasForeignKey(r => new { r.UserId, r.GuildId });
+        }
     }
 }

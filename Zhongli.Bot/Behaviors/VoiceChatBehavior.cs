@@ -55,7 +55,7 @@ namespace Zhongli.Bot.Behaviors
 
             if (newChannel?.Id == rules.HubVoiceChannelId)
             {
-                var ownerOf = rules.VoiceChats.FirstOrDefault(v => v.OwnerId == notification.User.Id);
+                var ownerOf = rules.VoiceChats.FirstOrDefault(v => v.UserId == notification.User.Id);
                 if (ownerOf is not null)
                 {
                     var voiceChannel = guild.GetVoiceChannel(ownerOf.VoiceChannelId);
@@ -100,7 +100,7 @@ namespace Zhongli.Bot.Behaviors
 
                     var voiceChat = new VoiceChatLink
                     {
-                        OwnerId        = user.Id,
+                        UserId         = user.Id,
                         GuildId        = guild.Id,
                         TextChannelId  = textChannel.Id,
                         VoiceChannelId = voiceChannel.Id

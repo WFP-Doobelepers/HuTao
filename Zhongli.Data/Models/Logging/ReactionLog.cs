@@ -32,8 +32,6 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual ReactionEntity Emote { get; set; }
 
-        public ulong UserId { get; set; }
-
         public bool IsCategory { get; set; }
 
         public ulong ChannelId { get; set; }
@@ -45,15 +43,12 @@ namespace Zhongli.Data.Models.Logging
         public LogType LogType { get; set; }
 
         public ulong MessageId { get; set; }
+
+        public ulong UserId { get; set; }
     }
 
     public class ReactionLogConfiguration : IEntityTypeConfiguration<ReactionLog>
     {
-        public void Configure(EntityTypeBuilder<ReactionLog> builder)
-        {
-            builder
-                .HasOne(m => m.User)
-                .WithMany().HasForeignKey(m => new { m.UserId, m.GuildId });
-        }
+        public void Configure(EntityTypeBuilder<ReactionLog> builder) { builder.AddUserNavigation(r => r.User); }
     }
 }

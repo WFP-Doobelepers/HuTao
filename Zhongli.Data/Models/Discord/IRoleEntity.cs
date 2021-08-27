@@ -1,11 +1,7 @@
-using Discord;
-
 namespace Zhongli.Data.Models.Discord
 {
-    public interface IRoleEntity : IMentionable, IGuildEntity
+    public interface IRoleEntity : IGuildEntity
     {
         ulong RoleId { get; set; }
-
-        string IMentionable.Mention => this.MentionRole();
     }
 }

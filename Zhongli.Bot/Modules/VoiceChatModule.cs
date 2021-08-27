@@ -22,7 +22,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
             if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
@@ -49,25 +49,25 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null)
                 return;
 
-            if (voiceChat.OwnerId == Context.User.Id)
+            if (voiceChat.UserId == Context.User.Id)
             {
                 await ReplyAsync("You already are the owner of the VC.");
                 return;
             }
 
             var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-            if (voiceChannel.Users.Any(u => u.Id == voiceChat.OwnerId))
+            if (voiceChannel.Users.Any(u => u.Id == voiceChat.UserId))
             {
                 await ReplyAsync("You cannot claim this VC.");
                 return;
             }
 
-            var owner = Context.Guild.GetUser(voiceChat.OwnerId);
+            var owner = Context.Guild.GetUser(voiceChat.UserId);
             await voiceChannel.RemovePermissionOverwriteAsync(owner);
             await voiceChannel.AddPermissionOverwriteAsync(Context.User,
                 new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
 
-            voiceChat.OwnerId = Context.User.Id;
+            voiceChat.UserId = Context.User.Id;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -112,7 +112,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
@@ -129,7 +129,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
             if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
@@ -146,7 +146,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
@@ -163,7 +163,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
@@ -184,7 +184,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null)
                 return;
 
-            var owner = Context.Guild.GetUser(voiceChat.OwnerId);
+            var owner = Context.Guild.GetUser(voiceChat.UserId);
             await ReplyAsync($"The current owner is {owner}.");
         }
 
@@ -195,7 +195,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
@@ -217,7 +217,7 @@ namespace Zhongli.Bot.Modules
             if (voiceChat is null || user.IsBot || user.IsWebhook)
                 return;
 
-            if (voiceChat.OwnerId == user.Id)
+            if (voiceChat.UserId == user.Id)
             {
                 await ReplyAsync("You already are the owner of the VC.");
                 return;
@@ -229,7 +229,7 @@ namespace Zhongli.Bot.Modules
             await voiceChannel.AddPermissionOverwriteAsync(user,
                 new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
 
-            voiceChat.OwnerId = user.Id;
+            voiceChat.UserId = user.Id;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -242,7 +242,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id || user.Id == Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
                 return;
 
             var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
@@ -258,7 +258,7 @@ namespace Zhongli.Bot.Modules
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
-            if (voiceChat is null || voiceChat.OwnerId != Context.User.Id)
+            if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);

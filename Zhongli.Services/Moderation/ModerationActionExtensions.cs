@@ -1,4 +1,5 @@
 using Discord;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
 using static Zhongli.Services.Utilities.DateTimeExtensions;
 
@@ -13,7 +14,7 @@ namespace Zhongli.Services.Moderation
             => action.Action?.GetDate() ?? "Unknown";
 
         public static string GetModerator(this ModerationAction action)
-            => $"{Format.Bold(action.Mention)} ({action.ModeratorId})";
+            => $"{Format.Bold(action.MentionUser())} ({action.UserId})";
 
         public static string GetModerator(this IModerationAction action)
             => action.Action?.GetModerator() ?? "Unknown";
