@@ -2,10 +2,11 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
+using Image = Zhongli.Data.Models.Discord.Message.IImage;
 
 namespace Zhongli.Data.Models.Discord.Message
 {
-    public class Attachment : IAttachment
+    public class Attachment : IAttachment, IImage
     {
         protected Attachment() { }
 

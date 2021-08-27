@@ -1,3 +1,4 @@
+using Discord;
 using Zhongli.Data.Models.Discord.Message;
 
 namespace Zhongli.Data.Models.Discord
@@ -15,5 +16,8 @@ namespace Zhongli.Data.Models.Discord
 
         public static string MentionUser(this IUserEntity entity)
             => $"<@{entity.UserId}>";
+
+        public static Thumbnail ToThumbnail(this EmbedThumbnail thumbnail)
+            => new(thumbnail);
     }
 }

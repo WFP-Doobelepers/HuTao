@@ -10,6 +10,7 @@ using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
+using Embed = Zhongli.Data.Models.Discord.Message.Embed;
 
 namespace Zhongli.Services.Logging
 {
@@ -60,11 +61,17 @@ namespace Zhongli.Services.Logging
             var latest = await GetLatestMessage(message.Id, cancellationToken);
             if (latest is null) return;
 
+            if (latest.Embeds.Count != message.Embeds.Count)
+            {
+                await UpdateLogEmbedsAsync(latest, message, cancellationToken);
+                return;
+            }
+
             var log = await LogMessageAsync(message, latest, cancellationToken);
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
-        private EmbedBuilder AddDetails(EmbedBuilder embed, MessageLog log)
+        private EmbedLog AddDetails(EmbedBuilder embed, MessageLog log)
         {
             var user = _client.GetUser(log.UserId);
 
@@ -77,10 +84,11 @@ namespace Zhongli.Services.Logging
             if (log.EditedTimestamp is not null)
                 embed.AddField("Edited", $"{log.EditedTimestamp.Value.ToUniversalTimestamp()}", true);
 
-            return embed.AddAttachments(log);
+            var urls = log.Embeds.Select(e => e.Url);
+            return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
         }
 
-        private EmbedBuilder AddDetails(EmbedBuilder embed, ReactionLog log)
+        private EmbedLog AddDetails(EmbedBuilder embed, ReactionLog log)
         {
             var user = _client.GetUser(log.UserId);
             var reaction = log.Emote;
@@ -95,10 +103,10 @@ namespace Zhongli.Services.Logging
             if (reaction is EmoteEntity emote)
                 embed.WithThumbnailUrl(CDN.GetEmojiUrl(emote.EmoteId, emote.IsAnimated));
 
-            return embed;
+            return new EmbedLog(embed);
         }
 
-        private EmbedBuilder BuildLog(ILog log)
+        private EmbedLog BuildLog(ILog log)
         {
             var embed = new EmbedBuilder()
                 .WithTitle(log.GetTitle())
@@ -114,6 +122,12 @@ namespace Zhongli.Services.Logging
             };
         }
 
+        private async Task ForceLogMessageAsync(IMessage message, LogType logType, CancellationToken cancellationToken)
+        {
+            var downloaded = await message.Channel.GetMessageAsync(message.Id);
+            if (downloaded is IUserMessage userMessage) await LogMessageAsync(userMessage, logType, cancellationToken);
+        }
+
         private async Task PublishLogAsync(ILog? log, IGuild guild, CancellationToken cancellationToken)
         {
             if (log is null) return;
@@ -122,7 +136,7 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(embed, guild, cancellationToken);
         }
 
-        private async Task PublishLogAsync(EmbedBuilder embed, IGuild guild, CancellationToken cancellationToken)
+        private async Task PublishLogAsync(EmbedLog log, IGuild guild, CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
             var channelId = guildEntity.LoggingRules.MessageLogChannelId;
@@ -131,7 +145,9 @@ namespace Zhongli.Services.Logging
             var channel = await guild.GetTextChannelAsync(channelId.Value);
             if (channel is null) return;
 
-            await channel.SendMessageAsync(embed: embed.Build());
+            var (embed, content) = log;
+            var message = await channel.SendMessageAsync(embed: embed.Build());
+            if (!string.IsNullOrWhiteSpace(content)) await message.ReplyAsync(content);
         }
 
         private async Task UpdateLogAsync(ILog log, LogType type, CancellationToken cancellationToken)
@@ -142,13 +158,15 @@ namespace Zhongli.Services.Logging
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task<MessageLog> LogMessageAsync(IUserMessage message, LogType type,
+        private async Task UpdateLogEmbedsAsync(MessageLog oldLog, IMessage message,
             CancellationToken cancellationToken)
         {
-            var log = _db.Add(new MessageLog(message, type)).Entity;
-            await _db.SaveChangesAsync(cancellationToken);
+            foreach (var embed in message.Embeds)
+            {
+                oldLog.Embeds.Add(new Embed(embed));
+            }
 
-            return log;
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         private async Task<MessageLog?> LogMessageAsync(IUserMessage message, MessageLog oldLog,
@@ -160,7 +178,16 @@ namespace Zhongli.Services.Logging
             return oldLog.UpdatedLog;
         }
 
-        private async Task<ReactionLog> LogReactionAsync(SocketReaction reaction, LogType logType,
+        private async Task<MessageLog> LogMessageAsync(IUserMessage message, LogType type,
+            CancellationToken cancellationToken)
+        {
+            var log = _db.Add(new MessageLog(message, type)).Entity;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return log;
+        }
+
+        private async Task<ReactionLog?> LogReactionAsync(SocketReaction reaction, LogType logType,
             CancellationToken cancellationToken)
         {
             var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
@@ -181,5 +208,7 @@ namespace Zhongli.Services.Logging
                 .OrderByDescending(l => l.LogDate)
                 .FirstOrDefaultAsync(filter, cancellationToken);
         }
+
+        private record EmbedLog(EmbedBuilder Embed, string? Content = null);
     }
 }

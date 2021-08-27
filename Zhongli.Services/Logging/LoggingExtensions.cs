@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Discord;
 using Humanizer;
 using Zhongli.Data.Models.Discord;
@@ -24,19 +25,16 @@ namespace Zhongli.Services.Logging
             };
         }
 
-        public static EmbedBuilder AddAttachments(this EmbedBuilder embed, MessageLog log)
+        public static EmbedBuilder AddImages(this EmbedBuilder embed, MessageLog log)
         {
-            var attachment = log.Attachments.FirstOrDefault();
-            if (attachment is null) return embed;
+            var images = log.GetImages().ToList();
 
-            var url = log.LogType == LogType.Deleted
-                ? attachment.ProxyUrl
-                : attachment.Url;
+            var image = images.FirstOrDefault();
+            if (image is null) return embed;
 
-            embed.WithImageUrl(url);
-
-            var extra = log.Attachments.Skip(1).ToList();
-            return embed.AddAttachments(extra);
+            return embed
+                .WithImageUrl(image.Url)
+                .AddOtherImages(images.Skip(1));
         }
 
         public static string ChannelMentionMarkdown(this IChannelEntity channel)
@@ -58,14 +56,36 @@ namespace Zhongli.Services.Logging
         public static string JumpUrlMarkdown(this IMessageEntity message)
             => $"[Jump]({message.JumpUrl()}) ({message.MessageId})";
 
-        private static EmbedBuilder AddAttachments(this EmbedBuilder embed, IReadOnlyCollection<Attachment> attachments)
+        private static EmbedBuilder AddOtherImages(this EmbedBuilder embed, IEnumerable<IImage> images)
         {
-            if (!attachments.Any()) return embed;
+            var content = images.ToList().GetImageUrls();
+            return content is null ? embed : embed.AddField("Other Images", content.ToString());
+        }
 
-            var content = attachments.Select(
-                (a, i) => $"[{i}. {a.Width}x{a.Height} {a.Size.Bytes().Humanize()}]({a.Url})");
+        private static IEnumerable<IImage> GetImages(this MessageLog log)
+        {
+            var attachments = log.Attachments.Cast<IImage>();
+            var thumbnails = log.Embeds
+                .Select(e => e.Thumbnail)
+                .OfType<Thumbnail>();
 
-            return embed.AddField("Other Attachments", string.Join(Environment.NewLine, content));
+            return attachments.Concat(thumbnails);
+        }
+
+        private static StringBuilder? GetImageUrls(this IReadOnlyCollection<IImage> images)
+        {
+            if (!images.Any()) return null;
+
+            static string Attachment(Attachment a, int i) => $"{Image(a, i)} {a.Size.Bytes().Humanize()}";
+            static string Image(IImage a, int i) => $"[{i}. {a.Width}x{a.Height}px]({a.Url})";
+
+            var enumerable = images.ToList();
+            var attachments = enumerable.OfType<Attachment>().Select(Attachment);
+            var thumbnails = enumerable.OfType<Thumbnail>().Select(Image);
+
+            return new StringBuilder()
+                .AppendJoin(Environment.NewLine, attachments)
+                .AppendJoin(Environment.NewLine, thumbnails);
         }
     }
 }

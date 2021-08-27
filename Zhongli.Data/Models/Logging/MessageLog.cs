@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
 using Attachment = Zhongli.Data.Models.Discord.Message.Attachment;
+using Embed = Zhongli.Data.Models.Discord.Message.Embed;
 
 namespace Zhongli.Data.Models.Logging
 {
@@ -27,6 +28,7 @@ namespace Zhongli.Data.Models.Logging
 
             Content     = message.Content;
             Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
+            Embeds      = message.Embeds.Select(e => new Embed(e)).ToList();
 
             CreatedAt       = message.CreatedAt;
             Timestamp       = message.Timestamp;
@@ -58,6 +60,8 @@ namespace Zhongli.Data.Models.Logging
         public virtual GuildUserEntity User { get; set; }
 
         public virtual ICollection<Attachment> Attachments { get; set; }
+
+        public virtual ICollection<Embed> Embeds { get; set; }
 
         public int MentionedRolesCount { get; set; }
 
