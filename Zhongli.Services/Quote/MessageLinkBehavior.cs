@@ -98,7 +98,11 @@ namespace Zhongli.Services.Quote
                 async embed => //If embed building is unsuccessful, this won't execute
                 {
                     success = true;
-                    return await targetChannel.SendMessageAsync(embed: embed.Build());
+                    var reply = targetChannel.Id == message.Channel.Id
+                        ? new MessageReference(message.Id, message.Channel.Id)
+                        : null;
+
+                    return await targetChannel.SendMessageAsync(embed: embed.Build(), messageReference: reply);
                 });
 
             return success;
