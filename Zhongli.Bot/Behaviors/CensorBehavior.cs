@@ -53,6 +53,7 @@ namespace Zhongli.Bot.Behaviors
             var currentUser = await guild.GetCurrentUserAsync();
 
             foreach (var censor in guildEntity.ModerationRules.Triggers.OfType<Censor>()
+                .Where(c => c.IsActive)
                 .Where(c => c.Exclusions.All(e => !e.Judge(channel, user)))
                 .Where(c => c.Regex().IsMatch(message.Content)))
             {

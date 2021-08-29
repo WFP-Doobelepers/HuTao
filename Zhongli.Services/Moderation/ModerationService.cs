@@ -338,6 +338,7 @@ namespace Zhongli.Services.Moderation
 
             return rules.Triggers
                 .OfType<ReprimandTrigger>()
+                .Where(t => t.IsActive)
                 .Where(t => t.Source == source)
                 .Where(t => t.IsTriggered(count))
                 .OrderByDescending(t => t.Amount)

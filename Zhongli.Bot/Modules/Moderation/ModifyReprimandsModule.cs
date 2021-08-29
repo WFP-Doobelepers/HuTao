@@ -73,7 +73,7 @@ namespace Zhongli.Bot.Modules.Moderation
             var user = Context.Client.GetUser(r.UserId);
 
             var title = ModerationLoggingService.GetTitle(r);
-            var content = ModerationLoggingService.GetReprimandDetails(user, r);
+            var content = ModerationLoggingService.GetReprimandDetails(r);
             return (title, content);
         }
 

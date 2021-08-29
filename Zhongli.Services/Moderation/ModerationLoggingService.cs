@@ -41,13 +41,14 @@ namespace Zhongli.Services.Moderation
             return $"{title.Humanize()}: {action.Id}";
         }
 
-        public static StringBuilder GetReprimandDetails(IUser user, Reprimand r)
+        public static StringBuilder GetReprimandDetails(Reprimand r)
         {
             var content = new StringBuilder()
                 .AppendLine($"▌{GetMessage(r)}")
                 .AppendLine($"▌Reason: {r.GetReason()}")
                 .AppendLine($"▌Moderator: {r.GetModerator()}")
                 .AppendLine($"▌Date: {r.GetDate()}")
+                .AppendLine("▌")
                 .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
 
             if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
@@ -56,6 +57,14 @@ namespace Zhongli.Services.Moderation
                     .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
                     .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
                     .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
+            }
+
+            if (r.Trigger is not null)
+            {
+                content
+                    .AppendLine("▌")
+                    .AppendLine($"▌Trigger: {r.TriggerId}")
+                    .AppendLine($"▌▌{GetTriggerDetails(r.Trigger)}");
             }
 
             return content;

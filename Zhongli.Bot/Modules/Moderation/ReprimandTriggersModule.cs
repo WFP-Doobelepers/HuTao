@@ -7,6 +7,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
+using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;
@@ -75,10 +76,20 @@ namespace Zhongli.Bot.Modules.Moderation
             var options = new TriggerOptions(amount, source, mode);
             var trigger = new ReprimandTrigger(options, options.Source, action);
 
-            var existing = rules.Triggers
-                .OfType<ReprimandTrigger>()
+            var existing = rules.Triggers.OfType<ReprimandTrigger>()
+                .Where(t => t.IsActive)
                 .FirstOrDefault(t => t.Source == options.Source && t.Amount == trigger.Amount);
-            if (existing is not null) _db.Remove(existing);
+
+            if (existing is not null)
+            {
+                var triggerHasReprimand = _db.Set<Reprimand>()
+                    .Any(r => r.TriggerId == existing.Id);
+
+                if (triggerHasReprimand)
+                    existing.IsActive = false;
+                else
+                    _db.Remove(existing);
+            }
 
             rules.Triggers.Add(trigger.WithModerator(Context));
             await _db.SaveChangesAsync();
