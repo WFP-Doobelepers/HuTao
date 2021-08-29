@@ -8,12 +8,13 @@ using Zhongli.Data;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Utilities;
+using EmbedBuilderExtensions = Zhongli.Services.Utilities.EmbedBuilderExtensions;
 
 namespace Zhongli.Services.Interactive
 {
     public abstract class InteractiveEntity<T> : InteractivePromptBase where T : class
     {
-        private const string EmptyMatchMessage = "Unable to find any match. Provide at least 2 characters.";
+        protected const string EmptyMatchMessage = "Unable to find any match. Provide at least 2 characters.";
         private readonly CommandErrorHandler _error;
         private readonly ZhongliContext _db;
 
@@ -40,17 +41,21 @@ namespace Zhongli.Services.Interactive
 
         protected async Task PagedViewAsync(IEnumerable<T> collection, string? title = null)
         {
-            var pages = collection
-                .Select(EntityViewer)
-                .Select((e, i) => new EmbedFieldBuilder()
-                    .WithName($"{i}: {e.Title}")
-                    .WithValue(e.Value));
+            var author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild);
+            await PagedViewAsync(collection, EntityViewer, title, author);
+        }
+
+        protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
+            EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
+            string? title = null, EmbedAuthorBuilder? author = null)
+        {
+            var pages = collection.ToEmbedFields(entityViewer);
 
             var paginated = new PaginatedMessage
             {
-                Title   = title ?? Title,
+                Title   = title,
                 Pages   = pages,
-                Author  = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
+                Author  = author,
                 Options = new PaginatedAppearanceOptions { DisplayInformationIcon = false }
             };
 
@@ -73,6 +78,12 @@ namespace Zhongli.Services.Interactive
         }
 
         protected abstract Task RemoveEntityAsync(T entity);
+
+        protected virtual async Task ViewEntityAsync()
+        {
+            var collection = await GetCollectionAsync();
+            await PagedViewAsync(collection);
+        }
 
         protected abstract Task<ICollection<T>> GetCollectionAsync();
 

@@ -54,7 +54,8 @@ namespace Zhongli.Bot.Modules.Moderation
             await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
         }
 
-        [Command("delete")]
+        [Command("remove")]
+        [Alias("delete")]
         [Summary("Delete a reprimand, this completely removes the data.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
@@ -69,13 +70,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         protected override (string Title, StringBuilder Value) EntityViewer(Reprimand r)
-        {
-            var user = Context.Client.GetUser(r.UserId);
-
-            var title = ModerationLoggingService.GetTitle(r);
-            var content = ModerationLoggingService.GetReprimandDetails(r);
-            return (title, content);
-        }
+            => (r.GetTitle(), r.GetReprimandDetails());
 
         protected override bool IsMatch(Reprimand entity, string id)
             => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
@@ -99,8 +94,7 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
             {
-                await _error.AssociateError(Context.Message,
-                    "Unable to find reprimand. Provide at least 2 characters.");
+                await _error.AssociateError(Context.Message, EmptyMatchMessage);
                 return;
             }
 

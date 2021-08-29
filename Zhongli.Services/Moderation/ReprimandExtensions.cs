@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Humanizer;
+using Humanizer.Localisation;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
@@ -20,15 +23,37 @@ namespace Zhongli.Services.Moderation
         public static bool IsActive(this IExpirable expirable)
             => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
 
-        public static bool IsTriggered(this ITrigger trigger, uint amount)
+        public static bool IsIncluded(this Reprimand reprimand, ReprimandNoticeType type)
         {
-            return trigger.Mode switch
+            if (type == ReprimandNoticeType.All)
+                return true;
+
+            return reprimand switch
             {
-                TriggerMode.Exact       => amount == trigger.Amount,
-                TriggerMode.Retroactive => amount >= trigger.Amount,
-                TriggerMode.Multiple    => amount % trigger.Amount is 0 && amount is not 0,
-                _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger.Mode,
-                    "Invalid trigger mode.")
+                Ban      => type.HasFlag(ReprimandNoticeType.Ban),
+                Censored => type.HasFlag(ReprimandNoticeType.Censor),
+                Kick     => type.HasFlag(ReprimandNoticeType.Kick),
+                Mute     => type.HasFlag(ReprimandNoticeType.Mute),
+                Notice   => type.HasFlag(ReprimandNoticeType.Notice),
+                Warning  => type.HasFlag(ReprimandNoticeType.Warning),
+                _        => false
+            };
+        }
+
+        public static Color GetColor(this Reprimand reprimand)
+        {
+            return reprimand switch
+            {
+                Ban      => Color.Red,
+                Censored => Color.Blue,
+                Kick     => Color.Red,
+                Mute     => Color.Orange,
+                Note     => Color.Blue,
+                Notice   => Color.Gold,
+                Warning  => Color.Gold,
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(reprimand), reprimand, "An unknown reprimand was given.")
             };
         }
 
@@ -67,6 +92,79 @@ namespace Zhongli.Services.Moderation
             return countHidden
                 ? reprimands
                 : reprimands.Where(IsCounted);
+        }
+
+        public static string GetMessage(this Reprimand action)
+        {
+            var mention = $"<@{action.UserId}>";
+            return action switch
+            {
+                Ban        => $"{mention} was banned.",
+                Censored c => $"{mention} was censored. Message: {c.CensoredMessage()}",
+                Kick       => $"{mention} was kicked.",
+                Mute m     => $"{mention} was muted for {GetLength(m)}.",
+                Note       => $"{mention} was given a note.",
+                Notice     => $"{mention} was given a notice.",
+                Warning w  => $"{mention} was warned {w.Count} times.",
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(action), action, "An unknown reprimand was given.")
+            };
+
+            static string GetLength(ILength mute)
+                => mute.Length?.Humanize(5,
+                    minUnit: TimeUnit.Second,
+                    maxUnit: TimeUnit.Year) ?? "indefinitely";
+        }
+
+        public static string GetTitle(this Reprimand action)
+        {
+            var title = action switch
+            {
+                Ban      => nameof(Ban),
+                Censored => nameof(Censored),
+                Kick     => nameof(Kick),
+                Mute     => nameof(Mute),
+                Note     => nameof(Note),
+                Notice   => nameof(Notice),
+                Warning  => nameof(Warning),
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(action), action, "An unknown reprimand was given.")
+            };
+
+            return $"{title.Humanize()}: {action.Id}";
+        }
+
+        public static StringBuilder GetReprimandDetails(this Reprimand r)
+        {
+            var content = new StringBuilder()
+                .AppendLine($"▌{GetMessage(r)}")
+                .AppendLine($"▌Reason: {r.GetReason()}")
+                .AppendLine($"▌Moderator: {r.GetModerator()}")
+                .AppendLine($"▌Date: {r.GetDate()}")
+                .AppendLine("▌")
+                .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
+
+            if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
+            {
+                content
+                    .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
+                    .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
+            }
+
+            var t = r.Trigger;
+            if (t is not null)
+            {
+                content
+                    .AppendLine("▌")
+                    .AppendLine($"▌{t.GetTitle()}: {t.Id}")
+                    .AppendLine($"▌▌{t.GetTriggerMode()}")
+                    .AppendLine($"▌▌{t.GetTriggerDetails()}");
+            }
+
+            return content;
         }
 
         public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,

@@ -112,7 +112,7 @@ namespace Zhongli.Bot.Modules
         }
 
         private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
-            .WithName(ModerationLoggingService.GetTitle(r))
-            .WithValue(ModerationLoggingService.GetReprimandDetails(r).ToString());
+            .WithName(r.GetTitle())
+            .WithValue(r.GetReprimandDetails().ToString());
     }
 }

@@ -9,15 +9,17 @@ namespace Zhongli.Services.Utilities
     [Flags]
     public enum AuthorOptions
     {
-        None         = 0,
-        IncludeId    = 1 << 0,
-        UseFooter    = 1 << 1,
+        None = 0,
+        IncludeId = 1 << 0,
+        UseFooter = 1 << 1,
         UseThumbnail = 1 << 2,
-        Requested    = 1 << 3
+        Requested = 1 << 3
     }
 
     public static class EmbedBuilderExtensions
     {
+        public delegate (string Title, StringBuilder Value) EntityViewerDelegate<in T>(T entity);
+
         public static EmbedAuthorBuilder WithGuildAsAuthor(this EmbedAuthorBuilder embed, IGuild guild,
             AuthorOptions authorOptions = AuthorOptions.None)
         {
@@ -72,6 +74,16 @@ namespace Zhongli.Services.Utilities
                 username = $"Requested by {username}";
 
             return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
+        }
+
+        public static IEnumerable<EmbedFieldBuilder> ToEmbedFields<T>(this IEnumerable<T> collection,
+            EntityViewerDelegate<T> entityViewer)
+        {
+            return collection
+                .Select(entityViewer.Invoke)
+                .Select((e, i) => new EmbedFieldBuilder()
+                    .WithName($"{i}: {e.Title}")
+                    .WithValue(e.Value));
         }
 
         public static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,

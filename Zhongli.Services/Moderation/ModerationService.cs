@@ -7,6 +7,7 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
@@ -82,10 +83,11 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        public async Task DeleteReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
+        public async Task DeleteReprimandAsync(Reprimand reprimand, ModifiedReprimand? details,
             CancellationToken cancellationToken = default)
         {
-            await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Deleted, cancellationToken);
+            if (details is not null)
+                await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Deleted, cancellationToken);
 
             var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
             if (trigger is not null)
@@ -99,6 +101,24 @@ namespace Zhongli.Services.Moderation
 
             _db.Remove(reprimand);
             await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task DeleteTriggerAsync(Trigger trigger, IGuildUser moderator, bool silent)
+        {
+            var reprimands = await _db.Set<Reprimand>().ToAsyncEnumerable()
+                .Where(r => r.TriggerId == trigger.Id)
+                .ToListAsync();
+
+            foreach (var reprimand in reprimands)
+            {
+                await DeleteReprimandAsync(reprimand, silent ? null : GetModified(reprimand));
+
+                ModifiedReprimand GetModified(IUserEntity r)
+                {
+                    var user = _client.GetUser(r.UserId);
+                    return new ModifiedReprimand(user, moderator, "[Deleted Trigger]");
+                }
+            }
         }
 
         public Task HideReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
