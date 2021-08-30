@@ -13,13 +13,12 @@ namespace Zhongli.Data.Models.Logging
     {
         protected ReactionLog() { }
 
-        public ReactionLog(SocketReaction reaction, LogType logType, ReactionEntity emote)
+        public ReactionLog(GuildUserEntity user, SocketReaction reaction, LogType logType, ReactionEntity emote)
         {
             LogType = logType;
             LogDate = DateTimeOffset.Now;
 
-            UserId    = reaction.UserId;
-            GuildId   = ((IGuildChannel) reaction.Channel).GuildId;
+            User      = user;
             MessageId = reaction.MessageId;
             ChannelId = reaction.Channel.Id;
 
@@ -27,6 +26,8 @@ namespace Zhongli.Data.Models.Logging
         }
 
         public Guid Id { get; set; }
+
+        public virtual GuildEntity Guild { get; set; }
 
         public virtual GuildUserEntity User { get; set; }
 

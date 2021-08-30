@@ -16,15 +16,14 @@ namespace Zhongli.Data.Models.Logging
     {
         protected MessageLog() { }
 
-        public MessageLog(IUserMessage message, LogType logType)
+        public MessageLog(GuildUserEntity user, IUserMessage message, LogType logType)
         {
             LogType = logType;
             LogDate = DateTimeOffset.Now;
 
-            GuildId   = ((IGuildChannel) message.Channel).GuildId;
+            User      = user;
             ChannelId = message.Channel.Id;
             MessageId = message.Id;
-            UserId    = message.Author.Id;
 
             Content     = message.Content;
             Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Core.Messages;
@@ -28,17 +29,20 @@ namespace Zhongli.Services.Logging
         public async Task PublishLogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.Message is not IUserMessage message) return;
-            if (message.Author.IsBot) return;
+            if (message.Author is not IGuildUser user || user.IsBot) return;
 
-            await LogMessageAsync(message, LogType.Created, cancellationToken);
+            var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+            await LogMessageAsync(userEntity, message, LogType.Created, cancellationToken);
         }
 
         public async Task PublishLogAsync(SocketReaction reaction, LogType logType, CancellationToken cancellationToken)
         {
-            var user = reaction.User.GetValueOrDefault();
-            if (user is { IsBot: true } || reaction.Channel is not IGuildChannel channel) return;
+            var reactionUser = reaction.User.GetValueOrDefault();
+            if (reactionUser is not IGuildUser { IsBot: true } user || reaction.Channel is not IGuildChannel channel)
+                return;
 
-            var log = await LogReactionAsync(reaction, logType, cancellationToken);
+            var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+            var log = await LogReactionAsync(userEntity, reaction, logType, cancellationToken);
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
@@ -56,7 +60,7 @@ namespace Zhongli.Services.Logging
         public async Task PublishLogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.NewMessage is not IUserMessage { Channel: IGuildChannel channel } message) return;
-            if (message.Author.IsBot) return;
+            if (message.Author is not IGuildUser user || user.IsBot) return;
 
             var latest = await GetLatestMessage(message.Id, cancellationToken);
             if (latest is null) return;
@@ -67,7 +71,8 @@ namespace Zhongli.Services.Logging
                 return;
             }
 
-            var log = await LogMessageAsync(message, latest, cancellationToken);
+            var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+            var log = await LogMessageAsync(userEntity, message, latest, cancellationToken);
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
@@ -122,12 +127,6 @@ namespace Zhongli.Services.Logging
             };
         }
 
-        private async Task ForceLogMessageAsync(IMessage message, LogType logType, CancellationToken cancellationToken)
-        {
-            var downloaded = await message.Channel.GetMessageAsync(message.Id);
-            if (downloaded is IUserMessage userMessage) await LogMessageAsync(userMessage, logType, cancellationToken);
-        }
-
         private async Task PublishLogAsync(ILog? log, IGuild guild, CancellationToken cancellationToken)
         {
             if (log is null) return;
@@ -169,30 +168,31 @@ namespace Zhongli.Services.Logging
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task<MessageLog?> LogMessageAsync(IUserMessage message, MessageLog oldLog,
+        private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user, IUserMessage message, MessageLog oldLog,
             CancellationToken cancellationToken)
         {
-            oldLog.UpdatedLog = await LogMessageAsync(message, LogType.Updated, cancellationToken);
+            oldLog.UpdatedLog = await LogMessageAsync(user, message, LogType.Updated, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
             return oldLog.UpdatedLog;
         }
 
-        private async Task<MessageLog> LogMessageAsync(IUserMessage message, LogType type,
+        private async Task<MessageLog> LogMessageAsync(GuildUserEntity user, IUserMessage message, LogType type,
             CancellationToken cancellationToken)
         {
-            var log = _db.Add(new MessageLog(message, type)).Entity;
+            var log = _db.Add(new MessageLog(user, message, type)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;
         }
 
-        private async Task<ReactionLog?> LogReactionAsync(SocketReaction reaction, LogType logType,
+        private async Task<ReactionLog?> LogReactionAsync(GuildUserEntity user, SocketReaction reaction,
+            LogType logType,
             CancellationToken cancellationToken)
         {
             var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
 
-            var log = _db.Add(new ReactionLog(reaction, logType, emote)).Entity;
+            var log = _db.Add(new ReactionLog(user, reaction, logType, emote)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;
