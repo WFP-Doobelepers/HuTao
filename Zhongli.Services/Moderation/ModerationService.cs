@@ -129,6 +129,36 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
 
+        public async Task<bool> TryUnbanAsync(ModifiedReprimand details,
+            CancellationToken cancellationToken = default)
+        {
+            var activeBan = await _db.BanHistory
+                .FirstOrDefaultAsync(m => m.IsActive()
+                        && m.UserId == details.User.Id
+                        && m.GuildId == details.Moderator.Guild.Id,
+                    cancellationToken);
+
+            if (activeBan is null) return false;
+
+            await ExpireBanAsync(activeBan, cancellationToken);
+            return true;
+        }
+
+        public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
+            CancellationToken cancellationToken = default)
+        {
+            var activeMute = await _db.MuteHistory
+                .FirstOrDefaultAsync(m => m.IsActive()
+                        && m.UserId == details.User.Id
+                        && m.GuildId == details.User.Guild.Id,
+                    cancellationToken);
+
+            if (activeMute is null) return false;
+
+            await ExpireMuteAsync(activeMute, cancellationToken);
+            return true;
+        }
+
         public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {

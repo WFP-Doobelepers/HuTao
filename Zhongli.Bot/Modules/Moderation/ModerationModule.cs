@@ -100,6 +100,35 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(result, details);
         }
 
+        [Command("unban")]
+        [Summary("Unban a user from the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Mute)]
+        public async Task UnbanAsync(ulong userId, [Remainder] string? reason = null)
+        {
+            var user = Context.Client.GetUser(userId);
+            var details = new ModifiedReprimand(user, (IGuildUser) Context.User, reason);
+
+            var result = await _moderation.TryUnbanAsync(details);
+            if (result)
+                await Context.Message.AddReactionAsync(new Emoji("✅"));
+            else
+                await _error.AssociateError(Context.Message, "Unban failed.");
+        }
+
+        [Command("unmute")]
+        [Summary("Unmute a user from the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Mute)]
+        public async Task UnmuteAsync(IGuildUser user, [Remainder] string? reason = null)
+        {
+            var details = GetDetails(user, reason);
+            var result = await _moderation.TryUnmuteAsync(details);
+
+            if (result)
+                await Context.Message.AddReactionAsync(new Emoji("✅"));
+            else
+                await _error.AssociateError(Context.Message, "Unmute failed.");
+        }
+
         [Command("warn")]
         [Summary("Warn a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Warning)]
