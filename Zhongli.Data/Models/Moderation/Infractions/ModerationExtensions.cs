@@ -7,7 +7,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
     {
         public static T WithModerator<T>(this T action, IGuildUser moderator) where T : IModerationAction
         {
-            action.Action = new ModerationAction(moderator, null);
+            action.Action = new ModerationAction(moderator);
 
             return action;
         }

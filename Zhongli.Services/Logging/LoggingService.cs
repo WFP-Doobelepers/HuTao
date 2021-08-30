@@ -3,12 +3,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.Core.Messages;
+using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
 using Embed = Zhongli.Data.Models.Discord.Message.Embed;
@@ -32,17 +36,29 @@ namespace Zhongli.Services.Logging
             if (message.Author is not IGuildUser user || user.IsBot) return;
 
             var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
-            await LogMessageAsync(userEntity, message, LogType.Created, cancellationToken);
+            await LogMessageAsync(userEntity, message, cancellationToken);
         }
 
-        public async Task PublishLogAsync(SocketReaction reaction, LogType logType, CancellationToken cancellationToken)
+        public async Task PublishLogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
-            var reactionUser = reaction.User.GetValueOrDefault();
-            if (reactionUser is not IGuildUser { IsBot: true } user || reaction.Channel is not IGuildChannel channel)
-                return;
+            if (notification.Channel is not IGuildChannel channel) return;
 
-            var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
-            var log = await LogReactionAsync(userEntity, reaction, logType, cancellationToken);
+            var reaction = notification.Reaction;
+            var user = reaction.User.GetValueOrDefault();
+            if (user is not IGuildUser guildUser || guildUser.IsBot) return;
+
+            var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
+            var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
+            await PublishLogAsync(log, channel.Guild, cancellationToken);
+        }
+
+        public async Task PublishLogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
+        {
+            if (notification.Channel is not IGuildChannel channel) return;
+
+            var message = await notification.Message.GetOrDownloadAsync();
+            var details = await TryGetAuditLogDetails(message, channel.Guild);
+            var log = await LogDeletionAsync(notification.Reaction, details, cancellationToken);
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
@@ -53,8 +69,10 @@ namespace Zhongli.Services.Logging
             var latest = await GetLatestMessage(notification.Message.Id, cancellationToken);
             if (latest is null) return;
 
-            await UpdateLogAsync(latest, LogType.Deleted, cancellationToken);
-            await PublishLogAsync(latest, channel.Guild, cancellationToken);
+            var message = notification.Message.Value;
+            var details = await TryGetAuditLogDetails(message, channel.Guild);
+            var log = await LogDeletionAsync(latest, details, cancellationToken);
+            await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
         public async Task PublishLogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
@@ -83,7 +101,7 @@ namespace Zhongli.Services.Logging
             embed
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
                 .AddContent(log.Content)
-                .AddField("Message", log.JumpUrlMarkdown())
+                .AddField("Message", log.JumpUrlMarkdown(), true)
                 .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true);
 
             if (log.EditedTimestamp is not null)
@@ -93,7 +111,7 @@ namespace Zhongli.Services.Logging
             return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
         }
 
-        private EmbedLog AddDetails(EmbedBuilder embed, ReactionLog log)
+        private EmbedLog AddDetails<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
         {
             var user = _client.GetUser(log.UserId);
             var reaction = log.Emote;
@@ -103,7 +121,7 @@ namespace Zhongli.Services.Logging
                 .AddContent($"{reaction} {Format.Code($"{reaction}")}")
                 .AddField("Message", log.JumpUrlMarkdown(), true)
                 .AddField("Channel", log.ChannelMentionMarkdown(), true)
-                .AddField("Date", log.LogDate.ToUniversalTimestamp());
+                .AddField("Date", log.LogDate.ToUniversalTimestamp(), true);
 
             if (reaction is EmoteEntity emote)
                 embed.WithThumbnailUrl(CDN.GetEmojiUrl(emote.EmoteId, emote.IsAnimated));
@@ -115,7 +133,7 @@ namespace Zhongli.Services.Logging
         {
             var embed = new EmbedBuilder()
                 .WithTitle(log.GetTitle())
-                .WithColor(log.LogType.GetColor())
+                .WithColor(Color.Blue)
                 .WithCurrentTimestamp();
 
             return log switch
@@ -125,6 +143,14 @@ namespace Zhongli.Services.Logging
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
             };
+        }
+
+        private async Task PublishLogAsync(DeleteLog? log, IGuild guild, CancellationToken cancellationToken)
+        {
+            if (log is null) return;
+
+            var embed = await BuildLogAsync(log, cancellationToken);
+            if (embed is not null) await PublishLogAsync(embed, guild, cancellationToken);
         }
 
         private async Task PublishLogAsync(ILog? log, IGuild guild, CancellationToken cancellationToken)
@@ -149,14 +175,6 @@ namespace Zhongli.Services.Logging
             if (!string.IsNullOrWhiteSpace(content)) await message.ReplyAsync(content);
         }
 
-        private async Task UpdateLogAsync(ILog log, LogType type, CancellationToken cancellationToken)
-        {
-            log.LogDate = DateTimeOffset.Now;
-            log.LogType = type;
-
-            await _db.SaveChangesAsync(cancellationToken);
-        }
-
         private async Task UpdateLogEmbedsAsync(MessageLog oldLog, IMessage message,
             CancellationToken cancellationToken)
         {
@@ -168,31 +186,109 @@ namespace Zhongli.Services.Logging
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user, IUserMessage message, MessageLog oldLog,
+        private static async Task<ActionDetails?> TryGetAuditLogDetails(IMessage? message, IGuild guild)
+        {
+            var entry = await TryGetAuditLogEntry(message, guild);
+            if (entry is null) return null;
+
+            var user = await guild.GetUserAsync(entry.User.Id);
+            return new ActionDetails(user, entry.Reason);
+        }
+
+        private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity latest, ActionDetails? details,
             CancellationToken cancellationToken)
         {
-            oldLog.UpdatedLog = await LogMessageAsync(user, message, LogType.Updated, cancellationToken);
+            var deleted = new MessageDeleteLog(latest, details);
+
+            _db.Add(deleted);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return deleted;
+        }
+
+        private async Task<DeleteLog?> LogDeletionAsync(SocketReaction reaction, ActionDetails? details,
+            CancellationToken cancellationToken)
+        {
+            var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
+            var deleted = new ReactionDeleteLog(emote, reaction, details);
+
+            _db.Add(deleted);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return deleted;
+        }
+
+        private async Task<EmbedLog?> AddDetailsAsync(EmbedBuilder embed, IMessageEntity log,
+            CancellationToken cancellationToken)
+        {
+            var deleted = await GetLatestMessage(log.MessageId, cancellationToken);
+            return deleted is null ? null : AddDetails(embed, deleted);
+        }
+
+        private async Task<EmbedLog?> BuildLogAsync(DeleteLog log, CancellationToken cancellationToken)
+        {
+            var embed = new EmbedBuilder()
+                .WithTitle($"{log.GetTitle()} Deleted")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
+
+            if (log.Action is not null)
+            {
+                embed
+                    .AddField("Deleted by", log.GetModerator(), true)
+                    .AddField("Deleted on", log.GetDate(), true)
+                    .AddField("Reason", log.GetReason(), true);
+            }
+
+            return log switch
+            {
+                MessageDeleteLog message   => await AddDetailsAsync(embed, message, cancellationToken),
+                ReactionDeleteLog reaction => AddDetails(embed, reaction),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(log), log, "Invalid log type.")
+            };
+        }
+
+        private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(IMessage? message, IGuild guild)
+        {
+            if (message is null) return null;
+
+            var audits = await guild
+                .GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
+
+            return audits
+                .Where(a => a.User.Id != message.Author.Id)
+                .FirstOrDefault(e
+                    => e.Data is MessageDeleteAuditLogData d
+                    && d.Target.Id == message.Author.Id
+                    && d.ChannelId == message.Channel.Id);
+        }
+
+        private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,
+            IUserMessage message, MessageLog oldLog,
+            CancellationToken cancellationToken)
+        {
+            oldLog.UpdatedLog = await LogMessageAsync(user, message, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
             return oldLog.UpdatedLog;
         }
 
-        private async Task<MessageLog> LogMessageAsync(GuildUserEntity user, IUserMessage message, LogType type,
+        private async Task<MessageLog> LogMessageAsync(GuildUserEntity user, IUserMessage message,
             CancellationToken cancellationToken)
         {
-            var log = _db.Add(new MessageLog(user, message, type)).Entity;
+            var log = _db.Add(new MessageLog(user, message)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;
         }
 
         private async Task<ReactionLog?> LogReactionAsync(GuildUserEntity user, SocketReaction reaction,
-            LogType logType,
             CancellationToken cancellationToken)
         {
             var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
 
-            var log = _db.Add(new ReactionLog(user, reaction, logType, emote)).Entity;
+            var log = _db.Add(new ReactionLog(user, reaction, emote)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;

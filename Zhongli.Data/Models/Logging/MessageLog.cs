@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Discord;
 using Microsoft.EntityFrameworkCore;
@@ -16,14 +15,12 @@ namespace Zhongli.Data.Models.Logging
     {
         protected MessageLog() { }
 
-        public MessageLog(GuildUserEntity user, IUserMessage message, LogType logType)
+        public MessageLog(GuildUserEntity user, IUserMessage message)
         {
-            LogType = logType;
             LogDate = DateTimeOffset.Now;
 
             User      = user;
             ChannelId = message.Channel.Id;
-            MessageId = message.Id;
 
             Content     = message.Content;
             Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
@@ -33,6 +30,7 @@ namespace Zhongli.Data.Models.Logging
             Timestamp       = message.Timestamp;
             EditedTimestamp = message.EditedTimestamp;
 
+            MessageId           = message.Id;
             MentionedEveryone   = message.MentionedEveryone;
             MentionedRolesCount = message.MentionedUserIds.Count;
             MentionedUsersCount = message.MentionedUserIds.Count;
@@ -75,15 +73,11 @@ namespace Zhongli.Data.Models.Logging
 
         public ulong? ReferencedMessageId { get; set; }
 
-        [NotMapped] public bool IsCategory { get; set; } = false;
-
         public ulong ChannelId { get; set; }
 
         public ulong GuildId { get; set; }
 
         public DateTimeOffset LogDate { get; set; }
-
-        public LogType LogType { get; set; }
 
         public ulong MessageId { get; set; }
 

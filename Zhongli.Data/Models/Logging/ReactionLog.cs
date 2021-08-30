@@ -1,5 +1,4 @@
 using System;
-using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -9,20 +8,22 @@ using Zhongli.Data.Models.Discord.Reaction;
 
 namespace Zhongli.Data.Models.Logging
 {
-    public class ReactionLog : ILog, IMessageEntity
+    public interface IReactionEntity : IMessageEntity
+    {
+        ReactionEntity Emote { get; set; }
+    }
+
+    public class ReactionLog : ILog, IReactionEntity
     {
         protected ReactionLog() { }
 
-        public ReactionLog(GuildUserEntity user, SocketReaction reaction, LogType logType, ReactionEntity emote)
+        public ReactionLog(GuildUserEntity user, SocketReaction reaction, ReactionEntity emote)
         {
-            LogType = logType;
-            LogDate = DateTimeOffset.Now;
-
+            LogDate   = DateTimeOffset.Now;
             User      = user;
-            MessageId = reaction.MessageId;
             ChannelId = reaction.Channel.Id;
-
-            Emote = emote;
+            MessageId = reaction.MessageId;
+            Emote     = emote;
         }
 
         public Guid Id { get; set; }
@@ -31,19 +32,15 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual GuildUserEntity User { get; set; }
 
-        public virtual ReactionEntity Emote { get; set; }
-
-        public bool IsCategory { get; set; }
-
         public ulong ChannelId { get; set; }
 
         public ulong GuildId { get; set; }
 
         public DateTimeOffset LogDate { get; set; }
 
-        public LogType LogType { get; set; }
-
         public ulong MessageId { get; set; }
+
+        public virtual ReactionEntity Emote { get; set; }
 
         public ulong UserId { get; set; }
     }

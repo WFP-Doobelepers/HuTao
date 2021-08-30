@@ -13,18 +13,6 @@ namespace Zhongli.Services.Logging
 {
     public static class LoggingExtensions
     {
-        public static Color GetColor(this LogType logType)
-        {
-            return logType switch
-            {
-                LogType.Created => Color.Blue,
-                LogType.Deleted => Color.Red,
-                LogType.Updated => Color.Purple,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(logType), logType, "Invalid log type.")
-            };
-        }
-
         public static EmbedBuilder AddImages(this EmbedBuilder embed, MessageLog log)
         {
             var images = log.GetImages().ToList();
@@ -44,13 +32,13 @@ namespace Zhongli.Services.Logging
         {
             var title = log switch
             {
-                MessageLog  => nameof(MessageLog),
-                ReactionLog => nameof(ReactionLog),
+                IReactionEntity => "Reaction",
+                IMessageEntity  => "Message",
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
             };
 
-            return $"{title.Replace("Log", string.Empty)} {log.LogType}";
+            return $"{title.Replace("Log", string.Empty)}";
         }
 
         public static string JumpUrlMarkdown(this IMessageEntity message)

@@ -17,7 +17,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             UserId  = details.User.Id;
             GuildId = details.User.Guild.Id;
 
-            Action    = new ModerationAction(details);
+            Action    = details;
             TriggerId = details.Trigger?.Id;
         }
 

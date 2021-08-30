@@ -254,11 +254,11 @@ namespace Zhongli.Services.Moderation
             return source is not null;
         }
 
-        private static Reprimand ModifyReprimand(Reprimand reprimand, ModifiedReprimand details,
+        private static Reprimand ModifyReprimand(Reprimand reprimand, ActionDetails details,
             ReprimandStatus status)
         {
             reprimand.Status         = status;
-            reprimand.ModifiedAction = new ModerationAction(details);
+            reprimand.ModifiedAction = details;
 
             return reprimand;
         }

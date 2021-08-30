@@ -2,6 +2,7 @@
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Reaction;
+using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -36,6 +37,8 @@ namespace Zhongli.Data
 
         public DbSet<KickAction> KickActions { get; init; }
 
+        public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; }
+
         public DbSet<Mute> MuteHistory { get; init; }
 
         public DbSet<MuteAction> MuteActions { get; init; }
@@ -49,6 +52,8 @@ namespace Zhongli.Data
         public DbSet<NoticeAction> NoticeActions { get; init; }
 
         public DbSet<PermissionCriterion> PermissionCriteria { get; init; }
+
+        public DbSet<ReactionDeleteLog> ReactionDeleteLogs { get; set; }
 
         public DbSet<ReprimandTrigger> ReprimandTriggers { get; init; }
 

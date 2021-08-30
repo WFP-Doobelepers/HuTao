@@ -3,7 +3,6 @@ using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace Zhongli.Data.Models.Moderation.Infractions
 {
@@ -12,22 +11,26 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         public ModerationAction? Action { get; set; }
     }
 
+    public record ActionDetails(ulong UserId, ulong GuildId, string? Reason = null)
+    {
+        public ActionDetails(IGuildUser user, string? reason) : this(user.Id, user.Guild.Id, reason) { }
+
+        public ModerationAction ToModerationAction() => new(this);
+
+        public static implicit operator ModerationAction(ActionDetails details) => new(details);
+    }
+
     public class ModerationAction : IGuildUserEntity
     {
         protected ModerationAction() { }
 
-        public ModerationAction(ReprimandDetails details) : this(details.Moderator, details.Reason) { }
+        public ModerationAction(IGuildUser user, string? reason = null) : this(new ActionDetails(user, reason)) { }
 
-        public ModerationAction(ModifiedReprimand details) : this(details.Moderator, details.Reason) { }
-
-        public ModerationAction(IGuildUser moderator, string? reason)
+        public ModerationAction(ActionDetails details)
         {
             Date = DateTimeOffset.UtcNow;
 
-            GuildId = moderator.Guild.Id;
-            UserId  = moderator.Id;
-
-            Reason = reason;
+            (UserId, GuildId, Reason) = details;
         }
 
         public Guid Id { get; set; }
