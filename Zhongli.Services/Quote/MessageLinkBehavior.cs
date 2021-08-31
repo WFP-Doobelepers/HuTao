@@ -112,7 +112,10 @@ namespace Zhongli.Services.Quote
                         ? new MessageReference(message.Id, message.Channel.Id)
                         : null;
 
-                    return await targetChannel.SendMessageAsync(embed: embed.Build(), messageReference: reply);
+                    return await targetChannel.SendMessageAsync(
+                        embed: embed.Build(),
+                        messageReference: reply,
+                        allowedMentions: AllowedMentions.None);
                 });
 
             return success;
