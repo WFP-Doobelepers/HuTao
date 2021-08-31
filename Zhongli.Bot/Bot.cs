@@ -183,7 +183,6 @@ namespace Zhongli.Bot
             await rest.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
 
             await client.StartAsync();
-            await client.StartAsync();
 
             using var server = new BackgroundJobServer();
 
