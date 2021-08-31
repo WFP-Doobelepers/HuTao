@@ -74,8 +74,18 @@ namespace Zhongli.Services.Quote
 
                 try
                 {
-                    var msg = await _discordClient.GetMessageAsync(channelId, messageId);
+                    var channel = _discordClient.GetChannel(channelId);
+                    if (channel is not ITextChannel textChannel || textChannel.IsNsfw) return;
 
+                    var user = await textChannel.Guild.GetUserAsync(message.Author.Id);
+                    var channelPermissions = user.GetPermissions(textChannel);
+                    if (!channelPermissions.ViewChannel) return;
+
+                    var cacheMode = channelPermissions.ReadMessageHistory
+                        ? CacheMode.AllowDownload
+                        : CacheMode.CacheOnly;
+
+                    var msg = await textChannel.GetMessageAsync(messageId, cacheMode);
                     if (msg is null) return;
 
                     var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
