@@ -1,10 +1,12 @@
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
@@ -297,10 +299,10 @@ namespace Zhongli.Services.Logging
         private ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken)
             => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
 
-        private async ValueTask<T?> GetLatestLogAsync<T>(Func<T, bool> filter,
+        private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
             CancellationToken cancellationToken) where T : class, ILog
         {
-            return await _db.Set<T>().AsAsyncEnumerable()
+            return await _db.Set<T>().AsQueryable()
                 .OrderByDescending(l => l.LogDate)
                 .FirstOrDefaultAsync(filter, cancellationToken);
         }
