@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -41,7 +42,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
         public virtual GuildUserEntity Moderator { get; set; }
 
-        public string? Reason { get; set; }
+        [MaxLength(1024)] public string? Reason { get; set; }
 
         public ulong GuildId { get; set; }
 
