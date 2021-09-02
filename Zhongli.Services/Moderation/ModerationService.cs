@@ -138,7 +138,11 @@ namespace Zhongli.Services.Moderation
                         && m.GuildId == details.Moderator.Guild.Id,
                     cancellationToken);
 
-            if (activeBan is null) return false;
+            if (activeBan is null)
+            {
+                await details.Moderator.Guild.RemoveBanAsync(details.User);
+                return false;
+            }
 
             await ExpireBanAsync(activeBan, cancellationToken);
             return true;
@@ -296,11 +300,7 @@ namespace Zhongli.Services.Moderation
         private async Task ExpireBanAsync(Reprimand ban, CancellationToken cancellationToken)
         {
             var guild = _client.GetGuild(ban.GuildId);
-            var user = guild.GetUser(ban.UserId);
-
-            await guild.RemoveBanAsync(user);
-            if (user.VoiceChannel is not null)
-                await user.ModifyAsync(u => u.Mute = false);
+            await guild.RemoveBanAsync(ban.UserId);
 
             await ExpireReprimandAsync(ban, cancellationToken);
         }

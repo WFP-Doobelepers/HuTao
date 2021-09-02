@@ -105,14 +105,14 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task UnbanAsync(ulong userId, [Remainder] string? reason = null)
         {
-            var user = Context.Client.GetUser(userId);
+            var user = await Context.Client.Rest.GetUserAsync(userId);
             var details = new ModifiedReprimand(user, (IGuildUser) Context.User, reason);
 
             var result = await _moderation.TryUnbanAsync(details);
             if (result)
                 await Context.Message.AddReactionAsync(new Emoji("✅"));
             else
-                await _error.AssociateError(Context.Message, "Unban failed.");
+                await _error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
         }
 
         [Command("unmute")]
