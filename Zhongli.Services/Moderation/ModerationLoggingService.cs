@@ -18,7 +18,7 @@ namespace Zhongli.Services.Moderation
 
         public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
-        public async Task PublishReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
+        public async Task PublishReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
@@ -39,7 +39,7 @@ namespace Zhongli.Services.Moderation
             return embed;
         }
 
-        public async Task<EmbedBuilder> UpdatedEmbedAsync(Reprimand reprimand, ModifiedReprimand details,
+        public async Task<EmbedBuilder> UpdatedEmbedAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var embed = CreateReprimandEmbed(details.User)

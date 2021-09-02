@@ -83,7 +83,7 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        public async Task DeleteReprimandAsync(Reprimand reprimand, ModifiedReprimand? details,
+        public async Task DeleteReprimandAsync(Reprimand reprimand, ReprimandDetails? details,
             CancellationToken cancellationToken = default)
         {
             if (details is not null)
@@ -113,34 +113,34 @@ namespace Zhongli.Services.Moderation
             {
                 await DeleteReprimandAsync(reprimand, silent ? null : GetModified(reprimand));
 
-                ModifiedReprimand GetModified(IUserEntity r)
+                ReprimandDetails GetModified(IUserEntity r)
                 {
                     var user = _client.GetUser(r.UserId);
-                    return new ModifiedReprimand(user, moderator, "[Deleted Trigger]");
+                    return new ReprimandDetails(user, moderator, "[Deleted Trigger]");
                 }
             }
         }
 
-        public Task HideReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
+        public Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden, cancellationToken);
 
-        public Task UpdateReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
+        public Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
 
-        public async Task<bool> TryUnbanAsync(ModifiedReprimand details,
+        public async Task<bool> TryUnbanAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var activeBan = await _db.BanHistory
                 .FirstOrDefaultAsync(m => m.IsActive()
                         && m.UserId == details.User.Id
-                        && m.GuildId == details.Moderator.Guild.Id,
+                        && m.GuildId == details.Guild.Id,
                     cancellationToken);
 
             if (activeBan is null)
             {
-                await details.Moderator.Guild.RemoveBanAsync(details.User);
+                await details.Guild.RemoveBanAsync(details.User);
                 return false;
             }
 
@@ -154,7 +154,7 @@ namespace Zhongli.Services.Moderation
             var activeMute = await _db.MuteHistory
                 .FirstOrDefaultAsync(m => m.IsActive()
                         && m.UserId == details.User.Id
-                        && m.GuildId == details.User.Guild.Id,
+                        && m.GuildId == details.Guild.Id,
                     cancellationToken);
 
             if (activeMute is null) return false;
@@ -174,7 +174,7 @@ namespace Zhongli.Services.Moderation
                 var ban = _db.Add(new Ban(days, length, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await user.BanAsync((int) days, details.Reason);
+                await details.Guild.AddBanAsync(user, (int) days, details.Reason);
                 return await PublishReprimandAsync(ban, details, cancellationToken);
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
@@ -188,7 +188,7 @@ namespace Zhongli.Services.Moderation
         {
             try
             {
-                var user = details.User;
+                var user = await details.GetUserAsync();
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
@@ -208,10 +208,10 @@ namespace Zhongli.Services.Moderation
             var activeMute = await _db.MuteHistory
                 .FirstOrDefaultAsync(m => m.IsActive()
                         && m.UserId == details.User.Id
-                        && m.GuildId == details.User.Guild.Id,
+                        && m.GuildId == details.Guild.Id,
                     cancellationToken);
 
-            var user = details.User;
+            var user = await details.GetUserAsync();
             var guildEntity = await _db.Guilds.FindByIdAsync(user.Guild.Id, cancellationToken);
 
             var muteRole = guildEntity?.ModerationRules.MuteRoleId;
@@ -322,14 +322,14 @@ namespace Zhongli.Services.Moderation
         private async Task ExpireReprimandAsync(Reprimand reprimand, CancellationToken cancellationToken)
         {
             var guild = _client.GetGuild(reprimand.GuildId);
-            var user = guild.GetUser(reprimand.UserId);
+            var user = await _client.Rest.GetUserAsync(reprimand.UserId);
             var moderator = guild.CurrentUser;
-            var details = new ModifiedReprimand(user, moderator, "[Reprimand Expired]");
+            var details = new ReprimandDetails(user, moderator, "[Reprimand Expired]");
 
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
-        private async Task UpdateReprimandAsync(Reprimand reprimand, ModifiedReprimand details,
+        private async Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             ReprimandStatus status, CancellationToken cancellationToken)
         {
             _db.Update(ModifyReprimand(reprimand, details, status));

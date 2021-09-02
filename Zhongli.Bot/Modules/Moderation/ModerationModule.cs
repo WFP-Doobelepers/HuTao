@@ -37,10 +37,12 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(IGuildUser user, uint deleteDays = 1, TimeSpan? length = null,
+        public async Task BanAsync(ulong userId, uint deleteDays = 1, TimeSpan? length = null,
             [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var user = await Context.Client.Rest.GetUserAsync(userId);
+
+            var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
             var result = await _moderation.TryBanAsync(deleteDays, length, details);
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
@@ -106,8 +108,8 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task UnbanAsync(ulong userId, [Remainder] string? reason = null)
         {
             var user = await Context.Client.Rest.GetUserAsync(userId);
-            var details = new ModifiedReprimand(user, (IGuildUser) Context.User, reason);
 
+            var details = GetDetails(user, reason);
             var result = await _moderation.TryUnbanAsync(details);
             if (result)
                 await Context.Message.AddReactionAsync(new Emoji("✅"));
@@ -145,7 +147,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
             => WarnAsync(user, 1, reason);
 
-        private ReprimandDetails GetDetails(IGuildUser user, string? reason)
+        private ReprimandDetails GetDetails(IUser user, string? reason)
             => new(user, (IGuildUser) Context.User, reason);
 
         private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)

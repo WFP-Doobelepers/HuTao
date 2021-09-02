@@ -86,7 +86,7 @@ namespace Zhongli.Bot.Modules.Moderation
             return guild.ReprimandHistory;
         }
 
-        private ModifiedReprimand GetDetails(IUser user, string? reason)
+        private ReprimandDetails GetDetails(IUser user, string? reason)
             => new(user, (IGuildUser) Context.User, reason);
 
         private async Task ModifyReprimandAsync(Reprimand? reprimand,
@@ -105,7 +105,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(reprimand, details);
         }
 
-        private async Task ReplyReprimandAsync(Reprimand reprimand, ModifiedReprimand details)
+        private async Task ReplyReprimandAsync(Reprimand reprimand, ReprimandDetails details)
         {
             var guild = await reprimand.GetGuildAsync(_db);
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
@@ -117,7 +117,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 await Context.Message.DeleteAsync();
         }
 
-        private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ModifiedReprimand details,
+        private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default);
     }
 }

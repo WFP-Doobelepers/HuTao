@@ -15,7 +15,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
             Status = ReprimandStatus.Added;
 
             UserId  = details.User.Id;
-            GuildId = details.User.Guild.Id;
+            GuildId = details.Guild.Id;
 
             Action    = details;
             TriggerId = details.Trigger?.Id;

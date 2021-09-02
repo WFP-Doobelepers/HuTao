@@ -169,7 +169,7 @@ namespace Zhongli.Services.Moderation
 
         public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,
             CancellationToken cancellationToken)
-            => db.Guilds.TrackGuildAsync(details.User.Guild, cancellationToken);
+            => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
         public static async Task<uint> CountAsync<T>(this T reprimand,
             DbContext db, bool countHidden = false,
