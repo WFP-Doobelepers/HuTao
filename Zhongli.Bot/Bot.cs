@@ -40,7 +40,7 @@ namespace Zhongli.Bot
 
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
-                .AddDbContext<ZhongliContext>(ContextOptions, ServiceLifetime.Transient)
+                .AddDbContext<ZhongliContext>(ContextOptions)
                 .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
                     typeof(Bot), typeof(DiscordSocketListener))
                 .AddLogging(l => l.AddSerilog())
