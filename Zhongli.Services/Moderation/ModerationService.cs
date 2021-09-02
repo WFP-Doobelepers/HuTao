@@ -139,13 +139,11 @@ namespace Zhongli.Services.Moderation
                     cancellationToken);
 
             if (activeBan is null)
-            {
                 await details.Guild.RemoveBanAsync(details.User);
-                return false;
-            }
+            else
+                await ExpireBanAsync(activeBan, cancellationToken);
 
-            await ExpireBanAsync(activeBan, cancellationToken);
-            return true;
+            return activeBan is null;
         }
 
         public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
@@ -157,10 +155,10 @@ namespace Zhongli.Services.Moderation
                         && m.GuildId == details.Guild.Id,
                     cancellationToken);
 
-            if (activeMute is null) return false;
+            if (activeMute is not null) await ExpireReprimandAsync(activeMute, cancellationToken);
+            await EndMuteAsync(await details.GetUserAsync());
 
-            await ExpireMuteAsync(activeMute, cancellationToken);
-            return true;
+            return activeMute is not null;
         }
 
         public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
@@ -297,35 +295,43 @@ namespace Zhongli.Services.Moderation
             return reprimand;
         }
 
-        private async Task ExpireBanAsync(Reprimand ban, CancellationToken cancellationToken)
+        private async Task EndMuteAsync(IGuildUser user)
         {
-            var guild = _client.GetGuild(ban.GuildId);
-            await guild.RemoveBanAsync(ban.UserId);
+            var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild);
 
-            await ExpireReprimandAsync(ban, cancellationToken);
-        }
-
-        private async Task ExpireMuteAsync(Reprimand mute, CancellationToken cancellationToken)
-        {
-            var guildEntity = await _db.Guilds.FindByIdAsync(mute.GuildId, cancellationToken);
-            var user = _client.GetGuild(mute.GuildId).GetUser(mute.UserId);
-
-            if (guildEntity?.ModerationRules.MuteRoleId is not null)
+            if (guildEntity.ModerationRules.MuteRoleId is not null)
                 await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
 
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = false);
-
-            await ExpireReprimandAsync(mute, cancellationToken);
         }
 
-        private async Task ExpireReprimandAsync(Reprimand reprimand, CancellationToken cancellationToken)
+        private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken)
+        {
+            await ExpireReprimandAsync(ban, cancellationToken);
+
+            var guild = _client.GetGuild(ban.GuildId);
+            await guild.RemoveBanAsync(ban.UserId);
+        }
+
+        private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken)
+        {
+            await ExpireReprimandAsync(mute, cancellationToken);
+
+            var guild = _client.GetGuild(mute.GuildId);
+            var user = guild.GetUser(mute.UserId);
+
+            await EndMuteAsync(user);
+        }
+
+        private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken)
         {
             var guild = _client.GetGuild(reprimand.GuildId);
             var user = await _client.Rest.GetUserAsync(reprimand.UserId);
             var moderator = guild.CurrentUser;
             var details = new ReprimandDetails(user, moderator, "[Reprimand Expired]");
 
+            reprimand.EndedAt = DateTimeOffset.Now;
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
