@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
-using Discord.Rest;
 using Discord.WebSocket;
 using Hangfire;
 using Hangfire.AspNetCore;
@@ -44,7 +43,6 @@ namespace Zhongli.Bot
                 .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
                     typeof(Bot), typeof(DiscordSocketListener))
                 .AddLogging(l => l.AddSerilog())
-                .AddSingleton<DiscordRestClient>()
                 .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
                 {
                     AlwaysDownloadUsers = true,
@@ -164,7 +162,6 @@ namespace Zhongli.Bot
             var commands = services.GetRequiredService<CommandService>();
 
             var client = services.GetRequiredService<DiscordSocketClient>();
-            var rest = services.GetRequiredService<DiscordRestClient>();
 
             _reconnectCts  = new CancellationTokenSource();
             _mediatorToken = new CancellationTokenSource();
@@ -175,13 +172,10 @@ namespace Zhongli.Bot
             client.Disconnected += _ => ClientOnDisconnected(client);
             client.Connected    += ClientOnConnected;
 
-            rest.Log     += LogAsync;
             client.Log   += LogAsync;
             commands.Log += LogAsync;
 
             await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
-            await rest.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
-
             await client.StartAsync();
 
             using var server = new BackgroundJobServer();

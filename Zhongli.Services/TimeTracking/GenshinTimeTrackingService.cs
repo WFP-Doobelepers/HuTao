@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cronos;
 using Discord;
-using Discord.Rest;
 using Discord.WebSocket;
 using Hangfire;
 using Humanizer;
@@ -24,14 +23,9 @@ namespace Zhongli.Services.TimeTracking
             SAR
         }
 
-        private readonly DiscordRestClient _rest;
-        private readonly DiscordSocketClient _socket;
+        private readonly DiscordSocketClient _client;
 
-        public GenshinTimeTrackingService(DiscordSocketClient socket, DiscordRestClient rest)
-        {
-            _rest   = rest;
-            _socket = socket;
-        }
+        public GenshinTimeTrackingService(DiscordSocketClient client) { _client = client; }
 
         private static Dictionary<ServerRegion, (string Name, int Offset)> ServerOffsets { get; } = new()
         {
@@ -134,8 +128,8 @@ namespace Zhongli.Services.TimeTracking
         }
 
         private async Task<IGuild?> GetGuildAsync(ulong guildId) =>
-            _socket.GetGuild(guildId) as IGuild
-            ?? await _rest.GetGuildAsync(guildId);
+            _client.GetGuild(guildId) as IGuild
+            ?? await _client.Rest.GetGuildAsync(guildId);
 
         private void AddJob(ChannelTimeTracking? tracking, ServerRegion region)
         {
