@@ -25,30 +25,43 @@ namespace Zhongli.Bot.Modules.Configuration
             _db         = db;
         }
 
-        [Command("autoPardon notice")]
-        [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
+        [Command("notice expiry")]
+        [Summary("Set the time for when a notice is automatically hidden. This will not affect old cases.")]
         public async Task ConfigureAutoPardonNoticeAsync(
             [Summary("Leave empty to disable auto pardon of notices.")]
             TimeSpan? length = null)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.NoticeAutoPardonLength = length;
+            guild.ModerationRules.NoticeExpiryLength = length;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("autoPardon warning")]
-        [Summary("Set the time for when a warning is automatically pardoned. This will not affect old cases.")]
+        [Command("warning expiry")]
+        [Summary("Set the time for when a warning is automatically hidden. This will not affect old cases.")]
         public async Task ConfigureAutoPardonWarningAsync(
             [Summary("Leave empty to disable auto pardon of notices.")]
             TimeSpan? length = null)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.ModerationRules.WarningAutoPardonLength = length;
+            guild.ModerationRules.WarningExpiryLength = length;
             await _db.SaveChangesAsync();
 
             await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("replace mutes")]
+        [Alias("replace mute")]
+        [Summary("Whether mutes should be replaced when there is an active one.")]
+        public async Task ConfigureAutoPardonWarningAsync(
+            [Summary("Leave empty to toggle")] bool? shouldReplace = null)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            guild.ModerationRules.ReplaceMutes = shouldReplace ?? !guild.ModerationRules.ReplaceMutes;
+            await _db.SaveChangesAsync();
+
+            await ReplyAsync($"New value: {guild.ModerationRules.ReplaceMutes}");
         }
 
         [Command("censor range")]

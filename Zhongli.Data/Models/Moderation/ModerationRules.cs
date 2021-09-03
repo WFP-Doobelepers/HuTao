@@ -12,6 +12,8 @@ namespace Zhongli.Data.Models.Moderation
 
         public virtual AntiSpamRules? AntiSpamRules { get; set; }
 
+        public bool ReplaceMutes { get; set; }
+
         public virtual GuildEntity Guild { get; set; }
 
         public virtual ICollection<Criterion> CensorExclusions { get; set; }
@@ -22,9 +24,9 @@ namespace Zhongli.Data.Models.Moderation
 
         public TimeSpan? CensorTimeRange { get; set; }
 
-        public TimeSpan? NoticeAutoPardonLength { get; set; }
+        public TimeSpan? NoticeExpiryLength { get; set; }
 
-        public TimeSpan? WarningAutoPardonLength { get; set; }
+        public TimeSpan? WarningExpiryLength { get; set; }
 
         public ulong GuildId { get; set; }
 

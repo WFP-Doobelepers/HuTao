@@ -210,9 +210,9 @@ namespace Zhongli.Services.Moderation
                     cancellationToken);
 
             var user = await details.GetUserAsync();
-            var guildEntity = await _db.Guilds.FindByIdAsync(user.Guild.Id, cancellationToken);
+            var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
 
-            var muteRole = guildEntity?.ModerationRules.MuteRoleId;
+            var muteRole = guildEntity.ModerationRules.MuteRoleId;
             if (muteRole is null)
                 return null;
 
@@ -221,7 +221,12 @@ namespace Zhongli.Services.Moderation
                 await user.ModifyAsync(u => u.Mute = true);
 
             if (activeMute is not null)
-                return null;
+            {
+                if (!guildEntity.ModerationRules.ReplaceMutes)
+                    return null;
+
+                await ExpireReprimandAsync(activeMute, cancellationToken);
+            }
 
             var mute = _db.Add(new Mute(length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
@@ -242,7 +247,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
-            var notice = new Notice(guild.ModerationRules.NoticeAutoPardonLength, details);
+            var notice = new Notice(guild.ModerationRules.NoticeExpiryLength, details);
 
             _db.Add(notice);
             await _db.SaveChangesAsync(cancellationToken);
@@ -254,7 +259,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var guild = await details.GetGuildAsync(_db, cancellationToken);
-            var warning = new Warning(amount, guild.ModerationRules.WarningAutoPardonLength, details);
+            var warning = new Warning(amount, guild.ModerationRules.WarningExpiryLength, details);
 
             _db.Add(warning);
             await _db.SaveChangesAsync(cancellationToken);
