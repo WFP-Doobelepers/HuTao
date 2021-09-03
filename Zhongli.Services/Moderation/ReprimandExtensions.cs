@@ -99,15 +99,20 @@ namespace Zhongli.Services.Moderation
                 : reprimands.Where(IsCounted);
         }
 
+        public static string GetLength(this ILength mute)
+            => mute.Length?.Humanize(5,
+                minUnit: TimeUnit.Second,
+                maxUnit: TimeUnit.Year) ?? "indefinitely";
+
         public static string GetMessage(this Reprimand action)
         {
             var mention = $"<@{action.UserId}>";
             return action switch
             {
-                Ban        => $"{mention} was banned.",
+                Ban b      => $"{mention} was banned for {b.GetLength()}.",
                 Censored c => $"{mention} was censored. Message: {c.CensoredMessage()}",
                 Kick       => $"{mention} was kicked.",
-                Mute m     => $"{mention} was muted for {GetLength(m)}.",
+                Mute m     => $"{mention} was muted for {m.GetLength()}.",
                 Note       => $"{mention} was given a note.",
                 Notice     => $"{mention} was given a notice.",
                 Warning w  => $"{mention} was warned {w.Count} times.",
@@ -115,11 +120,6 @@ namespace Zhongli.Services.Moderation
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(action), action, "An unknown reprimand was given.")
             };
-
-            static string GetLength(ILength mute)
-                => mute.Length?.Humanize(5,
-                    minUnit: TimeUnit.Second,
-                    maxUnit: TimeUnit.Year) ?? "indefinitely";
         }
 
         public static string GetTitle(this Reprimand action)
@@ -148,12 +148,12 @@ namespace Zhongli.Services.Moderation
                 .AppendLine($"▌Reason: {r.GetReason()}")
                 .AppendLine($"▌Moderator: {r.GetModerator()}")
                 .AppendLine($"▌Date: {r.GetDate()}")
-                .AppendLine("▌")
                 .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
 
-            if (r.Status is not ReprimandStatus.Added && r.ModifiedAction is not null)
+            if (r.ModifiedAction is not null)
             {
                 content
+                    .AppendLine("▌")
                     .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
                     .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
                     .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
@@ -164,9 +164,8 @@ namespace Zhongli.Services.Moderation
             {
                 content
                     .AppendLine("▌")
-                    .AppendLine($"▌{t.GetTitle()}: {t.Id}")
-                    .AppendLine($"▌▌{t.GetTriggerMode()}")
-                    .AppendLine($"▌▌{t.GetTriggerDetails()}");
+                    .AppendLine($"▌▌{t.GetTitle()}")
+                    .AppendLine($"▌▌Trigger: {t.GetTriggerDetails()}");
             }
 
             return content;

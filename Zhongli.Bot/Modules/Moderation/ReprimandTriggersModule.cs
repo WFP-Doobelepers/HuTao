@@ -137,11 +137,12 @@ namespace Zhongli.Bot.Modules.Moderation
         protected override (string Title, StringBuilder Value) EntityViewer(ReprimandTrigger trigger)
         {
             var content = new StringBuilder()
-                .AppendLine($"▌Active: {trigger.IsActive}")
-                .AppendLine($"▌{trigger.GetTriggerMode()}")
-                .AppendLine($"▌{trigger.GetTriggerDetails()}");
+                .AppendLine($"▌Action: {trigger.Reprimand.Action}")
+                .AppendLine($"▌Trigger: {trigger.GetTriggerDetails()}")
+                .AppendLine($"▌▌Active: {trigger.IsActive}")
+                .AppendLine($"▌▌Added by: {trigger.GetModerator()}");
 
-            return ($"{trigger.GetTitle()}: {trigger.Id}", content);
+            return ($"{trigger.Reprimand.GetTitle()}: {trigger.Id}", content);
         }
 
         protected override bool IsMatch(ReprimandTrigger entity, string id)

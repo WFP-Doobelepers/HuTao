@@ -169,15 +169,16 @@ namespace Zhongli.Bot.Modules.Censors
         [Summary("View the censor list.")]
         protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-        protected override (string Title, StringBuilder Value) EntityViewer(Censor entity)
+        protected override (string Title, StringBuilder Value) EntityViewer(Censor censor)
         {
             var value = new StringBuilder()
-                .AppendLine($"▌Pattern: {entity.Pattern}")
-                .AppendLine($"▌Options: {entity.Options.Humanize()}")
-                .AppendLine($"▌Reprimand: {entity.Reprimand?.Action ?? "None"}")
-                .AppendLine($"▌Exclusions: {entity.Exclusions.Humanize()}");
+                .AppendLine($"▌Pattern: {censor.Pattern}")
+                .AppendLine($"▌Options: {censor.Options.Humanize()}")
+                .AppendLine($"▌Reprimand: {censor.Reprimand?.Action ?? "None"}")
+                .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
+                .AppendLine($"▌Moderator: {censor.GetModerator()}");
 
-            return (entity.Id.ToString(), value);
+            return (censor.Id.ToString(), value);
         }
 
         protected override bool IsMatch(Censor entity, string id)
