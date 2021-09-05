@@ -53,10 +53,10 @@ namespace Zhongli.Services.Quote
             await OnMessageReceivedAsync(notification.NewMessage, cancellationToken);
         }
 
-        private async Task OnMessageReceivedAsync(IMessage message, CancellationToken cancellationToken)
+        private async Task OnMessageReceivedAsync(SocketMessage message, CancellationToken cancellationToken)
         {
             if (message.Content?.StartsWith(ZhongliConfig.Configuration.Prefix) ?? true) return;
-            if (message is not SocketUserMessage { Author: IGuildUser guildUser } userMessage || guildUser.IsBot)
+            if (message is not SocketUserMessage userMessage || message.Author.IsBot)
                 return;
 
             var context = new SocketCommandContext(_discordClient, userMessage);
@@ -85,10 +85,10 @@ namespace Zhongli.Services.Quote
                         ? CacheMode.AllowDownload
                         : CacheMode.CacheOnly;
 
-                    var msg = await textChannel.GetMessageAsync(messageId, cacheMode);
-                    if (msg is null) return;
+                    var quote = await textChannel.GetMessageAsync(messageId, cacheMode);
+                    if (quote is null) return;
 
-                    var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
+                    var success = await SendQuoteEmbedAsync(message, quote);
                     if (success
                         && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
                         && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
@@ -101,20 +101,17 @@ namespace Zhongli.Services.Quote
             }
         }
 
-        private async Task<bool> SendQuoteEmbedAsync(IMessage message, IUser quoter, IMessageChannel targetChannel)
+        private async Task<bool> SendQuoteEmbedAsync(SocketMessage source, IMessage quote)
         {
             var success = false;
-            await _quoteService.BuildRemovableEmbed(message, quoter,
+            await _quoteService.BuildRemovableEmbed(quote, source.Author,
                 async embed => //If embed building is unsuccessful, this won't execute
                 {
                     success = true;
-                    var reply = targetChannel.Id == message.Channel.Id
-                        ? new MessageReference(message.Id, message.Channel.Id)
-                        : null;
 
-                    return await targetChannel.SendMessageAsync(
+                    return await source.Channel.SendMessageAsync(
                         embed: embed.Build(),
-                        messageReference: reply,
+                        messageReference: source.Reference,
                         allowedMentions: AllowedMentions.None);
                 });
 
