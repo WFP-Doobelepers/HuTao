@@ -102,12 +102,20 @@ namespace Zhongli.Services.Logging
 
             embed
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .AddContent(log.Content)
-                .AddField("Message", log.JumpUrlMarkdown(), true)
-                .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true);
+                .AddContent(log.Content);
 
-            if (log.EditedTimestamp is not null)
-                embed.AddField("Edited", $"{log.EditedTimestamp.Value.ToUniversalTimestamp()}", true);
+            var updated = log.UpdatedLog;
+            if (updated is not null)
+            {
+                var date = updated.EditedTimestamp ?? updated.LogDate;
+                embed
+                    .AddField("After", updated.Content)
+                    .AddField("Edited", date.ToUniversalTimestamp(), true);
+            }
+
+            embed
+                .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
+                .AddField("Message", log.JumpUrlMarkdown(), true);
 
             var urls = log.Embeds.Select(e => e.Url);
             return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
@@ -273,7 +281,7 @@ namespace Zhongli.Services.Logging
             oldLog.UpdatedLog = await LogMessageAsync(user, message, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return oldLog.UpdatedLog;
+            return oldLog;
         }
 
         private async Task<MessageLog> LogMessageAsync(GuildUserEntity user, IUserMessage message,
