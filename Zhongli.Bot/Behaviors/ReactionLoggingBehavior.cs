@@ -15,9 +15,9 @@ namespace Zhongli.Bot.Behaviors
         public ReactionLoggingBehavior(LoggingService logging) { _logging = logging; }
 
         public Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
-            => _logging.PublishLogAsync(notification, cancellationToken);
+            => _logging.LogAsync(notification, cancellationToken);
 
         public Task Handle(ReactionRemovedNotification notification, CancellationToken cancellationToken)
-            => _logging.PublishLogAsync(notification, cancellationToken);
+            => _logging.LogAsync(notification, cancellationToken);
     }
 }

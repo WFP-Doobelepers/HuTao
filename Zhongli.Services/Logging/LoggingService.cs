@@ -32,7 +32,7 @@ namespace Zhongli.Services.Logging
             _db     = db;
         }
 
-        public async Task PublishLogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
+        public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.Message is not IUserMessage message) return;
             if (message.Author is not IGuildUser user || user.IsBot) return;
@@ -41,7 +41,7 @@ namespace Zhongli.Services.Logging
             await LogMessageAsync(userEntity, message, cancellationToken);
         }
 
-        public async Task PublishLogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
+        public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.Channel is not IGuildChannel channel) return;
 
@@ -54,7 +54,7 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
-        public async Task PublishLogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
+        public async Task LogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.Channel is not IGuildChannel channel) return;
 
@@ -64,7 +64,7 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
-        public async Task PublishLogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
+        public async Task LogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.Channel is not IGuildChannel channel) return;
 
@@ -77,7 +77,7 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
-        public async Task PublishLogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
+        public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
         {
             if (notification.NewMessage is not IUserMessage { Channel: IGuildChannel channel } message) return;
             if (message.Author is not IGuildUser user || user.IsBot) return;

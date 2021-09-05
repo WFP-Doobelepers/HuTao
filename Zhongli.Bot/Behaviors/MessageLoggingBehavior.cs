@@ -22,12 +22,12 @@ namespace Zhongli.Bot.Behaviors
         }
 
         public Task Handle(MessageDeletedNotification notification, CancellationToken cancellationToken)
-            => _logging.PublishLogAsync(notification, cancellationToken);
+            => _logging.LogAsync(notification, cancellationToken);
 
         public Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
-            => _logging.PublishLogAsync(notification, cancellationToken);
+            => _logging.LogAsync(notification, cancellationToken);
 
         public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
-            => _logging.PublishLogAsync(notification, cancellationToken);
+            => _logging.LogAsync(notification, cancellationToken);
     }
 }
