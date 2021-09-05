@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Hangfire;
 using Zhongli.Data;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Services.Moderation;
 
 namespace Zhongli.Services.Expirable
 {
@@ -17,11 +18,14 @@ namespace Zhongli.Services.Expirable
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task ExpireEntityAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var item = _db.Set<T>()
-                .FirstOrDefault(e => e.Id == id);
+            var expirable = _db.Set<T>().FirstOrDefault(e => e.Id == id);
+            if (expirable?.IsActive() is true)
+            {
+                expirable.EndedAt = DateTimeOffset.Now;
+                await _db.SaveChangesAsync(cancellationToken);
 
-            if (item is not null)
-                await ExpireAsync(item, cancellationToken);
+                await OnExpiredEntity(expirable, cancellationToken);
+            }
         }
 
         public void EnqueueExpirableEntity(T expire, CancellationToken cancellationToken = default)
@@ -35,13 +39,5 @@ namespace Zhongli.Services.Expirable
         }
 
         protected abstract Task OnExpiredEntity(T expired, CancellationToken cancellationToken);
-
-        private async Task ExpireAsync(T expirable, CancellationToken cancellationToken = default)
-        {
-            expirable.EndedAt = DateTimeOffset.Now;
-            await _db.SaveChangesAsync(cancellationToken);
-
-            await OnExpiredEntity(expirable, cancellationToken);
-        }
     }
 }

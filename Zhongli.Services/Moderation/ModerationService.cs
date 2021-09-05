@@ -300,8 +300,9 @@ namespace Zhongli.Services.Moderation
             return reprimand;
         }
 
-        private async Task EndMuteAsync(IGuildUser user)
+        private async Task EndMuteAsync(IGuildUser? user)
         {
+            if (user is null) return;
             var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild);
 
             if (guildEntity.ModerationRules.MuteRoleId is not null)
@@ -316,7 +317,7 @@ namespace Zhongli.Services.Moderation
             await ExpireReprimandAsync(ban, cancellationToken);
 
             var guild = _client.GetGuild(ban.GuildId);
-            await guild.RemoveBanAsync(ban.UserId);
+            _ = guild.RemoveBanAsync(ban.UserId);
         }
 
         private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken)
@@ -326,7 +327,7 @@ namespace Zhongli.Services.Moderation
             var guild = _client.GetGuild(mute.GuildId);
             var user = guild.GetUser(mute.UserId);
 
-            await EndMuteAsync(user);
+            _ = EndMuteAsync(user);
         }
 
         private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken)

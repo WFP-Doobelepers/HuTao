@@ -23,11 +23,6 @@ namespace Zhongli.Services.Moderation
         public static bool IsActive(this IExpirable expirable)
             => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
 
-        public static bool IsActive(this ExpirableReprimand expirable)
-            => expirable.Status is not ReprimandStatus.Expired
-                && expirable.EndedAt is null
-                || expirable.ExpireAt >= DateTimeOffset.Now;
-
         public static bool IsIncluded(this Reprimand reprimand, ReprimandNoticeType type)
         {
             if (type == ReprimandNoticeType.All)
