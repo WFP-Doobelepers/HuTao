@@ -46,6 +46,7 @@ namespace Zhongli.Bot.Modules.Configuration
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             guild.LoggingRules.ReprimandAppealMessage = message;
+
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
@@ -77,6 +78,7 @@ namespace Zhongli.Bot.Modules.Configuration
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
             guild.LoggingRules.MessageLogChannelId = channel.Id;
+
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
@@ -89,6 +91,7 @@ namespace Zhongli.Bot.Modules.Configuration
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
             guild.LoggingRules.ModerationChannelId = channel.Id;
+
             await _db.SaveChangesAsync();
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
@@ -110,6 +113,19 @@ namespace Zhongli.Bot.Modules.Configuration
             }
 
             await ReplyAsync($"Current value: {guild.LoggingRules.NotifyReprimands.Humanize()}");
+        }
+
+        [Command("reaction channel")]
+        [Summary("Configures the Logging Channel that logs for messages will be sent on.")]
+        public async Task ConfigureReactionChannelAsync(
+            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
+            ITextChannel channel)
+        {
+            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            guild.LoggingRules.ReactionLogChannelId = channel.Id;
+
+            await _db.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
     }
 }

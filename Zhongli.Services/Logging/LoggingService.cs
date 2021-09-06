@@ -163,7 +163,8 @@ namespace Zhongli.Services.Logging
             if (log is null) return;
 
             var embed = await BuildLogAsync(log, cancellationToken);
-            if (embed is not null) await PublishLogAsync(embed, guild, cancellationToken);
+            var channel = await GetLoggingChannelAsync(log, guild, cancellationToken);
+            await PublishLogAsync(embed, channel);
         }
 
         private async Task PublishLogAsync(ILog? log, IGuild guild, CancellationToken cancellationToken)
@@ -171,19 +172,16 @@ namespace Zhongli.Services.Logging
             if (log is null) return;
 
             var embed = BuildLog(log);
-            await PublishLogAsync(embed, guild, cancellationToken);
+            var channel = await GetLoggingChannelAsync(log, guild, cancellationToken);
+
+            await PublishLogAsync(embed, channel);
         }
 
-        private async Task PublishLogAsync(EmbedLog log, IGuild guild, CancellationToken cancellationToken)
+        private static async Task PublishLogAsync(EmbedLog? log, IMessageChannel? channel)
         {
-            var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-            var channelId = guildEntity.LoggingRules.MessageLogChannelId;
-            if (channelId is null) return;
-
-            var channel = await guild.GetTextChannelAsync(channelId.Value);
-            if (channel is null) return;
-
+            if (log is null || channel is null) return;
             var (embed, content) = log;
+
             var message = await channel.SendMessageAsync(embed: embed.Build());
             if (!string.IsNullOrWhiteSpace(content)) await message.ReplyAsync(content);
         }
@@ -275,6 +273,21 @@ namespace Zhongli.Services.Logging
                     => e.Data is MessageDeleteAuditLogData d
                     && d.Target.Id == message.Author.Id
                     && d.ChannelId == message.Channel.Id);
+        }
+
+        private async Task<IMessageChannel?> GetLoggingChannelAsync(ILog log, IGuild guild,
+            CancellationToken cancellationToken)
+        {
+            var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+            var channelId = log switch
+            {
+                MessageLog  => guildEntity.LoggingRules.MessageLogChannelId,
+                ReactionLog => guildEntity.LoggingRules.ReactionLogChannelId,
+                _           => null
+            };
+
+            if (channelId is null) return null;
+            return await guild.GetTextChannelAsync(channelId.Value);
         }
 
         private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,
