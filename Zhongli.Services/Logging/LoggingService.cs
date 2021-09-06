@@ -46,6 +46,11 @@ namespace Zhongli.Services.Logging
             if (notification.Channel is not IGuildChannel channel) return;
 
             var reaction = notification.Reaction;
+            var message = await notification.Message.GetOrDownloadAsync();
+
+            var metadata = message.Reactions[reaction.Emote];
+            if (metadata.ReactionCount > 1) return;
+
             var user = reaction.User.GetValueOrDefault();
             if (user is not IGuildUser guildUser || guildUser.IsBot) return;
 
@@ -58,9 +63,7 @@ namespace Zhongli.Services.Logging
         {
             if (notification.Channel is not IGuildChannel channel) return;
 
-            var message = await notification.Message.GetOrDownloadAsync();
-            var details = await TryGetAuditLogDetails(message, channel.Guild);
-            var log = await LogDeletionAsync(notification.Reaction, details, cancellationToken);
+            var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
             await PublishLogAsync(log, channel.Guild, cancellationToken);
         }
 
