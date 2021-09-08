@@ -281,9 +281,9 @@ namespace Zhongli.Services.Logging
             var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
             var channelId = log switch
             {
-                MessageLog  => guildEntity.LoggingRules.MessageLogChannelId,
-                ReactionLog => guildEntity.LoggingRules.ReactionLogChannelId,
-                _           => null
+                IReactionEntity => guildEntity.LoggingRules.ReactionLogChannelId,
+                IMessageEntity  => guildEntity.LoggingRules.MessageLogChannelId,
+                _               => null
             };
 
             if (channelId is null) return null;
