@@ -115,8 +115,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryUnbanAsync(details);
 
-            if (result)
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
+            if (result is not null)
+                await ReplyUpdatedReprimandAsync(result, details);
             else
                 await _error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
         }
@@ -129,8 +129,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryUnmuteAsync(details);
 
-            if (result)
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
+            if (result is not null)
+                await ReplyUpdatedReprimandAsync(result, details);
             else
                 await _error.AssociateError(Context.Message, "Unmute failed.");
         }
@@ -157,6 +157,18 @@ namespace Zhongli.Bot.Modules.Moderation
             if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
             {
                 var embed = await _logging.CreateEmbedAsync(result, details);
+                await ReplyAsync(embed: embed.Build());
+            }
+            else
+                await Context.Message.DeleteAsync();
+        }
+
+        private async Task ReplyUpdatedReprimandAsync(Reprimand reprimand, ReprimandDetails details)
+        {
+            var guild = await reprimand.GetGuildAsync(_db);
+            if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
+            {
+                var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
                 await ReplyAsync(embed: embed.Build());
             }
             else

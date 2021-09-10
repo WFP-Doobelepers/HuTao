@@ -129,7 +129,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Updated, cancellationToken);
 
-        public async Task<bool> TryUnbanAsync(ReprimandDetails details,
+        public async Task<Ban?> TryUnbanAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var activeBan = await _db.BanHistory
@@ -143,10 +143,10 @@ namespace Zhongli.Services.Moderation
             else
                 await ExpireBanAsync(activeBan, cancellationToken);
 
-            return activeBan is not null;
+            return activeBan;
         }
 
-        public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
+        public async Task<Mute?> TryUnmuteAsync(ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
             var activeMute = await _db.MuteHistory
@@ -158,7 +158,7 @@ namespace Zhongli.Services.Moderation
             if (activeMute is not null) await ExpireReprimandAsync(activeMute, cancellationToken);
             await EndMuteAsync(await details.GetUserAsync());
 
-            return activeMute is not null;
+            return activeMute;
         }
 
         public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
@@ -187,6 +187,7 @@ namespace Zhongli.Services.Moderation
             try
             {
                 var user = await details.GetUserAsync();
+                if (user is null) return null;
 
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
