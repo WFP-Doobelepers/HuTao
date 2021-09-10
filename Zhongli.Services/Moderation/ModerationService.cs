@@ -143,7 +143,7 @@ namespace Zhongli.Services.Moderation
             else
                 await ExpireBanAsync(activeBan, cancellationToken);
 
-            return activeBan is null;
+            return activeBan is not null;
         }
 
         public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
