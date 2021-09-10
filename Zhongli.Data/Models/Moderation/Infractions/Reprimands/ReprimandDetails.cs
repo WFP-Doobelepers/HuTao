@@ -9,6 +9,6 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
     {
         public IGuild Guild => Moderator.Guild;
 
-        public async Task<IGuildUser> GetUserAsync() => await Moderator.Guild.GetUserAsync(User.Id);
+        public async Task<IGuildUser?> GetUserAsync() => await Moderator.Guild.GetUserAsync(User.Id);
     }
 }

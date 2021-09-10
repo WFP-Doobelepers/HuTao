@@ -9,6 +9,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
@@ -41,9 +42,9 @@ namespace Zhongli.Bot.Modules.Moderation
             [Remainder] string? reason = null)
         {
             var user = await Context.Client.Rest.GetUserAsync(userId);
-
-            var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryBanAsync(deleteDays, length, details);
+
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
             else
@@ -55,8 +56,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Kick)]
         public async Task KickAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryKickAsync(details);
+
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to kick user.");
             else
@@ -68,8 +70,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task MuteAsync(IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryMuteAsync(length, details);
+
             if (result is null)
             {
                 await _error.AssociateError(Context.Message, "Failed to mute user. " +
@@ -86,7 +89,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
         {
-            var details = GetDetails(user, note);
+            var details = await GetDetailsAsync(user, note);
             await _moderation.NoteAsync(details);
 
             await Context.Message.DeleteAsync();
@@ -97,7 +100,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task NoticeAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.NoticeAsync(details);
             await ReplyReprimandAsync(result, details);
         }
@@ -109,8 +112,9 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             var user = await Context.Client.Rest.GetUserAsync(userId);
 
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryUnbanAsync(details);
+
             if (result)
                 await Context.Message.AddReactionAsync(new Emoji("✅"));
             else
@@ -122,7 +126,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Mute)]
         public async Task UnmuteAsync(IGuildUser user, [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryUnmuteAsync(details);
 
             if (result)
@@ -136,7 +140,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task WarnAsync(IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         {
-            var details = GetDetails(user, reason);
+            var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.WarnAsync(amount, details);
             await ReplyReprimandAsync(result, details);
         }
@@ -146,9 +150,6 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Warning)]
         public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
             => WarnAsync(user, 1, reason);
-
-        private ReprimandDetails GetDetails(IUser user, string? reason)
-            => new(user, (IGuildUser) Context.User, reason);
 
         private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)
         {
@@ -160,6 +161,16 @@ namespace Zhongli.Bot.Modules.Moderation
             }
             else
                 await Context.Message.DeleteAsync();
+        }
+
+        private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
+        {
+            var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
+
+            await _db.Users.TrackUserAsync(details);
+            await _db.SaveChangesAsync();
+
+            return details;
         }
     }
 }

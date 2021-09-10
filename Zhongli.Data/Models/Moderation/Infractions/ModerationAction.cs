@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
         public ModerationAction? Action { get; set; }
     }
 
-    public record ActionDetails(ulong UserId, ulong GuildId, string? Reason = null)
+    public record ActionDetails(ulong ModeratorId, ulong GuildId, string? Reason = null)
     {
         public ActionDetails(IGuildUser user, string? reason) : this(user.Id, user.Guild.Id, reason) { }
 

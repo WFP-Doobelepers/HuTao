@@ -10,19 +10,20 @@ namespace Zhongli.Data.Models.Discord
     {
         protected GuildUserEntity() { }
 
-        public GuildUserEntity(IGuildUser user)
+        public GuildUserEntity(IGuildUser user) : this(user, user.Guild)
         {
-            Id = user.Id;
-
-            CreatedAt = user.CreatedAt;
-            JoinedAt  = user.JoinedAt;
-
-            Username = user.Username;
+            JoinedAt = user.JoinedAt;
             Nickname = user.Nickname;
+        }
 
+        public GuildUserEntity(IUser user, IGuild guild)
+        {
+            Id      = user.Id;
+            GuildId = guild.Id;
+
+            CreatedAt          = user.CreatedAt;
+            Username           = user.Username;
             DiscriminatorValue = user.DiscriminatorValue;
-
-            GuildId = user.Guild.Id;
         }
 
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
