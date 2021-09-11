@@ -22,9 +22,19 @@ namespace Zhongli.Bot.Modules
     [RequireUserPermission(GuildPermission.ManageRoles)]
     public class RoleModule : InteractiveBase
     {
-        private readonly TemporaryRoleService _temporary;
+        private readonly TemporaryRoleMemberService _member;
+        private readonly TemporaryRoleService _role;
 
-        public RoleModule(TemporaryRoleService temporary) { _temporary = temporary; }
+        public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
+        {
+            _member = member;
+            _role   = role;
+        }
+
+        [Command("add")]
+        [Summary("Adds specified role to a user.")]
+        public Task AddRoleAsync(IGuildUser user, IRole role, TimeSpan? length = null)
+            => length is not null ? AddTemporaryRoleMemberAsync(user, role, length.Value) : AddRolesAsync(user, role);
 
         [Command("add")]
         [Summary("Adds specified roles to a user.")]
@@ -56,6 +66,15 @@ namespace Zhongli.Bot.Modules
             }
 
             await message.AddReactionAsync(new Emoji("✅"));
+        }
+
+        [Command("temporary add")]
+        [Alias("tempadd")]
+        [Summary("Puts a member into a temporary role.")]
+        public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
+        {
+            await _member.AddTemporaryRoleMemberAsync(user, role, length);
+            await ReplyAsync($"Added {role} to {user} that ends {length.ToUniversalTimestamp()}.");
         }
 
         [Command("color")]
@@ -126,10 +145,11 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("temporary convert")]
+        [Alias("tempconvert")]
         [Summary("Converts a role into a temporary role.")]
         public async Task TemporaryRoleConvertAsync(IRole role, TimeSpan length)
         {
-            await _temporary.CreateTemporaryRoleAsync(role, length);
+            await _role.CreateTemporaryRoleAsync(role, length);
 
             var embed = new EmbedBuilder()
                 .WithTitle("Temporary Role")
@@ -144,7 +164,7 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("temporary create")]
-        [Alias("temporary add")]
+        [Alias("tempcreate")]
         [Summary("Creates a temporary role that gets deleted after a specified time.")]
         public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
         {

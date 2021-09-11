@@ -13,6 +13,7 @@ namespace Zhongli.Services.Expirable
         public static IServiceCollection AddExpirableServices(this IServiceCollection services)
             => services
                 .AddExpirableService<ExpirableReprimand, ModerationService>()
+                .AddExpirableService<TemporaryRoleMember, TemporaryRoleMemberService>()
                 .AddExpirableService<TemporaryRole, TemporaryRoleService>();
 
         private static IServiceCollection AddExpirableService<TExpirable, TService>(

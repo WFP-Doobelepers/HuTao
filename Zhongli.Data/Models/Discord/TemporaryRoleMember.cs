@@ -1,0 +1,52 @@
+using System;
+using Discord;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Zhongli.Data.Models.Moderation.Infractions;
+
+namespace Zhongli.Data.Models.Discord
+{
+    public class TemporaryRoleMember : IRoleEntity, IGuildUserEntity, IExpirable, IModerationAction
+    {
+        protected TemporaryRoleMember() { }
+
+        public TemporaryRoleMember(IGuildUser user, IRole role, TimeSpan length)
+        {
+            UserId  = user.Id;
+            RoleId  = role.Id;
+            GuildId = role.Guild.Id;
+
+            Length    = length;
+            StartedAt = DateTimeOffset.Now;
+            ExpireAt  = StartedAt + Length;
+        }
+
+        public Guid Id { get; set; }
+
+        public virtual GuildUserEntity User { get; set; }
+
+        public DateTimeOffset StartedAt { get; set; }
+
+        public DateTimeOffset? EndedAt { get; set; }
+
+        public DateTimeOffset? ExpireAt { get; set; }
+
+        public ulong GuildId { get; set; }
+
+        public TimeSpan? Length { get; set; }
+
+        public virtual ModerationAction? Action { get; set; }
+
+        public ulong RoleId { get; set; }
+
+        public ulong UserId { get; set; }
+    }
+
+    public class TemporaryRoleMemberConfiguration : IEntityTypeConfiguration<TemporaryRoleMember>
+    {
+        public void Configure(EntityTypeBuilder<TemporaryRoleMember> builder)
+        {
+            builder.AddUserNavigation(r => r.User);
+        }
+    }
+}

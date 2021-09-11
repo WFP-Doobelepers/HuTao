@@ -38,6 +38,9 @@ namespace Zhongli.Data.Models.Discord
         public virtual ICollection<TemporaryRole> TemporaryRoles { get; set; }
             = new List<TemporaryRole>();
 
+        public virtual ICollection<TemporaryRoleMember> TemporaryRoleMembers { get; set; }
+            = new List<TemporaryRoleMember>();
+
         public virtual LoggingRules LoggingRules { get; set; } = null!;
 
         public virtual ModerationRules ModerationRules { get; set; } = null!;
