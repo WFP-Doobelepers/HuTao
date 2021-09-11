@@ -105,6 +105,19 @@ namespace Zhongli.Bot.Modules.Moderation
             await ReplyReprimandAsync(result, details);
         }
 
+        [Command("slowmode")]
+        [Summary("Set a slowmode in the channel.")]
+        [RequireBotPermission(ChannelPermission.ManageChannels)]
+        [RequireUserPermission(ChannelPermission.ManageChannels)]
+        public async Task SlowmodeAsync(TimeSpan? length = null)
+        {
+            var channel = (ITextChannel) Context.Channel;
+            var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
+
+            await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+
         [Command("unban")]
         [Summary("Unban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Mute)]
