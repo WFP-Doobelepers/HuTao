@@ -22,7 +22,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var embed = await UpdatedEmbedAsync(reprimand, details, cancellationToken);
-            await LogReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
+            await LogReprimandAsync(embed, reprimand, details, cancellationToken);
         }
 
         public async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
@@ -56,7 +56,7 @@ namespace Zhongli.Services.Moderation
             CancellationToken cancellationToken = default)
         {
             var embed = await CreateEmbedAsync(reprimand, details, cancellationToken);
-            await LogReprimandAsync(embed, reprimand, details.User, details.Moderator, cancellationToken);
+            await LogReprimandAsync(embed, reprimand, details, cancellationToken);
 
             return reprimand;
         }
@@ -105,11 +105,11 @@ namespace Zhongli.Services.Moderation
             }
         }
 
-        private async Task LogReprimandAsync(
-            EmbedBuilder embed, ReprimandResult result,
-            IUser user, IGuildUser moderator,
+        private async Task LogReprimandAsync(EmbedBuilder embed,
+            ReprimandResult result, ReprimandDetails details,
             CancellationToken cancellationToken)
         {
+            var (user, moderator _, _) = details;
             var reprimand = result.Primary;
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
             var options = guild.LoggingRules.Options;
