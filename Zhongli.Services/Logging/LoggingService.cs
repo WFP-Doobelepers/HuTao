@@ -270,7 +270,7 @@ namespace Zhongli.Services.Logging
                 .GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
 
             return audits
-                .Where(a => a.User.Id != message.Author.Id)
+                .Where(e => DateTimeOffset.Now - e.CreatedAt < TimeSpan.FromSeconds(1))
                 .FirstOrDefault(e
                     => e.Data is MessageDeleteAuditLogData d
                     && d.Target.Id == message.Author.Id
