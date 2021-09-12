@@ -7,7 +7,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
@@ -108,7 +108,7 @@ namespace Zhongli.Bot.Modules.Moderation
         private async Task ReplyReprimandAsync(Reprimand reprimand, ReprimandDetails details)
         {
             var guild = await reprimand.GetGuildAsync(_db);
-            if (!guild.LoggingRules.Options.HasFlag(LoggingOptions.Silent))
+            if (!guild.ModerationRules.Options.HasFlag(ReprimandOptions.Silent))
             {
                 var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
                 await ReplyAsync(embed: embed.Build());

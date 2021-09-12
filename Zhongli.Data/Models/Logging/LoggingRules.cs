@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Data.Models.Logging
 {
@@ -9,7 +11,8 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual GuildEntity Guild { get; set; }
 
-        public LoggingOptions Options { get; set; } = LoggingOptions.None;
+        public virtual ICollection<EnumChannel<LogType>> LoggingChannels { get; set; }
+            = new List<EnumChannel<LogType>>();
 
         public ReprimandNoticeType NotifyReprimands { get; set; } = ReprimandNoticeType.None;
 
@@ -18,11 +21,5 @@ namespace Zhongli.Data.Models.Logging
         public string? ReprimandAppealMessage { get; set; }
 
         public ulong GuildId { get; set; }
-
-        public ulong? MessageLogChannelId { get; set; }
-
-        public ulong? ModerationChannelId { get; set; }
-
-        public ulong? ReactionLogChannelId { get; set; }
     }
 }

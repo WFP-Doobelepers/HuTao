@@ -19,8 +19,13 @@ namespace Zhongli.Data.Models.Moderation
         public virtual ICollection<Criterion> CensorExclusions { get; set; }
             = new List<Criterion>();
 
+        public virtual ICollection<EnumChannel<ReprimandType>> LoggingChannels { get; set; }
+            = new List<EnumChannel<ReprimandType>>();
+
         public virtual ICollection<Trigger> Triggers { get; set; }
             = new List<Trigger>();
+
+        public ReprimandOptions Options { get; set; } = ReprimandOptions.None;
 
         public TimeSpan? CensorTimeRange { get; set; }
 

@@ -10,7 +10,7 @@ using Humanizer.Localisation;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
@@ -92,6 +92,21 @@ namespace Zhongli.Services.Moderation
             return countHidden
                 ? reprimands
                 : reprimands.Where(IsCounted);
+        }
+
+        public static ReprimandType GetReprimandType(this Reprimand reprimand)
+        {
+            return reprimand switch
+            {
+                Censored => ReprimandType.Censored,
+                Ban      => ReprimandType.Ban,
+                Mute     => ReprimandType.Mute,
+                Notice   => ReprimandType.Notice,
+                Warning  => ReprimandType.Warning,
+                Kick     => ReprimandType.Kick,
+                Note     => ReprimandType.Note,
+                _        => throw new ArgumentOutOfRangeException(nameof(reprimand))
+            };
         }
 
         public static string GetLength(this ILength mute)

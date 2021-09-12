@@ -1,10 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Humanizer;
 using Zhongli.Data;
-using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
@@ -109,12 +110,12 @@ namespace Zhongli.Services.Moderation
             ReprimandResult result, ReprimandDetails details,
             CancellationToken cancellationToken)
         {
-            var (user, moderator _, _) = details;
+            var (user, moderator, _, _) = details;
             var reprimand = result.Primary;
             var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
-            var options = guild.LoggingRules.Options;
+            var options = guild.ModerationRules.Options;
 
-            if (!options.HasFlag(LoggingOptions.Verbose)
+            if (!options.HasFlag(ReprimandOptions.Verbose)
                 && reprimand.Status is ReprimandStatus.Added
                 && reprimand.TriggerId is not null)
             {
@@ -123,15 +124,14 @@ namespace Zhongli.Services.Moderation
                     return;
             }
 
-            var channelId = guild.LoggingRules.ModerationChannelId;
-            if (channelId is null)
-                return;
+            var type = reprimand.GetReprimandType();
+            var channel = await GetLoggingChannelAsync(type, moderator.Guild, cancellationToken);
+            if (channel is null) return;
 
             AddReprimandAuthor(moderator, false, embed);
-            var channel = await moderator.Guild.GetTextChannelAsync(channelId.Value);
             _ = channel.SendMessageAsync(embed: embed.Build());
 
-            if (options.HasFlag(LoggingOptions.NotifyUser)
+            if (options.HasFlag(ReprimandOptions.NotifyUser)
                 && reprimand is not Note
                 && reprimand.IsIncluded(guild.LoggingRules.NotifyReprimands)
                 && reprimand.Status
@@ -139,7 +139,7 @@ namespace Zhongli.Services.Moderation
                     or ReprimandStatus.Expired
                     or ReprimandStatus.Updated)
             {
-                AddReprimandAuthor(moderator, options.HasFlag(LoggingOptions.Anonymous), embed);
+                AddReprimandAuthor(moderator, options.HasFlag(ReprimandOptions.Anonymous), embed);
                 if (reprimand.IsIncluded(guild.LoggingRules.ShowAppealOnReprimands))
                 {
                     var appealMessage = guild.LoggingRules.ReprimandAppealMessage;
@@ -150,6 +150,18 @@ namespace Zhongli.Services.Moderation
                 var dm = await user.GetOrCreateDMChannelAsync();
                 _ = dm?.SendMessageAsync(embed: embed.Build());
             }
+        }
+
+        private async Task<IMessageChannel?> GetLoggingChannelAsync(ReprimandType type, IGuild guild,
+            CancellationToken cancellationToken)
+        {
+            var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+
+            var channel = guildEntity.ModerationRules.LoggingChannels
+                .FirstOrDefault(r => r.Type == type);
+
+            if (channel is null) return null;
+            return await guild.GetTextChannelAsync(channel.ChannelId);
         }
 
         private async ValueTask<uint> GetTotalAsync(Reprimand reprimand, CancellationToken cancellationToken)

@@ -1,16 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
-    [Group("logging")]
+    [Group("log")]
     [Name("Logging Configuration")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureLoggingModule : ModuleBase<SocketCommandContext>
@@ -53,47 +58,61 @@ namespace Zhongli.Bot.Modules.Configuration
 
         [Command("moderation rules")]
         [Summary("Configure the moderation logging options.")]
-        public async Task ConfigureLoggingRulesAsync(
+        public async Task ConfigureLoggingChannelAsync(
             [Summary("The logging option to configure. Leave blank to view current settings.")]
-            LoggingOptions type = LoggingOptions.None,
+            ReprimandOptions type = ReprimandOptions.None,
             [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
             bool? state = null)
         {
             var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            if (type is not LoggingOptions.None)
+            if (type is not ReprimandOptions.None)
             {
-                var options = guild.LoggingRules.Options.SetValue(type, state);
-                guild.LoggingRules.Options = options;
+                var options = guild.ModerationRules.Options.SetValue(type, state);
+                guild.ModerationRules.Options = options;
                 await _db.SaveChangesAsync();
             }
 
-            await ReplyAsync($"Current value: {guild.LoggingRules.Options.Humanize()}");
+            await ReplyAsync($"Current value: {guild.ModerationRules.Options.Humanize()}");
         }
 
-        [Command("message channel")]
-        [Summary("Configures the Logging Channel that logs for messages will be sent on.")]
-        public async Task ConfigureMessageChannelAsync(
-            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
-            ITextChannel channel)
+        [Command("event")]
+        [Summary("Enable or disable specific events to be logged.")]
+        public async Task ConfigureLoggingChannelAsync(
+            [Summary("Set to 'null' to disable these events.")]
+            ITextChannel? channel,
+            [Summary("The type of log event to configure. Space separated.")]
+            params LogType[] types)
         {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.MessageLogChannelId = channel.Id;
+            if (!types.Any()) return;
 
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            var rules = guild.LoggingRules.LoggingChannels;
+            await SetLoggingChannelAsync(channel, types, rules);
+
+            if (channel is not null)
+                await ReplyAsync($"Set the log events {types.Humanize()} to be sent to {channel.Mention}.");
+            else
+                await ReplyAsync($"Disabled the log events {types.Humanize()}.");
         }
 
-        [Command("moderation channel")]
-        [Summary("Configures the Logging Channel that logs will be sent on.")]
-        public async Task ConfigureModerationChannelAsync(
-            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
-            ITextChannel channel)
+        [Command("reprimand")]
+        [Summary("Enable or disable specific reprimands to be logged.")]
+        public async Task ConfigureLoggingChannelAsync(
+            [Summary("Set to 'null' to disable these events.")]
+            ITextChannel? channel,
+            [Summary("The type of log event to configure. Space separated.")]
+            params ReprimandType[] types)
         {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.ModerationChannelId = channel.Id;
+            if (!types.Any()) return;
 
-            await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+            var rules = guild.ModerationRules.LoggingChannels;
+            await SetLoggingChannelAsync(channel, types, rules);
+
+            if (channel is not null)
+                await ReplyAsync($"Set the log events {types.Humanize()} to be sent to {channel.Mention}.");
+            else
+                await ReplyAsync($"Disabled the log events {types.Humanize()}.");
         }
 
         [Command("notify")]
@@ -115,17 +134,21 @@ namespace Zhongli.Bot.Modules.Configuration
             await ReplyAsync($"Current value: {guild.LoggingRules.NotifyReprimands.Humanize()}");
         }
 
-        [Command("reaction channel")]
-        [Summary("Configures the Logging Channel that logs for messages will be sent on.")]
-        public async Task ConfigureReactionChannelAsync(
-            [Summary("Mention, ID, or name of the text channel that the logs will be sent.")]
-            ITextChannel channel)
+        private async Task SetLoggingChannelAsync<T>(
+            IChannel? channel, IEnumerable<T> types,
+            ICollection<EnumChannel<T>> collection) where T : Enum
         {
-            var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
-            guild.LoggingRules.ReactionLogChannelId = channel.Id;
+            _db.RemoveRange(collection.Where(rule => types.Contains(rule.Type)));
+
+            if (channel is not null)
+            {
+                foreach (var type in types)
+                {
+                    collection.Add(new EnumChannel<T>(type, channel));
+                }
+            }
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
     }
 }

@@ -56,7 +56,7 @@ namespace Zhongli.Services.Logging
 
             var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
             var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
-            await PublishLogAsync(log, channel.Guild, cancellationToken);
+            await PublishLogAsync(log, LogType.ReactionAdded, channel.Guild, cancellationToken);
         }
 
         public async Task LogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ namespace Zhongli.Services.Logging
             if (notification.Channel is not IGuildChannel channel) return;
 
             var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
-            await PublishLogAsync(log, channel.Guild, cancellationToken);
+            await PublishLogAsync(log, LogType.ReactionRemoved, channel.Guild, cancellationToken);
         }
 
         public async Task LogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
@@ -77,7 +77,7 @@ namespace Zhongli.Services.Logging
             var message = notification.Message.Value;
             var details = await TryGetAuditLogDetails(message, channel.Guild);
             var log = await LogDeletionAsync(latest, details, cancellationToken);
-            await PublishLogAsync(log, channel.Guild, cancellationToken);
+            await PublishLogAsync(log, LogType.MessageDeleted, channel.Guild, cancellationToken);
         }
 
         public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
@@ -96,7 +96,7 @@ namespace Zhongli.Services.Logging
 
             var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
             var log = await LogMessageAsync(userEntity, message, latest, cancellationToken);
-            await PublishLogAsync(log, channel.Guild, cancellationToken);
+            await PublishLogAsync(log, LogType.MessageUpdated, channel.Guild, cancellationToken);
         }
 
         private EmbedLog AddDetails(EmbedBuilder embed, MessageLog log)
@@ -158,21 +158,23 @@ namespace Zhongli.Services.Logging
             };
         }
 
-        private async Task PublishLogAsync(DeleteLog? log, IGuild guild, CancellationToken cancellationToken)
+        private async Task PublishLogAsync(DeleteLog? log, LogType type, IGuild guild,
+            CancellationToken cancellationToken)
         {
             if (log is null) return;
 
             var embed = await BuildLogAsync(log, cancellationToken);
-            var channel = await GetLoggingChannelAsync(log, guild, cancellationToken);
+            var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
+
             await PublishLogAsync(embed, channel);
         }
 
-        private async Task PublishLogAsync(ILog? log, IGuild guild, CancellationToken cancellationToken)
+        private async Task PublishLogAsync(ILog? log, LogType type, IGuild guild, CancellationToken cancellationToken)
         {
             if (log is null) return;
 
             var embed = BuildLog(log);
-            var channel = await GetLoggingChannelAsync(log, guild, cancellationToken);
+            var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
 
             await PublishLogAsync(embed, channel);
         }
@@ -275,19 +277,16 @@ namespace Zhongli.Services.Logging
                     && d.ChannelId == message.Channel.Id);
         }
 
-        private async Task<IMessageChannel?> GetLoggingChannelAsync(ILog log, IGuild guild,
+        private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
             CancellationToken cancellationToken)
         {
             var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-            var channelId = log switch
-            {
-                IReactionEntity => guildEntity.LoggingRules.ReactionLogChannelId,
-                IMessageEntity  => guildEntity.LoggingRules.MessageLogChannelId,
-                _               => null
-            };
 
-            if (channelId is null) return null;
-            return await guild.GetTextChannelAsync(channelId.Value);
+            var channel = guildEntity.LoggingRules.LoggingChannels
+                .FirstOrDefault(r => r.Type == type);
+
+            if (channel is null) return null;
+            return await guild.GetTextChannelAsync(channel.ChannelId);
         }
 
         private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,

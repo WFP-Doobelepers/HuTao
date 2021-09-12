@@ -29,6 +29,8 @@ namespace Zhongli.Data
 
         public DbSet<EmoteEntity> Emotes { get; set; }
 
+        public DbSet<EnumChannel> EnumChannels { get; set; }
+
         public DbSet<GuildEntity> Guilds { get; init; }
 
         public DbSet<GuildUserEntity> Users { get; init; }
