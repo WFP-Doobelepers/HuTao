@@ -20,6 +20,7 @@ using Zhongli.Services.Utilities;
 namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("trigger")]
+    [Alias("triggers")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ReprimandTriggersModule : InteractiveEntity<ReprimandTrigger>
     {
