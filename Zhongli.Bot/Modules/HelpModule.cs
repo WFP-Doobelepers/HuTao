@@ -8,6 +8,7 @@ using Discord.Net;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Interactive.Paginator;
+using Zhongli.Services.Logging;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules

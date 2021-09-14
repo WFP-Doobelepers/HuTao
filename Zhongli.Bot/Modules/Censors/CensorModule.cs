@@ -211,6 +211,9 @@ namespace Zhongli.Bot.Modules.Censors
         [NamedArgumentType]
         public class CensorOptions : ICensorOptions
         {
+            [HelpSummary("Silently match and do not delete the message.")]
+            public bool Silent { get; set; } = true;
+
             [HelpSummary("Comma separated regex flags.")]
             public RegexOptions Flags { get; set; } = RegexOptions.None;
 

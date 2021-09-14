@@ -36,8 +36,6 @@ namespace Zhongli.Services.Moderation
         public async Task CensorAsync(SocketMessage message, TimeSpan? length, ReprimandDetails details,
             CancellationToken cancellationToken = default)
         {
-            await message.DeleteAsync();
-
             var censored = new Censored(message.Content, length, details);
 
             _db.Add(censored);
@@ -45,6 +43,8 @@ namespace Zhongli.Services.Moderation
 
             if (details.Trigger is Censor censor)
             {
+                if (!censor.Silent) await message.DeleteAsync();
+
                 var triggerCount = await censored.CountAsync(censor, _db, cancellationToken);
                 if (censor.IsTriggered(triggerCount))
                 {

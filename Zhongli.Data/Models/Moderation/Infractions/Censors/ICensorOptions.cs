@@ -6,5 +6,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
     public interface ICensorOptions : ITrigger
     {
         public RegexOptions Flags { get; set; }
+
+        public bool Silent { get; set; }
     }
 }

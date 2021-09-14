@@ -20,9 +20,12 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Censors
             Reprimand = action;
 
             Options = options?.Flags ?? RegexOptions.None;
+            Silent  = options?.Silent ?? false;
         }
 
         public Guid? ReprimandId { get; set; }
+
+        public bool Silent { get; set; }
 
         public virtual ICollection<Criterion> Exclusions { get; set; }
 
