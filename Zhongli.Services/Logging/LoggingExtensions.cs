@@ -42,7 +42,7 @@ namespace Zhongli.Services.Logging
         }
 
         public static string JumpUrlMarkdown(this IMessageEntity message)
-            => $"[Jump]({message.JumpUrl()}) ({message.MessageId})";
+            => $"[Jump]({message.JumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
 
         private static EmbedBuilder AddOtherImages(this EmbedBuilder embed, IEnumerable<IImage> images)
         {
