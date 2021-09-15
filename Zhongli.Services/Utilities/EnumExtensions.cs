@@ -1,5 +1,4 @@
 using System;
-using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Services.Utilities
@@ -8,11 +7,6 @@ namespace Zhongli.Services.Utilities
     {
         private static readonly GenericBitwise<ReprimandNoticeType> ReprimandNoticeTypeBitwise = new();
         private static readonly GenericBitwise<ReprimandOptions> ReprimandOptionsBitwise = new();
-        private static readonly GenericBitwise<LogType> LogTypeBitwise = new();
-
-        public static LogType SetValue(this LogType options, LogType flag,
-            bool? state)
-            => LogTypeBitwise.SetValue(options, flag, state);
 
         public static ReprimandNoticeType SetValue(this ReprimandNoticeType options, ReprimandNoticeType flag,
             bool? state)
