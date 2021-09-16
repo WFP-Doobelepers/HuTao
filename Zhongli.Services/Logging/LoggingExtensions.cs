@@ -21,7 +21,7 @@ namespace Zhongli.Services.Logging
             if (image is null) return embed;
 
             return embed
-                .WithImageUrl(image.Url)
+                .WithImageUrl(image.ProxyUrl)
                 .AddOtherImages(images.Skip(1));
         }
 
@@ -65,7 +65,7 @@ namespace Zhongli.Services.Logging
             if (!images.Any()) return null;
 
             static string Attachment(Attachment a, int i) => $"{Image(a, i)} {a.Size.Bytes().Humanize()}";
-            static string Image(IImage a, int i) => $"[{i}. {a.Width}x{a.Height}px]({a.Url})";
+            static string Image(IImage a, int i) => $"[{i}. {a.Width}x{a.Height}px]({a.Url}) [Proxy]({a.ProxyUrl})";
 
             var enumerable = images.ToList();
             var attachments = enumerable.OfType<Attachment>().Select(Attachment);
