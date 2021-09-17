@@ -84,7 +84,9 @@ namespace Zhongli.Services.Moderation
         private async Task AddReprimandDetailsAsync(EmbedBuilder embed, Reprimand reprimand,
             CancellationToken cancellationToken)
         {
-            embed.AddField("Total", await GetTotalAsync(reprimand, cancellationToken), true);
+            embed
+                .AddField("Active", await GetTotalAsync(reprimand, false, cancellationToken), true)
+                .AddField("Total", await GetTotalAsync(reprimand, true, cancellationToken), true);
 
             var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
             if (trigger is null) return;
@@ -99,10 +101,12 @@ namespace Zhongli.Services.Moderation
         {
             if (reprimand is not null)
             {
-                var total = await GetTotalAsync(reprimand, cancellationToken);
+                var active = await GetTotalAsync(reprimand, false, cancellationToken);
+                var total = await GetTotalAsync(reprimand, true, cancellationToken);
+
                 embed
                     .WithColor(reprimand.GetColor())
-                    .AddField($"{reprimand.GetTitle()} [{total}]", $"{reprimand.GetMessage()}");
+                    .AddField($"{reprimand.GetTitle()} [{active}/{total}]", $"{reprimand.GetMessage()}");
             }
         }
 
@@ -164,19 +168,21 @@ namespace Zhongli.Services.Moderation
             return await guild.GetTextChannelAsync(channel.ChannelId);
         }
 
-        private async ValueTask<uint> GetTotalAsync(Reprimand reprimand, CancellationToken cancellationToken)
+        private async ValueTask<uint> GetTotalAsync(Reprimand reprimand,
+            bool countHidden = true,
+            CancellationToken cancellationToken = default)
         {
             var user = await reprimand.GetUserAsync(_db, cancellationToken);
 
             return reprimand switch
             {
-                Ban      => user.HistoryCount<Ban>(),
-                Censored => user.HistoryCount<Censored>(),
-                Kick     => user.HistoryCount<Kick>(),
-                Mute     => user.HistoryCount<Mute>(),
-                Note     => user.HistoryCount<Note>(),
-                Notice   => user.HistoryCount<Notice>(),
-                Warning  => user.WarningCount(),
+                Ban      => user.HistoryCount<Ban>(countHidden),
+                Censored => user.HistoryCount<Censored>(countHidden),
+                Kick     => user.HistoryCount<Kick>(countHidden),
+                Mute     => user.HistoryCount<Mute>(countHidden),
+                Note     => user.HistoryCount<Note>(countHidden),
+                Notice   => user.HistoryCount<Notice>(countHidden),
+                Warning  => user.WarningCount(countHidden),
 
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(reprimand), reprimand, "An unknown reprimand was given.")

@@ -45,7 +45,7 @@ namespace Zhongli.Services.Moderation
             {
                 if (!censor.Silent) await message.DeleteAsync();
 
-                var triggerCount = await censored.CountAsync(censor, _db, cancellationToken);
+                var triggerCount = await censored.CountAsync(censor, _db, false, cancellationToken);
                 if (censor.IsTriggered(triggerCount))
                 {
                     var triggerDetails = new ReprimandDetails(
@@ -222,11 +222,12 @@ namespace Zhongli.Services.Moderation
                     cancellationToken);
 
             var user = await details.GetUserAsync();
+            if (user is null) return null;
+
             var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
 
             var muteRole = guildEntity.ModerationRules.MuteRoleId;
-            if (muteRole is null)
-                return null;
+            if (muteRole is null) return null;
 
             await user.AddRoleAsync(muteRole.Value);
             if (user.VoiceChannel is not null)
@@ -303,15 +304,6 @@ namespace Zhongli.Services.Moderation
             return source is not null;
         }
 
-        private static Reprimand ModifyReprimand(Reprimand reprimand, ActionDetails details,
-            ReprimandStatus status)
-        {
-            reprimand.Status         = status;
-            reprimand.ModifiedAction = details;
-
-            return reprimand;
-        }
-
         private async Task EndMuteAsync(IGuildUser? user)
         {
             if (user is null) return;
@@ -356,9 +348,10 @@ namespace Zhongli.Services.Moderation
         private async Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             ReprimandStatus status, CancellationToken cancellationToken)
         {
-            _db.Update(ModifyReprimand(reprimand, details, status));
-            await _db.SaveChangesAsync(cancellationToken);
+            reprimand.Status         = status;
+            reprimand.ModifiedAction = details;
 
+            await _db.SaveChangesAsync(cancellationToken);
             await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
         }
 
