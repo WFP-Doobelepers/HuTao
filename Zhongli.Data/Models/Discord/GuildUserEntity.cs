@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Zhongli.Data.Models.Discord
 {
-    public class GuildUserEntity : IMentionable
+    public class GuildUserEntity
     {
         protected GuildUserEntity() { }
 
@@ -43,8 +43,6 @@ namespace Zhongli.Data.Models.Discord
         public ulong GuildId { get; set; }
 
         public ushort DiscriminatorValue { get; set; }
-
-        public string Mention => $"<@{Id}>";
     }
 
     public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>

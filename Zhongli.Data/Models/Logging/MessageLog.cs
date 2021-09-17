@@ -66,8 +66,6 @@ namespace Zhongli.Data.Models.Logging
 
         public virtual MessageLog? UpdatedLog { get; set; }
 
-        public string Mention { get; }
-
         /// <inheritdoc cref="IMessage.Content" />
         public string? Content { get; set; }
 
