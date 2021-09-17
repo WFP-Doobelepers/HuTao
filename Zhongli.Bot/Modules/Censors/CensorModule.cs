@@ -21,22 +21,18 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Censors
 {
-    [Name("Censors")]
+    [Name("Censor")]
     [Group("censor")]
     [Alias("censors")]
-    public class CensorModule : InteractiveEntity<Censor>
+    public class CensorModule : InteractiveTrigger<Censor>
     {
         private const string PatternSummary = "The .NET flavor regex pattern to be used.";
-        private readonly CommandErrorHandler _error;
-        private readonly ModerationService _moderation;
         private readonly ZhongliContext _db;
 
-        public CensorModule(CommandErrorHandler error, ModerationService moderation, ZhongliContext db) : base(error,
-            db)
+        public CensorModule(CommandErrorHandler error, ZhongliContext db, ModerationService moderation)
+            : base(error, db, moderation)
         {
-            _error      = error;
-            _moderation = moderation;
-            _db         = db;
+            _db = db;
         }
 
         protected override string Title { get; } = "Censors";
@@ -141,29 +137,6 @@ namespace Zhongli.Bot.Modules.Censors
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
-        [Command("delete")]
-        [Summary("Deletes a censor by ID. Associated reprimands will be deleted.")]
-        protected async Task DeleteEntityAsync(string id,
-            [Summary("Silently delete the reprimands in case there are too many.")]
-            bool silent = false)
-        {
-            var collection = await GetCollectionAsync();
-            var trigger = await TryFindEntityAsync(id, collection);
-
-            if (trigger is null)
-            {
-                await _error.AssociateError(Context.Message, EmptyMatchMessage);
-                return;
-            }
-
-            await _moderation.DeleteTriggerAsync(trigger, (IGuildUser) Context.User, silent);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("disable")]
-        [Summary("Disables a censor trigger by ID. Associated reprimands will be kept.")]
-        protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
-
         [Command]
         [Alias("list", "view")]
         [Summary("View the censor list.")]
@@ -172,23 +145,18 @@ namespace Zhongli.Bot.Modules.Censors
         protected override (string Title, StringBuilder Value) EntityViewer(Censor censor)
         {
             var value = new StringBuilder()
-                .AppendLine($"▌Pattern: {censor.Pattern}")
+                .AppendLine($"▌Pattern: {Format.Code(censor.Pattern)}")
                 .AppendLine($"▌Options: {censor.Options.Humanize()}")
                 .AppendLine($"▌Reprimand: {censor.Reprimand?.Action ?? "None"}")
                 .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
-                .AppendLine($"▌Moderator: {censor.GetModerator()}");
+                .AppendLine($"▌▌Active: {censor.IsActive}")
+                .AppendLine($"▌▌Modified by: {censor.GetModerator()}");
 
             return (censor.Id.ToString(), value);
         }
 
         protected override bool IsMatch(Censor entity, string id)
             => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
-        protected override async Task RemoveEntityAsync(Censor censor)
-        {
-            censor.IsActive = false;
-            await _db.SaveChangesAsync();
-        }
 
         protected override async Task<ICollection<Censor>> GetCollectionAsync()
         {

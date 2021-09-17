@@ -22,18 +22,16 @@ namespace Zhongli.Bot.Modules.Moderation
     [Group("trigger")]
     [Alias("triggers")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class ReprimandTriggersModule : InteractiveEntity<ReprimandTrigger>
+    public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     {
         private readonly CommandErrorHandler _error;
-        private readonly ModerationService _moderation;
         private readonly ZhongliContext _db;
 
-        public ReprimandTriggersModule(CommandErrorHandler error, ModerationService moderation, ZhongliContext db) :
-            base(error, db)
+        public ReprimandTriggersModule(CommandErrorHandler error, ZhongliContext db, ModerationService moderation)
+            : base(error, db, moderation)
         {
-            _error      = error;
-            _moderation = moderation;
-            _db         = db;
+            _error = error;
+            _db    = db;
         }
 
         [Command("ban")]
@@ -82,29 +80,6 @@ namespace Zhongli.Bot.Modules.Moderation
             await TryAddTriggerAsync(action, amount, source, mode);
         }
 
-        [Command("delete")]
-        [Summary("Deletes a trigger by ID. Associated reprimands will be deleted.")]
-        protected async Task DeleteEntityAsync(string id,
-            [Summary("Silently delete the reprimands in case there are too many.")]
-            bool silent = false)
-        {
-            var collection = await GetCollectionAsync();
-            var trigger = await TryFindEntityAsync(id, collection);
-
-            if (trigger is null)
-            {
-                await _error.AssociateError(Context.Message, EmptyMatchMessage);
-                return;
-            }
-
-            await _moderation.DeleteTriggerAsync(trigger, (IGuildUser) Context.User, silent);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
-
-        [Command("disable")]
-        [Summary("Disables a reprimand trigger by ID. Associated reprimands will be kept.")]
-        protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
-
         [Command("reprimands")]
         [Alias("history")]
         [Summary("Shows associated reprimands of this trigger.")]
@@ -141,7 +116,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 .AppendLine($"▌Action: {trigger.Reprimand.Action}")
                 .AppendLine($"▌Trigger: {trigger.GetTriggerDetails()}")
                 .AppendLine($"▌▌Active: {trigger.IsActive}")
-                .AppendLine($"▌▌Added by: {trigger.GetModerator()}");
+                .AppendLine($"▌▌Modified by: {trigger.GetModerator()}");
 
             return ($"{trigger.Reprimand.GetTitle()}: {trigger.Id}", content);
         }

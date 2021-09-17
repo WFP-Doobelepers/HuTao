@@ -119,11 +119,22 @@ namespace Zhongli.Services.Moderation
                     return new ReprimandDetails(user, moderator, "[Deleted Trigger]");
                 }
             }
+
+            _db.Remove(trigger);
+            await _db.SaveChangesAsync();
         }
 
         public Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
             => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden, cancellationToken);
+
+        public async Task ToggleTriggerAsync(Trigger trigger, IGuildUser moderator, bool? state)
+        {
+            trigger.IsActive = state ?? !trigger.IsActive;
+            trigger.Action   = new ModerationAction(moderator);
+
+            await _db.SaveChangesAsync();
+        }
 
         public Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             CancellationToken cancellationToken = default)
