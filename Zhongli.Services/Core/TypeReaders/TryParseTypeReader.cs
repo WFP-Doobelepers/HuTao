@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Zhongli.Services.Interactive.TryParse;
 
-namespace Zhongli.Services.Interactive.TypeReaders
+namespace Zhongli.Services.Core.TypeReaders
 {
     public class TryParseTypeReader<T> : TypeReader
     {

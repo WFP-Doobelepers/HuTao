@@ -5,18 +5,16 @@ using Discord.Commands;
 
 namespace Zhongli.Services.Core.TypeReaders
 {
-    public class EnumerableTypeReader<TReader, TResult> : TypeReader
-        where TReader : TypeReader, new()
-        where TResult : class
+    public class EnumerableTypeReader<TResult> : TypeReader
     {
         private readonly string _separator;
         private readonly StringSplitOptions _splitOptions;
-        private readonly TReader _typeReader;
+        private readonly TypeReader _typeReader;
 
-        public EnumerableTypeReader(TReader? typeReader = null, string separator = ",",
+        public EnumerableTypeReader(TypeReader typeReader, string separator = ",",
             StringSplitOptions splitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
         {
-            _typeReader   = typeReader ?? new TReader();
+            _typeReader   = typeReader;
             _separator    = separator;
             _splitOptions = splitOptions;
         }

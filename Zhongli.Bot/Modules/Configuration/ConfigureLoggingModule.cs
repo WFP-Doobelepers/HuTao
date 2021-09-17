@@ -78,10 +78,10 @@ namespace Zhongli.Bot.Modules.Configuration
         [Command("event")]
         [Summary("Enable or disable specific events to be logged.")]
         public async Task ConfigureLoggingChannelAsync(
-            [Summary("Set to 'null' to disable these events.")]
-            ITextChannel? channel,
-            [Summary("The type of log event to configure. Space separated.")]
-            params LogType[] types)
+            [Summary("The type of log event to configure. Comma separated.")]
+            IReadOnlyCollection<LogType> types,
+            [Summary("Leave empty to disable these events.")]
+            ITextChannel? channel = null)
         {
             if (!types.Any()) return;
 
