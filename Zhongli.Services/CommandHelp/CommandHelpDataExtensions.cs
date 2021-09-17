@@ -32,9 +32,12 @@ namespace Zhongli.Services.CommandHelp
             parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
 
         private static string GetParamName(ParameterHelpData parameter)
-            => parameter.Type.IsEnum
+        {
+
+            return parameter.GetRealType().IsEnum
                 ? Surround(parameter.Name, parameter.IsOptional)
                 : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
+        }
 
         private static string GetParams(this CommandHelpData info)
         {
@@ -48,9 +51,10 @@ namespace Zhongli.Services.CommandHelp
             return sb.ToString();
         }
 
-        private static string GetParamTypeName(this ParameterHelpData parameter) => parameter.Type.IsIEnumerableOfT()
-            ? $"{parameter.GetRealType().Name} [...]"
-            : parameter.GetRealType().Name;
+        private static string GetParamTypeName(this ParameterHelpData parameter)
+            => parameter.Type.IsEnumerableOfT()
+                ? $"{parameter.GetRealType().Name} [...]"
+                : parameter.GetRealType().Name;
 
         private static string Surround(string text, bool isNullable) => isNullable ? $"[{text}]" : $"<{text}>";
 
@@ -81,7 +85,7 @@ namespace Zhongli.Services.CommandHelp
                 .AppendLine()
                 .AppendLine($"Arguments for {Format.Underline(Format.Bold(parameter.Name))}:");
 
-            if (parameter.Type.IsEnum)
+            if (parameter.GetRealType().IsEnum)
             {
                 var names = parameter.Options.Select(p => p.Name);
                 var values = Surround(string.Join("|\x200b", names), parameter.IsOptional);
@@ -136,8 +140,8 @@ namespace Zhongli.Services.CommandHelp
                 if (string.IsNullOrEmpty(parameter.Summary) && hideEmpty)
                     continue;
 
-                builder.AppendLine(
-                    $"\x200b\t• {Format.Code(GetParamName(parameter))}: {parameter.Summary ?? "No Summary."}");
+                var name = Format.Code(GetParamName(parameter));
+                builder.AppendLine($"\x200b\t• {name}: {parameter.Summary ?? "No Summary."}");
             }
 
             return builder;

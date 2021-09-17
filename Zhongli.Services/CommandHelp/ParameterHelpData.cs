@@ -26,17 +26,17 @@ namespace Zhongli.Services.CommandHelp
 
         public bool IsOptional { get; set; }
 
-        public IEnumerable<ParameterHelpData> Options =>
-            LazyInitializer.EnsureInitialized(ref _options, () =>
+        public IEnumerable<ParameterHelpData> Options => LazyInitializer.EnsureInitialized(ref _options, () =>
+        {
+            var type = Type.GetGenericArguments().FirstOrDefault() ?? Type;
+
+            return type switch
             {
-                return Type switch
-                {
-                    var t when t.IsEnum => FromEnum(t),
-                    var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null
-                        => FromNamedArgumentInfo(t),
-                    _ => Enumerable.Empty<ParameterHelpData>()
-                };
-            });
+                var t when t.IsEnum => FromEnum(t),
+                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(t),
+                _ => Enumerable.Empty<ParameterHelpData>()
+            };
+        });
 
         public string Name { get; set; }
 
@@ -67,13 +67,13 @@ namespace Zhongli.Services.CommandHelp
 
         private static IEnumerable<ParameterHelpData> FromNamedArgumentInfo(Type type)
         {
-            var properties = type.GetPublicProperties();
+            var properties = type.GetProperties();
 
             return properties.Select(p =>
             {
                 var info = p.ToContextualProperty();
                 return new ParameterHelpData(info.Name, info.PropertyType,
-                    p.GetAttribute<HelpSummaryAttribute>()?.Text,
+                    info.GetContextAttribute<HelpSummaryAttribute>()?.Text,
                     info.Nullability == Nullability.Nullable);
             });
         }

@@ -25,8 +25,18 @@ namespace Zhongli.Services.Utilities
         private static readonly DictionaryCache<(Enum, Type), Attribute?> EnumAttributeCache =
             new(GetAttributeFromEnum);
 
-        public static bool IsIEnumerableOfT(this Type type)
-            => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+        private static readonly IEnumerable<Type> EnumerableTypes = new[]
+        {
+            typeof(IEnumerable<>),
+            typeof(ICollection<>),
+            typeof(IReadOnlyCollection<>),
+            typeof(List<>),
+            typeof(IList<>),
+            typeof(IReadOnlyList<>)
+        };
+
+        public static bool IsEnumerableOfT(this Type type)
+            => type.IsGenericType && EnumerableTypes.Contains(type.GetGenericTypeDefinition());
 
         public static IReadOnlyCollection<PropertyInfo> GetLists<T>() => CachedLists[typeof(T)];
 
@@ -34,15 +44,11 @@ namespace Zhongli.Services.Utilities
 
         public static IReadOnlyCollection<PropertyInfo> GetProperties<T>() => CachedProperties[typeof(T)];
 
-        public static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t) =>
-            t.GetProperties()
-                .ToArray();
+        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute
+            => AttributeCache[(member, typeof(T))] as T;
 
-        public static T? GetAttribute<T>(this MemberInfo member) where T : Attribute =>
-            AttributeCache[(member, typeof(T))] as T;
-
-        public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute =>
-            EnumAttributeCache[(obj, typeof(T))] as T;
+        public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute
+            => EnumAttributeCache[(obj, typeof(T))] as T;
 
         public static Type GetRealType(this Type type) => TypeCache[type];
 
@@ -78,6 +84,9 @@ namespace Zhongli.Services.Utilities
                 .Where(p => !p.PropertyType.IsGenericType)
                 .ToArray();
         }
+
+        private static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t)
+            => t.GetProperties().ToArray();
 
         private static Type GetRealTypeInternal(Type type) =>
             type.IsGenericType
