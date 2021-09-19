@@ -43,6 +43,8 @@ namespace Zhongli.Data.Models.Discord
         public ulong GuildId { get; set; }
 
         public ushort DiscriminatorValue { get; set; }
+
+        public override string ToString() => $"{Username}#{DiscriminatorValue}";
     }
 
     public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>
