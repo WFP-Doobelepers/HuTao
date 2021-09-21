@@ -71,11 +71,12 @@ namespace Zhongli.Services.Logging
         {
             if (notification.Channel is not IGuildChannel channel) return;
 
+            var message = notification.Message.Value;
+            var details = await TryGetAuditLogDetails(message, channel.Guild);
+
             var latest = await GetLatestMessage(notification.Message.Id, cancellationToken);
             if (latest is null) return;
 
-            var message = notification.Message.Value;
-            var details = await TryGetAuditLogDetails(message, channel.Guild);
             var log = await LogDeletionAsync(latest, details, cancellationToken);
             await PublishLogAsync(log, LogType.MessageDeleted, channel.Guild, cancellationToken);
         }
