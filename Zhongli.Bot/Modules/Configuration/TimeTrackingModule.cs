@@ -14,6 +14,8 @@ using Zhongli.Services.Utilities;
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("time")]
+    [Name("Time")]
+    [Summary("Commands which show when an event in Genshin happens.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class TimeTrackingModule : ModuleBase<SocketCommandContext>
     {
@@ -29,6 +31,7 @@ namespace Zhongli.Bot.Modules.Configuration
         }
 
         [Command("genshin")]
+        [Summary("Creates an embed in a channel with the weekly reset time for all servers.")]
         public async Task GenshinAsync(ITextChannel channel)
         {
             var message = await channel.SendMessageAsync("Setting up...");
@@ -36,6 +39,7 @@ namespace Zhongli.Bot.Modules.Configuration
         }
 
         [Command("genshin")]
+        [Summary("Changes a message to an embed with the weekly reset time for all servers.")]
         public async Task GenshinAsync(IUserMessage? message = null)
         {
             message ??= await ReplyAsync("Setting up...");

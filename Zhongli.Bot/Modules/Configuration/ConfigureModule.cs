@@ -13,6 +13,7 @@ using Zhongli.Services.Utilities;
 namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("configure")]
+    [Summary("Commands to adjust moderation tools.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureModule : ModuleBase<SocketCommandContext>
     {

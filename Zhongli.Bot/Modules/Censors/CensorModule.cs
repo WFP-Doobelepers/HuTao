@@ -24,6 +24,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor")]
     [Group("censor")]
     [Alias("censors")]
+    [Summary("Commands to set up a censor which automatically deletes a message and can punish the author of the message.")]
     public class CensorModule : InteractiveTrigger<Censor>
     {
         private const string PatternSummary = "The .NET flavor regex pattern to be used.";

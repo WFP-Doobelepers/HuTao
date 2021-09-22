@@ -17,6 +17,8 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
 {
+    [Name("User")]
+    [Summary("Commands related to the properties of a user.")]
     public class UserModule : InteractiveBase
     {
         private readonly AuthorizationService _auth;

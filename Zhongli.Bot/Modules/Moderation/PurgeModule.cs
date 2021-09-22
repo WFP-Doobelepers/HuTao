@@ -11,6 +11,7 @@ using static Zhongli.Bot.Modules.Moderation.PurgeModule.PurgeFilters;
 
 namespace Zhongli.Bot.Modules.Moderation
 {
+    [Summary("Commands to bulk delete messages.")]
     public class PurgeModule : ModuleBase<SocketCommandContext>
     {
         [Command("purge")]

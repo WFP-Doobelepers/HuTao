@@ -21,6 +21,7 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("trigger")]
     [Alias("triggers")]
+    [Summary("Set triggers for moderation tools to automatically activate.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     {
@@ -35,6 +36,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("ban")]
+        [Summary("Ban a user from the current guild on activating a trigger")]
         public async Task BanTriggerAsync(uint amount, TriggerSource source,
             uint deleteDays = 0, TimeSpan? length = null,
             TriggerMode mode = TriggerMode.Exact)
@@ -44,6 +46,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("kick")]
+        [Summary("Kick a user from the current guild on activating a trigger")]
         public async Task KickTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
         {
             var action = new KickAction();
@@ -51,6 +54,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("mute")]
+        [Summary("Mute a user in the current guild on activating a trigger")]
         public async Task MuteTriggerAsync(uint amount, TriggerSource source, TimeSpan? length = null,
             TriggerMode mode = TriggerMode.Exact)
         {
@@ -59,6 +63,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("note")]
+        [Summary("Add a note to a user. Notes are always silent.")]
         public async Task NoteTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
         {
             var action = new NoteAction();
@@ -66,6 +71,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("notice")]
+        [Summary("Add a notice to a user. This counts as a minor warning.")]
         public async Task NoticeTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
         {
             var action = new NoticeAction();
@@ -73,6 +79,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("warn")]
+        [Summary("Warn a user in the current guild.")]
         public async Task WarnTriggerAsync(uint amount, TriggerSource source,
             uint count = 1, TriggerMode mode = TriggerMode.Exact)
         {

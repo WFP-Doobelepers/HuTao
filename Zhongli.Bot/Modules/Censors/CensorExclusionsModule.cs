@@ -16,6 +16,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor Exclusions")]
     [Group("censor")]
     [Alias("censors")]
+    [Summary("Commands for configuring censor exclusions and displaying the current exclusions.")]
     public class CensorExclusionsModule : InteractiveEntity<Criterion>
     {
         private readonly CommandErrorHandler _error;

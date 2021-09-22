@@ -26,6 +26,7 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("permissions")]
     [Name("Permissions")]
+    [Summary("Commands to configure and display permissions for channels or members.")]
     public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
         private readonly AuthorizationService _auth;

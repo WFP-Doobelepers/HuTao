@@ -17,6 +17,7 @@ namespace Zhongli.Bot.Modules.Configuration
 {
     [Group("log")]
     [Name("Logging Configuration")]
+    [Summary("Commands to configure moderation logging.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureLoggingModule : ModuleBase<SocketCommandContext>
     {

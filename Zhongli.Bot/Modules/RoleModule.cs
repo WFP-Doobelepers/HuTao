@@ -18,6 +18,7 @@ namespace Zhongli.Bot.Modules
 {
     [Group("role")]
     [Name("Role Management")]
+    [Summary("Displays all role related commands, their options and a short summary.")]
     [RequireBotPermission(GuildPermission.ManageRoles)]
     [RequireUserPermission(GuildPermission.ManageRoles)]
     public class RoleModule : InteractiveBase
