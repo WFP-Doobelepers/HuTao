@@ -45,6 +45,7 @@ namespace Zhongli.Bot
                 .AddLogging(l => l.AddSerilog())
                 .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
                 {
+                    ExclusiveBulkDelete = true,
                     AlwaysDownloadUsers = true,
                     MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
                 }))

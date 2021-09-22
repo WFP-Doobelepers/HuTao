@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -57,6 +58,7 @@ namespace Zhongli.Services.Core.Listeners
             DiscordSocketClient.GuildMemberUpdated    += OnGuildMemberUpdatedAsync;
             DiscordSocketClient.JoinedGuild           += OnJoinedGuildAsync;
             DiscordSocketClient.MessageDeleted        += OnMessageDeletedAsync;
+            DiscordSocketClient.MessagesBulkDeleted   += OnMessagesBulkDeletedAsync;
             DiscordSocketClient.MessageReceived       += OnMessageReceivedAsync;
             DiscordSocketClient.MessageUpdated        += OnMessageUpdatedAsync;
             DiscordSocketClient.ReactionAdded         += OnReactionAddedAsync;
@@ -82,6 +84,7 @@ namespace Zhongli.Services.Core.Listeners
             DiscordSocketClient.GuildMemberUpdated    -= OnGuildMemberUpdatedAsync;
             DiscordSocketClient.JoinedGuild           -= OnJoinedGuildAsync;
             DiscordSocketClient.MessageDeleted        -= OnMessageDeletedAsync;
+            DiscordSocketClient.MessagesBulkDeleted   -= OnMessagesBulkDeletedAsync;
             DiscordSocketClient.MessageReceived       -= OnMessageReceivedAsync;
             DiscordSocketClient.MessageUpdated        -= OnMessageUpdatedAsync;
             DiscordSocketClient.ReactionAdded         -= OnReactionAddedAsync;
@@ -137,6 +140,11 @@ namespace Zhongli.Services.Core.Listeners
         private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, ISocketMessageChannel channel)
         {
             await Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
+        }
+
+        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages, ISocketMessageChannel channel)
+        {
+            await Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
         }
 
         private async Task OnMessageReceivedAsync(SocketMessage message)
@@ -199,4 +207,6 @@ namespace Zhongli.Services.Core.Listeners
             await Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
         }
     }
+
+
 }
