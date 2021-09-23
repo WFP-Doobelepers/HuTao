@@ -5,6 +5,7 @@ namespace Zhongli.Data.Models.Logging
         MessageUpdated,
         MessageDeleted,
         ReactionAdded,
-        ReactionRemoved
+        ReactionRemoved,
+        MessagesBulkDeleted,
     }
 }
