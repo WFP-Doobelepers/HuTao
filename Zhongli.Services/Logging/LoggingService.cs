@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -100,6 +103,19 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(log, LogType.MessageUpdated, channel.Guild, cancellationToken);
         }
 
+        public async Task LogAsync(MessagesBulkDeletedNotification notification, CancellationToken cancellationToken)
+        {
+            if (notification.Channel is not IGuildChannel channel) return;
+
+            var details = await TryGetAuditLogDetails(notification.Messages.Count, channel);
+            var logs = await notification.Messages.ToAsyncEnumerable()
+                .SelectAwait(async m => await GetLatestMessage(m.Id, cancellationToken))
+                .ToListAsync(cancellationToken);
+
+            var log = await LogDeletionAsync(logs.OfType<MessageLog>(), channel, details, cancellationToken);
+            await PublishLogAsync(log, LogType.MessagesBulkDeleted, channel.Guild, cancellationToken);
+        }
+
         private EmbedLog AddDetails(EmbedBuilder embed, MessageLog log)
         {
             var user = _client.GetUser(log.UserId);
@@ -159,6 +175,9 @@ namespace Zhongli.Services.Logging
             };
         }
 
+        private static MemoryStream GenerateStreamFromString(string value)
+            => new(Encoding.Unicode.GetBytes(value));
+
         private async Task PublishLogAsync(DeleteLog? log, LogType type, IGuild guild,
             CancellationToken cancellationToken)
         {
@@ -183,10 +202,15 @@ namespace Zhongli.Services.Logging
         private static async Task PublishLogAsync(EmbedLog? log, IMessageChannel? channel)
         {
             if (log is null || channel is null) return;
-            var (embed, content) = log;
+            var (embed, content, attachment) = log;
 
-            var message = await channel.SendMessageAsync(embed: embed.Build());
-            if (!string.IsNullOrWhiteSpace(content)) await message.ReplyAsync(content);
+            if (attachment is null)
+                await channel.SendMessageAsync(content, embed: embed.Build());
+            else
+            {
+                await channel.SendFileAsync(GenerateStreamFromString(attachment), "Messages.md",
+                    content, embed: embed.Build());
+            }
         }
 
         private async Task UpdateLogEmbedsAsync(MessageLog oldLog, IMessage message,
@@ -209,10 +233,32 @@ namespace Zhongli.Services.Logging
             return new ActionDetails(user, entry.Reason);
         }
 
-        private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity latest, ActionDetails? details,
+        private static async Task<ActionDetails?> TryGetAuditLogDetails(
+            int messageCount, IGuildChannel channel)
+        {
+            var entry = await TryGetAuditLogEntry(messageCount, channel);
+            if (entry is null) return null;
+
+            var user = await channel.Guild.GetUserAsync(entry.User.Id);
+            return new ActionDetails(user, entry.Reason);
+        }
+
+        private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
             CancellationToken cancellationToken)
         {
-            var deleted = new MessageDeleteLog(latest, details);
+            var deleted = new MessageDeleteLog(message, details);
+
+            _db.Add(deleted);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return deleted;
+        }
+
+        private async Task<DeleteLog?> LogDeletionAsync(IEnumerable<MessageLog> messages,
+            IGuildChannel channel, ActionDetails? details,
+            CancellationToken cancellationToken)
+        {
+            var deleted = new MessagesDeleteLog(messages, channel, details);
 
             _db.Add(deleted);
             await _db.SaveChangesAsync(cancellationToken);
@@ -256,11 +302,28 @@ namespace Zhongli.Services.Logging
 
             return log switch
             {
+                MessagesDeleteLog messages => await AddDetailsAsync(embed, messages, cancellationToken),
                 MessageDeleteLog message   => await AddDetailsAsync(embed, message, cancellationToken),
                 ReactionDeleteLog reaction => AddDetails(embed, reaction),
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
             };
+        }
+
+        private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessagesDeleteLog log,
+            CancellationToken cancellationToken)
+        {
+            var logs = await log.Messages
+                .ToAsyncEnumerable()
+                .SelectAwait(async m => await GetLatestMessage(m.MessageId, cancellationToken))
+                .ToListAsync(cancellationToken);
+
+            embed
+                .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
+                .AddField("Message Count", log.Messages.Count, true);
+
+            var messages = logs.OfType<MessageLog>().GetDetails();
+            return new EmbedLog(embed, Attachment: messages.ToString());
         }
 
         private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(IMessage? message, IGuild guild)
@@ -276,6 +339,20 @@ namespace Zhongli.Services.Logging
                     => e.Data is MessageDeleteAuditLogData d
                     && d.Target.Id == message.Author.Id
                     && d.ChannelId == message.Channel.Id);
+        }
+
+        private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(
+            int messageCount, IGuildChannel channel)
+        {
+            var audits = await channel.Guild
+                .GetAuditLogsAsync(actionType: ActionType.MessageBulkDeleted);
+
+            return audits
+                .Where(e => DateTimeOffset.Now - e.CreatedAt < TimeSpan.FromMinutes(1))
+                .FirstOrDefault(e
+                    => e.Data is MessageBulkDeleteAuditLogData d
+                    && d.MessageCount >= messageCount
+                    && d.ChannelId == channel.Id);
         }
 
         private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
@@ -331,6 +408,6 @@ namespace Zhongli.Services.Logging
                 .FirstOrDefaultAsync(filter, cancellationToken);
         }
 
-        private record EmbedLog(EmbedBuilder Embed, string? Content = null);
+        private record EmbedLog(EmbedBuilder Embed, string? Content = null, string? Attachment = null);
     }
 }

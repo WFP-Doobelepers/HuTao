@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Discord.Rest;
 using MediatR;
 using Zhongli.Data;
 using Zhongli.Services.Core.Messages;
@@ -9,6 +10,7 @@ namespace Zhongli.Bot.Behaviors
 {
     public class MessageLoggingBehavior :
         INotificationHandler<MessageDeletedNotification>,
+        INotificationHandler<MessagesBulkDeletedNotification>,
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
@@ -28,6 +30,9 @@ namespace Zhongli.Bot.Behaviors
             => _logging.LogAsync(notification, cancellationToken);
 
         public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
+            => _logging.LogAsync(notification, cancellationToken);
+
+        public Task Handle(MessagesBulkDeletedNotification notification, CancellationToken cancellationToken)
             => _logging.LogAsync(notification, cancellationToken);
     }
 }
