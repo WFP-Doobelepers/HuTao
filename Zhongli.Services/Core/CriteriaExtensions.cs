@@ -14,7 +14,7 @@ namespace Zhongli.Services.Core
         public static bool Judge(this Criterion rule, ICommandContext context, IGuildUser user)
             => Judge(rule, (ITextChannel) context.Channel, user);
 
-        public static bool Judge(this Criterion rule, ITextChannel channel, IGuildUser user)
+        public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user)
         {
             return rule switch
             {

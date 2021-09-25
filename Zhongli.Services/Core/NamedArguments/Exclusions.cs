@@ -5,7 +5,7 @@ using Zhongli.Data.Models.Criteria;
 using Zhongli.Services.CommandHelp;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
-namespace Zhongli.Bot.Modules.Censors
+namespace Zhongli.Services.Core.NamedArguments
 {
     [NamedArgumentType]
     public class Exclusions : ICriteriaOptions

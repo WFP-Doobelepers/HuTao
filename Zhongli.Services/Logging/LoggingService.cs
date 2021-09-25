@@ -16,6 +16,7 @@ using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
@@ -37,8 +38,9 @@ namespace Zhongli.Services.Logging
 
         public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
         {
-            if (notification.Message is not IUserMessage message) return;
+            if (notification.Message is not IUserMessage { Channel: INestedChannel channel } message) return;
             if (message.Author is not IGuildUser user || user.IsBot) return;
+            if (await IsExcludedAsync(channel, user, cancellationToken)) return;
 
             var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
             await LogMessageAsync(userEntity, message, cancellationToken);
@@ -46,16 +48,17 @@ namespace Zhongli.Services.Logging
 
         public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
-            if (notification.Channel is not IGuildChannel channel) return;
+            if (notification.Channel is not INestedChannel channel) return;
 
             var reaction = notification.Reaction;
-            var message = await notification.Message.GetOrDownloadAsync();
-
-            var metadata = message.Reactions[reaction.Emote];
-            if (metadata.ReactionCount > 1) return;
 
             var user = reaction.User.GetValueOrDefault();
             if (user is not IGuildUser guildUser || guildUser.IsBot) return;
+            if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
+
+            var message = await notification.Message.GetOrDownloadAsync();
+            var metadata = message.Reactions[reaction.Emote];
+            if (metadata.ReactionCount > 1) return;
 
             var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
             var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
@@ -86,8 +89,9 @@ namespace Zhongli.Services.Logging
 
         public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
         {
-            if (notification.NewMessage is not IUserMessage { Channel: IGuildChannel channel } message) return;
+            if (notification.NewMessage is not IUserMessage { Channel: INestedChannel channel } message) return;
             if (message.Author is not IGuildUser user || user.IsBot) return;
+            if (await IsExcludedAsync(channel, user, cancellationToken)) return;
 
             var latest = await GetLatestMessage(message.Id, cancellationToken);
             if (latest is null) return;
@@ -241,6 +245,17 @@ namespace Zhongli.Services.Logging
 
             var user = await channel.Guild.GetUserAsync(entry.User.Id);
             return new ActionDetails(user, entry.Reason);
+        }
+
+        private async Task<bool> IsExcludedAsync(INestedChannel channel, IGuildUser user,
+            CancellationToken cancellationToken)
+        {
+            var guild = channel.Guild;
+
+            var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
+            if (guildEntity is null || cancellationToken.IsCancellationRequested) return false;
+
+            return guildEntity.LoggingRules.LoggingExclusions.Any(e => e.Judge(channel, user));
         }
 
         private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity message, ActionDetails? details,

@@ -13,16 +13,17 @@ using Zhongli.Data.Models.Moderation;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;
 
-namespace Zhongli.Bot.Modules.Configuration
+namespace Zhongli.Bot.Modules.Logging
 {
-    [Group("log")]
     [Name("Logging Configuration")]
+    [Group("log")]
+    [Alias("logs", "logging")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class ConfigureLoggingModule : ModuleBase<SocketCommandContext>
+    public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;
 
-        public ConfigureLoggingModule(ZhongliContext db) { _db = db; }
+        public LoggingModule(ZhongliContext db) { _db = db; }
 
         [Command("appeal")]
         [Summary("Show the appeal message on a reprimand type.")]

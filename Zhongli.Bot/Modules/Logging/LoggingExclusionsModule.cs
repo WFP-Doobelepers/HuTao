@@ -14,23 +14,23 @@ using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
 
-namespace Zhongli.Bot.Modules.Censors
+namespace Zhongli.Bot.Modules.Logging
 {
-    [Name("Censor Exclusions")]
-    [Group("censor")]
-    [Alias("censors")]
+    [Name("Logging Exclusions")]
+    [Group("log")]
+    [Alias("logs", "logging")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class CensorExclusionsModule : InteractiveEntity<Criterion>
+    public class LoggingExclusionsModule : InteractiveEntity<Criterion>
     {
         private readonly ZhongliContext _db;
 
-        public CensorExclusionsModule(CommandErrorHandler error, ZhongliContext db) : base(error, db) { _db = db; }
+        public LoggingExclusionsModule(CommandErrorHandler error, ZhongliContext db) : base(error, db) { _db = db; }
 
         protected override string Title => "Censor Exclusions";
 
         [Command("exclude")]
         [Alias("ignore")]
-        [Summary("Exclude the set criteria globally in all censors.")]
+        [Summary("Exclude the set criteria globally in logging.")]
         public async Task ExcludeAsync(Exclusions exclusions)
         {
             var collection = await GetCollectionAsync();
@@ -41,12 +41,12 @@ namespace Zhongli.Bot.Modules.Censors
         }
 
         [Command("include")]
-        [Summary("Remove a global censor exclusion by ID.")]
+        [Summary("Remove a global logging exclusion by ID.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
         [Command("exclusions")]
         [Alias("view exclusions", "list exclusions")]
-        [Summary("View the configured censor exclusions.")]
+        [Summary("View the configured logging exclusions.")]
         protected async Task ViewExclusionsAsync()
         {
             var collection = await GetCollectionAsync();
@@ -59,16 +59,16 @@ namespace Zhongli.Bot.Modules.Censors
         protected override bool IsMatch(Criterion entity, string id)
             => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
 
-        protected override async Task RemoveEntityAsync(Criterion censor)
+        protected override async Task RemoveEntityAsync(Criterion criterion)
         {
-            _db.Remove(censor);
+            _db.Remove(criterion);
             await _db.SaveChangesAsync();
         }
 
         protected override async Task<ICollection<Criterion>> GetCollectionAsync()
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            return guild.ModerationRules.CensorExclusions;
+            return guild.LoggingRules.LoggingExclusions;
         }
     }
 }

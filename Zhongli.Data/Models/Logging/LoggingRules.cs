@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation;
 
@@ -10,6 +11,9 @@ namespace Zhongli.Data.Models.Logging
         public Guid Id { get; set; }
 
         public virtual GuildEntity Guild { get; set; }
+
+        public virtual ICollection<Criterion> LoggingExclusions { get; set; }
+            = new List<Criterion>();
 
         public virtual ICollection<EnumChannel<LogType>> LoggingChannels { get; set; }
             = new List<EnumChannel<LogType>>();
