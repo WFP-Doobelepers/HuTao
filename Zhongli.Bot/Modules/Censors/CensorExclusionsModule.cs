@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
 
@@ -16,6 +18,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor Exclusions")]
     [Group("censor")]
     [Alias("censors")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class CensorExclusionsModule : InteractiveEntity<Criterion>
     {
         private readonly CommandErrorHandler _error;
