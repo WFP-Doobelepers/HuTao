@@ -8,6 +8,7 @@ using Discord;
 using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
@@ -16,6 +17,7 @@ using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.NamedArguments;
+using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
@@ -25,6 +27,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor")]
     [Group("censor")]
     [Alias("censors")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class CensorModule : InteractiveTrigger<Censor>
     {
         private const string PatternSummary = "The .NET flavor regex pattern to be used.";
