@@ -89,10 +89,6 @@ namespace Zhongli.Services.Moderation
             if (details is not null)
                 await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Deleted, cancellationToken);
 
-            var trigger = await reprimand.GetTriggerAsync(_db, cancellationToken);
-            if (trigger is not null)
-                _db.Remove(trigger);
-
             if (reprimand.Action is not null)
                 _db.Remove(reprimand.Action);
 

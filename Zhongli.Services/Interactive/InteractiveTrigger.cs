@@ -42,11 +42,11 @@ namespace Zhongli.Services.Interactive
         }
 
         [Command("enable")]
-        [Summary("Enables a censor trigger by ID.")]
+        [Summary("Enables a trigger by ID.")]
         protected Task EnableEntityAsync(string id) => ToggleEntityAsync(id, true);
 
         [Command("disable")]
-        [Summary("Disables a censor trigger by ID. Associated reprimands will be kept.")]
+        [Summary("Disables a trigger by ID. Associated reprimands will be kept.")]
         protected override Task RemoveEntityAsync(string id) => ToggleEntityAsync(id, false);
 
         [Command("toggle")]
@@ -57,21 +57,21 @@ namespace Zhongli.Services.Interactive
             bool? state = null)
         {
             var collection = await GetCollectionAsync();
-            var censor = await TryFindEntityAsync(id, collection);
+            var entity = await TryFindEntityAsync(id, collection);
 
-            if (censor is null)
+            if (entity is null)
                 await _error.AssociateError(Context.Message, EmptyMatchMessage);
             else
-                await ToggleTriggerAsync(censor, state);
+                await ToggleTriggerAsync(entity, state);
         }
 
-        protected override Task RemoveEntityAsync(T censor) => Task.CompletedTask;
+        protected override Task RemoveEntityAsync(T entity) => Task.CompletedTask;
 
-        private async Task ToggleTriggerAsync(T censor, bool? state)
+        private async Task ToggleTriggerAsync(T entity, bool? state)
         {
-            await _moderation.ToggleTriggerAsync(censor, (IGuildUser) Context.User, state);
+            await _moderation.ToggleTriggerAsync(entity, (IGuildUser) Context.User, state);
 
-            var (title, value) = EntityViewer(censor);
+            var (title, value) = EntityViewer(entity);
             var embed = new EmbedBuilder().AddField(title, value);
 
             await ReplyAsync(embed: embed.Build());
