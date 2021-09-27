@@ -180,10 +180,11 @@ namespace Zhongli.Services.Moderation
                 var user = details.User;
                 var days = deleteDays ?? 1;
 
+                await details.Guild.AddBanAsync(user, (int) days, details.Reason);
+
                 var ban = _db.Add(new Ban(days, length, details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await details.Guild.AddBanAsync(user, (int) days, details.Reason);
                 return await PublishReprimandAsync(ban, details, cancellationToken);
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
@@ -200,10 +201,11 @@ namespace Zhongli.Services.Moderation
                 var user = await details.GetUserAsync();
                 if (user is null) return null;
 
+                await user.KickAsync(details.Reason);
+
                 var kick = _db.Add(new Kick(details)).Entity;
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await user.KickAsync(details.Reason);
                 return await PublishReprimandAsync(kick, details, cancellationToken);
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
