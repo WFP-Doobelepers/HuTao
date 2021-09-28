@@ -9,6 +9,7 @@ using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
@@ -16,11 +17,11 @@ using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.NamedArguments;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
+using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Bot.Modules.Censors
 {
@@ -49,12 +50,12 @@ namespace Zhongli.Bot.Modules.Censors
             uint deleteDays = 0,
             [Summary("The length of the ban. Leave empty for permanent.")]
             TimeSpan? length = null,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new BanAction(deleteDays, length);
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -63,11 +64,11 @@ namespace Zhongli.Bot.Modules.Censors
         [Summary("A censor that deletes the message and does nothing to the user.")]
         public async Task AddCensorAsync(
             [Summary(PatternSummary)] string pattern,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var censor = new Censor(pattern, null, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -75,12 +76,12 @@ namespace Zhongli.Bot.Modules.Censors
         [Summary("A censor that deletes the message and also kicks the user.")]
         public async Task AddKickCensorAsync(
             [Summary(PatternSummary)] string pattern,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new KickAction();
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -90,12 +91,12 @@ namespace Zhongli.Bot.Modules.Censors
             [Summary(PatternSummary)] string pattern,
             [Summary("The length of the mute. Leave empty for permanent.")]
             TimeSpan? length = null,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new MuteAction(length);
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -103,12 +104,12 @@ namespace Zhongli.Bot.Modules.Censors
         [Summary("A censor that deletes the message and does nothing to the user.")]
         public async Task AddNoteCensorAsync(
             [Summary(PatternSummary)] string pattern,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new NoteAction();
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -116,12 +117,12 @@ namespace Zhongli.Bot.Modules.Censors
         [Summary("A censor that deletes the message and gives a notice.")]
         public async Task AddNoticeCensorAsync(
             [Summary(PatternSummary)] string pattern,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new NoticeAction();
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -132,12 +133,12 @@ namespace Zhongli.Bot.Modules.Censors
             [Summary(PatternSummary)] string pattern,
             [Summary("The amount of warnings to be given. Defaults to 1.")]
             uint count = 1,
-            CensorOptions? options = null, Exclusions? exclusions = null)
+            CensorOptions? options = null)
         {
             var trigger = new WarningAction(count);
             var censor = new Censor(pattern, trigger, options);
 
-            await AddCensor(censor, exclusions);
+            await AddCensor(censor, options);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
 
@@ -168,7 +169,7 @@ namespace Zhongli.Bot.Modules.Censors
             return guild.ModerationRules.Triggers.OfType<Censor>().ToList();
         }
 
-        private async Task AddCensor(Censor censor, Exclusions? exclusions)
+        private async Task AddCensor(Censor censor, ICriteriaOptions? exclusions)
         {
             if (exclusions is not null)
                 censor.Exclusions = exclusions.ToCriteria();
@@ -181,13 +182,25 @@ namespace Zhongli.Bot.Modules.Censors
         }
 
         [NamedArgumentType]
-        public class CensorOptions : ICensorOptions
+        public class CensorOptions : ICensorOptions, ICriteriaOptions
         {
             [HelpSummary("Silently match and do not delete the message.")]
             public bool Silent { get; set; } = false;
 
             [HelpSummary("Comma separated regex flags.")]
             public RegexOptions Flags { get; set; } = RegexOptions.None;
+
+            [HelpSummary("The permissions that the user must have.")]
+            public GuildPermission Permission { get; set; } = GuildPermission.None;
+
+            [HelpSummary("The text or category channels that will be excluded.")]
+            public IEnumerable<IGuildChannel>? Channels { get; set; }
+
+            [HelpSummary("The users that are excluded.")]
+            public IEnumerable<IGuildUser>? Users { get; set; }
+
+            [HelpSummary("The roles that are excluded.")]
+            public IEnumerable<IRole>? Roles { get; set; }
 
             [HelpSummary("The behavior in which the reprimand of the censor triggers.")]
             public TriggerMode Mode { get; set; } = TriggerMode.Exact;
