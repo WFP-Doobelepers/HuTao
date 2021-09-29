@@ -56,7 +56,24 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
+
         }
 
         [Command("add")]
@@ -69,7 +86,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, null, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("kick")]
@@ -82,7 +115,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("mute")]
@@ -97,7 +146,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("note")]
@@ -110,7 +175,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("notice")]
@@ -123,7 +204,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("warning")]
@@ -139,7 +236,23 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added succesfully.")
+                .AddField("Pattern:", Format.Code(pattern), false)
+                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
+                .AddField("Options:", censor.Options.Humanize(), false)
+                .AddField("Mode: ", censor.Mode.Humanize(), false)
+                .AddField("Amount: ", censor.Amount, false)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (censor.Exclusions.Humanize() is not "")
+            {
+                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
+            }
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command]
@@ -154,8 +267,8 @@ namespace Zhongli.Bot.Modules.Censors
                 .AppendLine($"▌Options: {censor.Options.Humanize()}")
                 .AppendLine($"▌Reprimand: {censor.Reprimand?.Action ?? "None"}")
                 .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
-                .AppendLine($"▌▌Active: {censor.IsActive}")
-                .AppendLine($"▌▌Modified by: {censor.GetModerator()}");
+                .AppendLine($"▉ Active: {censor.IsActive}")
+                .AppendLine($"▉ Modified by: {censor.GetModerator()}");
 
             return (censor.Id.ToString(), value);
         }

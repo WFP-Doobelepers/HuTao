@@ -14,7 +14,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Actions
         }
 
         public override string Action
-            => $"Ban {Length?.Humanize() ?? "indefinitely"} and delete {DeleteDays} days of messages";
+            => $"Ban **{Length?.Humanize() ?? "indefinitely"}** and delete **{DeleteDays} days** of messages";
 
         public uint DeleteDays { get; set; }
 
