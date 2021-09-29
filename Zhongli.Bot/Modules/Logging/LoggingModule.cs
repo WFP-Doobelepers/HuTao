@@ -54,7 +54,25 @@ namespace Zhongli.Bot.Modules.Logging
             guild.LoggingRules.ReprimandAppealMessage = message;
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            if (message is null)
+            {
+                embed.WithDescription("The appeal message has been succesfully removed.")
+                    .WithColor(Color.LightGrey)
+                    .WithTitle("Appeal Message Cleared");
+            }
+            else
+            {
+                embed.WithDescription($"The appeal message has been set to: **{message}**")
+                    .WithColor(Color.Green)
+                    .WithTitle("Appeal Message Set");
+            }
+
+            await ReplyAsync(embed: embed.Build());
+
         }
 
         [Command("moderation rules")]

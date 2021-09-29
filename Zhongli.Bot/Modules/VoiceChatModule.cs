@@ -5,6 +5,7 @@ using Discord.Commands;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.VoiceChat;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
 {
@@ -35,7 +36,13 @@ namespace Zhongli.Bot.Modules
                 await textChannel.AddPermissionOverwriteAsync(user,
                     OverwritePermissions.DenyAll(textChannel));
 
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
+                var embed = new EmbedBuilder()
+                    .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                    .WithDescription($"User has been banned from the channel.")
+                    .WithColor(Color.Green);
+
+                await ReplyAsync(embed: embed.Build());
+
             }
         }
 

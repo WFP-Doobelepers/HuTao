@@ -115,8 +115,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var content = new StringBuilder()
                 .AppendLine($"▌Action: {trigger.Reprimand.Action}")
                 .AppendLine($"▌Trigger: {trigger.GetTriggerDetails()}")
-                .AppendLine($"▌▌Active: {trigger.IsActive}")
-                .AppendLine($"▌▌Modified by: {trigger.GetModerator()}");
+                .AppendLine($"▉ Active: {trigger.IsActive}")
+                .AppendLine($"▉ Modified by: {trigger.GetModerator()}");
 
             return ($"{trigger.Reprimand.GetTitle()}: {trigger.Id}", content);
         }
@@ -162,7 +162,15 @@ namespace Zhongli.Bot.Modules.Moderation
 
             rules.Triggers.Add(trigger.WithModerator(Context));
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Trigger added")
+                .WithColor(Color.Green)
+                .AddField("Action: ", trigger.Reprimand.Action, false)
+                .AddField("Trigger: ", trigger.GetTriggerDetails(), false)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         private class TriggerOptions : ITrigger
