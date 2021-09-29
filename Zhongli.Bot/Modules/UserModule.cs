@@ -35,7 +35,7 @@ namespace Zhongli.Bot.Modules
         public async Task InfractionsAsync(
             [Summary("The user to show the infractions of.")]
             IUser? user = null,
-            [Summary("Leave empty to show everything.")]
+            [Summary("Leave empty to show warnings.")]
             InfractionType type = InfractionType.Warning)
         {
             user ??= Context.User;
