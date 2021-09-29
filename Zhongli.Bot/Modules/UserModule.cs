@@ -102,6 +102,21 @@ namespace Zhongli.Bot.Modules
             await ReplyAsync(embed: embed.Build());
         }
 
+        [Command("avatar")]
+        [Summary("Get the avatar of the user")]
+        public async Task AvatarAsync(IUser? user = null)
+        {
+            user ??= Context.User;
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+                .WithImageUrl(user.GetAvatarUrl(size: 2048))
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
         [Priority(-1)]
         [HiddenFromHelp]
         [Command("user")]
