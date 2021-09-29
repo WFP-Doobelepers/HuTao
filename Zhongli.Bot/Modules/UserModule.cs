@@ -29,14 +29,14 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("history")]
-        [Alias("infraction", "infractions", "reprimand", "reprimands")]
+        [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
         [Summary("View a specific history of a user's infractions.")]
         [RequireAuthorization(AuthorizationScope.Moderator)]
         public async Task InfractionsAsync(
             [Summary("The user to show the infractions of.")]
             IUser? user = null,
             [Summary("Leave empty to show everything.")]
-            InfractionType type = InfractionType.All)
+            InfractionType type = InfractionType.Warning)
         {
             user ??= Context.User;
             var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == Context.Guild.Id);
