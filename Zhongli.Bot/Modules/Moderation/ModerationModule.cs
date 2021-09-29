@@ -109,9 +109,8 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Set a slowmode in the channel.")]
         [RequireBotPermission(ChannelPermission.ManageChannels)]
         [RequireUserPermission(ChannelPermission.ManageChannels)]
-        public async Task SlowmodeAsync(TimeSpan? length = null)
+        public async Task SlowmodeAsync(ITextChannel channel, TimeSpan? length = null)
         {
-            var channel = (ITextChannel) Context.Channel;
             var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
 
             await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
