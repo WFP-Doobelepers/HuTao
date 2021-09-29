@@ -40,6 +40,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("hide")]
+        [Alias("pardon")]
         [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
         public async Task HideReprimandAsync(string id, [Remainder] string? reason = null)
         {
@@ -47,6 +48,7 @@ namespace Zhongli.Bot.Modules.Moderation
             await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
         }
 
+        [Command("update")]
         [Summary("Update a reprimand's reason.")]
         public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
         {
@@ -55,11 +57,12 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("remove")]
-        [Alias("delete")]
+        [Alias("delete", "purgewarn")]
         [Summary("Delete a reprimand, this completely removes the data.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
         [Command("reprimand history")]
+        [Alias("warnlist all")]
         [Summary("Views the entire reprimand history of the server.")]
         protected async Task ViewEntityAsync(
             [Summary("Leave empty to show everything.")]
