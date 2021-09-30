@@ -66,7 +66,7 @@ namespace Zhongli.Bot.Modules.Logging
             }
             else
             {
-                embed.WithDescription($"The appeal message has been set to: **{message}**")
+                embed.WithDescription($"The appeal message has been set to: {Format.Bold(message)}")
                     .WithColor(Color.Green)
                     .WithTitle("Appeal Message Set");
             }

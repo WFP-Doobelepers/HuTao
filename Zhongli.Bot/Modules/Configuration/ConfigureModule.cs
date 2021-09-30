@@ -39,7 +39,7 @@ namespace Zhongli.Bot.Modules.Configuration
             if (length is null)
                 await ReplyAsync("Auto-pardon of notices has been disabled.");
             else
-                await ReplyAsync($"Notices will now be pardoned after **{length?.Humanize()}**");
+                await ReplyAsync($"Notices will now be pardoned after {Format.Bold(length?.Humanize())}");
 
         }
 
@@ -56,7 +56,7 @@ namespace Zhongli.Bot.Modules.Configuration
             if (length is null)
                 await ReplyAsync("Auto-pardon of warnings has been disabled.");
             else
-                await ReplyAsync($"Warnings will now be pardoned after **{length?.Humanize()}**");
+                await ReplyAsync($"Warnings will now be pardoned after {Format.Bold(length?.Humanize())}");
         }
 
         [Command("replace mutes")]
@@ -85,7 +85,7 @@ namespace Zhongli.Bot.Modules.Configuration
             if (length is null)
                 await ReplyAsync("Censor range has been disabled.");
             else
-                await ReplyAsync($"Censors will now be considered active for **{length?.Humanize()}**");
+                await ReplyAsync($"Censors will now be considered active for {Format.Bold(length?.Humanize())}");
         }
 
         [Command("mute")]
@@ -99,7 +99,7 @@ namespace Zhongli.Bot.Modules.Configuration
             if (role is null)
                 await ReplyAsync("Mute role has been configured.");
             else
-                await ReplyAsync($"Mute role has been set to **{role.Name}**");
+                await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
 
         }
 

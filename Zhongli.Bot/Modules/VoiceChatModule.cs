@@ -116,7 +116,7 @@ namespace Zhongli.Bot.Modules
 
             await _db.SaveChangesAsync();
 
-            await ReplyAsync($"Cleaned **{voiceChats.Count} channel(s)**.");
+            await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
 
         }
 
@@ -175,7 +175,7 @@ namespace Zhongli.Bot.Modules
             if (limit is null)
                 await ReplyAsync("Voice user limit reset");
             else
-                await ReplyAsync($"User limit set to **{limit}** user(s).");
+                await ReplyAsync($"User limit set to {Format.Bold(limit + " user(s)")}.");
 
         }
 
@@ -211,7 +211,7 @@ namespace Zhongli.Bot.Modules
                 return;
 
             var owner = Context.Guild.GetUser(voiceChat.UserId);
-            await ReplyAsync($"The current owner is **{owner}**.");
+            await ReplyAsync($"The current owner is {Format.Bold(owner.GetFullUsername())}.");
         }
 
         [Command("reveal")]
@@ -258,7 +258,7 @@ namespace Zhongli.Bot.Modules
             voiceChat.UserId = user.Id;
             await _db.SaveChangesAsync();
 
-            await ReplyAsync($"Voice chat ownership successfully transferred to **{user.GetFullUsername()}**.");
+            await ReplyAsync($"Voice chat ownership successfully transferred to {Format.Bold(user.GetFullUsername())}.");
         }
 
         [Command("unban")]
