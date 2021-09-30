@@ -46,7 +46,7 @@ namespace Zhongli.Bot.Modules
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added **{String.Join(separator: ", ", values: roles.Select(r => r.ToString()))}** to {user.Mention}.")
+                .WithDescription($"Added {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -75,7 +75,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added **{String.Join(separator: ", ", values: roles.Select(r => r.ToString()))}** to everyone.")
+                .WithDescription($"Added {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -88,7 +88,7 @@ namespace Zhongli.Bot.Modules
         public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
         {
             await _member.AddTemporaryRoleMemberAsync(user, role, length);
-            await ReplyAsync($"Added **{role}** to **{user}** that ends {length.ToUniversalTimestamp()}.");
+            await ReplyAsync($"Added {Format.Bold(role.Name)} to {Format.Bold(user.GetFullUsername())} that ends {length.ToUniversalTimestamp()}.");
         }
 
         [Command("color")]
@@ -117,7 +117,7 @@ namespace Zhongli.Bot.Modules
                 options?.IsMentionable ?? false);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Created the following role: **{role}** with the provided options.")
+                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
                 .WithColor(role.Color)
                 .AddField("Hoisted: ", role.IsHoisted, true)
                 .AddField("Mentionable: ", role.IsMentionable, true)
@@ -139,7 +139,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Deleted the following role(s): **{String.Join(separator: ", ", values: roles.Select(r => r.ToString()))}** from the guild.")
+                .WithDescription($"Deleted the following role(s): {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from the guild.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
@@ -153,7 +153,7 @@ namespace Zhongli.Bot.Modules
             await user.RemoveRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Removed **{String.Join(separator: ", ", values: roles.Select(r => r.ToString()))}** from {user.Mention}.")
+                .WithDescription($"Removed {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from {user.Mention}.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
@@ -180,7 +180,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Removed **{String.Join(separator: ", ", values: roles.Select(r => r.ToString()))}** from everyone.")
+                .WithDescription($"Removed {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from everyone.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
