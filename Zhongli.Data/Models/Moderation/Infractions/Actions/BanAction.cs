@@ -1,5 +1,6 @@
 ﻿using System;
 using Humanizer;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,7 +15,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Actions
         }
 
         public override string Action
-            => $"Ban **{Length?.Humanize() ?? "indefinitely"}** and delete **{DeleteDays} days** of messages";
+            => $"Ban {Format.Bold(Length?.Humanize() ?? "indefinitely")} and delete {Format.Bold(DeleteDays + " days")} of messages";
 
         public uint DeleteDays { get; set; }
 
