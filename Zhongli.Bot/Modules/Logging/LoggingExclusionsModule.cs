@@ -1,5 +1,6 @@
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -38,7 +39,14 @@ namespace Zhongli.Bot.Modules.Logging
             collection.AddCriteria(exclusions);
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Logging exclusions added")
+                .WithColor(Color.Green)
+                .AddField("Excluded: ", exclusions.ToCriteria().Humanize(), false)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("include")]
