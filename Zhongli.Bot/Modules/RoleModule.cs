@@ -13,6 +13,7 @@ using Discord.WebSocket;
 using Humanizer;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
+using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Bot.Modules
 {
@@ -36,6 +37,7 @@ namespace Zhongli.Bot.Modules
         public Task AddRoleAsync(IGuildUser user, IRole role, TimeSpan? length = null)
             => length is not null ? AddTemporaryRoleMemberAsync(user, role, length.Value) : AddRolesAsync(user, role);
 
+        [HiddenFromHelp]
         [Command("add")]
         [Summary("Adds specified roles to a user.")]
         public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
