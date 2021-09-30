@@ -26,8 +26,8 @@ using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("permissions")]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
     [Name("Permissions")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
         private readonly AuthorizationService _auth;
