@@ -1,9 +1,9 @@
+using Discord;
+using Discord.Commands;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
