@@ -87,8 +87,9 @@ namespace Zhongli.Bot.Modules
             {
                 embed
                     .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
+                    .WithColor(guildUser.Roles.OrderByDescending(r => r.Position).Select(x => x.Color).FirstOrDefault())
                     .AddField($"Roles ({guildUser.Roles.Count})",
-                        string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
+                        string.Join(" ", guildUser.Roles.OrderByDescending(r => r.Position).Select(x => x.Mention)));
             }
 
             if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator) &&
