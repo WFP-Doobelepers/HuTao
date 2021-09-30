@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
@@ -11,9 +5,15 @@ using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
-using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Bot.Modules
 {
@@ -29,7 +29,7 @@ namespace Zhongli.Bot.Modules
         public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
         {
             _member = member;
-            _role   = role;
+            _role = role;
         }
 
         [Command("add")]
@@ -285,7 +285,7 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages  = fields,
+                Pages = fields,
                 Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
                 Options = new PaginatedAppearanceOptions
                 {
