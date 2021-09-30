@@ -46,11 +46,10 @@ namespace Zhongli.Bot.Modules
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} to {user.Mention}.")
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [Command("add everyone")]
@@ -75,11 +74,10 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} to everyone.")
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [Command("temporary add")]
@@ -124,9 +122,7 @@ namespace Zhongli.Bot.Modules
                 .AddField("Color: ", role.Color, true)
                 .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true);
 
-
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [Command("delete")]
@@ -139,11 +135,10 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Deleted the following role(s): {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from the guild.")
+                .WithDescription($"Deleted the following role(s): {Format.Bold(roles.Humanize())} from the guild.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [Command("remove")]
@@ -153,7 +148,7 @@ namespace Zhongli.Bot.Modules
             await user.RemoveRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Removed {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from {user.Mention}.")
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {user.Mention}.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
@@ -180,7 +175,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Removed {Format.Bold(String.Join(separator: ", ", values: roles.Select(r => r.ToString())))} from everyone.")
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from everyone.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
@@ -307,6 +302,7 @@ namespace Zhongli.Bot.Modules
 
             [HelpSummary("Choose the color of the role")]
             public Color? Color { get; set; }
+
             [HelpSummary("List of permissions")]
             public GuildPermissions? Permissions { get; set; }
         }
