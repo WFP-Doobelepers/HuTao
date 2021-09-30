@@ -69,6 +69,7 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("user")]
+        [Alias("whois")]
         [Summary("Views the information of a user")]
         public async Task UserAsync(IUser? user = null)
         {
