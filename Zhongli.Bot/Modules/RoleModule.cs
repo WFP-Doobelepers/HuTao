@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
@@ -11,6 +5,13 @@ using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
 using Zhongli.Services.CommandHelp;
@@ -29,7 +30,7 @@ namespace Zhongli.Bot.Modules
         public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
         {
             _member = member;
-            _role   = role;
+            _role = role;
         }
 
         [Command("add")]
@@ -42,8 +43,15 @@ namespace Zhongli.Bot.Modules
         [Summary("Adds specified roles to a user.")]
         public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
         {
+
+
             await user.AddRolesAsync(roles);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {user.Mention}.")
+                .WithColor(Color.Green);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("add everyone")]
@@ -67,7 +75,11 @@ namespace Zhongli.Bot.Modules
                 }
             }
 
-            await message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to everyone.")
+                .WithColor(Color.Green);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("temporary add")]
@@ -76,7 +88,7 @@ namespace Zhongli.Bot.Modules
         public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
         {
             await _member.AddTemporaryRoleMemberAsync(user, role, length);
-            await ReplyAsync($"Added {role} to {user} that ends {length.ToUniversalTimestamp()}.");
+            await ReplyAsync($"Added {Format.Bold(role.Name)} to {Format.Bold(user.GetFullUsername())} that ends {length.ToUniversalTimestamp()}.");
         }
 
         [Command("color")]
@@ -88,7 +100,11 @@ namespace Zhongli.Bot.Modules
                 await role.ModifyAsync(r => r.Color = color);
             }
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithDescription($"Color changed succesfully")
+                .WithColor(color);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("create")]
@@ -100,7 +116,15 @@ namespace Zhongli.Bot.Modules
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
+                .WithColor(role.Color)
+                .AddField("Hoisted: ", role.IsHoisted, true)
+                .AddField("Mentionable: ", role.IsMentionable, true)
+                .AddField("Color: ", role.Color, true)
+                .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("delete")]
@@ -112,7 +136,11 @@ namespace Zhongli.Bot.Modules
                 await role.DeleteAsync();
             }
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithDescription($"Deleted the following role(s): {Format.Bold(roles.Humanize())} from the guild.")
+                .WithColor(Color.DarkRed);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("remove")]
@@ -120,11 +148,16 @@ namespace Zhongli.Bot.Modules
         public async Task RemoveRolesAsync(IGuildUser user, params IRole[] roles)
         {
             await user.RemoveRolesAsync(roles);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {user.Mention}.")
+                .WithColor(Color.DarkRed);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("remove everyone")]
-        [Summary("Removes specified roles to everyone.")]
+        [Summary("Removes specified roles from everyone.")]
         public async Task RemoveRolesAsync(params SocketRole[] roles)
         {
             var message = await ReplyAsync("Removing roles, this might take a while...");
@@ -143,7 +176,11 @@ namespace Zhongli.Bot.Modules
                 }
             }
 
-            await message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from everyone.")
+                .WithColor(Color.DarkRed);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("temporary convert")]
@@ -245,7 +282,7 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages  = fields,
+                Pages = fields,
                 Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
                 Options = new PaginatedAppearanceOptions
                 {
@@ -259,12 +296,16 @@ namespace Zhongli.Bot.Modules
         [NamedArgumentType]
         public class RoleCreationOptions
         {
+            [HelpSummary("Hoist the role in the member list")]
             public bool? IsHoisted { get; set; }
 
+            [HelpSummary("Make the role mentionable")]
             public bool? IsMentionable { get; set; }
 
+            [HelpSummary("Choose the color of the role")]
             public Color? Color { get; set; }
 
+            [HelpSummary("List of permissions")]
             public GuildPermissions? Permissions { get; set; }
         }
     }
