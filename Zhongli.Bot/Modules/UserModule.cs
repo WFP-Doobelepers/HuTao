@@ -70,9 +70,10 @@ namespace Zhongli.Bot.Modules
 
         [Command("user")]
         [Alias("whois")]
-        [Summary("Views the information of a user")]
-        public async Task UserAsync(IUser? user = null,
-            [Summary("View detailed information about the user")] bool detailed = false)
+        [Summary("Views the information of a user. Leave blank to view self.")]
+        public async Task UserAsync(
+            [Summary("The mention, username or ID of the user.")]
+            IUser? user = null)
         {
             user ??= Context.User;
 
@@ -106,8 +107,11 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("avatar")]
-        [Summary("Get the avatar of the user")]
-        public async Task AvatarAsync(IUser? user = null)
+        [Alias("av")]
+        [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
+        public async Task AvatarAsync(
+            [Summary("The mention, username or ID of the user.")]
+            IUser? user = null)
         {
             user ??= Context.User;
 
