@@ -28,6 +28,21 @@ namespace Zhongli.Bot.Modules
             _db   = db;
         }
 
+        [Command("avatar")]
+        [Summary("Get the avatar of the user")]
+        public async Task AvatarAsync(IUser? user = null)
+        {
+            user ??= Context.User;
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+                .WithImageUrl(user.GetAvatarUrl(size: 2048))
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
         [Command("history")]
         [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
         [Summary("View a specific history of a user's infractions.")]
@@ -92,28 +107,13 @@ namespace Zhongli.Bot.Modules
                         string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
             }
 
-            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator) &&
-                userEntity is not null)
+            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator)
+                && userEntity is not null)
             {
                 embed
                     .AddReprimands(userEntity)
                     .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
             }
-
-            await ReplyAsync(embed: embed.Build());
-        }
-
-        [Command("avatar")]
-        [Summary("Get the avatar of the user")]
-        public async Task AvatarAsync(IUser? user = null)
-        {
-            user ??= Context.User;
-
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-                .WithImageUrl(user.GetAvatarUrl(size: 2048))
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());
         }

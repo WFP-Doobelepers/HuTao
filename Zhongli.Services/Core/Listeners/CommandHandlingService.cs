@@ -72,7 +72,7 @@ namespace Zhongli.Services.Core.Listeners
 
             _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
             _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
-            _commands.AddTypeReader<IUserMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+            _commands.AddTypeReader<IUser>(new TypeReaders.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
 
             _commands.AddTypeReader<RegexOptions>(
                 new EnumFlagsTypeReader<RegexOptions>(
