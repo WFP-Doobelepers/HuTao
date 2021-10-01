@@ -56,24 +56,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
-
+            await ReplyCensorAsync(censor);
         }
 
         [Command("add")]
@@ -86,23 +69,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, null, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command("kick")]
@@ -115,23 +82,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command("mute")]
@@ -146,23 +97,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command("note")]
@@ -175,23 +110,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command("notice")]
@@ -204,23 +123,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command("warning")]
@@ -236,23 +139,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-
-            var embed = new EmbedBuilder()
-                .WithTitle("Censor added succesfully.")
-                .AddField("Pattern:", Format.Code(pattern), false)
-                .AddField("Punishment:", censor.Reprimand?.Action ?? "None", false)
-                .AddField("Options:", censor.Options.Humanize(), false)
-                .AddField("Mode: ", censor.Mode.Humanize(), false)
-                .AddField("Amount: ", censor.Amount, false)
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            if (censor.Exclusions.Humanize() is not "")
-            {
-                embed.AddField("Exclusions: ", censor.Exclusions.Humanize(), false);
-            }
-
-            await ReplyAsync(embed: embed.Build());
+            await ReplyCensorAsync(censor);
         }
 
         [Command]
@@ -292,6 +179,20 @@ namespace Zhongli.Bot.Modules.Censors
                 .Add(censor.WithModerator(Context));
 
             await _db.SaveChangesAsync();
+        }
+
+        private async Task ReplyCensorAsync(Censor censor)
+        {
+            var (title, value) = EntityViewer(censor);
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added successfully.")
+                .WithDescription(value.ToString())
+                .AddField("ID", title)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [NamedArgumentType]
