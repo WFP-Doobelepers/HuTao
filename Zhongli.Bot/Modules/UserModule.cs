@@ -29,14 +29,14 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("history")]
-        [Alias("infraction", "infractions", "reprimand", "reprimands")]
+        [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
         [Summary("View a specific history of a user's infractions.")]
         [RequireAuthorization(AuthorizationScope.Moderator)]
         public async Task InfractionsAsync(
             [Summary("The user to show the infractions of.")]
             IUser? user = null,
-            [Summary("Leave empty to show everything.")]
-            InfractionType type = InfractionType.All)
+            [Summary("Leave empty to show warnings.")]
+            InfractionType type = InfractionType.Warning)
         {
             user ??= Context.User;
             var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == Context.Guild.Id);
@@ -69,6 +69,7 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("user")]
+        [Alias("whois")]
         [Summary("Views the information of a user")]
         public async Task UserAsync(IUser? user = null)
         {
@@ -99,6 +100,21 @@ namespace Zhongli.Bot.Modules
                     .AddReprimands(userEntity)
                     .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
             }
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
+        [Command("avatar")]
+        [Summary("Get the avatar of the user")]
+        public async Task AvatarAsync(IUser? user = null)
+        {
+            user ??= Context.User;
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+                .WithImageUrl(user.GetAvatarUrl(size: 2048))
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());
         }

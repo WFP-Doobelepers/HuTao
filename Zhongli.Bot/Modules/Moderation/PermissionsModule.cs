@@ -15,6 +15,7 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Interactive.Functions;
@@ -26,6 +27,8 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("permissions")]
     [Name("Permissions")]
+    [Alias("perms", "perm")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
         private readonly AuthorizationService _auth;
@@ -61,6 +64,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("configure")]
+        [Alias("config")]
         [Summary("Interactively configure the permissions. This uses a template of having an admin and mod role.")]
         public async Task InteractiveConfigureAsync()
         {
@@ -116,7 +120,7 @@ namespace Zhongli.Bot.Modules.Moderation
         }
 
         [Command("remove")]
-        [Alias("delete")]
+        [Alias("delete", "del")]
         [Summary("Remove an authorization group.")]
         protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
