@@ -6,6 +6,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
@@ -109,14 +110,20 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Set a slowmode in the channel.")]
         [RequireBotPermission(ChannelPermission.ManageChannels)]
         [RequireUserPermission(ChannelPermission.ManageChannels)]
-        public async Task SlowmodeAsync(TimeSpan? length = null)
+        public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel ? channel = null)
         {
-            var channel = (ITextChannel) Context.Channel;
+            channel ??= (ITextChannel) Context.Channel;
             var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
 
             await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
+
+        [Command("slowmode")]
+        [HiddenFromHelp]
+        [Summary("Set a slowmode in the channel.")]
+        public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null)
+            => SlowmodeAsync(length, channel);
 
         [Command("unban")]
         [Summary("Unban a user from the current guild.")]
