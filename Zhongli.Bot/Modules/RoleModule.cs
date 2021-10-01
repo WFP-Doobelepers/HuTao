@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
-using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Bot.Modules
 {
@@ -48,7 +47,7 @@ namespace Zhongli.Bot.Modules
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {user.Mention}.")
+                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Select(x => x.Mention).Humanize()} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -76,7 +75,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(roles.Humanize())} to everyone.")
+                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Select(x => x.Mention).Humanize()} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -88,7 +87,11 @@ namespace Zhongli.Bot.Modules
         public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
         {
             await _member.AddTemporaryRoleMemberAsync(user, role, length);
-            await ReplyAsync($"Added {Format.Bold(role.Name)} to {Format.Bold(user.GetFullUsername())} that ends {length.ToUniversalTimestamp()}.");
+            var embed = new EmbedBuilder()
+                .WithDescription($"Temporarily added {role.Mention} to {user.Mention}. {Environment.NewLine} Expires {length.ToUniversalTimestamp()}.")
+                .WithColor(Color.Green);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("color")]
@@ -117,11 +120,11 @@ namespace Zhongli.Bot.Modules
                 options?.IsMentionable ?? false);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
+                .WithDescription($"Created the following role: {role.Mention} with the provided options.")
                 .WithColor(role.Color)
                 .AddField("Hoisted: ", role.IsHoisted, true)
                 .AddField("Mentionable: ", role.IsMentionable, true)
-                .AddField("Color: ", role.Color, true)
+                .AddField("Color: ", Format.Code(role.Color.ToString()), true)
                 .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true);
 
             await ReplyAsync(embed: embed.Build());
