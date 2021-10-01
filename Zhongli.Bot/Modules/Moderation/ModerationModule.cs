@@ -1,7 +1,10 @@
 using System;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
@@ -112,11 +115,44 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireUserPermission(ChannelPermission.ManageChannels)]
         public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel ? channel = null)
         {
-            channel ??= (ITextChannel) Context.Channel;
-            var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
 
-            await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            if (length is null && channel is null)
+            {
+                var channels = Context.Guild.Channels.OfType<ITextChannel>().Where(c => c.SlowModeInterval is not 0);
+                var sb = new StringBuilder()
+                    .AppendLine("List of channels with slowmode active:")
+                    .AppendLine("--------------------------------------")
+                    .AppendLine("");
+
+                foreach (var cn in channels)
+                {
+                    
+                        sb.AppendLine($"{cn.Mention} => {cn.SlowModeInterval} seconds");
+                }
+
+                await ReplyAsync(sb.ToString());
+
+            }
+            else
+            {
+                channel ??= (ITextChannel)Context.Channel;
+                var seconds = (int)(length ?? TimeSpan.Zero).TotalSeconds;
+                await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
+
+                if (seconds is 0)
+                    await ReplyAsync($"Slowmode disabled for {channel.Mention}");
+                else
+                {
+                    var embed = new EmbedBuilder()
+                        .WithTitle("Slowmode enabled")
+                        .AddField("Channel: ", channel.Mention, true)
+                        .AddField("Delay: ", seconds + "s", true)
+                        .WithColor(Color.Green)
+                        .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+                    await ReplyAsync(embed: embed.Build());
+                }
+            }
         }
 
         [Command("slowmode")]
