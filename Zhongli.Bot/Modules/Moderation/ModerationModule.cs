@@ -1,10 +1,9 @@
+using Discord;
+using Discord.Commands;
 using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
@@ -33,9 +32,9 @@ namespace Zhongli.Bot.Modules.Moderation
             ModerationService moderation)
         {
             _error = error;
-            _db    = db;
+            _db = db;
 
-            _logging    = logging;
+            _logging = logging;
             _moderation = moderation;
         }
 
@@ -113,7 +112,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Summary("Set a slowmode in the channel.")]
         [RequireBotPermission(ChannelPermission.ManageChannels)]
         [RequireUserPermission(ChannelPermission.ManageChannels)]
-        public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel ? channel = null)
+        public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         {
 
             if (length is null && channel is null)
@@ -126,8 +125,8 @@ namespace Zhongli.Bot.Modules.Moderation
 
                 foreach (var cn in channels)
                 {
-                    
-                        sb.AppendLine($"{cn.Mention} => {cn.SlowModeInterval} seconds");
+
+                    sb.AppendLine($"{cn.Mention} => {cn.SlowModeInterval} seconds");
                 }
 
                 await ReplyAsync(sb.ToString());
@@ -233,7 +232,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
         {
-            var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
+            var details = new ReprimandDetails(user, (IGuildUser)Context.User, reason);
 
             await _db.Users.TrackUserAsync(details);
             await _db.SaveChangesAsync();
