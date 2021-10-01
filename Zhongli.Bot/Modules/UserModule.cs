@@ -1,11 +1,11 @@
-using System.Linq;
-using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Discord.WebSocket;
 using Humanizer;
+using System.Linq;
+using System.Threading.Tasks;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -25,7 +25,7 @@ namespace Zhongli.Bot.Modules
         public UserModule(AuthorizationService auth, ZhongliContext db)
         {
             _auth = auth;
-            _db   = db;
+            _db = db;
         }
 
         [Command("history")]
@@ -56,12 +56,12 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages  = reprimands.Concat(pages),
+                Pages = reprimands.Concat(pages),
                 Author = new EmbedAuthorBuilder().WithName($"{user}"),
                 Options = new PaginatedAppearanceOptions
                 {
                     DisplayInformationIcon = false,
-                    FieldsPerPage          = 8
+                    FieldsPerPage = 8
                 }
             };
 
@@ -71,7 +71,8 @@ namespace Zhongli.Bot.Modules
         [Command("user")]
         [Alias("whois")]
         [Summary("Views the information of a user")]
-        public async Task UserAsync(IUser? user = null)
+        public async Task UserAsync(IUser? user = null,
+            [Summary("View detailed information about the user")] bool detailed = false)
         {
             user ??= Context.User;
 
