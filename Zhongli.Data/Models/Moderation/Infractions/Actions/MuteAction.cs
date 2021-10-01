@@ -1,5 +1,6 @@
 ﻿using System;
 using Humanizer;
+using Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,7 +10,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Actions
     {
         public MuteAction(TimeSpan? length) { Length = length; }
 
-        public override string Action => $"Mute {Length?.Humanize() ?? "indefinitely"}";
+        public override string Action => $"Mute {Format.Bold(Length?.Humanize() ?? "indefinitely")}";
 
         public TimeSpan? Length { get; set; }
     }
