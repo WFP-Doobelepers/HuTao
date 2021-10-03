@@ -198,6 +198,7 @@ namespace Zhongli.Bot.Modules
                 .AddField("Role", role.Mention, true)
                 .AddField("Mentionable", role.IsMentionable, true)
                 .AddField("Hoisted", role.IsHoisted, true)
+                .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true)
                 .WithCurrentTimestamp()
                 .WithUserAsAuthor(Context.Message.Author, AuthorOptions.Requested | AuthorOptions.UseFooter);
 
@@ -207,16 +208,18 @@ namespace Zhongli.Bot.Modules
         [Command("temporary create")]
         [Alias("tempcreate")]
         [Summary("Creates a temporary role that gets deleted after a specified time.")]
-        public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
+        public async Task TemporaryRoleCreateAsync(string name, long length, RoleCreationOptions? options = null)
         {
             GuildPermissions gperms = CreateGuildPermissions(options?.Perms ?? "");
+
+            TimeSpan ts = TimeSpan.FromTicks(length);
 
             var role = await Context.Guild.CreateRoleAsync(name,
                 gperms, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
-            await TemporaryRoleConvertAsync(role, length);
+            await TemporaryRoleConvertAsync(role, ts);
         }
 
         [Command]
@@ -246,10 +249,12 @@ namespace Zhongli.Bot.Modules
             }
         }
         
-        private GuildPermissions CreateGuildPermissions(string permissions) {
+        private GuildPermissions CreateGuildPermissions(string permissions) 
+        {
             GuildPermissions gperms = new GuildPermissions(createInstantInvite: true, addReactions: true, stream: true, sendMessages: true, sendTTSMessages: true, embedLinks: true, attachFiles: true, readMessageHistory: true, mentionEveryone: true, useExternalEmojis: true, connect:true, speak: true, changeNickname: true);
 
-            if(!Equals(permissions, "")) {
+            if(!Equals(permissions, "")) 
+            {
                 string[] perms = permissions.Split(" ");
 
                 var dict = new Dictionary<String, Boolean>();
