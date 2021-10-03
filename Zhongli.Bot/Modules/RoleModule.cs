@@ -111,8 +111,10 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a role.")]
         public async Task CreateRoleAsync(string name, RoleCreationOptions? options = null)
         {
+            GuildPermissions gperms = CreateGuildPermissions(options?.Perms ?? "");
+
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                gperms, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
@@ -207,8 +209,10 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a temporary role that gets deleted after a specified time.")]
         public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
         {
+            GuildPermissions gperms = CreateGuildPermissions(options?.Perms ?? "");
+
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                gperms, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
@@ -240,6 +244,25 @@ namespace Zhongli.Bot.Modules
                     await ViewRolesInfoAsync(roles);
                     break;
             }
+        }
+        
+        private GuildPermissions CreateGuildPermissions(string permissions) {
+            GuildPermissions gperms = new GuildPermissions(createInstantInvite: true, addReactions: true, stream: true, sendMessages: true, sendTTSMessages: true, embedLinks: true, attachFiles: true, readMessageHistory: true, mentionEveryone: true, useExternalEmojis: true, connect:true, speak: true, changeNickname: true);
+
+            if(!Equals(permissions, "")) {
+                string[] perms = permissions.Split(" ");
+
+                var dict = new Dictionary<String, Boolean>();
+
+                foreach(string p in perms)
+                {
+                    dict[p.ToLower()] = true;
+                }
+
+                gperms = gperms.Modify(/*createInstantInvite: dict.GetValueOrDefault("createinstantinvite", false),*/ kickMembers: dict.GetValueOrDefault("kickmembers", false), banMembers: dict.GetValueOrDefault("banmembers", false), administrator: dict.GetValueOrDefault("administrator", false), manageChannels: dict.GetValueOrDefault("managechannels", false), manageGuild: dict.GetValueOrDefault("manageguild", false), /*addReactions: dict.GetValueOrDefault("addreactions", false),*/ viewAuditLog: dict.GetValueOrDefault("viewauditlog", false), viewGuildInsights: dict.GetValueOrDefault("viewguildinsights", false), viewChannel: dict.GetValueOrDefault("viewchannel", false), /*sendMessages: dict.GetValueOrDefault("sendmessages", false),*/ /*sendTTSMessages: dict.GetValueOrDefault("sendttsmessages", false),*/ manageMessages: dict.GetValueOrDefault("managemessages", false), /*embedLinks: dict.GetValueOrDefault("embedlinks", false),*/ /*attachFiles: dict.GetValueOrDefault("attachfiles", false),*/ /*readMessageHistory: dict.GetValueOrDefault("readmessagehistory", false),*/ /*mentionEveryone: dict.GetValueOrDefault("mentioneveryone", false),*/ /*useExternalEmojis: dict.GetValueOrDefault("useexternalemojis", false),*/ /*connect: dict.GetValueOrDefault("connect", false),*/ /*speak: dict.GetValueOrDefault("speak", false),*/ muteMembers: dict.GetValueOrDefault("mutemembers", false), deafenMembers: dict.GetValueOrDefault("deafenmembers", false), moveMembers: dict.GetValueOrDefault("movemembers", false), useVoiceActivation: dict.GetValueOrDefault("usevoiceactivation", false), prioritySpeaker: dict.GetValueOrDefault("priorityspeaker", false), /*stream: dict.GetValueOrDefault("stream", false),*/ /*changeNickname: dict.GetValueOrDefault("changenickname", false),*/ manageNicknames: dict.GetValueOrDefault("managenicknames", false), manageRoles: dict.GetValueOrDefault("manageroles", false), manageWebhooks: dict.GetValueOrDefault("managewebhooks", false), manageEmojis: dict.GetValueOrDefault("manageemojis", false));
+            }
+
+            return gperms;
         }
 
         private static EmbedFieldBuilder CreateRoleEmbedField(SocketRole role)
@@ -306,7 +329,9 @@ namespace Zhongli.Bot.Modules
             public Color? Color { get; set; }
 
             [HelpSummary("List of permissions")]
-            public GuildPermissions? Permissions { get; set; }
+            public string? Perms { get; set ; }
+
+            public GuildPermissions? Permissions;
         }
     }
 }
