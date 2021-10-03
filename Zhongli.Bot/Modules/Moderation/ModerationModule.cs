@@ -121,7 +121,7 @@ namespace Zhongli.Bot.Modules.Moderation
                 var sb = new StringBuilder()
                     .AppendLine("List of channels with slowmode active:")
                     .AppendLine("--------------------------------------")
-                    .AppendLine("");
+                    .AppendLine();
 
                 foreach (var cn in channels)
                 {
@@ -129,13 +129,18 @@ namespace Zhongli.Bot.Modules.Moderation
                     sb.AppendLine($"{cn.Mention} => {cn.SlowModeInterval} seconds");
                 }
 
-                await ReplyAsync(sb.ToString());
+                var embed = new EmbedBuilder()
+                    .WithDescription(sb.ToString())
+                    .WithColor(Color.Green)
+                    .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+                await ReplyAsync(embed: embed.Build());
 
             }
             else
             {
-                channel ??= (ITextChannel)Context.Channel;
-                var seconds = (int)(length ?? TimeSpan.Zero).TotalSeconds;
+                channel ??= (ITextChannel) Context.Channel;
+                var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
                 await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
 
                 if (seconds is 0)
@@ -232,7 +237,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
         {
-            var details = new ReprimandDetails(user, (IGuildUser)Context.User, reason);
+            var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
 
             await _db.Users.TrackUserAsync(details);
             await _db.SaveChangesAsync();
