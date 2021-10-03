@@ -50,7 +50,7 @@ The location will be found according to the documentation for [user secrets](htt
 1. Install the dotnet-ef tools by running `dotnet tool install --global dotnet-ef`
 2. Run `dotnet ef database update --project ./Zhongli.Data/Zhongli.Data.csproj` to create the ZhongliContext database.
 3. Create an empty database with the same name that the `HangfireContext` uses.
-  > You can use the command `CREATE DATABSE HangfireContextName` in the `psql.exe` program found in the installation of postgres. [Guide](https://www.microfocus.com/documentation/idol/IDOL_12_0/MediaServer/Guides/html/English/Content/Getting_Started/Configure/_TRN_Set_up_PostgreSQL.htm)
+  > You can use the command `CREATE DATABASE HangfireContextName` in the `psql.exe` program found in the installation of postgres. [Guide](https://www.microfocus.com/documentation/idol/IDOL_12_0/MediaServer/Guides/html/English/Content/Getting_Started/Configure/_TRN_Set_up_PostgreSQL.htm)
 
 ### Testing
 There are no testing procedures yet, other than actually running the bot and testing it manually. In the future there should be projects that automate testing, aka TDD (Test Driven Development)
