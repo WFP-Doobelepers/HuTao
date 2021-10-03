@@ -78,6 +78,10 @@ namespace Zhongli.Services.Core.Listeners
                 new EnumFlagsTypeReader<RegexOptions>(
                     splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
+            _commands.AddTypeReader<GuildPermission>(
+                new EnumFlagsTypeReader<GuildPermission>(
+                    splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
             _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
