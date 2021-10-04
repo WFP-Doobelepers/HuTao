@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -38,7 +39,14 @@ namespace Zhongli.Bot.Modules.Censors
             collection.AddCriteria(exclusions);
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censors exclusions added")
+                .WithColor(Color.Green)
+                .AddField("Excluded: ", exclusions.ToCriteria().Humanize())
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("include")]

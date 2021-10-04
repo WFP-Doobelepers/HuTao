@@ -162,7 +162,7 @@ namespace Zhongli.Bot.Modules.Moderation
                     .Replace(nameof(Criterion), string.Empty)
                     .Pluralize().Humanize(LetterCasing.Title);
 
-                sb.AppendLine($"▌▌{GetGroupingName()}: {rules.Humanize()}");
+                sb.AppendLine($"▉ {GetGroupingName()}: {rules.Humanize()}");
             }
 
             return sb;

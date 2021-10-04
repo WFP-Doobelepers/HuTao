@@ -29,8 +29,11 @@ namespace Zhongli.Bot.Modules
         }
 
         [Command("avatar")]
-        [Summary("Get the avatar of the user")]
-        public async Task AvatarAsync(IUser? user = null)
+        [Alias("av")]
+        [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
+        public async Task AvatarAsync(
+            [Summary("The mention, username or ID of the user.")]
+            IUser? user = null)
         {
             user ??= Context.User;
 
@@ -85,8 +88,10 @@ namespace Zhongli.Bot.Modules
 
         [Command("user")]
         [Alias("whois")]
-        [Summary("Views the information of a user")]
-        public async Task UserAsync(IUser? user = null)
+        [Summary("Views the information of a user. Leave blank to view self.")]
+        public async Task UserAsync(
+            [Summary("The mention, username or ID of the user.")]
+            IUser? user = null)
         {
             user ??= Context.User;
 
@@ -105,8 +110,9 @@ namespace Zhongli.Bot.Modules
             {
                 embed
                     .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
+                    .WithColor(guildUser.Roles.OrderByDescending(r => r.Position).Select(x => x.Color).FirstOrDefault())
                     .AddField($"Roles ({guildUser.Roles.Count})",
-                        string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
+                        string.Join(" ", guildUser.Roles.OrderByDescending(r => r.Position).Select(r => r.Mention)));
 
                 if (isAuthorized && guild.ModerationRules.MuteRoleId is not null)
                 {
