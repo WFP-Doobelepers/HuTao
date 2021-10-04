@@ -120,7 +120,7 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("unban")]
         [Summary("Unban a user from the current guild.")]
-        [RequireAuthorization(AuthorizationScope.Mute)]
+        [RequireAuthorization(AuthorizationScope.Ban)]
         public async Task UnbanAsync(ulong userId, [Remainder] string? reason = null)
         {
             var user = await Context.Client.Rest.GetUserAsync(userId);
