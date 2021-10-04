@@ -28,6 +28,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor")]
     [Group("censor")]
     [Alias("censors")]
+    [Summary("Manages cencors and what action will be done to the user who triggers them.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class CensorModule : InteractiveTrigger<Censor>
     {

@@ -18,6 +18,7 @@ namespace Zhongli.Bot.Modules.Logging
     [Name("Logging Configuration")]
     [Group("log")]
     [Alias("logs", "logging")]
+    [Summary("Logging configuration.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class LoggingModule : ModuleBase<SocketCommandContext>
     {

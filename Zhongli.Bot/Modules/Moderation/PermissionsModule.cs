@@ -28,6 +28,7 @@ namespace Zhongli.Bot.Modules.Moderation
     [Group("permissions")]
     [Name("Permissions")]
     [Alias("perms", "perm")]
+    [Summary("Manages guild permissions.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
