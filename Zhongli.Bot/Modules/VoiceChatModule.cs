@@ -80,7 +80,7 @@ namespace Zhongli.Bot.Modules
             voiceChat.UserId = Context.User.Id;
             await _db.SaveChangesAsync();
 
-            await ReplyAsync("VC succesfully claimed");
+            await ReplyAsync("VC successfully claimed.");
 
         }
 
@@ -117,7 +117,6 @@ namespace Zhongli.Bot.Modules
             await _db.SaveChangesAsync();
 
             await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
-
         }
 
         [Command("hide")]
@@ -134,7 +133,7 @@ namespace Zhongli.Bot.Modules
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
                 new OverwritePermissions(viewChannel: PermValue.Deny));
 
-            await ReplyAsync("VC hidden");
+            await ReplyAsync("VC hidden.");
         }
 
         [Command("kick")]
@@ -173,7 +172,7 @@ namespace Zhongli.Bot.Modules
             await channel.ModifyAsync(c => c.UserLimit = new Optional<int?>((int?) limit));
 
             if (limit is null)
-                await ReplyAsync("Voice user limit reset");
+                await ReplyAsync("Voice user limit reset.");
             else
                 await ReplyAsync($"User limit set to {Format.Bold(limit + " user(s)")}.");
 
@@ -288,7 +287,7 @@ namespace Zhongli.Bot.Modules
         {
             var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
                 .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
-            
+
             if (voiceChat is null || voiceChat.UserId != Context.User.Id)
                 return;
 

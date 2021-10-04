@@ -72,7 +72,6 @@ namespace Zhongli.Bot.Modules.Logging
             }
 
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [Command("moderation rules")]

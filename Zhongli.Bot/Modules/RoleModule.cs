@@ -46,7 +46,7 @@ namespace Zhongli.Bot.Modules
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Select(x => x.Mention).Humanize()} to {user.Mention}.")
+                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -74,7 +74,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Select(x => x.Mention).Humanize()} to everyone.")
+                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -87,7 +87,10 @@ namespace Zhongli.Bot.Modules
         {
             await _member.AddTemporaryRoleMemberAsync(user, role, length);
             var embed = new EmbedBuilder()
-                .WithDescription($"Temporarily added {role.Mention} to {user.Mention}. {Environment.NewLine} Expires {length.ToUniversalTimestamp()}.")
+                .WithDescription(new StringBuilder()
+                    .AppendLine($"Temporarily added {role.Mention} to {user.Mention}.")
+                    .AppendLine($"Expires {length.ToUniversalTimestamp()}.")
+                    .ToString())
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());

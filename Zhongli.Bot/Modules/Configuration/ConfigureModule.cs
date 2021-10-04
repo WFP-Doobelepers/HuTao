@@ -140,8 +140,8 @@ namespace Zhongli.Bot.Modules.Configuration
                 .AddField("Purge Empty Voice Chats: ", guild.VoiceChatRules.PurgeEmpty, false)
                 .AddField("Show Join-Leave: ", guild.VoiceChatRules.ShowJoinLeave, false)
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+            
             await ReplyAsync(embed: embed.Build());
-
         }
 
         [NamedArgumentType]
