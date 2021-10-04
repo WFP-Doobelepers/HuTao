@@ -1,6 +1,6 @@
 ﻿using System;
-using Humanizer;
 using Discord;
+using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -8,9 +8,9 @@ namespace Zhongli.Services.Utilities
     public class GenericBitwise<T> where T : Enum
     {
         private readonly Func<T, T, T> _and;
-        private readonly Func<T, T>    _not;
         private readonly Func<T, T, T> _or;
         private readonly Func<T, T, T> _xor;
+        private readonly Func<T, T> _not;
 
         public GenericBitwise()
         {
