@@ -43,7 +43,6 @@ namespace Zhongli.Bot.Modules
         public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
         {
 
-
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
