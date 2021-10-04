@@ -31,9 +31,9 @@ namespace Zhongli.Bot.Modules
 
             if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
             {
-                await user.ModifyAsync(u => u.Channel = null);
                 await user.VoiceChannel.AddPermissionOverwriteAsync(user,
                     OverwritePermissions.DenyAll(user.VoiceChannel));
+                await user.ModifyAsync(u => u.Channel = null);
 
                 var textChannel = (IGuildChannel) Context.Channel;
                 await textChannel.AddPermissionOverwriteAsync(user,

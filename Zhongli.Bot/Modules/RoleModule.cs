@@ -107,7 +107,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription("Color changed succesfully")
+                .WithDescription("Color changed successfully")
                 .WithColor(color);
 
             await ReplyAsync(embed: embed.Build());
@@ -117,18 +117,20 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a role.")]
         public async Task CreateRoleAsync(string name, RoleCreationOptions? options = null)
         {
+            var guildPermissions = options?.Permissions?.ToGuildPermissions();
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                guildPermissions, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
+            var permissions = role.Permissions.ToList().Select(p => p.Humanize());
             var embed = new EmbedBuilder()
-                .WithDescription($"Created the following role: {role.Mention} with the provided options.")
                 .WithColor(role.Color)
-                .AddField("Hoisted: ", role.IsHoisted, true)
-                .AddField("Mentionable: ", role.IsMentionable, true)
-                .AddField("Color: ", Format.Code(role.Color.ToString()), true)
-                .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true);
+                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
+                .AddField("Hoisted", role.IsHoisted, true)
+                .AddField("Mentionable", role.IsMentionable, true)
+                .AddField("Color", role.Color, true)
+                .AddItemsIntoFields("Permissions", permissions, ", ");
 
             await ReplyAsync(embed: embed.Build());
         }
@@ -213,8 +215,9 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a temporary role that gets deleted after a specified time.")]
         public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
         {
+            var permissions = options?.Permissions?.ToGuildPermissions();
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                permissions, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
@@ -311,7 +314,7 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Choose the color of the role")]
             public Color? Color { get; set; }
 
-            [HelpSummary("List of permissions")] public GuildPermissions? Permissions { get; set; }
+            [HelpSummary("List of permissions")] public IEnumerable<GuildPermission>? Permissions { get; set; }
         }
     }
 }

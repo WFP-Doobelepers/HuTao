@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Discord;
 using Zhongli.Data.Models.Moderation;
 
 namespace Zhongli.Services.Utilities
@@ -7,6 +9,10 @@ namespace Zhongli.Services.Utilities
     {
         private static readonly GenericBitwise<ReprimandNoticeType> ReprimandNoticeTypeBitwise = new();
         private static readonly GenericBitwise<ReprimandOptions> ReprimandOptionsBitwise = new();
+        private static readonly GenericBitwise<GuildPermission> GuildPermissionBitwise = new();
+
+        public static GuildPermissions ToGuildPermissions(this IEnumerable<GuildPermission> permissions)
+            => new((uint) GuildPermissionBitwise.Or(permissions));
 
         public static ReprimandNoticeType SetValue(this ReprimandNoticeType options, ReprimandNoticeType flag,
             bool? state)
