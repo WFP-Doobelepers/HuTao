@@ -90,6 +90,8 @@ namespace Zhongli.Bot.Modules
         {
             user ??= Context.User;
 
+            var isAuthorized
+                = await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator);
             var userEntity = await _db.Users.FindAsync(user.Id, Context.Guild.Id);
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var guildUser = user as SocketGuildUser;
@@ -105,15 +107,15 @@ namespace Zhongli.Bot.Modules
                     .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
                     .AddField($"Roles ({guildUser.Roles.Count})",
                         string.Join(" ", guildUser.Roles.Select(r => r.Mention)));
+
+                if (isAuthorized && guild.ModerationRules.MuteRoleId is not null)
+                {
+                    var isMuted = guildUser.HasRole(guild.ModerationRules.MuteRoleId.Value);
+                    embed.AddField("Muted", isMuted, true);
+                }
             }
 
-            if (await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator)
-                && userEntity is not null)
-            {
-                embed
-                    .AddReprimands(userEntity)
-                    .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
-            }
+            if (isAuthorized && userEntity is not null) embed.AddReprimands(userEntity);
 
             await ReplyAsync(embed: embed.Build());
         }
