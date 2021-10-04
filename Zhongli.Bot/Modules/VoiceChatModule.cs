@@ -5,8 +5,8 @@ using Discord.Commands;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Config;
-using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Utilities;
 
@@ -41,11 +41,10 @@ namespace Zhongli.Bot.Modules
 
                 var embed = new EmbedBuilder()
                     .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                    .WithDescription($"User has been banned from the channel.")
+                    .WithDescription("User has been banned from the channel.")
                     .WithColor(Color.DarkRed);
 
                 await ReplyAsync(embed: embed.Build());
-
             }
         }
 
@@ -81,7 +80,6 @@ namespace Zhongli.Bot.Modules
             await _db.SaveChangesAsync();
 
             await ReplyAsync("VC successfully claimed.");
-
         }
 
         [Command("clean")]
@@ -151,7 +149,7 @@ namespace Zhongli.Bot.Modules
                 await user.ModifyAsync(u => u.Channel = null);
                 var embed = new EmbedBuilder()
                     .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                    .WithDescription($"User has been kicked from the channel.")
+                    .WithDescription("User has been kicked from the channel.")
                     .WithColor(Color.LightOrange);
 
                 await ReplyAsync(embed: embed.Build());
@@ -175,7 +173,6 @@ namespace Zhongli.Bot.Modules
                 await ReplyAsync("Voice user limit reset.");
             else
                 await ReplyAsync($"User limit set to {Format.Bold(limit + " user(s)")}.");
-
         }
 
         [Command("lock")]
@@ -196,7 +193,8 @@ namespace Zhongli.Bot.Modules
 
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
 
-            await ReplyAsync($"Voice chat locked successfully. Use {Format.Code(ZhongliConfig.Configuration.Prefix + "unlock")} to unlock.");
+            await ReplyAsync(
+                $"Voice chat locked successfully. Use {Format.Code(ZhongliConfig.Configuration.Prefix + "unlock")} to unlock.");
         }
 
         [Command("owner")]
@@ -257,7 +255,8 @@ namespace Zhongli.Bot.Modules
             voiceChat.UserId = user.Id;
             await _db.SaveChangesAsync();
 
-            await ReplyAsync($"Voice chat ownership successfully transferred to {Format.Bold(user.GetFullUsername())}.");
+            await ReplyAsync(
+                $"Voice chat ownership successfully transferred to {Format.Bold(user.GetFullUsername())}.");
         }
 
         [Command("unban")]
@@ -275,7 +274,7 @@ namespace Zhongli.Bot.Modules
 
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithDescription($"User has been unbanned from the channel.")
+                .WithDescription("User has been unbanned from the channel.")
                 .WithColor(Color.Blue);
 
             await ReplyAsync(embed: embed.Build());

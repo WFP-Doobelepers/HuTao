@@ -40,7 +40,6 @@ namespace Zhongli.Bot.Modules.Configuration
                 await ReplyAsync("Auto-pardon of notices has been disabled.");
             else
                 await ReplyAsync($"Notices will now be pardoned after {Format.Bold(length?.Humanize())}");
-
         }
 
         [Command("warning expiry")]
@@ -100,7 +99,6 @@ namespace Zhongli.Bot.Modules.Configuration
                 await ReplyAsync("Mute role has been configured.");
             else
                 await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
-
         }
 
         [Command("voice")]
@@ -134,13 +132,13 @@ namespace Zhongli.Bot.Modules.Configuration
                 .WithTitle("Voice Chat settings")
                 .WithDescription("Voice Chat Hub settings have been configured with the following:")
                 .WithColor(Color.Green)
-                .AddField("Hub Voice Channel: ", $"<#{hubVoiceChannel.Id}>", false)
-                .AddField("Voice Channel Category: ", $"<#{guild.VoiceChatRules.VoiceChannelCategoryId}>", false)
-                .AddField("Voice Chat Category: ", $"<#{guild.VoiceChatRules.VoiceChatCategoryId}>", false)
-                .AddField("Purge Empty Voice Chats: ", guild.VoiceChatRules.PurgeEmpty, false)
-                .AddField("Show Join-Leave: ", guild.VoiceChatRules.ShowJoinLeave, false)
+                .AddField("Hub Voice Channel: ", $"<#{hubVoiceChannel.Id}>")
+                .AddField("Voice Channel Category: ", $"<#{guild.VoiceChatRules.VoiceChannelCategoryId}>")
+                .AddField("Voice Chat Category: ", $"<#{guild.VoiceChatRules.VoiceChatCategoryId}>")
+                .AddField("Purge Empty Voice Chats: ", guild.VoiceChatRules.PurgeEmpty)
+                .AddField("Show Join-Leave: ", guild.VoiceChatRules.ShowJoinLeave)
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-            
+
             await ReplyAsync(embed: embed.Build());
         }
 

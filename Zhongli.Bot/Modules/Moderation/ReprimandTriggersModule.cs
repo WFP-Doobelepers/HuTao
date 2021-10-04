@@ -166,8 +166,8 @@ namespace Zhongli.Bot.Modules.Moderation
             var embed = new EmbedBuilder()
                 .WithTitle("Trigger added")
                 .WithColor(Color.Green)
-                .AddField("Action: ", trigger.Reprimand.Action, false)
-                .AddField("Trigger: ", trigger.GetTriggerDetails(), false)
+                .AddField("Action", trigger.Reprimand.Action)
+                .AddField("Trigger", trigger.GetTriggerDetails())
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());

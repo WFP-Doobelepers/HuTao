@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
@@ -5,12 +11,6 @@ using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
@@ -29,7 +29,7 @@ namespace Zhongli.Bot.Modules
         public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
         {
             _member = member;
-            _role = role;
+            _role   = role;
         }
 
         [Command("add")]
@@ -42,11 +42,11 @@ namespace Zhongli.Bot.Modules
         [Summary("Adds specified roles to a user.")]
         public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
         {
-
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to {user.Mention}.")
+                .WithDescription(
+                    $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -74,7 +74,8 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
+                .WithDescription(
+                    $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -106,7 +107,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Color changed succesfully")
+                .WithDescription("Color changed succesfully")
                 .WithColor(color);
 
             await ReplyAsync(embed: embed.Build());
@@ -287,7 +288,7 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages = fields,
+                Pages  = fields,
                 Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
                 Options = new PaginatedAppearanceOptions
                 {
@@ -310,8 +311,7 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Choose the color of the role")]
             public Color? Color { get; set; }
 
-            [HelpSummary("List of permissions")]
-            public GuildPermissions? Permissions { get; set; }
+            [HelpSummary("List of permissions")] public GuildPermissions? Permissions { get; set; }
         }
     }
 }

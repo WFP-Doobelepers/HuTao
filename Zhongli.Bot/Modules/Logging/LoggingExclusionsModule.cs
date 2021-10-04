@@ -1,10 +1,10 @@
-using Discord;
-using Discord.Commands;
-using Humanizer;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Discord;
+using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -43,7 +43,7 @@ namespace Zhongli.Bot.Modules.Logging
             var embed = new EmbedBuilder()
                 .WithTitle("Logging exclusions added")
                 .WithColor(Color.Green)
-                .AddField("Excluded: ", exclusions.ToCriteria().Humanize(), false)
+                .AddField("Excluded: ", exclusions.ToCriteria().Humanize())
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());

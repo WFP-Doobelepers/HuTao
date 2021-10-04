@@ -1,11 +1,11 @@
+using System.Linq;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Discord.WebSocket;
 using Humanizer;
-using System.Linq;
-using System.Threading.Tasks;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -25,7 +25,25 @@ namespace Zhongli.Bot.Modules
         public UserModule(AuthorizationService auth, ZhongliContext db)
         {
             _auth = auth;
-            _db = db;
+            _db   = db;
+        }
+
+        [Command("avatar")]
+        [Alias("av")]
+        [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
+        public async Task AvatarAsync(
+            [Summary("The mention, username or ID of the user.")]
+            IUser? user = null)
+        {
+            user ??= Context.User;
+
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+                .WithImageUrl(user.GetAvatarUrl(size: 2048))
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("history")]
@@ -56,12 +74,12 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages = reprimands.Concat(pages),
+                Pages  = reprimands.Concat(pages),
                 Author = new EmbedAuthorBuilder().WithName($"{user}"),
                 Options = new PaginatedAppearanceOptions
                 {
                     DisplayInformationIcon = false,
-                    FieldsPerPage = 8
+                    FieldsPerPage          = 8
                 }
             };
 
@@ -102,24 +120,6 @@ namespace Zhongli.Bot.Modules
                     .AddReprimands(userEntity)
                     .AddField("Muted", guildUser?.HasRole(guild.ModerationRules.MuteRoleId ?? 0), true);
             }
-
-            await ReplyAsync(embed: embed.Build());
-        }
-
-        [Command("avatar")]
-        [Alias("av")]
-        [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
-        public async Task AvatarAsync(
-            [Summary("The mention, username or ID of the user.")]
-            IUser? user = null)
-        {
-            user ??= Context.User;
-
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-                .WithImageUrl(user.GetAvatarUrl(size: 2048))
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
             await ReplyAsync(embed: embed.Build());
         }

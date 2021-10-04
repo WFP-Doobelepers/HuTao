@@ -142,14 +142,15 @@ namespace Zhongli.Services.Core.Listeners
             await Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
         }
 
-        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages, ISocketMessageChannel channel)
-        {
-            await Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
-        }
-
         private async Task OnMessageReceivedAsync(SocketMessage message)
         {
             await Mediator.Publish(new MessageReceivedNotification(message), _cancellationToken);
+        }
+
+        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages,
+            ISocketMessageChannel channel)
+        {
+            await Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
         }
 
         private async Task OnMessageUpdatedAsync(
@@ -207,6 +208,4 @@ namespace Zhongli.Services.Core.Listeners
             await Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
         }
     }
-
-
 }
