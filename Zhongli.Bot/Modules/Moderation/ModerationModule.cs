@@ -39,7 +39,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(IUser user, uint deleteDays = 1, TimeSpan? length = null,
+        public async Task BanAsync(IUser user, uint deleteDays = 0, TimeSpan? length = null,
             [Remainder] string? reason = null)
         {
             var details = await GetDetailsAsync(user, reason);
@@ -62,7 +62,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [HiddenFromHelp]
         [Summary("Ban a user permanently from the current guild, and delete messages.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public Task BanAsync(IUser user, uint deleteDays = 1, [Remainder] string? reason = null)
+        public Task BanAsync(IUser user, uint deleteDays = 0, [Remainder] string? reason = null)
             => BanAsync(user, deleteDays, null, reason);
         
         [Command("kick")]
