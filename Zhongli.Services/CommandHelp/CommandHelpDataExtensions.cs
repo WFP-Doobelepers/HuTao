@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
+using Humanizer;
 using Zhongli.Data.Config;
 using Zhongli.Services.Utilities;
 
@@ -59,13 +60,9 @@ namespace Zhongli.Services.CommandHelp
             if (aliases.Count == 0)
                 return builder;
 
-            builder.AppendLine(Format.Bold("Aliases:"));
-
-            foreach (var alias in FormatUtilities.CollapsePlurals(aliases))
-            {
-                builder.AppendLine($"• {ZhongliConfig.Configuration.Prefix}{alias}");
-            }
-
+            builder.AppendLine(Format.Bold("Aliases:"))
+                .AppendLine($"{FormatUtilities.CollapsePlurals((aliases)).Humanize()}");
+            
             return builder;
         }
 
