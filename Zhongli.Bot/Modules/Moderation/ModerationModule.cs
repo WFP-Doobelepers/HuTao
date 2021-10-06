@@ -6,6 +6,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
@@ -38,7 +39,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(IUser user, uint deleteDays = 1, TimeSpan? length = null,
+        public async Task BanAsync(IUser user, uint deleteDays = 0, TimeSpan? length = null,
             [Remainder] string? reason = null)
         {
             var details = await GetDetailsAsync(user, reason);
@@ -50,6 +51,20 @@ namespace Zhongli.Bot.Modules.Moderation
                 await ReplyReprimandAsync(result, details);
         }
 
+        [Command("ban")]
+        [HiddenFromHelp]
+        [Summary("Ban a user permanently from the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public Task BanAsync(IUser user, [Remainder] string? reason = null)
+            => BanAsync(user, 0, null, reason);
+        
+        [Command("ban")]
+        [HiddenFromHelp]
+        [Summary("Ban a user permanently from the current guild, and delete messages.")]
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public Task BanAsync(IUser user, uint deleteDays = 0, [Remainder] string? reason = null)
+            => BanAsync(user, deleteDays, null, reason);
+        
         [Command("kick")]
         [Summary("Kick a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Kick)]
