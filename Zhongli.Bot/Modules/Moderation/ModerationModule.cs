@@ -75,7 +75,12 @@ namespace Zhongli.Bot.Modules.Moderation
                     sb.AppendLine(u.GetFullUsername());
             }
 
-            if (sb.Length is not 0)
+            if (sb.Length is 0)
+            {
+                await _error.AssociateError(Context.Message, fail.ToString());
+
+            }
+            else
             {
                 var embed = new EmbedBuilder()
                     .WithTitle($"Banned {users.Length - fails} user(s).")
@@ -83,12 +88,6 @@ namespace Zhongli.Bot.Modules.Moderation
 
                 await ReplyAsync(embed: embed.Build());
             }
-            else
-            {
-                await _error.AssociateError(Context.Message, fail.ToString());
-            }
-        
-
         }
 
         [Command("kick")]
