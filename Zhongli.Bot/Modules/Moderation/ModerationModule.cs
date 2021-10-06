@@ -65,7 +65,6 @@ namespace Zhongli.Bot.Modules.Moderation
         public Task BanAsync(IUser user, uint deleteDays = 1, [Remainder] string? reason = null)
             => BanAsync(user, deleteDays, null, reason);
         
-
         [Command("kick")]
         [Summary("Kick a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Kick)]
