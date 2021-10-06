@@ -128,8 +128,9 @@ namespace Zhongli.Bot.Modules.Moderation
             }
             else
             {
+                length  ??= TimeSpan.Zero;
                 channel ??= (ITextChannel) Context.Channel;
-                var seconds = (int) (length ?? TimeSpan.Zero).TotalSeconds;
+                var seconds = (int) length.Value.TotalSeconds;
                 await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
 
                 if (seconds is 0)
@@ -138,8 +139,8 @@ namespace Zhongli.Bot.Modules.Moderation
                 {
                     var embed = new EmbedBuilder()
                         .WithTitle("Slowmode enabled")
-                        .AddField("Channel: ", channel.Mention, true)
-                        .AddField("Delay: ", length?.Humanize(3), true)
+                        .AddField("Channel", channel.Mention, true)
+                        .AddField("Delay", length.Value.Humanize(3), true)
                         .WithColor(Color.Green)
                         .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
