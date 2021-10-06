@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
@@ -150,7 +151,7 @@ namespace Zhongli.Bot.Modules.Moderation
                     var embed = new EmbedBuilder()
                         .WithTitle("Slowmode enabled")
                         .AddField("Channel: ", channel.Mention, true)
-                        .AddField("Delay: ", seconds + "s", true)
+                        .AddField("Delay: ", length?.Humanize(3), true)
                         .WithColor(Color.Green)
                         .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
