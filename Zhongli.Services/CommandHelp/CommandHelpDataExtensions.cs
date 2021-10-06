@@ -61,7 +61,7 @@ namespace Zhongli.Services.CommandHelp
                 return builder;
 
             builder.AppendLine(Format.Bold("Aliases:"))
-                .AppendLine($"{FormatUtilities.CollapsePlurals((aliases)).Humanize()}");
+                .AppendLine(FormatUtilities.CollapsePlurals((aliases)).Humanize(a => Format.Code(a)));
             
             return builder;
         }
