@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -140,6 +142,21 @@ namespace Zhongli.Bot.Modules.Censors
 
             await AddCensor(censor, options);
             await ReplyCensorAsync(censor);
+        }
+
+        [Command("test")]
+        [Alias("testword")]
+        [Summary("Test whether a word is in the list of censors or not.")]
+        public async Task TestCensorAsync(string word)
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            var matches = guild.ModerationRules.Triggers.OfType<Censor>()
+                .Where(c => c.Regex().IsMatch(word)).ToList();
+            
+            if (matches.Any())
+                await PagedViewAsync(matches);
+            else
+                await ReplyAsync("No matches found.");
         }
 
         [Command]
