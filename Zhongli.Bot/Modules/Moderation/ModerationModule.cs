@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -48,6 +49,46 @@ namespace Zhongli.Bot.Modules.Moderation
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
             else
                 await ReplyReprimandAsync(result, details);
+        }
+        
+        [Command("massban")]
+        [Summary("Ban a list of users permanently from the current guild, and delete messages.")]
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public async Task MassBanAsync(uint deleteDays = 1, string? reason = null, params IUser[] users)
+        {
+            var sb = new StringBuilder();
+            var fail = new StringBuilder();
+            var fails = 0;
+
+            foreach (var u in users)
+            {
+                var details = await GetDetailsAsync(u, reason);
+                var result = await _moderation.TryBanAsync(deleteDays, null, details);
+
+                if (result is null)
+                {
+                    fail.AppendLine($"Failed to ban {u.GetFullUsername()}");
+                    fails += 1;                    
+                }
+
+                else
+                    sb.AppendLine(u.GetFullUsername());
+            }
+
+            if (sb.Length is not 0)
+            {
+                var embed = new EmbedBuilder()
+                    .WithTitle($"Banned {users.Length - fails} user(s).")
+                    .WithDescription(sb.ToString() + fail);
+
+                await ReplyAsync(embed: embed.Build());
+            }
+            else
+            {
+                await _error.AssociateError(Context.Message, fail.ToString());
+            }
+        
+
         }
 
         [Command("kick")]
