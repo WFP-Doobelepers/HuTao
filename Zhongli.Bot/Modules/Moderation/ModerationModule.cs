@@ -1,9 +1,8 @@
-using Discord;
-using Discord.Commands;
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Discord;
+using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
@@ -33,9 +32,9 @@ namespace Zhongli.Bot.Modules.Moderation
             ModerationService moderation)
         {
             _error = error;
-            _db = db;
+            _db    = db;
 
-            _logging = logging;
+            _logging    = logging;
             _moderation = moderation;
         }
 
@@ -117,24 +116,15 @@ namespace Zhongli.Bot.Modules.Moderation
             if (length is null && channel is null)
             {
                 var channels = Context.Guild.Channels.OfType<ITextChannel>().Where(c => c.SlowModeInterval is not 0);
-                var sb = new StringBuilder()
-                    .AppendLine("List of channels with slowmode active:")
-                    .AppendLine("--------------------------------------")
-                    .AppendLine();
-
-                foreach (var cn in channels)
-                {
-
-                    sb.AppendLine($"{cn.Mention} => {cn.SlowModeInterval} seconds");
-                }
 
                 var embed = new EmbedBuilder()
-                    .WithDescription(sb.ToString())
+                    .WithTitle("List of channels with slowmode active")
+                    .AddItemsIntoFields("Channels", channels,
+                        c => $"{c.Mention} => {c.SlowModeInterval.Seconds().Humanize()}")
                     .WithColor(Color.Green)
                     .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
                 await ReplyAsync(embed: embed.Build());
-
             }
             else
             {
