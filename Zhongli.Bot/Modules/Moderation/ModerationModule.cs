@@ -115,7 +115,9 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             if (length is null && channel is null)
             {
-                var channels = Context.Guild.Channels.OfType<ITextChannel>().Where(c => c.SlowModeInterval is not 0);
+                var channels = Context.Guild.Channels.OfType<ITextChannel>()
+                    .Where(c => c.SlowModeInterval is not 0)
+                    .OrderBy(c => c.Position);
 
                 var embed = new EmbedBuilder()
                     .WithTitle("List of channels with slowmode active")
