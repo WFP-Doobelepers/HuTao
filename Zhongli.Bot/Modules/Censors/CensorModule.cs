@@ -56,7 +56,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("add")]
@@ -69,7 +69,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, null, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("kick")]
@@ -82,7 +82,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("mute")]
@@ -97,7 +97,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("note")]
@@ -110,7 +110,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("notice")]
@@ -123,7 +123,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command("warning")]
@@ -139,7 +139,7 @@ namespace Zhongli.Bot.Modules.Censors
             var censor = new Censor(pattern, trigger, options);
 
             await AddCensor(censor, options);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyCensorAsync(censor);
         }
 
         [Command]
@@ -154,8 +154,8 @@ namespace Zhongli.Bot.Modules.Censors
                 .AppendLine($"▌Options: {censor.Options.Humanize()}")
                 .AppendLine($"▌Reprimand: {censor.Reprimand?.Action ?? "None"}")
                 .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
-                .AppendLine($"▌▌Active: {censor.IsActive}")
-                .AppendLine($"▌▌Modified by: {censor.GetModerator()}");
+                .AppendLine($"▉ Active: {censor.IsActive}")
+                .AppendLine($"▉ Modified by: {censor.GetModerator()}");
 
             return (censor.Id.ToString(), value);
         }
@@ -179,6 +179,20 @@ namespace Zhongli.Bot.Modules.Censors
                 .Add(censor.WithModerator(Context));
 
             await _db.SaveChangesAsync();
+        }
+
+        private async Task ReplyCensorAsync(Censor censor)
+        {
+            var (title, value) = EntityViewer(censor);
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Censor added successfully.")
+                .WithDescription(value.ToString())
+                .AddField("ID", title)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [NamedArgumentType]

@@ -31,13 +31,9 @@ namespace Zhongli.Services.CommandHelp
         private static bool HasSummary(this IEnumerable<ParameterHelpData> parameters) =>
             parameters.Any(p => !string.IsNullOrWhiteSpace(p.Summary));
 
-        private static string GetParamName(ParameterHelpData parameter)
-        {
-
-            return parameter.GetRealType().IsEnum
-                ? Surround(parameter.Name, parameter.IsOptional)
-                : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
-        }
+        private static string GetParamName(ParameterHelpData parameter) => parameter.GetRealType().IsEnum
+            ? Surround(parameter.Name, parameter.IsOptional)
+            : Surround($"{parameter.Name}: {parameter.GetParamTypeName()}", parameter.IsOptional);
 
         private static string GetParams(this CommandHelpData info)
         {

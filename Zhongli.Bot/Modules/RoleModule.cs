@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Addons.Interactive.Paginator;
@@ -5,16 +11,9 @@ using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
-using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Bot.Modules
 {
@@ -30,7 +29,7 @@ namespace Zhongli.Bot.Modules
         public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
         {
             _member = member;
-            _role = role;
+            _role   = role;
         }
 
         [Command("add")]
@@ -43,12 +42,11 @@ namespace Zhongli.Bot.Modules
         [Summary("Adds specified roles to a user.")]
         public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
         {
-
-
             await user.AddRolesAsync(roles);
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {user.Mention}.")
+                .WithDescription(
+                    $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to {user.Mention}.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -76,7 +74,8 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(roles.Humanize())} to everyone.")
+                .WithDescription(
+                    $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -88,7 +87,14 @@ namespace Zhongli.Bot.Modules
         public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
         {
             await _member.AddTemporaryRoleMemberAsync(user, role, length);
-            await ReplyAsync($"Added {Format.Bold(role.Name)} to {Format.Bold(user.GetFullUsername())} that ends {length.ToUniversalTimestamp()}.");
+            var embed = new EmbedBuilder()
+                .WithDescription(new StringBuilder()
+                    .AppendLine($"Temporarily added {role.Mention} to {user.Mention}.")
+                    .AppendLine($"Expires {length.ToUniversalTimestamp()}.")
+                    .ToString())
+                .WithColor(Color.Green);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("color")]
@@ -101,7 +107,7 @@ namespace Zhongli.Bot.Modules
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Color changed succesfully")
+                .WithDescription("Color changed successfully")
                 .WithColor(color);
 
             await ReplyAsync(embed: embed.Build());
@@ -111,18 +117,20 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a role.")]
         public async Task CreateRoleAsync(string name, RoleCreationOptions? options = null)
         {
+            var guildPermissions = options?.Permissions?.ToGuildPermissions();
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                guildPermissions, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
+            var permissions = role.Permissions.ToList().Select(p => p.Humanize());
             var embed = new EmbedBuilder()
-                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
                 .WithColor(role.Color)
-                .AddField("Hoisted: ", role.IsHoisted, true)
-                .AddField("Mentionable: ", role.IsMentionable, true)
-                .AddField("Color: ", role.Color, true)
-                .AddField("Permissions: ", role.Permissions.ToList().Humanize(p => p.Humanize()), true);
+                .WithDescription($"Created the following role: {Format.Bold(role.Name)} with the provided options.")
+                .AddField("Hoisted", role.IsHoisted, true)
+                .AddField("Mentionable", role.IsMentionable, true)
+                .AddField("Color", role.Color, true)
+                .AddItemsIntoFields("Permissions", permissions, ", ");
 
             await ReplyAsync(embed: embed.Build());
         }
@@ -207,8 +215,9 @@ namespace Zhongli.Bot.Modules
         [Summary("Creates a temporary role that gets deleted after a specified time.")]
         public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
         {
+            var permissions = options?.Permissions?.ToGuildPermissions();
             var role = await Context.Guild.CreateRoleAsync(name,
-                options?.Permissions, options?.Color,
+                permissions, options?.Color,
                 options?.IsHoisted ?? false,
                 options?.IsMentionable ?? false);
 
@@ -282,7 +291,7 @@ namespace Zhongli.Bot.Modules
 
             var message = new PaginatedMessage
             {
-                Pages = fields,
+                Pages  = fields,
                 Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
                 Options = new PaginatedAppearanceOptions
                 {
@@ -305,8 +314,7 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Choose the color of the role")]
             public Color? Color { get; set; }
 
-            [HelpSummary("List of permissions")]
-            public GuildPermissions? Permissions { get; set; }
+            [HelpSummary("List of permissions")] public IEnumerable<GuildPermission>? Permissions { get; set; }
         }
     }
 }

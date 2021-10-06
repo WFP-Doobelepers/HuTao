@@ -4,7 +4,11 @@ using Discord;
 using Discord.Commands;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
+using Zhongli.Data.Config;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.VoiceChat;
+using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
 {
@@ -27,15 +31,20 @@ namespace Zhongli.Bot.Modules
 
             if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
             {
-                await user.ModifyAsync(u => u.Channel = null);
                 await user.VoiceChannel.AddPermissionOverwriteAsync(user,
                     OverwritePermissions.DenyAll(user.VoiceChannel));
+                await user.ModifyAsync(u => u.Channel = null);
 
                 var textChannel = (IGuildChannel) Context.Channel;
                 await textChannel.AddPermissionOverwriteAsync(user,
                     OverwritePermissions.DenyAll(textChannel));
 
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
+                var embed = new EmbedBuilder()
+                    .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                    .WithDescription("User has been banned from the channel.")
+                    .WithColor(Color.DarkRed);
+
+                await ReplyAsync(embed: embed.Build());
             }
         }
 
@@ -70,10 +79,11 @@ namespace Zhongli.Bot.Modules
             voiceChat.UserId = Context.User.Id;
             await _db.SaveChangesAsync();
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyAsync("VC successfully claimed.");
         }
 
         [Command("clean")]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
         [Summary("Clean up unused Voice Chats.")]
         public async Task CleanAsync()
         {
@@ -83,6 +93,7 @@ namespace Zhongli.Bot.Modules
                 return;
 
             var voiceChats = guild.VoiceChatRules.VoiceChats.ToList();
+
             var empty = voiceChats.ToAsyncEnumerable()
                 .Select(v => new
                 {
@@ -102,7 +113,8 @@ namespace Zhongli.Bot.Modules
             }
 
             await _db.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+
+            await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
         }
 
         [Command("hide")]
@@ -119,7 +131,7 @@ namespace Zhongli.Bot.Modules
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
                 new OverwritePermissions(viewChannel: PermValue.Deny));
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyAsync("VC hidden.");
         }
 
         [Command("kick")]
@@ -135,7 +147,12 @@ namespace Zhongli.Bot.Modules
             if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
             {
                 await user.ModifyAsync(u => u.Channel = null);
-                await Context.Message.AddReactionAsync(new Emoji("✅"));
+                var embed = new EmbedBuilder()
+                    .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                    .WithDescription("User has been kicked from the channel.")
+                    .WithColor(Color.LightOrange);
+
+                await ReplyAsync(embed: embed.Build());
             }
         }
 
@@ -152,7 +169,10 @@ namespace Zhongli.Bot.Modules
             var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             await channel.ModifyAsync(c => c.UserLimit = new Optional<int?>((int?) limit));
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            if (limit is null)
+                await ReplyAsync("Voice user limit reset.");
+            else
+                await ReplyAsync($"User limit set to {Format.Bold(limit + " user(s)")}.");
         }
 
         [Command("lock")]
@@ -172,6 +192,9 @@ namespace Zhongli.Bot.Modules
                 ?? new OverwritePermissions(connect: PermValue.Deny);
 
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
+
+            await ReplyAsync(
+                $"Voice chat locked successfully. Use {Format.Code(ZhongliConfig.Configuration.Prefix + "unlock")} to unlock.");
         }
 
         [Command("owner")]
@@ -185,7 +208,7 @@ namespace Zhongli.Bot.Modules
                 return;
 
             var owner = Context.Guild.GetUser(voiceChat.UserId);
-            await ReplyAsync($"The current owner is {owner}.");
+            await ReplyAsync($"The current owner is {Format.Bold(owner.GetFullUsername())}.");
         }
 
         [Command("reveal")]
@@ -204,7 +227,7 @@ namespace Zhongli.Bot.Modules
                 ?? new OverwritePermissions(viewChannel: PermValue.Inherit);
 
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyAsync("Voice chat revealed.");
         }
 
         [Command("transfer")]
@@ -232,7 +255,8 @@ namespace Zhongli.Bot.Modules
             voiceChat.UserId = user.Id;
             await _db.SaveChangesAsync();
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyAsync(
+                $"Voice chat ownership successfully transferred to {Format.Bold(user.GetFullUsername())}.");
         }
 
         [Command("unban")]
@@ -248,7 +272,12 @@ namespace Zhongli.Bot.Modules
             var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
             await voiceChannel.RemovePermissionOverwriteAsync(user);
 
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            var embed = new EmbedBuilder()
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                .WithDescription("User has been unbanned from the channel.")
+                .WithColor(Color.Blue);
+
+            await ReplyAsync(embed: embed.Build());
         }
 
         [Command("unlock")]
@@ -267,7 +296,7 @@ namespace Zhongli.Bot.Modules
                 ?? new OverwritePermissions(connect: PermValue.Inherit);
 
             await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
+            await ReplyAsync("Voice chat unlocked successfully.");
         }
     }
 }

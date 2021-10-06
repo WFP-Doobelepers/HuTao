@@ -42,10 +42,9 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("ban")]
         [Summary("Ban a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
-        public async Task BanAsync(ulong userId, uint deleteDays = 1, TimeSpan? length = null,
+        public async Task BanAsync(IUser user, uint deleteDays = 1, TimeSpan? length = null,
             [Remainder] string? reason = null)
         {
-            var user = await Context.Client.Rest.GetUserAsync(userId);
             var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryBanAsync(deleteDays, length, details);
 
@@ -115,7 +114,6 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireUserPermission(ChannelPermission.ManageChannels)]
         public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         {
-
             if (length is null && channel is null)
             {
                 var channels = Context.Guild.Channels.OfType<ITextChannel>().Where(c => c.SlowModeInterval is not 0);
@@ -168,11 +166,9 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("unban")]
         [Summary("Unban a user from the current guild.")]
-        [RequireAuthorization(AuthorizationScope.Mute)]
-        public async Task UnbanAsync(ulong userId, [Remainder] string? reason = null)
+        [RequireAuthorization(AuthorizationScope.Ban)]
+        public async Task UnbanAsync(IUser user, [Remainder] string? reason = null)
         {
-            var user = await Context.Client.Rest.GetUserAsync(userId);
-
             var details = await GetDetailsAsync(user, reason);
             var result = await _moderation.TryUnbanAsync(details);
 
