@@ -151,7 +151,7 @@ namespace Zhongli.Bot.Modules.Censors
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var matches = guild.ModerationRules.Triggers.OfType<Censor>()
-                .Where(c => c.Regex().IsMatch(word));
+                .Where(c => c.Regex().IsMatch(word)).ToList();
             
             if (matches.Any())
                 await PagedViewAsync(matches);
