@@ -59,14 +59,14 @@ namespace Zhongli.Bot.Modules.Moderation
         [RequireAuthorization(AuthorizationScope.Ban)]
         public Task BanAsync(IUser user, [Remainder] string? reason = null)
             => BanAsync(user, 0, null, reason);
-        
+
         [Command("ban")]
         [HiddenFromHelp]
         [Summary("Ban a user permanently from the current guild, and delete messages.")]
         [RequireAuthorization(AuthorizationScope.Ban)]
         public Task BanAsync(IUser user, uint deleteDays = 0, [Remainder] string? reason = null)
             => BanAsync(user, deleteDays, null, reason);
-        
+
         [Command("kick")]
         [Summary("Kick a user from the current guild.")]
         [RequireAuthorization(AuthorizationScope.Kick)]
@@ -130,6 +130,7 @@ namespace Zhongli.Bot.Modules.Moderation
             if (length is null && channel is null)
             {
                 var channels = Context.Guild.Channels.OfType<ITextChannel>()
+                    .Where(c => c is not INewsChannel)
                     .Where(c => c.SlowModeInterval is not 0)
                     .OrderBy(c => c.Position);
 
