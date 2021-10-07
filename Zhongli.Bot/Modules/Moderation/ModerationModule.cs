@@ -101,7 +101,6 @@ namespace Zhongli.Bot.Modules.Moderation
 
         [Command("note")]
         [Summary("Add a note to a user. Notes are always silent.")]
-        [RequireUserPermission(GuildPermission.KickMembers)]
         [RequireAuthorization(AuthorizationScope.Warning)]
         public async Task NoteAsync(IGuildUser user, [Remainder] string? note = null)
         {
@@ -124,7 +123,7 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("slowmode")]
         [Summary("Set a slowmode in the channel.")]
         [RequireBotPermission(ChannelPermission.ManageChannels)]
-        [RequireUserPermission(ChannelPermission.ManageChannels)]
+        [RequireAuthorization(AuthorizationScope.Helper)]
         public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         {
             if (length is null && channel is null)
@@ -169,6 +168,8 @@ namespace Zhongli.Bot.Modules.Moderation
         [Command("slowmode")]
         [HiddenFromHelp]
         [Summary("Set a slowmode in the channel.")]
+        [RequireBotPermission(ChannelPermission.ManageChannels)]
+        [RequireAuthorization(AuthorizationScope.Helper)]
         public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null)
             => SlowmodeAsync(length, channel);
 
