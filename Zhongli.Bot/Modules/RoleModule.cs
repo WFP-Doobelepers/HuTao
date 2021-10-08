@@ -418,7 +418,6 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Include users that contain these roles.")]
             public IEnumerable<IRole>? Roles { get; set; }
 
-
             [HelpSummary("Include users whose username contains this string.")]
             public string? UserContains { get; set; }
 
