@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
+using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,6 +17,8 @@ namespace Zhongli.Data.Models.Discord
             JoinedAt = user.JoinedAt;
             Nickname = user.Nickname;
         }
+
+        public GuildUserEntity(SocketUser user) : this(user, user.MutualGuilds.ElementAt(0)) { }
 
         public GuildUserEntity(IUser user, IGuild guild)
         {
