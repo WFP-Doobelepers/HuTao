@@ -228,22 +228,29 @@ namespace Zhongli.Services.Moderation
             var muteRole = guildEntity.ModerationRules.MuteRoleId;
             if (muteRole is null) return null;
 
-            await user.AddRoleAsync(muteRole.Value);
-            if (user.VoiceChannel is not null)
-                await user.ModifyAsync(u => u.Mute = true);
-
-            if (activeMute is not null)
+            try
             {
-                if (!guildEntity.ModerationRules.ReplaceMutes)
-                    return null;
+                await user.AddRoleAsync(muteRole.Value);
+                if (user.VoiceChannel is not null)
+                    await user.ModifyAsync(u => u.Mute = true);
 
-                await ExpireReprimandAsync(activeMute, cancellationToken);
+                if (activeMute is not null)
+                {
+                    if (!guildEntity.ModerationRules.ReplaceMutes)
+                        return null;
+
+                    await ExpireReprimandAsync(activeMute, cancellationToken);
+                }
+
+                var mute = _db.Add(new Mute(length, details)).Entity;
+                await _db.SaveChangesAsync(cancellationToken);
+
+                return await PublishReprimandAsync(mute, details, cancellationToken);
             }
-
-            var mute = _db.Add(new Mute(length, details)).Entity;
-            await _db.SaveChangesAsync(cancellationToken);
-
-            return await PublishReprimandAsync(mute, details, cancellationToken);
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            {
+                return null;
+            }
         }
 
         public async Task<ReprimandResult> NoteAsync(ReprimandDetails details,
