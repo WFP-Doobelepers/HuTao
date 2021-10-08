@@ -105,7 +105,7 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task SayAsync(ITextChannel? channel, [Remainder] string message)
         {
             channel ??= (ITextChannel) Context.Channel;
-            await channel.SendMessageAsync(message);
+            await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
         }
 
         [Command("say")]
