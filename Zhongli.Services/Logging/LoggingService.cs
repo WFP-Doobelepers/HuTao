@@ -41,10 +41,21 @@ namespace Zhongli.Services.Logging
             var oldUser = notification.OldMember;
             var newUser = notification.NewMember;
 
-            if (oldUser.Nickname == newUser.Nickname && oldUser.GetAvatarUrl() == newUser.GetAvatarUrl() && newUser.Id == oldUser.Id) return;
+            if (oldUser.Nickname == newUser.Nickname) return;
 
             var log = LogUser(oldUser, newUser, cancellationToken);
             await PublishLogAsync(log, LogType.UserUpdated, newUser.Guild, cancellationToken);
+        }
+
+        public async Task LogAsync(UserUpdatedNotification notification, CancellationToken cancellationToken)
+        {
+            var oldUser = notification.OldUser;
+            var newUser = notification.NewUser;
+
+            if (oldUser.ToString() == newUser.ToString() && oldUser.GetAvatarUrl() == newUser.GetAvatarUrl()) return;
+
+            var log = LogUser(oldUser, newUser, cancellationToken);
+            await PublishLogAsync(log, LogType.UserUpdated, oldUser.MutualGuilds, cancellationToken);
         }
 
         public async Task LogAsync(UserLeftNotification notification, CancellationToken cancellationToken)
@@ -151,7 +162,7 @@ namespace Zhongli.Services.Logging
 
             StringBuilder content = new StringBuilder()
                 .AppendLine($"Nickname: {log.User.Nickname}")
-                .AppendLine($"ID: {log.User}")
+                .AppendLine($"Username: {log.User}")
                 .AppendLine($"Avatar: {log.AvatarURL}");
 
 
@@ -163,15 +174,16 @@ namespace Zhongli.Services.Logging
             var updated = log.OldUser;
             if(updated is not null)
             {
-                UserUpdatedLog oldUserLog = (UserUpdatedLog)log;
+                UserUpdatedLog oldUserLog = (UserUpdatedLog) log;
 
-                content = new StringBuilder()
-                .AppendLine($"Nickname: {log.OldUser.Nickname}")
-                .AppendLine($"ID: {oldUserLog.OldUser}")
-                .AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
+                content = new StringBuilder();
 
-                embed
-                    .AddField("Before", content.ToString())
+                //Append Changes
+                if (log.User.Nickname != log.OldUser.Nickname) content.AppendLine($"Nickname: {log.OldUser.Nickname}");
+                if (log.User.Username != log.OldUser.Username) content.AppendLine($"Username: {log.OldUser.Username}");
+                if (oldUserLog.OldAvatarURL != log.AvatarURL) content.AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
+
+                embed.AddField("Before", content.ToString())
                     .WithColor(Color.Purple);
             }
 
@@ -250,6 +262,15 @@ namespace Zhongli.Services.Logging
             var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
 
             await PublishLogAsync(embed, channel);
+        }
+
+        private async Task PublishLogAsync(ILog? log, LogType type, IEnumerable<IGuild> guilds, CancellationToken cancellationToken)
+        {
+            if (log is null) return;
+
+            var embed = BuildLog(log);
+            foreach (IGuild guild in guilds) await PublishLogAsync(embed, await GetLoggingChannelAsync(type, guild, cancellationToken));
+
         }
 
         private async Task PublishLogAsync(ILog? log, LogType type, IGuild guild, CancellationToken cancellationToken)
@@ -469,6 +490,11 @@ namespace Zhongli.Services.Logging
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;
+        }
+
+        private UserLog LogUser(SocketUser oldUser, SocketUser newUser, CancellationToken cancellationToken)
+        {
+            return new UserUpdatedLog(oldUser, newUser);
         }
 
         private UserLog LogUser(SocketGuildUser oldUser, SocketGuildUser newUser, CancellationToken cancellationToken)

@@ -12,6 +12,7 @@ namespace Zhongli.Bot.Behaviors
 {
     public class UserLoggingBehavior :
         INotificationHandler<GuildMemberUpdatedNotification>,
+        INotificationHandler<UserUpdatedNotification>,
         INotificationHandler<UserJoinedNotification>,
         INotificationHandler<UserLeftNotification>
     {
@@ -30,6 +31,11 @@ namespace Zhongli.Bot.Behaviors
         }
 
         public async Task Handle(UserLeftNotification notification, CancellationToken cancellationToken)
+        {
+            await _logging.LogAsync(notification, cancellationToken);
+        }
+
+        public async Task Handle(UserUpdatedNotification notification, CancellationToken cancellationToken)
         {
             await _logging.LogAsync(notification, cancellationToken);
         }

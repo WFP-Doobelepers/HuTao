@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,10 @@ namespace Zhongli.Data.Models.Logging
         public UserLog(SocketGuildUser socketGuildUser)
         {
             LogDate = DateTimeOffset.Now;
-            User = new GuildUserEntity(socketGuildUser);
+            User = new GuildUserEntity((IGuildUser) socketGuildUser);
             AvatarURL = socketGuildUser.GetAvatarUrl();
         }
+
         public GuildUserEntity User { get; set; }
 
         public GuildUserEntity? OldUser { get; set; } = null;
