@@ -83,6 +83,7 @@ namespace Zhongli.Services.Core.Listeners
                     splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
             _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
+            _commands.AddEnumerableTypeReader<IRole>(new RoleTypeReader<IRole>());
 
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
