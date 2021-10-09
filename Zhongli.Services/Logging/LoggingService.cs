@@ -180,7 +180,7 @@ namespace Zhongli.Services.Logging
 
                 //Append Changes
                 if (log.User.Nickname != log.OldUser.Nickname) content.AppendLine($"Nickname: {log.OldUser.Nickname}");
-                if (log.User.Username != log.OldUser.Username) content.AppendLine($"Username: {log.OldUser.Username}");
+                if (log.User.ToString() != log.OldUser.ToString()) content.AppendLine($"Username: {log.OldUser.ToString()}");
                 if (oldUserLog.OldAvatarURL != log.AvatarURL) content.AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
 
                 embed.AddField("Before", content.ToString())
