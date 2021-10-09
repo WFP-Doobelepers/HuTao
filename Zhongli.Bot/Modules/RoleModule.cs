@@ -413,10 +413,16 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Include users who have a nickname.")]
             public bool? IsNicknameSet { get; set; }
 
+            [HelpSummary("Include users who boost the server.")]
+            public bool? IsBooster { get; set; }
+
             [HelpSummary("Defaults to 'Any'.")] public FilterType FilterMode { get; set; }
 
             [HelpSummary("Include users that contain these roles.")]
             public IEnumerable<IRole>? Roles { get; set; }
+
+            [HelpSummary("Include users that contain these permissions.")]
+            public IEnumerable<GuildPermission>? Permissions { get; set; }
 
             [HelpSummary("Include users whose username contains this string.")]
             public string? UserContains { get; set; }
@@ -454,6 +460,51 @@ namespace Zhongli.Bot.Modules
             [HelpSummary("Include users whose nickname matches this regex pattern, and if they don't have one, their username. Ignores case.")]
             public string? NameRegexPattern { get; set; }
 
+            [HelpSummary("Include users who joined the server after the specified datetime.")]
+            public string? JoinedAfter { get; set; }
+
+            [HelpSummary("Include users who joined the server before the specified datetime.")]
+            public string? JoinedBefore { get; set; }
+
+            [HelpSummary("Include users who joined the server at the specified datetime.")]
+            public string? JoinedAt { get; set; }
+
+            [HelpSummary("Include users who joined the server at or after the specified datetime.")]
+            public string? JoinedAtAfter { get; set; }
+
+            [HelpSummary("Include users who joined the server at or before the specified datetime.")]
+            public string? JoinedAtBefore { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created after the specified datetime.")]
+            public string? CreatedAfter { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created before the specified datetime.")]
+            public string? CreatedBefore { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at the specified datetime.")]
+            public string? CreatedAt { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at or after the specified datetime.")]
+            public string? CreatedAtAfter { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at or before the specified datetime.")]
+            public string? CreatedAtBefore { get; set; }
+
+            [HelpSummary("Include users who boosted the server after the specified datetime.")]
+            public string? BoosterAfter { get; set; }
+
+            [HelpSummary("Include users who boosted the server before the specified datetime.")]
+            public string? BoosterBefore { get; set; }
+
+            [HelpSummary("Include users who boosted the server at the specified datetime.")]
+            public string? BoosterAt { get; set; }
+
+            [HelpSummary("Include users who boosted the server at or after the specified datetime.")]
+            public string? BoosterAtAfter { get; set; }
+
+            [HelpSummary("Include users who boosted the server at or before the specified datetime.")]
+            public string? BoosterAtBefore { get; set; }
+
             public IEnumerable<Func<IGuildUser, bool>> GetRules()
             {
                 if (IsBot is not null)
@@ -474,10 +525,25 @@ namespace Zhongli.Bot.Modules
                     };
                 }
 
+                if (IsBooster is not null)
+                {
+                    yield return u =>
+                    {
+                        var isBooster = u.PremiumSince is not null;
+                        return IsBooster.Value == isBooster;
+                    };
+                }
+
                 if (Roles is not null)
                 {
                     yield return u =>
                         Roles.Select(r => r.Id).Intersect(u.RoleIds).Any();
+                }
+
+                if (Permissions is not null)
+                {
+                    yield return u =>
+                        Permissions.Select(p => p).Intersect(u.GuildPermissions.ToList()).Any();
                 }
 
                 if (NameContains is not null)
@@ -564,6 +630,51 @@ namespace Zhongli.Bot.Modules
                         RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
                     };
                 }
+
+                if (JoinedAfter is not null)
+                    yield return u => u.JoinedAt > DateTimeOffset.Parse(JoinedAfter);
+
+                if (JoinedBefore is not null)
+                    yield return u => u.JoinedAt < DateTimeOffset.Parse(JoinedBefore);
+
+                if (JoinedAt is not null)
+                    yield return u => u.JoinedAt == DateTimeOffset.Parse(JoinedAt);
+
+                if (JoinedAtAfter is not null)
+                    yield return u => u.JoinedAt >= DateTimeOffset.Parse(JoinedAtAfter);
+
+                if (JoinedAtBefore is not null)
+                    yield return u => u.JoinedAt <= DateTimeOffset.Parse(JoinedAtBefore);
+
+                if (CreatedAfter is not null)
+                    yield return u => u.CreatedAt > DateTimeOffset.Parse(CreatedAfter);
+
+                if (CreatedBefore is not null)
+                    yield return u => u.CreatedAt < DateTimeOffset.Parse(CreatedBefore);
+
+                if (CreatedAt is not null)
+                    yield return u => u.CreatedAt == DateTimeOffset.Parse(CreatedAt);
+
+                if (CreatedAtAfter is not null)
+                    yield return u => u.CreatedAt >= DateTimeOffset.Parse(CreatedAtAfter);
+
+                if (CreatedAtBefore is not null)
+                    yield return u => u.CreatedAt <= DateTimeOffset.Parse(CreatedAtBefore);
+
+                if (BoosterAfter is not null)
+                    yield return u => u.PremiumSince > DateTimeOffset.Parse(BoosterAfter);
+
+                if (BoosterBefore is not null)
+                    yield return u => u.PremiumSince < DateTimeOffset.Parse(BoosterBefore);
+
+                if (BoosterAt is not null)
+                    yield return u => u.PremiumSince == DateTimeOffset.Parse(BoosterAt);
+
+                if (BoosterAtAfter is not null)
+                    yield return u => u.PremiumSince >= DateTimeOffset.Parse(BoosterAtAfter);
+
+                if (BoosterAtBefore is not null)
+                    yield return u => u.PremiumSince <= DateTimeOffset.Parse(BoosterAtBefore);
             }
         }
     }
