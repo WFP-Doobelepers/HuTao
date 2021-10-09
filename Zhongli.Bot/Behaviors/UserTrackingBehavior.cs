@@ -12,7 +12,8 @@ namespace Zhongli.Bot.Behaviors
         INotificationHandler<GuildMemberUpdatedNotification>,
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<UserJoinedNotification>,
-        INotificationHandler<UserLeftNotification>
+        INotificationHandler<UserLeftNotification>,
+        INotificationHandler<UserUpdatedNotification>
     {
         private readonly ZhongliContext _db;
 
@@ -42,6 +43,19 @@ namespace Zhongli.Bot.Behaviors
         public async Task Handle(UserLeftNotification notification, CancellationToken cancellationToken)
         {
             await _db.Users.TrackUserAsync(notification.GuildUser, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task Handle(UserUpdatedNotification notification, CancellationToken cancellationToken)
+        {
+            if (notification.OldUser.ToString() == notification.NewUser.ToString() && 
+                notification.OldUser.GetAvatarUrl() == notification.NewUser.GetAvatarUrl()) return;
+
+            var guilds = notification.NewUser.MutualGuilds;
+
+            foreach(var guild in guilds) 
+                await _db.Users.TrackUserAsync(notification.NewUser, guild, cancellationToken);
+
             await _db.SaveChangesAsync(cancellationToken);
         }
     }
