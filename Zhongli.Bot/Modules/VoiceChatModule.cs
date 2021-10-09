@@ -12,7 +12,9 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules
 {
+    [Name("Voice")]
     [Group("voice")]
+    [Summary("Commands to manage voice chats.")]
     public class VoiceChatModule : ModuleBase<SocketCommandContext>
     {
         private readonly ZhongliContext _db;

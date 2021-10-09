@@ -21,6 +21,7 @@ namespace Zhongli.Bot.Modules.Logging
     [Name("Logging Exclusions")]
     [Group("log")]
     [Alias("logs", "logging")]
+    [Summary("Manages logging exclusions.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class LoggingExclusionsModule : InteractiveEntity<Criterion>
     {

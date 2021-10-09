@@ -13,7 +13,9 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
+    [Name("Time Tracking")]
     [Group("time")]
+    [Summary("Time tracking module.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class TimeTrackingModule : ModuleBase<SocketCommandContext>
     {

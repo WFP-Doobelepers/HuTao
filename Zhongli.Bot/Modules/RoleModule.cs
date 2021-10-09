@@ -19,6 +19,7 @@ namespace Zhongli.Bot.Modules
 {
     [Group("role")]
     [Name("Role Management")]
+    [Summary("Manages roles.")]
     [RequireBotPermission(GuildPermission.ManageRoles)]
     [RequireUserPermission(GuildPermission.ManageRoles)]
     public class RoleModule : InteractiveBase

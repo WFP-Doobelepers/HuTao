@@ -21,6 +21,7 @@ namespace Zhongli.Bot.Modules.Censors
     [Name("Censor Exclusions")]
     [Group("censor")]
     [Alias("censors")]
+    [Summary("Manages cencor exclusions.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class CensorExclusionsModule : InteractiveEntity<Criterion>
     {

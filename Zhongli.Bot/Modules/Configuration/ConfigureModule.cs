@@ -13,7 +13,9 @@ using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules.Configuration
 {
+    [Name("Configurations")]
     [Group("configure")]
+    [Summary("Bot Configurations.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
@@ -45,7 +47,7 @@ namespace Zhongli.Bot.Modules.Configuration
         [Command("warning expiry")]
         [Summary("Set the time for when a warning is automatically hidden. This will not affect old cases.")]
         public async Task ConfigureAutoPardonWarningAsync(
-            [Summary("Leave empty to disable auto pardon of notices.")]
+            [Summary("Leave empty to disable auto pardon of warnings.")]
             TimeSpan? length = null)
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);

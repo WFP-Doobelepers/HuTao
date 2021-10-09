@@ -21,6 +21,7 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Group("trigger")]
     [Alias("triggers")]
+    [Summary("Reprimand triggers.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     {
