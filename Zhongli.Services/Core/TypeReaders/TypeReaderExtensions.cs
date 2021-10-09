@@ -20,6 +20,7 @@ namespace Zhongli.Services.Core.TypeReaders
             commands.AddTypeReader<IList<TResult>>(reader);
             commands.AddTypeReader<IReadOnlyList<TResult>>(reader);
 
+            commands.AddTypeReader<TResult[]>(reader);
             commands.AddTypeReader<ICollection<TResult>>(reader);
             commands.AddTypeReader<IReadOnlyCollection<TResult>>(reader);
 
