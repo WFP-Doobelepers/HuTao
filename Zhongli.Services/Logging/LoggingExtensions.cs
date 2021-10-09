@@ -33,11 +33,14 @@ namespace Zhongli.Services.Logging
         {
             var title = log switch
             {
-                MessageDeleteLog  => "Message",
-                MessageLog        => "Message",
+                MessageDeleteLog => "Message",
+                MessageLog => "Message",
                 MessagesDeleteLog => "Bulk Message",
                 ReactionDeleteLog => "Reaction",
-                ReactionLog       => "Reaction",
+                ReactionLog => "Reaction",
+                UserJoinedLog => "User Joined",
+                UserLeftLog => "User Left",
+                UserUpdatedLog => "User Updated",
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
             };
@@ -93,7 +96,7 @@ namespace Zhongli.Services.Logging
                 builder.AppendLine(image switch
                 {
                     Attachment a => Attachment(a),
-                    _            => Image(image)
+                    _ => Image(image)
                 });
             }
 

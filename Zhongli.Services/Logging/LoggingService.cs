@@ -33,7 +33,32 @@ namespace Zhongli.Services.Logging
         public LoggingService(DiscordSocketClient client, ZhongliContext db)
         {
             _client = client;
-            _db     = db;
+            _db = db;
+        }
+
+        public async Task LogAsync(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
+        {
+            var oldUser = notification.OldMember;
+            var newUser = notification.NewMember;
+
+            if (oldUser.Nickname == newUser.Nickname && oldUser.GetAvatarUrl() == newUser.GetAvatarUrl() && newUser.Id == oldUser.Id) return;
+
+            var log = LogUser(oldUser, newUser, cancellationToken);
+            await PublishLogAsync(log, LogType.UserUpdated, newUser.Guild, cancellationToken);
+        }
+
+        public async Task LogAsync(UserLeftNotification notification, CancellationToken cancellationToken)
+        {
+            var user = notification.GuildUser;
+            var log = LogLeft(user, cancellationToken);
+            await PublishLogAsync(log, LogType.UserLeft, user.Guild, cancellationToken);
+        }
+
+        public async Task LogAsync(UserJoinedNotification notification, CancellationToken cancellationToken)
+        {
+            var user = notification.GuildUser;
+            var log = LogUser(user, cancellationToken);
+            await PublishLogAsync(log, LogType.UserJoined, user.Guild, cancellationToken);
         }
 
         public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -120,6 +145,39 @@ namespace Zhongli.Services.Logging
             await PublishLogAsync(log, LogType.MessagesBulkDeleted, channel.Guild, cancellationToken);
         }
 
+        private EmbedLog AddDetails(EmbedBuilder embed, UserLog log)
+        {
+            var user = _client.GetUser(log.User.Id);
+
+            StringBuilder content = new StringBuilder()
+                .AppendLine($"Nickname: {log.User.Nickname}")
+                .AppendLine($"ID: {log.User}")
+                .AppendLine($"Avatar: {log.AvatarURL}");
+
+
+            embed.WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+                .WithTitle(log.GetTitle())
+                .AddField("User", content.ToString())
+                .WithColor(log.DidLeave ? Color.Red : Color.Green);
+
+            var updated = log.OldUser;
+            if(updated is not null)
+            {
+                UserUpdatedLog oldUserLog = (UserUpdatedLog)log;
+
+                content = new StringBuilder()
+                .AppendLine($"Nickname: {log.OldUser.Nickname}")
+                .AppendLine($"ID: {oldUserLog.OldUser}")
+                .AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
+
+                embed
+                    .AddField("Before", content.ToString())
+                    .WithColor(Color.Purple);
+            }
+
+            return new EmbedLog(embed);
+        }
+
         private EmbedLog AddDetails(EmbedBuilder embed, MessageLog log)
         {
             var user = _client.GetUser(log.UserId);
@@ -172,8 +230,9 @@ namespace Zhongli.Services.Logging
 
             return log switch
             {
-                MessageLog message   => AddDetails(embed, message),
+                MessageLog message => AddDetails(embed, message),
                 ReactionLog reaction => AddDetails(embed, reaction),
+                UserLog user => AddDetails(embed, user),
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
             };
@@ -318,7 +377,7 @@ namespace Zhongli.Services.Logging
             return log switch
             {
                 MessagesDeleteLog messages => await AddDetailsAsync(embed, messages, cancellationToken),
-                MessageDeleteLog message   => await AddDetailsAsync(embed, message, cancellationToken),
+                MessageDeleteLog message => await AddDetailsAsync(embed, message, cancellationToken),
                 ReactionDeleteLog reaction => AddDetails(embed, reaction),
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(log), log, "Invalid log type.")
@@ -410,6 +469,21 @@ namespace Zhongli.Services.Logging
             await _db.SaveChangesAsync(cancellationToken);
 
             return log;
+        }
+
+        private UserLog LogUser(SocketGuildUser oldUser, SocketGuildUser newUser, CancellationToken cancellationToken)
+        {
+            return new UserUpdatedLog(oldUser, newUser);
+        }
+
+        private UserLog LogUser(SocketGuildUser socketGuildUser, CancellationToken cancellationToken)
+        {
+            return new UserJoinedLog(socketGuildUser);
+        }
+
+        private UserLog LogLeft(SocketGuildUser socketGuildUser, CancellationToken cancellationToken)
+        {
+            return new UserLeftLog(socketGuildUser);
         }
 
         private ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken)

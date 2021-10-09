@@ -11,7 +11,8 @@ namespace Zhongli.Bot.Behaviors
     public class UserTrackingBehavior :
         INotificationHandler<GuildMemberUpdatedNotification>,
         INotificationHandler<MessageReceivedNotification>,
-        INotificationHandler<UserJoinedNotification>
+        INotificationHandler<UserJoinedNotification>,
+        INotificationHandler<UserLeftNotification>
     {
         private readonly ZhongliContext _db;
 
@@ -33,6 +34,12 @@ namespace Zhongli.Bot.Behaviors
         }
 
         public async Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)
+        {
+            await _db.Users.TrackUserAsync(notification.GuildUser, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task Handle(UserLeftNotification notification, CancellationToken cancellationToken)
         {
             await _db.Users.TrackUserAsync(notification.GuildUser, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
