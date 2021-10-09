@@ -58,7 +58,7 @@ namespace Zhongli.Services.Utilities
             else
             {
                 userEntity.Username = user.Username;
-                userEntity.Nickname = guild.GetUser(user.Id).Nickname;
+                userEntity.Nickname = guild.GetUser(user.Id)?.Nickname;
                 userEntity.DiscriminatorValue = user.DiscriminatorValue;
             }
 
