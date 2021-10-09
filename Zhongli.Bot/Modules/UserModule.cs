@@ -104,16 +104,24 @@ namespace Zhongli.Bot.Modules
 
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .AddField($"Created {user.CreatedAt.Humanize()}", user.CreatedAt)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
+                .AddField("Created", user.CreatedAt.ToUniversalTimestamp());
 
             if (guildUser is not null)
             {
+                if (guildUser.JoinedAt is not null)
+                    embed.AddField("Joined", guildUser.JoinedAt.Value.ToUniversalTimestamp());
+
+                if (userEntity?.JoinedAt is not null)
+                    embed.AddField("First Joined", userEntity.JoinedAt.Value.ToUniversalTimestamp());
+
+                var roles = guildUser.Roles
+                    .OrderByDescending(r => r.Position)
+                    .ToList();
+
                 embed
-                    .AddField($"Joined {guildUser.JoinedAt.Humanize()}", guildUser.JoinedAt)
-                    .WithColor(guildUser.Roles.OrderByDescending(r => r.Position).Select(x => x.Color).FirstOrDefault())
-                    .AddField($"Roles ({guildUser.Roles.Count})",
-                        string.Join(" ", guildUser.Roles.OrderByDescending(r => r.Position).Select(r => r.Mention)));
+                    .WithColor(roles.Select(r => r.Color).FirstOrDefault(c => c.RawValue is not 0))
+                    .AddField($"Roles [{guildUser.Roles.Count}]", roles.Humanize(r => r.Mention));
 
                 if (isAuthorized && guild.ModerationRules.MuteRoleId is not null)
                 {
