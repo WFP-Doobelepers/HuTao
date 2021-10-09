@@ -110,12 +110,12 @@ namespace Zhongli.Bot.Modules
                 }
                 catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
                 {
-                    // Ignored
+                    fails += 1;
                 }
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {filtered.Count() - fails} user(s).")
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {filtered.Count() - fails} user(s). ({fails} failed)")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -255,13 +255,13 @@ namespace Zhongli.Bot.Modules
                     }
                     catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
                     {
-                        // Ignored
+                        fails += 1;
                     }
                 }
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {filtered.Count() - fails} user(s).")
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {filtered.Count() - fails} user(s). ({fails} failed)")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
