@@ -96,8 +96,8 @@ namespace Zhongli.Bot.Modules
         {
             user ??= Context.User;
 
-            var isAuthorized
-                = await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator);
+            var isAuthorized = await _auth
+                .IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator);
             var userEntity = await _db.Users.FindAsync(user.Id, Context.Guild.Id);
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var guildUser = user as SocketGuildUser;
@@ -130,7 +130,25 @@ namespace Zhongli.Bot.Modules
                 }
             }
 
-            if (isAuthorized && userEntity is not null) embed.AddReprimands(userEntity);
+            if (isAuthorized)
+            {
+                var ban = await Context.Guild.GetBanAsync(user);
+                if (ban is not null)
+                {
+                    embed.WithColor(Color.Red);
+
+                    var banDetails = userEntity?.Reprimands<Ban>()
+                        .OrderByDescending(b => b.Action?.Date)
+                        .FirstOrDefault();
+
+                    if (banDetails is not null)
+                        embed.AddField(banDetails.GetTitle(), banDetails.GetReprimandDetails().ToString());
+                    else
+                        embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
+                }
+
+                if (userEntity is not null) embed.AddReprimands(userEntity);
+            }
 
             await ReplyAsync(embed: embed.Build());
         }
