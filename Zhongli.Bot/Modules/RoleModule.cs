@@ -461,49 +461,49 @@ namespace Zhongli.Bot.Modules
             public string? NameRegexPattern { get; set; }
 
             [HelpSummary("Include users who joined the server after the specified datetime.")]
-            public string? JoinedAfter { get; set; }
+            public DateTimeOffset? JoinedAfter { get; set; }
 
             [HelpSummary("Include users who joined the server before the specified datetime.")]
-            public string? JoinedBefore { get; set; }
+            public DateTimeOffset? JoinedBefore { get; set; }
 
             [HelpSummary("Include users who joined the server at the specified datetime.")]
-            public string? JoinedAt { get; set; }
+            public DateTimeOffset? JoinedAt { get; set; }
 
             [HelpSummary("Include users who joined the server at or after the specified datetime.")]
-            public string? JoinedAtAfter { get; set; }
+            public DateTimeOffset? JoinedAtAfter { get; set; }
 
             [HelpSummary("Include users who joined the server at or before the specified datetime.")]
-            public string? JoinedAtBefore { get; set; }
+            public DateTimeOffset? JoinedAtBefore { get; set; }
 
             [HelpSummary("Include users whose Discord account was created after the specified datetime.")]
-            public string? CreatedAfter { get; set; }
+            public DateTimeOffset? CreatedAfter { get; set; }
 
             [HelpSummary("Include users whose Discord account was created before the specified datetime.")]
-            public string? CreatedBefore { get; set; }
+            public DateTimeOffset? CreatedBefore { get; set; }
 
             [HelpSummary("Include users whose Discord account was created at the specified datetime.")]
-            public string? CreatedAt { get; set; }
+            public DateTimeOffset? CreatedAt { get; set; }
 
             [HelpSummary("Include users whose Discord account was created at or after the specified datetime.")]
-            public string? CreatedAtAfter { get; set; }
+            public DateTimeOffset? CreatedAtAfter { get; set; }
 
             [HelpSummary("Include users whose Discord account was created at or before the specified datetime.")]
-            public string? CreatedAtBefore { get; set; }
+            public DateTimeOffset? CreatedAtBefore { get; set; }
 
             [HelpSummary("Include users who boosted the server after the specified datetime.")]
-            public string? BoosterAfter { get; set; }
+            public DateTimeOffset? BoosterAfter { get; set; }
 
             [HelpSummary("Include users who boosted the server before the specified datetime.")]
-            public string? BoosterBefore { get; set; }
+            public DateTimeOffset? BoosterBefore { get; set; }
 
             [HelpSummary("Include users who boosted the server at the specified datetime.")]
-            public string? BoosterAt { get; set; }
+            public DateTimeOffset? BoosterAt { get; set; }
 
             [HelpSummary("Include users who boosted the server at or after the specified datetime.")]
-            public string? BoosterAtAfter { get; set; }
+            public DateTimeOffset? BoosterAtAfter { get; set; }
 
             [HelpSummary("Include users who boosted the server at or before the specified datetime.")]
-            public string? BoosterAtBefore { get; set; }
+            public DateTimeOffset? BoosterAtBefore { get; set; }
 
             public IEnumerable<Func<IGuildUser, bool>> GetRules()
             {
@@ -632,49 +632,49 @@ namespace Zhongli.Bot.Modules
                 }
 
                 if (JoinedAfter is not null)
-                    yield return u => u.JoinedAt > DateTimeOffset.Parse(JoinedAfter);
+                    yield return u => u.JoinedAt > JoinedAfter;
 
                 if (JoinedBefore is not null)
-                    yield return u => u.JoinedAt < DateTimeOffset.Parse(JoinedBefore);
+                    yield return u => u.JoinedAt < JoinedBefore;
 
                 if (JoinedAt is not null)
-                    yield return u => u.JoinedAt == DateTimeOffset.Parse(JoinedAt);
+                    yield return u => u.JoinedAt == JoinedAt;
 
                 if (JoinedAtAfter is not null)
-                    yield return u => u.JoinedAt >= DateTimeOffset.Parse(JoinedAtAfter);
+                    yield return u => u.JoinedAt >= JoinedAtAfter;
 
                 if (JoinedAtBefore is not null)
-                    yield return u => u.JoinedAt <= DateTimeOffset.Parse(JoinedAtBefore);
+                    yield return u => u.JoinedAt <= JoinedAtBefore;
 
                 if (CreatedAfter is not null)
-                    yield return u => u.CreatedAt > DateTimeOffset.Parse(CreatedAfter);
+                    yield return u => u.CreatedAt > CreatedAfter;
 
                 if (CreatedBefore is not null)
-                    yield return u => u.CreatedAt < DateTimeOffset.Parse(CreatedBefore);
+                    yield return u => u.CreatedAt < CreatedBefore;
 
                 if (CreatedAt is not null)
-                    yield return u => u.CreatedAt == DateTimeOffset.Parse(CreatedAt);
+                    yield return u => u.CreatedAt == CreatedAt;
 
                 if (CreatedAtAfter is not null)
-                    yield return u => u.CreatedAt >= DateTimeOffset.Parse(CreatedAtAfter);
+                    yield return u => u.CreatedAt >= CreatedAtAfter;
 
                 if (CreatedAtBefore is not null)
-                    yield return u => u.CreatedAt <= DateTimeOffset.Parse(CreatedAtBefore);
+                    yield return u => u.CreatedAt <= CreatedAtBefore;
 
                 if (BoosterAfter is not null)
-                    yield return u => u.PremiumSince > DateTimeOffset.Parse(BoosterAfter);
+                    yield return u => u.PremiumSince > BoosterAfter;
 
                 if (BoosterBefore is not null)
-                    yield return u => u.PremiumSince < DateTimeOffset.Parse(BoosterBefore);
+                    yield return u => u.PremiumSince < BoosterBefore;
 
                 if (BoosterAt is not null)
-                    yield return u => u.PremiumSince == DateTimeOffset.Parse(BoosterAt);
+                    yield return u => u.PremiumSince == BoosterAt;
 
                 if (BoosterAtAfter is not null)
-                    yield return u => u.PremiumSince >= DateTimeOffset.Parse(BoosterAtAfter);
+                    yield return u => u.PremiumSince >= BoosterAtAfter;
 
                 if (BoosterAtBefore is not null)
-                    yield return u => u.PremiumSince <= DateTimeOffset.Parse(BoosterAtBefore);
+                    yield return u => u.PremiumSince <= BoosterAtBefore;
             }
         }
     }
