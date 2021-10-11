@@ -41,7 +41,7 @@ namespace Zhongli.Services.Logging
             var oldUser = notification.OldMember;
             var newUser = notification.NewMember;
 
-            if (oldUser.Nickname == newUser.Nickname) return;
+            if (oldUser.Nickname == newUser.Nickname && oldUser.Roles.Count == newUser.Roles.Count) return;
 
             var log = LogUser(oldUser, newUser, cancellationToken);
             await PublishLogAsync(log, LogType.UserUpdated, newUser.Guild, cancellationToken);
@@ -165,6 +165,9 @@ namespace Zhongli.Services.Logging
                 .AppendLine($"Username: {log.User}")
                 .AppendLine($"Avatar: {log.AvatarURL}");
 
+            if (log.Roles is not null)
+                content.AppendLine($"Roles: {string.Join(", ", log.Roles)}");
+
 
             embed.WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
                 .WithTitle(log.GetTitle())
@@ -180,8 +183,9 @@ namespace Zhongli.Services.Logging
 
                 //Append Changes
                 if (log.User.Nickname != log.OldUser.Nickname) content.AppendLine($"Nickname: {log.OldUser.Nickname}");
-                if (log.User.Username != log.OldUser.Username) content.AppendLine($"Username: {log.OldUser.Username}");
+                if (log.User.ToString() != log.OldUser.ToString()) content.AppendLine($"Username: {log.OldUser.ToString()}");
                 if (oldUserLog.OldAvatarURL != log.AvatarURL) content.AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
+                if (oldUserLog.OldRoles is not null && oldUserLog.OldRoles.Count != log.Roles.Count) content.AppendLine($"Roles: {string.Join(", ", oldUserLog.OldRoles)}");
 
                 embed.AddField("Before", content.ToString())
                     .WithColor(Color.Purple);

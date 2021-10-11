@@ -18,6 +18,10 @@ namespace Zhongli.Data.Models.Logging
             LogDate = DateTimeOffset.Now;
             User = new GuildUserEntity((IGuildUser) socketGuildUser);
             AvatarURL = socketGuildUser.GetAvatarUrl();
+<<<<<<< HEAD
+=======
+            Roles = socketGuildUser.Roles.ToHashSet();
+>>>>>>> 71c63f8d0c30fe479a229a8382a6bbc087aff1d8
         }
 
         public GuildUserEntity User { get; set; }
@@ -29,5 +33,10 @@ namespace Zhongli.Data.Models.Logging
         public bool DidLeave { get; set; }
 
         public DateTimeOffset LogDate { get; set; }
+<<<<<<< HEAD
+=======
+
+        public HashSet<SocketRole> Roles { get; }
+>>>>>>> 71c63f8d0c30fe479a229a8382a6bbc087aff1d8
     }
 }

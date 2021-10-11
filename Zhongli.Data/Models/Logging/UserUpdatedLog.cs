@@ -29,9 +29,19 @@ namespace Zhongli.Data.Models.Logging
         {
             OldUser = new GuildUserEntity((IGuildUser) oldUser);
             OldAvatarURL = oldUser.GetAvatarUrl();
+<<<<<<< HEAD
         }
 
         public string OldAvatarURL { get; set; }
+=======
+
+            OldRoles = oldUser.Roles.ToHashSet();
+        }
+
+        public string OldAvatarURL { get; }
+
+        public HashSet<SocketRole>? OldRoles { get; }
+>>>>>>> 71c63f8d0c30fe479a229a8382a6bbc087aff1d8
 
     }
 }

@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Reaction;
@@ -44,6 +45,24 @@ namespace Zhongli.Services.Utilities
 
                 return entity ?? db.Add(new EmojiEntity(reaction)).Entity;
             }
+        }
+
+        public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, SocketUser user, SocketGuild guild,
+            CancellationToken cancellationToken = default)
+        {
+            var userEntity = await set
+                .FindAsync(new object[] { user.Id, guild.Id }, cancellationToken);
+
+            if (userEntity is null)
+                userEntity = set.Add(new GuildUserEntity(user)).Entity;
+            else
+            {
+                userEntity.Username = user.Username;
+                userEntity.Nickname = guild.GetUser(user.Id)?.Nickname;
+                userEntity.DiscriminatorValue = user.DiscriminatorValue;
+            }
+
+            return userEntity;
         }
 
         public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
