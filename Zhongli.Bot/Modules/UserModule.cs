@@ -107,13 +107,13 @@ namespace Zhongli.Bot.Modules
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
                 .AddField("Created", user.CreatedAt.ToUniversalTimestamp());
 
+            if (userEntity?.JoinedAt is not null)
+                embed.AddField("First Joined", userEntity.JoinedAt.Value.ToUniversalTimestamp());
+
             if (guildUser is not null)
             {
                 if (guildUser.JoinedAt is not null)
                     embed.AddField("Joined", guildUser.JoinedAt.Value.ToUniversalTimestamp());
-
-                if (userEntity?.JoinedAt is not null)
-                    embed.AddField("First Joined", userEntity.JoinedAt.Value.ToUniversalTimestamp());
 
                 var roles = guildUser.Roles
                     .OrderByDescending(r => r.Position)
