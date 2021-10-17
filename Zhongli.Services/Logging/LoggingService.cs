@@ -166,7 +166,17 @@ namespace Zhongli.Services.Logging
                 .AppendLine($"Avatar: {log.AvatarURL}");
 
             if (log.Roles is not null)
-                content.AppendLine($"Roles: {string.Join(", ", log.Roles)}");
+            {
+                StringBuilder roles = new StringBuilder();
+                string seperator = "";
+                foreach (SocketRole role in log.Roles)
+                {
+                    roles.Append(seperator);
+                    roles.Append(role.Mention);
+                    seperator = ", ";
+                }
+                content.AppendLine($"Roles [{log.Roles.Count}]: {roles.ToString()}");
+            }
 
 
             embed.WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
@@ -185,8 +195,18 @@ namespace Zhongli.Services.Logging
                 if (log.User.Nickname != log.OldUser.Nickname) content.AppendLine($"Nickname: {log.OldUser.Nickname}");
                 if (log.User.ToString() != log.OldUser.ToString()) content.AppendLine($"Username: {log.OldUser.ToString()}");
                 if (oldUserLog.OldAvatarURL != log.AvatarURL) content.AppendLine($"Avatar: {oldUserLog.OldAvatarURL}");
-                if (oldUserLog.OldRoles is not null && oldUserLog.OldRoles.Count != log.Roles.Count) content.AppendLine($"Roles: {string.Join(", ", oldUserLog.OldRoles)}");
-
+                if (oldUserLog.OldRoles is not null && oldUserLog.OldRoles.Count != log.Roles.Count)
+                {
+                    StringBuilder oldRoles = new StringBuilder();
+                    string seperator = "";
+                    foreach (SocketRole role in oldUserLog.OldRoles)
+                    {
+                        oldRoles.Append(seperator);
+                        oldRoles.Append(role.Mention);
+                        seperator = ", ";
+                    }
+                    content.AppendLine($"Roles [{oldUserLog.OldRoles.Count}]: {oldRoles.ToString()}");
+                }
                 embed.AddField("Before", content.ToString())
                     .WithColor(Color.Purple);
             }
