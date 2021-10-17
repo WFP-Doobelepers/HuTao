@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -153,7 +151,7 @@ namespace Zhongli.Bot.Modules.Censors
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var matches = guild.ModerationRules.Triggers.OfType<Censor>()
                 .Where(c => c.Regex().IsMatch(word)).ToList();
-            
+
             if (matches.Any())
                 await PagedViewAsync(matches);
             else

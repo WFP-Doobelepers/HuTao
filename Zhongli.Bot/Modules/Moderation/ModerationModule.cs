@@ -99,22 +99,6 @@ namespace Zhongli.Bot.Modules.Moderation
                 await ReplyReprimandAsync(result, details);
         }
 
-        [Command("say")]
-        [Summary("Make the bot send a message to the specified channel")]
-        [RequireAuthorization(AuthorizationScope.Helper)]
-        public async Task SayAsync(ITextChannel? channel, [Remainder] string message)
-        {
-            channel ??= (ITextChannel) Context.Channel;
-            await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
-        }
-
-        [Command("say")]
-        [HiddenFromHelp]
-        [Summary("Make the bot send a message to the specified channel")]
-        [RequireAuthorization(AuthorizationScope.Helper)]
-        public async Task SayAsync([Remainder] string message)
-            => SayAsync(null, message);
-
         [Command("note")]
         [Summary("Add a note to a user. Notes are always silent.")]
         [RequireAuthorization(AuthorizationScope.Warning)]
@@ -135,6 +119,22 @@ namespace Zhongli.Bot.Modules.Moderation
             var result = await _moderation.NoticeAsync(details);
             await ReplyReprimandAsync(result, details);
         }
+
+        [Command("say")]
+        [Summary("Make the bot send a message to the specified channel")]
+        [RequireAuthorization(AuthorizationScope.Helper)]
+        public async Task SayAsync(ITextChannel? channel, [Remainder] string message)
+        {
+            channel ??= (ITextChannel) Context.Channel;
+            await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
+        }
+
+        [Command("say")]
+        [HiddenFromHelp]
+        [Summary("Make the bot send a message to the specified channel")]
+        [RequireAuthorization(AuthorizationScope.Helper)]
+        public async Task SayAsync([Remainder] string message)
+            => SayAsync(null, message);
 
         [Command("slowmode")]
         [Summary("Set a slowmode in the channel.")]
