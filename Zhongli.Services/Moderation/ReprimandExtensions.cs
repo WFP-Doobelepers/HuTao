@@ -192,7 +192,7 @@ namespace Zhongli.Services.Moderation
         {
             var user = await reprimand.GetUserAsync(db, cancellationToken);
             if (reprimand is Warning)
-                return user.WarningCount();
+                return user.WarningCount(countHidden);
 
             return (uint) user.Reprimands<T>(countHidden).LongCount();
         }
