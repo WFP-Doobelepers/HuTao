@@ -105,6 +105,7 @@ namespace Zhongli.Bot.Modules
             var embed = new EmbedBuilder()
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
                 .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
+                .WithDescription(user.Mention)
                 .AddField("Created", user.CreatedAt.ToUniversalTimestamp());
 
             if (userEntity?.JoinedAt is not null)
