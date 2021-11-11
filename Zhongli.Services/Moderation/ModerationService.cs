@@ -348,6 +348,7 @@ namespace Zhongli.Services.Moderation
             var details = new ReprimandDetails(user, moderator, "[Reprimand Expired]");
 
             reprimand.EndedAt = DateTimeOffset.Now;
+            reprimand.ExpireAt = DateTimeOffset.Now;
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 
