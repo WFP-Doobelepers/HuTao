@@ -355,8 +355,8 @@ namespace Zhongli.Services.Moderation
         private async Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             ReprimandStatus status, CancellationToken cancellationToken)
         {
-            reprimand.Status         = status;
-            reprimand.ModifiedAction = details;
+            reprimand.Status = status;
+            reprimand.Action = details;
 
             await _db.SaveChangesAsync(cancellationToken);
             await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
