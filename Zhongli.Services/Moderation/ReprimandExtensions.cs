@@ -30,13 +30,13 @@ namespace Zhongli.Services.Moderation
 
             return reprimand switch
             {
-                Ban => type.HasFlag(ReprimandNoticeType.Ban),
+                Ban      => type.HasFlag(ReprimandNoticeType.Ban),
                 Censored => type.HasFlag(ReprimandNoticeType.Censor),
-                Kick => type.HasFlag(ReprimandNoticeType.Kick),
-                Mute => type.HasFlag(ReprimandNoticeType.Mute),
-                Notice => type.HasFlag(ReprimandNoticeType.Notice),
-                Warning => type.HasFlag(ReprimandNoticeType.Warning),
-                _ => false
+                Kick     => type.HasFlag(ReprimandNoticeType.Kick),
+                Mute     => type.HasFlag(ReprimandNoticeType.Mute),
+                Notice   => type.HasFlag(ReprimandNoticeType.Notice),
+                Warning  => type.HasFlag(ReprimandNoticeType.Warning),
+                _        => false
             };
         }
 
