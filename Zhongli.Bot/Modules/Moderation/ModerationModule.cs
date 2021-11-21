@@ -1,7 +1,10 @@
 using System;
+using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Interactive;
+using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
@@ -18,7 +21,7 @@ namespace Zhongli.Bot.Modules.Moderation
 {
     [Name("Moderation")]
     [Summary("Guild moderation commands.")]
-    public class ModerationModule : ModuleBase<SocketCommandContext>
+    public class ModerationModule : InteractiveBase
     {
         private readonly CommandErrorHandler _error;
         private readonly ModerationLoggingService _logging;
@@ -234,6 +237,35 @@ namespace Zhongli.Bot.Modules.Moderation
         public Task WarnAsync(IGuildUser user, [Remainder] string? reason = null)
             => WarnAsync(user, 1, reason);
 
+        [Command("mute list")]
+        [Summary("View active mutes on the current guild.")]
+        [RequireAuthorization(AuthorizationScope.Moderator)]
+        public async Task MuteListAsync()
+        {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            var history = guild.ReprimandHistory
+                .Where(r => r.Status is not ReprimandStatus.Deleted && r.Status is not ReprimandStatus.Expired)
+                .OfType(InfractionType.Mute);
+
+            var reprimands = new EmbedBuilder().Fields;
+
+            var pages = history
+                .OrderByDescending(r => r.Action?.Date)
+                .Select(r => CreateEmbed(r));
+
+            var message = new PaginatedMessage
+            {
+                Title = "Currently Active Mutes",
+                Pages = reprimands.Concat(pages),
+                Options = new PaginatedAppearanceOptions
+                {
+                    FieldsPerPage = 10
+                }
+            };
+
+            await PagedReplyAsync(message);
+        }
+
         private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)
         {
             var guild = await result.Primary.GetGuildAsync(_db);
@@ -267,5 +299,9 @@ namespace Zhongli.Bot.Modules.Moderation
 
             return details;
         }
+
+        private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()
+            .WithName(r.GetTitle())
+            .WithValue(r.GetReprimandExpiration());
     }
 }
