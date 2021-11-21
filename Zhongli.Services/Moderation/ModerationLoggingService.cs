@@ -47,7 +47,7 @@ namespace Zhongli.Services.Moderation
                 .WithTitle($"{reprimand.Status.Humanize()} {reprimand.GetTitle()}")
                 .WithColor(Color.Purple);
 
-            AddReason(embed, reprimand.Action);
+            AddReason(embed, reprimand.ModifiedAction);
             await AddReprimandDetailsAsync(embed, reprimand, cancellationToken);
 
             return embed;
