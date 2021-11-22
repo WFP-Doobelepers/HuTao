@@ -40,6 +40,42 @@ namespace Zhongli.Services.Moderation
             };
         }
 
+        public static string GetExpirationTime(this IExpirable expirable)
+        {
+            if (expirable.ExpireAt is not null && expirable.Length is not null)
+            {
+                if (expirable.ExpireAt > DateTimeOffset.Now)
+                {
+                    TimeSpan? dif = expirable.ExpireAt - DateTimeOffset.Now;
+                    return $"{(int)dif.Value.TotalDays} days {dif.Value.Hours} hours {dif.Value.Minutes} minutes {dif.Value.Seconds} seconds";
+
+                }
+                else
+                {
+                    return "Now";
+                }
+            }
+            else
+            {
+                return "Indefinitely";
+            }
+        }
+
+        public static string GetReprimandExpiration(this Reprimand reprimand)
+        {
+            var mention = $"<@{reprimand.UserId}>";
+            var line = reprimand switch
+            {
+                Ban b => $"Expired in: {b.GetExpirationTime()}.",
+                Mute m => $"Expired in: {m.GetExpirationTime()}.",
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(reprimand), reprimand, "This reprimand is not expirable.")
+            };
+            return new StringBuilder()
+                .AppendLine($"User: {mention}")
+                .AppendLine(line).ToString();
+        }
+
         public static Color GetColor(this Reprimand reprimand)
         {
             return reprimand switch
