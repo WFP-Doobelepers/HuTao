@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ using Humanizer;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
+using Zhongli.Services.Core.TypeReaders;
+using static Zhongli.Bot.Modules.RoleModule.RoleFilters;
 
 namespace Zhongli.Bot.Modules
 {
@@ -77,6 +80,45 @@ namespace Zhongli.Bot.Modules
             var embed = new EmbedBuilder()
                 .WithDescription(
                     $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
+                .WithColor(Color.Green);
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
+        [Command("add filtered")]
+        [Summary("Add specified roles to filtered users")]
+        public async Task AddRolesAsync(IReadOnlyCollection<IRole> roles, RoleFilters options)
+        {
+            var message = await ReplyAsync("Adding roles, this might take a while...");
+            var users = Context.Guild.Users;
+            var fails = 0;
+
+            var rules = options.GetRules();
+            var result = options.FilterMode switch
+            {
+                FilterType.All => users.Where(u => rules.All(rule => rule(u))),
+                FilterType.Any or _ => users.Where(u => rules.Any(rule => rule(u)))
+            };
+
+            if (options.Invert ?? false)
+                result = users.Except(result);
+
+            var filtered = result.ToList();
+
+            foreach (var user in filtered)
+            {
+                try
+                {
+                    await user.AddRolesAsync(roles);
+                }
+                catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+                {
+                    fails += 1;
+                }
+            }
+
+            var embed = new EmbedBuilder()
+                .WithDescription($"Added {Format.Bold(roles.Humanize())} to {filtered.Count() - fails} user(s). ({fails} failed)")
                 .WithColor(Color.Green);
 
             await ReplyAsync(embed: embed.Build());
@@ -187,6 +229,48 @@ namespace Zhongli.Bot.Modules
 
             var embed = new EmbedBuilder()
                 .WithDescription($"Removed {Format.Bold(roles.Humanize())} from everyone.")
+                .WithColor(Color.DarkRed);
+
+            await ReplyAsync(embed: embed.Build());
+        }
+
+        [Command("remove filtered")]
+        [Summary("Removes specified roles to filtered users")]
+        public async Task RemoveRolesAsync(IReadOnlyCollection<IRole> roles, RoleFilters options)
+        {
+            var message = await ReplyAsync("Removing roles, this might take a while...");
+            var users = Context.Guild.Users;
+            var fails = 0;
+
+            var rules = options.GetRules();
+            var result = options.FilterMode switch
+            {
+                FilterType.All => users.Where(u => rules.All(rule => rule(u))),
+                FilterType.Any or _ => users.Where(u => rules.Any(rule => rule(u)))
+            };
+
+            if (options.Invert ?? false)
+                result = users.Except(result);
+
+            var filtered = result.ToList();
+
+            foreach (var role in roles)
+            {
+                foreach (var user in filtered)
+                {
+                    try
+                    {
+                        await user.RemoveRoleAsync(role);
+                    }
+                    catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+                    {
+                        fails += 1;
+                    }
+                }
+            }
+
+            var embed = new EmbedBuilder()
+                .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {filtered.Count() - fails} user(s). ({fails} failed)")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(embed: embed.Build());
@@ -316,6 +400,291 @@ namespace Zhongli.Bot.Modules
             public Color? Color { get; set; }
 
             [HelpSummary("List of permissions")] public IEnumerable<GuildPermission>? Permissions { get; set; }
+        }
+
+        [NamedArgumentType]
+        public class RoleFilters
+        {
+            public enum FilterType
+            {
+                [HelpSummary("Match any of the rules.")]
+                Any,
+
+                [HelpSummary("Match all of the rules.")]
+                All
+            }
+ 
+            [HelpSummary("Invert the results.")] public bool? Invert { get; set; }
+
+            [HelpSummary("Include users with bots.")]
+            public bool? IsBot { get; set; }
+
+            [HelpSummary("Include users who have a nickname.")]
+            public bool? IsNicknameSet { get; set; }
+
+            [HelpSummary("Include users who boost the server.")]
+            public bool? IsBooster { get; set; }
+
+            [HelpSummary("Defaults to 'Any'.")] public FilterType FilterMode { get; set; }
+
+            [HelpSummary("Include users that contain these roles.")]
+            public IEnumerable<IRole>? Roles { get; set; }
+
+            [HelpSummary("Include users that contain these permissions.")]
+            public IEnumerable<GuildPermission>? Permissions { get; set; }
+
+            [HelpSummary("Include users whose username contains this string.")]
+            public string? UserContains { get; set; }
+
+            [HelpSummary("Include users whose username ends with this string.")]
+            public string? UserEndsWith { get; set; }
+
+            [HelpSummary("Include users whose username starts with this string.")]
+            public string? UserStartsWith { get; set; }
+
+            [HelpSummary("Include users whose username matches this regex pattern. Ignores case.")]
+            public string? UserRegexPattern { get; set; }
+
+            [HelpSummary("Include users whose nickname contains this string.")]
+            public string? NickContains { get; set; }
+
+            [HelpSummary("Include users whose nickname ends with this string.")]
+            public string? NickEndsWith { get; set; }
+
+            [HelpSummary("Include users whose nickname starts with this string.")]
+            public string? NickStartsWith { get; set; }
+
+            [HelpSummary("Include users whose nickname matches this regex pattern. Ignores case.")]
+            public string? NickRegexPattern { get; set; }
+
+            [HelpSummary("Include users whose nickname contains this string, and if they don't have one, their username.")]
+            public string? NameContains { get; set; }
+
+            [HelpSummary("Include users whose nickname ends with this string, and if they don't have one, their username.")]
+            public string? NameEndsWith { get; set; }
+
+            [HelpSummary("Include users whose nickname starts with this string, and if they don't have one, their username.")]
+            public string? NameStartsWith { get; set; }
+
+            [HelpSummary("Include users whose nickname matches this regex pattern, and if they don't have one, their username. Ignores case.")]
+            public string? NameRegexPattern { get; set; }
+
+            [HelpSummary("Include users who joined the server after the specified datetime.")]
+            public DateTimeOffset? JoinedAfter { get; set; }
+
+            [HelpSummary("Include users who joined the server before the specified datetime.")]
+            public DateTimeOffset? JoinedBefore { get; set; }
+
+            [HelpSummary("Include users who joined the server at the specified datetime.")]
+            public DateTimeOffset? JoinedAt { get; set; }
+
+            [HelpSummary("Include users who joined the server at or after the specified datetime.")]
+            public DateTimeOffset? JoinedAtAfter { get; set; }
+
+            [HelpSummary("Include users who joined the server at or before the specified datetime.")]
+            public DateTimeOffset? JoinedAtBefore { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created after the specified datetime.")]
+            public DateTimeOffset? CreatedAfter { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created before the specified datetime.")]
+            public DateTimeOffset? CreatedBefore { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at the specified datetime.")]
+            public DateTimeOffset? CreatedAt { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at or after the specified datetime.")]
+            public DateTimeOffset? CreatedAtAfter { get; set; }
+
+            [HelpSummary("Include users whose Discord account was created at or before the specified datetime.")]
+            public DateTimeOffset? CreatedAtBefore { get; set; }
+
+            [HelpSummary("Include users who boosted the server after the specified datetime.")]
+            public DateTimeOffset? BoosterAfter { get; set; }
+
+            [HelpSummary("Include users who boosted the server before the specified datetime.")]
+            public DateTimeOffset? BoosterBefore { get; set; }
+
+            [HelpSummary("Include users who boosted the server at the specified datetime.")]
+            public DateTimeOffset? BoosterAt { get; set; }
+
+            [HelpSummary("Include users who boosted the server at or after the specified datetime.")]
+            public DateTimeOffset? BoosterAtAfter { get; set; }
+
+            [HelpSummary("Include users who boosted the server at or before the specified datetime.")]
+            public DateTimeOffset? BoosterAtBefore { get; set; }
+
+            public IEnumerable<Func<IGuildUser, bool>> GetRules()
+            {
+                if (IsBot is not null)
+                {
+                    yield return u =>
+                    {
+                        var isBot = u.IsBot || u.IsWebhook;
+                        return IsBot.Value == isBot;
+                    };
+                }
+
+                if (IsNicknameSet is not null)
+                {
+                    yield return u =>
+                    {
+                        var isNickSet = u.Nickname is not null;
+                        return IsNicknameSet.Value == isNickSet;
+                    };
+                }
+
+                if (IsBooster is not null)
+                {
+                    yield return u =>
+                    {
+                        var isBooster = u.PremiumSince is not null;
+                        return IsBooster.Value == isBooster;
+                    };
+                }
+
+                if (Roles is not null)
+                {
+                    yield return u =>
+                        Roles.Select(r => r.Id).Intersect(u.RoleIds).Any();
+                }
+
+                if (Permissions is not null)
+                {
+                    yield return u =>
+                        Permissions.Select(p => p).Intersect(u.GuildPermissions.ToList()).Any();
+                }
+
+                if (NameContains is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= u.Username;
+                        return user_nick.Contains(NameContains);
+                    };
+
+                if (NameEndsWith is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= u.Username;
+                        return user_nick.EndsWith(NameEndsWith);
+                    };
+
+                if (NameStartsWith is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= u.Username;
+                        return user_nick.StartsWith(NameStartsWith);
+                    };
+
+                if (NameRegexPattern is not null)
+                {
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= u.Username;
+                        return Regex.IsMatch(user_nick, NameRegexPattern,
+                        RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+                    };
+                }
+
+                if (UserContains is not null)
+                    yield return u => u.Username.Contains(UserContains);
+
+                if (UserEndsWith is not null)
+                    yield return u => u.Username.EndsWith(UserEndsWith);
+
+                if (UserStartsWith is not null)
+                    yield return u => u.Username.StartsWith(UserStartsWith);
+
+                if (UserRegexPattern is not null)
+                {
+                    yield return u => Regex.IsMatch(u.Username, UserRegexPattern,
+                        RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+                }
+
+                if (NickContains is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= "";
+                        return user_nick.Contains(NickContains);
+                    };
+
+                if (NickEndsWith is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= "";
+                        return user_nick.EndsWith(NickEndsWith);
+                    };
+
+                if (NickStartsWith is not null)
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= "";
+                        return user_nick.StartsWith(NickStartsWith);
+                    };
+
+                if (NickRegexPattern is not null)
+                {
+                    yield return u =>
+                    {
+                        var user_nick = u.Nickname;
+                        user_nick ??= "";
+                        return Regex.IsMatch(user_nick, NickRegexPattern,
+                        RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+                    };
+                }
+
+                if (JoinedAfter is not null)
+                    yield return u => u.JoinedAt > JoinedAfter;
+
+                if (JoinedBefore is not null)
+                    yield return u => u.JoinedAt < JoinedBefore;
+
+                if (JoinedAt is not null)
+                    yield return u => u.JoinedAt == JoinedAt;
+
+                if (JoinedAtAfter is not null)
+                    yield return u => u.JoinedAt >= JoinedAtAfter;
+
+                if (JoinedAtBefore is not null)
+                    yield return u => u.JoinedAt <= JoinedAtBefore;
+
+                if (CreatedAfter is not null)
+                    yield return u => u.CreatedAt > CreatedAfter;
+
+                if (CreatedBefore is not null)
+                    yield return u => u.CreatedAt < CreatedBefore;
+
+                if (CreatedAt is not null)
+                    yield return u => u.CreatedAt == CreatedAt;
+
+                if (CreatedAtAfter is not null)
+                    yield return u => u.CreatedAt >= CreatedAtAfter;
+
+                if (CreatedAtBefore is not null)
+                    yield return u => u.CreatedAt <= CreatedAtBefore;
+
+                if (BoosterAfter is not null)
+                    yield return u => u.PremiumSince > BoosterAfter;
+
+                if (BoosterBefore is not null)
+                    yield return u => u.PremiumSince < BoosterBefore;
+
+                if (BoosterAt is not null)
+                    yield return u => u.PremiumSince == BoosterAt;
+
+                if (BoosterAtAfter is not null)
+                    yield return u => u.PremiumSince >= BoosterAtAfter;
+
+                if (BoosterAtBefore is not null)
+                    yield return u => u.PremiumSince <= BoosterAtBefore;
+            }
         }
     }
 }
