@@ -47,13 +47,20 @@ namespace Zhongli.Bot.Modules.Moderation
         public async Task BanAsync(IUser user, uint deleteDays = 0, TimeSpan? length = null,
             [Remainder] string? reason = null)
         {
-            var details = await GetDetailsAsync(user, reason);
-            var result = await _moderation.TryBanAsync(deleteDays, length, details);
-
-            if (result is null)
-                await _error.AssociateError(Context.Message, "Failed to ban user.");
+            if (deleteDays < 0 || deleteDays > 7)
+            {
+                await ReplyAsync($"Error: Parameter DeleteMessageDays must be between 1-7, {deleteDays} given.");
+            }
             else
-                await ReplyReprimandAsync(result, details);
+            {
+                var details = await GetDetailsAsync(user, reason);
+                var result = await _moderation.TryBanAsync(deleteDays, length, details);
+
+                if (result is null)
+                    await _error.AssociateError(Context.Message, "Failed to ban user.");
+                else
+                    await ReplyReprimandAsync(result, details);
+            }
         }
 
         [Command("ban")]
