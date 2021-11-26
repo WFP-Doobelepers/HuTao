@@ -49,7 +49,7 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             if (deleteDays < 0 || deleteDays > 7)
             {
-                await ReplyAsync($"Error: Parameter DeleteMessageDays must be between 1-7, {deleteDays} given.");
+                await ReplyAsync($"Error: Parameter deleteDays cannot be higher than 7, {deleteDays} given.");
             }
             else
             {
