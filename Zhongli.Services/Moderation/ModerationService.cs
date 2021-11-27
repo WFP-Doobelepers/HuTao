@@ -355,6 +355,18 @@ namespace Zhongli.Services.Moderation
         private async Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
             ReprimandStatus status, CancellationToken cancellationToken)
         {
+            if (status == ReprimandStatus.Hidden || status == ReprimandStatus.Deleted)
+            {
+                if (reprimand is ExpirableReprimand expirable)
+                {
+                    await (reprimand switch
+                    {
+                        Ban ban => ExpireBanAsync(ban, cancellationToken),
+                        Mute mute => ExpireMuteAsync(mute, cancellationToken),
+                        _ => ExpireReprimandAsync(expirable, cancellationToken)
+                    });
+                }
+            }
             reprimand.Status = status;
             reprimand.Action = details;
 
