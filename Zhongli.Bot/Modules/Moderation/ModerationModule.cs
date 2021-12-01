@@ -244,7 +244,7 @@ namespace Zhongli.Bot.Modules.Moderation
         {
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var history = guild.ReprimandHistory
-                .Where(r => r.Status is not ReprimandStatus.Deleted && r.Status is not ReprimandStatus.Expired)
+                .Where(r => r.Status is not ReprimandStatus.Deleted && r.Status is not ReprimandStatus.Expired && r.Status is not ReprimandStatus.Hidden)
                 .OfType(InfractionType.Mute);
 
             var reprimands = new EmbedBuilder().Fields;
@@ -262,7 +262,7 @@ namespace Zhongli.Bot.Modules.Moderation
                     FieldsPerPage = 10
                 }
             };
-
+            await _db.SaveChangesAsync();
             await PagedReplyAsync(message);
         }
 
