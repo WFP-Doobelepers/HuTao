@@ -9,7 +9,7 @@
         <PackageReference Include="Cronos" Version="0.7.1" />
         <PackageReference Include="Discord.Addons.ShukaInteractive" Version="1.1.1" />
         <PackageReference Include="Discord.Net" Version="2.4.0" />
-        <PackageReference Include="Hangfire.Core" Version="1.7.24" />
+        <PackageReference Include="Hangfire.Core" Version="1.7.27" />
         <PackageReference Include="Humanizer.Core" Version="2.11.10" />
         <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
         <PackageReference Include="Mapster" Version="7.2.0" />
