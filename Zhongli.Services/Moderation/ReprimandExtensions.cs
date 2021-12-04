@@ -52,7 +52,7 @@ namespace Zhongli.Services.Moderation
                 }
                 else
                 {
-                    return "Now";
+                    return "Already Expired";
                 }
             }
             else
