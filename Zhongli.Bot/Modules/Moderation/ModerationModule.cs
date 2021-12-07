@@ -259,7 +259,8 @@ namespace Zhongli.Bot.Modules.Moderation
                 Pages = reprimands.Concat(pages),
                 Options = new PaginatedAppearanceOptions
                 {
-                    FieldsPerPage = 10
+                    FieldsPerPage = 10,
+                    Timeout = TimeSpan.FromMinutes(10)
                 }
             };
 

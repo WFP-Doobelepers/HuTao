@@ -296,7 +296,8 @@ namespace Zhongli.Bot.Modules
                 Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
                 Options = new PaginatedAppearanceOptions
                 {
-                    DisplayInformationIcon = false
+                    DisplayInformationIcon = false,
+                    Timeout                = TimeSpan.FromMinutes(10)
                 }
             };
 

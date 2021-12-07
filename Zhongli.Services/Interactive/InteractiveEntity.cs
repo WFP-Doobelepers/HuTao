@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,7 +57,11 @@ namespace Zhongli.Services.Interactive
                 Title   = title,
                 Pages   = pages,
                 Author  = author,
-                Options = new PaginatedAppearanceOptions { DisplayInformationIcon = false }
+                Options = new PaginatedAppearanceOptions
+                {
+                    DisplayInformationIcon = false,
+                    Timeout                = TimeSpan.FromMinutes(10)
+                }
             };
 
             await PagedReplyAsync(paginated);

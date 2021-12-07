@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -80,7 +81,8 @@ namespace Zhongli.Bot.Modules
                 Options = new PaginatedAppearanceOptions
                 {
                     DisplayInformationIcon = false,
-                    FieldsPerPage          = 8
+                    FieldsPerPage          = 8,
+                    Timeout                = TimeSpan.FromMinutes(10)
                 }
             };
 
