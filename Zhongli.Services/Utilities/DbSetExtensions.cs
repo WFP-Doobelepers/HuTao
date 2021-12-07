@@ -54,7 +54,7 @@ namespace Zhongli.Services.Utilities
 
             if (userEntity is null)
                 userEntity = set.Add(new GuildUserEntity(user)).Entity;
-            else
+            else if (user.Username is not null)
             {
                 userEntity.Username           = user.Username;
                 userEntity.Nickname           = user.Nickname;

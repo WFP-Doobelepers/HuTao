@@ -47,6 +47,7 @@ namespace Zhongli.Services.TimeTracking
             await TrackRegionAsync(channel, region);
         }
 
+        [AutomaticRetry(Attempts = 0)]
         // ReSharper disable once MemberCanBePrivate.Global
         public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
         {
