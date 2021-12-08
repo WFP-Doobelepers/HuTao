@@ -1,16 +1,15 @@
 ﻿using Humanizer;
 using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Criteria
+namespace Zhongli.Data.Models.Criteria;
+
+public class PermissionCriterion : Criterion, IPermissionEntity
 {
-    public class PermissionCriterion : Criterion, IPermissionEntity
-    {
-        protected PermissionCriterion() { }
+    protected PermissionCriterion() { }
 
-        public PermissionCriterion(GuildPermission permission) { Permission = permission; }
+    public PermissionCriterion(GuildPermission permission) { Permission = permission; }
 
-        public GuildPermission Permission { get; set; }
+    public GuildPermission Permission { get; set; }
 
-        public override string ToString() => Permission.Humanize();
-    }
+    public override string ToString() => Permission.Humanize();
 }

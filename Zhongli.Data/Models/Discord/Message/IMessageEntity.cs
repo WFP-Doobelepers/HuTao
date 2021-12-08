@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Discord.Message
+namespace Zhongli.Data.Models.Discord.Message;
+
+public interface IMessageEntity : IChannelEntity, IGuildUserEntity
 {
-    public interface IMessageEntity : IChannelEntity, IGuildUserEntity
-    {
-        ulong MessageId { get; set; }
-    }
+    ulong MessageId { get; set; }
 }

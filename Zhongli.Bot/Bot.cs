@@ -26,172 +26,171 @@ using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.TimeTracking;
 
-namespace Zhongli.Bot
+namespace Zhongli.Bot;
+
+public class Bot
 {
-    public class Bot
+    private const bool AttemptReset = true;
+    private static CancellationTokenSource? _mediatorToken;
+    private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
+    private CancellationTokenSource _reconnectCts = null!;
+
+    public static async Task Main() { await new Bot().StartAsync(); }
+
+    private static ServiceProvider ConfigureServices() =>
+        new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
+            .AddDbContext<ZhongliContext>(ContextOptions)
+            .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
+                typeof(Bot), typeof(DiscordSocketListener))
+            .AddLogging(l => l.AddSerilog())
+            .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
+            {
+                ExclusiveBulkDelete = true,
+                AlwaysDownloadUsers = true,
+                MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
+            }))
+            .AddSingleton<CommandService>()
+            .AddSingleton<CommandErrorHandler>()
+            .AddSingleton<CommandHandlingService>()
+            .AddSingleton<InteractiveService>()
+            .AddSingleton<DiscordSocketListener>()
+            .AddScoped<AuthorizationService>()
+            .AddScoped<ModerationService>()
+            .AddScoped<ModerationLoggingService>()
+            .AddScoped<LoggingService>()
+            .AddScoped<GenshinTimeTrackingService>()
+            .AddSingleton<IQuoteService, QuoteService>()
+            .AddExpirableServices()
+            .AddAutoRemoveMessage()
+            .AddCommandHelp()
+            .AddImages()
+            .BuildServiceProvider();
+
+    private static async Task CheckStateAsync(IDiscordClient client)
     {
-        private const bool AttemptReset = true;
-        private static CancellationTokenSource? _mediatorToken;
-        private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
-        private CancellationTokenSource _reconnectCts = null!;
+        // Client reconnected, no need to reset
+        if (client.ConnectionState == ConnectionState.Connected) return;
 
-        public static async Task Main() { await new Bot().StartAsync(); }
-
-        private static ServiceProvider ConfigureServices() =>
-            new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
-                .AddDbContext<ZhongliContext>(ContextOptions)
-                .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
-                    typeof(Bot), typeof(DiscordSocketListener))
-                .AddLogging(l => l.AddSerilog())
-                .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
-                {
-                    ExclusiveBulkDelete = true,
-                    AlwaysDownloadUsers = true,
-                    MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
-                }))
-                .AddSingleton<CommandService>()
-                .AddSingleton<CommandErrorHandler>()
-                .AddSingleton<CommandHandlingService>()
-                .AddSingleton<InteractiveService>()
-                .AddSingleton<DiscordSocketListener>()
-                .AddScoped<AuthorizationService>()
-                .AddScoped<ModerationService>()
-                .AddScoped<ModerationLoggingService>()
-                .AddScoped<LoggingService>()
-                .AddScoped<GenshinTimeTrackingService>()
-                .AddSingleton<IQuoteService, QuoteService>()
-                .AddExpirableServices()
-                .AddAutoRemoveMessage()
-                .AddCommandHelp()
-                .AddImages()
-                .BuildServiceProvider();
-
-        private static async Task CheckStateAsync(IDiscordClient client)
+        if (AttemptReset)
         {
-            // Client reconnected, no need to reset
-            if (client.ConnectionState == ConnectionState.Connected) return;
+            Log.Information("Attempting to reset the client");
 
-            if (AttemptReset)
+            var timeout = Task.Delay(ResetTimeout);
+            var connect = client.StartAsync();
+            var task = await Task.WhenAny(timeout, connect);
+
+            if (task == timeout)
             {
-                Log.Information("Attempting to reset the client");
-
-                var timeout = Task.Delay(ResetTimeout);
-                var connect = client.StartAsync();
-                var task = await Task.WhenAny(timeout, connect);
-
-                if (task == timeout)
-                {
-                    Log.Fatal("Client reset timed out (task deadlocked?), killing process");
-                    FailFast();
-                }
-                else if (connect.IsFaulted)
-                {
-                    Log.Fatal(connect.Exception, "Client reset faulted, killing process");
-                    FailFast();
-                }
-                else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
-
-                return;
+                Log.Fatal("Client reset timed out (task deadlocked?), killing process");
+                FailFast();
             }
-
-            Log.Fatal("Client did not reconnect in time, killing process");
-            FailFast();
-        }
-
-        private Task ClientOnConnected()
-        {
-            Log.Debug("Client reconnected, resetting cancel tokens...");
-
-            _reconnectCts.Cancel();
-            _reconnectCts = new CancellationTokenSource();
-
-            Log.Debug("Client reconnected, cancel tokens reset");
-            return Task.CompletedTask;
-        }
-
-        private Task ClientOnDisconnected(IDiscordClient client)
-        {
-            // Check the state after <timeout> to see if we reconnected
-            Log.Information("Client disconnected, starting timeout task...");
-            _ = Task.Delay(ResetTimeout, _reconnectCts.Token).ContinueWith(async _ =>
+            else if (connect.IsFaulted)
             {
-                Log.Debug("Timeout expired, continuing to check client state...");
-                await CheckStateAsync(client);
-                Log.Debug("State came back okay");
-            });
+                Log.Fatal(connect.Exception, "Client reset faulted, killing process");
+                FailFast();
+            }
+            else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
 
-            return Task.CompletedTask;
+            return;
         }
 
-        private static Task LogAsync(LogMessage message)
-        {
-            var severity = message.Severity switch
-            {
-                LogSeverity.Critical => LogEventLevel.Fatal,
-                LogSeverity.Error    => LogEventLevel.Error,
-                LogSeverity.Warning  => LogEventLevel.Warning,
-                LogSeverity.Info     => LogEventLevel.Information,
-                LogSeverity.Verbose  => LogEventLevel.Verbose,
-                LogSeverity.Debug    => LogEventLevel.Debug,
-                _                    => LogEventLevel.Information
-            };
-
-            Log.Write(severity, message.Exception, message.Message);
-
-            return Task.CompletedTask;
-        }
-
-        private async Task StartAsync()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Verbose()
-                .WriteTo.Console()
-                .CreateLogger();
-
-            await using var services = ConfigureServices();
-
-            GlobalConfiguration.Configuration
-                .UseActivator(new AspNetCoreJobActivator(
-                    services.GetRequiredService<IServiceScopeFactory>()))
-                .UseSerilogLogProvider()
-                .UsePostgreSqlStorage(ZhongliConfig.Configuration.HangfireContext)
-                .UseRecommendedSerializerSettings();
-
-            await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
-            var commands = services.GetRequiredService<CommandService>();
-
-            var client = services.GetRequiredService<DiscordSocketClient>();
-
-            _reconnectCts  = new CancellationTokenSource();
-            _mediatorToken = new CancellationTokenSource();
-
-            await services.GetRequiredService<DiscordSocketListener>()
-                .StartAsync(_mediatorToken.Token);
-
-            client.Disconnected += _ => ClientOnDisconnected(client);
-            client.Connected    += ClientOnConnected;
-
-            client.Log   += LogAsync;
-            commands.Log += LogAsync;
-
-            await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
-            await client.StartAsync();
-
-            using var server = new BackgroundJobServer();
-
-            await Task.Delay(Timeout.Infinite);
-        }
-
-        private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder
-                .UseLazyLoadingProxies()
-                .UseNpgsql(ZhongliConfig.Configuration.ZhongliContext);
-        }
-
-        private static void FailFast()
-            => Environment.Exit(1);
+        Log.Fatal("Client did not reconnect in time, killing process");
+        FailFast();
     }
+
+    private Task ClientOnConnected()
+    {
+        Log.Debug("Client reconnected, resetting cancel tokens...");
+
+        _reconnectCts.Cancel();
+        _reconnectCts = new CancellationTokenSource();
+
+        Log.Debug("Client reconnected, cancel tokens reset");
+        return Task.CompletedTask;
+    }
+
+    private Task ClientOnDisconnected(IDiscordClient client)
+    {
+        // Check the state after <timeout> to see if we reconnected
+        Log.Information("Client disconnected, starting timeout task...");
+        _ = Task.Delay(ResetTimeout, _reconnectCts.Token).ContinueWith(async _ =>
+        {
+            Log.Debug("Timeout expired, continuing to check client state...");
+            await CheckStateAsync(client);
+            Log.Debug("State came back okay");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private static Task LogAsync(LogMessage message)
+    {
+        var severity = message.Severity switch
+        {
+            LogSeverity.Critical => LogEventLevel.Fatal,
+            LogSeverity.Error    => LogEventLevel.Error,
+            LogSeverity.Warning  => LogEventLevel.Warning,
+            LogSeverity.Info     => LogEventLevel.Information,
+            LogSeverity.Verbose  => LogEventLevel.Verbose,
+            LogSeverity.Debug    => LogEventLevel.Debug,
+            _                    => LogEventLevel.Information
+        };
+
+        Log.Write(severity, message.Exception, message.Message);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task StartAsync()
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Verbose()
+            .WriteTo.Console()
+            .CreateLogger();
+
+        await using var services = ConfigureServices();
+
+        GlobalConfiguration.Configuration
+            .UseActivator(new AspNetCoreJobActivator(
+                services.GetRequiredService<IServiceScopeFactory>()))
+            .UseSerilogLogProvider()
+            .UsePostgreSqlStorage(ZhongliConfig.Configuration.HangfireContext)
+            .UseRecommendedSerializerSettings();
+
+        await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
+        var commands = services.GetRequiredService<CommandService>();
+
+        var client = services.GetRequiredService<DiscordSocketClient>();
+
+        _reconnectCts  = new CancellationTokenSource();
+        _mediatorToken = new CancellationTokenSource();
+
+        await services.GetRequiredService<DiscordSocketListener>()
+            .StartAsync(_mediatorToken.Token);
+
+        client.Disconnected += _ => ClientOnDisconnected(client);
+        client.Connected    += ClientOnConnected;
+
+        client.Log   += LogAsync;
+        commands.Log += LogAsync;
+
+        await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
+        await client.StartAsync();
+
+        using var server = new BackgroundJobServer();
+
+        await Task.Delay(Timeout.Infinite);
+    }
+
+    private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder
+            .UseLazyLoadingProxies()
+            .UseNpgsql(ZhongliConfig.Configuration.ZhongliContext);
+    }
+
+    private static void FailFast()
+        => Environment.Exit(1);
 }

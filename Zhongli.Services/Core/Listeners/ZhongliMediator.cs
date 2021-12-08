@@ -5,42 +5,41 @@ using System.Threading.Tasks;
 using MediatR;
 using Serilog;
 
-namespace Zhongli.Services.Core.Listeners
+namespace Zhongli.Services.Core.Listeners;
+
+public class ZhongliMediator : Mediator
 {
-    public class ZhongliMediator : Mediator
+    public ZhongliMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
+
+    protected override Task PublishCore(
+        IEnumerable<Func<INotification, CancellationToken, Task>> handlers,
+        INotification notification, CancellationToken cancellationToken)
     {
-        public ZhongliMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
-
-        protected override Task PublishCore(
-            IEnumerable<Func<INotification, CancellationToken, Task>> handlers,
-            INotification notification, CancellationToken cancellationToken)
+        try
         {
-            try
+            _ = Task.Run(async () =>
             {
-                _ = Task.Run(async () =>
+                foreach (var handler in handlers)
                 {
-                    foreach (var handler in handlers)
+                    try
                     {
-                        try
-                        {
-                            await handler(notification, cancellationToken);
-                        }
-                        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
-                        {
-                            Log.Error(ex,
-                                "An unexpected error occurred within a handler for a dispatched message: {Notification}",
-                                notification);
-                        }
+                        await handler(notification, cancellationToken);
                     }
-                }, cancellationToken);
-            }
-            catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
-            {
-                Log.Error(ex, "An unexpected error occurred while dispatching a notification: {Notification}",
-                    notification);
-            }
-
-            return Task.CompletedTask;
+                    catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
+                    {
+                        Log.Error(ex,
+                            "An unexpected error occurred within a handler for a dispatched message: {Notification}",
+                            notification);
+                    }
+                }
+            }, cancellationToken);
         }
+        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
+        {
+            Log.Error(ex, "An unexpected error occurred while dispatching a notification: {Notification}",
+                notification);
+        }
+
+        return Task.CompletedTask;
     }
 }

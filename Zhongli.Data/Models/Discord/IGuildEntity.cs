@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Discord
+namespace Zhongli.Data.Models.Discord;
+
+public interface IGuildEntity
 {
-    public interface IGuildEntity
-    {
-        ulong GuildId { get; set; }
-    }
+    ulong GuildId { get; set; }
 }

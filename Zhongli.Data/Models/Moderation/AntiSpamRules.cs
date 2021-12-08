@@ -1,26 +1,25 @@
 using System;
 using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Moderation
+namespace Zhongli.Data.Models.Moderation;
+
+public class AntiSpamRules
 {
-    public class AntiSpamRules
-    {
-        public Guid Id { get; set; }
+    public Guid Id { get; set; }
 
-        public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; }
 
-        public int? DuplicateTolerance { get; set; }
+    public int? DuplicateTolerance { get; set; }
 
-        public TimeSpan? DuplicateMessageTime { get; set; }
+    public TimeSpan? DuplicateMessageTime { get; set; }
 
-        public TimeSpan? MessageSpamTime { get; set; }
+    public TimeSpan? MessageSpamTime { get; set; }
 
-        public uint? EmojiLimit { get; set; }
+    public uint? EmojiLimit { get; set; }
 
-        public uint? MessageLimit { get; set; }
+    public uint? MessageLimit { get; set; }
 
-        public uint? NewlineLimit { get; set; }
+    public uint? NewlineLimit { get; set; }
 
-        public ulong GuildId { get; set; }
-    }
+    public ulong GuildId { get; set; }
 }

@@ -1,4 +1,3 @@
-namespace Zhongli.Data.Models.Moderation.Infractions
-{
-    public interface INote { }
-}
+namespace Zhongli.Data.Models.Moderation.Infractions;
+
+public interface INote { }

@@ -1,13 +1,12 @@
-namespace Zhongli.Data.Models.Discord.Message
+namespace Zhongli.Data.Models.Discord.Message;
+
+public interface IImage
 {
-    public interface IImage
-    {
-        int? Height { get; set; }
+    int? Height { get; set; }
 
-        int? Width { get; set; }
+    int? Width { get; set; }
 
-        string ProxyUrl { get; set; }
+    string ProxyUrl { get; set; }
 
-        string Url { get; set; }
-    }
+    string Url { get; set; }
 }

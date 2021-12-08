@@ -6,47 +6,46 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Reaction;
 
-namespace Zhongli.Data.Models.Logging
+namespace Zhongli.Data.Models.Logging;
+
+public interface IReactionEntity : IMessageEntity
 {
-    public interface IReactionEntity : IMessageEntity
+    ReactionEntity Emote { get; set; }
+}
+
+public class ReactionLog : ILog, IReactionEntity
+{
+    protected ReactionLog() { }
+
+    public ReactionLog(GuildUserEntity user, SocketReaction reaction, ReactionEntity emote)
     {
-        ReactionEntity Emote { get; set; }
+        LogDate   = DateTimeOffset.UtcNow;
+        User      = user;
+        ChannelId = reaction.Channel.Id;
+        MessageId = reaction.MessageId;
+        Emote     = emote;
     }
 
-    public class ReactionLog : ILog, IReactionEntity
-    {
-        protected ReactionLog() { }
+    public Guid Id { get; set; }
 
-        public ReactionLog(GuildUserEntity user, SocketReaction reaction, ReactionEntity emote)
-        {
-            LogDate   = DateTimeOffset.UtcNow;
-            User      = user;
-            ChannelId = reaction.Channel.Id;
-            MessageId = reaction.MessageId;
-            Emote     = emote;
-        }
+    public virtual GuildEntity Guild { get; set; }
 
-        public Guid Id { get; set; }
+    public virtual GuildUserEntity User { get; set; }
 
-        public virtual GuildEntity Guild { get; set; }
+    public ulong ChannelId { get; set; }
 
-        public virtual GuildUserEntity User { get; set; }
+    public ulong GuildId { get; set; }
 
-        public ulong ChannelId { get; set; }
+    public DateTimeOffset LogDate { get; set; }
 
-        public ulong GuildId { get; set; }
+    public ulong MessageId { get; set; }
 
-        public DateTimeOffset LogDate { get; set; }
+    public virtual ReactionEntity Emote { get; set; }
 
-        public ulong MessageId { get; set; }
+    public ulong UserId { get; set; }
+}
 
-        public virtual ReactionEntity Emote { get; set; }
-
-        public ulong UserId { get; set; }
-    }
-
-    public class ReactionLogConfiguration : IEntityTypeConfiguration<ReactionLog>
-    {
-        public void Configure(EntityTypeBuilder<ReactionLog> builder) { builder.AddUserNavigation(r => r.User); }
-    }
+public class ReactionLogConfiguration : IEntityTypeConfiguration<ReactionLog>
+{
+    public void Configure(EntityTypeBuilder<ReactionLog> builder) { builder.AddUserNavigation(r => r.User); }
 }

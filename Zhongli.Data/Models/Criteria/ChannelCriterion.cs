@@ -1,21 +1,20 @@
 ﻿using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Criteria
+namespace Zhongli.Data.Models.Criteria;
+
+public class ChannelCriterion : Criterion, IGuildChannelEntity
 {
-    public class ChannelCriterion : Criterion, IGuildChannelEntity
+    protected ChannelCriterion() { }
+
+    public ChannelCriterion(ulong channelId, bool isCategory)
     {
-        protected ChannelCriterion() { }
-
-        public ChannelCriterion(ulong channelId, bool isCategory)
-        {
-            ChannelId  = channelId;
-            IsCategory = isCategory;
-        }
-
-        public ulong ChannelId { get; set; }
-
-        public bool IsCategory { get; set; }
-
-        public override string ToString() => this.MentionChannel();
+        ChannelId  = channelId;
+        IsCategory = isCategory;
     }
+
+    public ulong ChannelId { get; set; }
+
+    public bool IsCategory { get; set; }
+
+    public override string ToString() => this.MentionChannel();
 }

@@ -1,16 +1,12 @@
 ﻿using System;
 
-namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
+namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+
+public class Warning : ExpirableReprimand, IWarning
 {
-    public class Warning : ExpirableReprimand, IWarning
-    {
-        protected Warning() { }
+    protected Warning() { }
 
-        public Warning(uint count, TimeSpan? length, ReprimandDetails details) : base(length, details)
-        {
-            Count = count;
-        }
+    public Warning(uint count, TimeSpan? length, ReprimandDetails details) : base(length, details) { Count = count; }
 
-        public uint Count { get; set; }
-    }
+    public uint Count { get; set; }
 }

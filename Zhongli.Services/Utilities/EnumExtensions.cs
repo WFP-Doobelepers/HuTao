@@ -3,33 +3,32 @@ using System.Collections.Generic;
 using Discord;
 using Zhongli.Data.Models.Moderation;
 
-namespace Zhongli.Services.Utilities
+namespace Zhongli.Services.Utilities;
+
+public static class EnumExtensions
 {
-    public static class EnumExtensions
+    private static readonly GenericBitwise<ReprimandNoticeType> ReprimandNoticeTypeBitwise = new();
+    private static readonly GenericBitwise<ReprimandOptions> ReprimandOptionsBitwise = new();
+    private static readonly GenericBitwise<GuildPermission> GuildPermissionBitwise = new();
+
+    public static GuildPermissions ToGuildPermissions(this IEnumerable<GuildPermission> permissions)
+        => new((uint) GuildPermissionBitwise.Or(permissions));
+
+    public static ReprimandNoticeType SetValue(this ReprimandNoticeType options, ReprimandNoticeType flag,
+        bool? state)
+        => ReprimandNoticeTypeBitwise.SetValue(options, flag, state);
+
+    public static ReprimandOptions SetValue(this ReprimandOptions options, ReprimandOptions flag, bool? state)
+        => ReprimandOptionsBitwise.SetValue(options, flag, state);
+
+    public static T SetValue<T>(this GenericBitwise<T> generic, T @enum, T flag, bool? state)
+        where T : Enum
     {
-        private static readonly GenericBitwise<ReprimandNoticeType> ReprimandNoticeTypeBitwise = new();
-        private static readonly GenericBitwise<ReprimandOptions> ReprimandOptionsBitwise = new();
-        private static readonly GenericBitwise<GuildPermission> GuildPermissionBitwise = new();
+        if (state is null)
+            return generic.Xor(@enum, flag);
 
-        public static GuildPermissions ToGuildPermissions(this IEnumerable<GuildPermission> permissions)
-            => new((uint) GuildPermissionBitwise.Or(permissions));
-
-        public static ReprimandNoticeType SetValue(this ReprimandNoticeType options, ReprimandNoticeType flag,
-            bool? state)
-            => ReprimandNoticeTypeBitwise.SetValue(options, flag, state);
-
-        public static ReprimandOptions SetValue(this ReprimandOptions options, ReprimandOptions flag, bool? state)
-            => ReprimandOptionsBitwise.SetValue(options, flag, state);
-
-        public static T SetValue<T>(this GenericBitwise<T> generic, T @enum, T flag, bool? state)
-            where T : Enum
-        {
-            if (state is null)
-                return generic.Xor(@enum, flag);
-
-            return state.Value
-                ? generic.Or(@enum, flag)
-                : generic.And(@enum, generic.Not(flag));
-        }
+        return state.Value
+            ? generic.Or(@enum, flag)
+            : generic.And(@enum, generic.Not(flag));
     }
 }

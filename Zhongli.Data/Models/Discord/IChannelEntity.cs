@@ -1,12 +1,11 @@
-namespace Zhongli.Data.Models.Discord
-{
-    public interface IGuildChannelEntity : IChannelEntity
-    {
-        bool IsCategory { get; set; }
-    }
+namespace Zhongli.Data.Models.Discord;
 
-    public interface IChannelEntity
-    {
-        ulong ChannelId { get; set; }
-    }
+public interface IGuildChannelEntity : IChannelEntity
+{
+    bool IsCategory { get; set; }
+}
+
+public interface IChannelEntity
+{
+    ulong ChannelId { get; set; }
 }

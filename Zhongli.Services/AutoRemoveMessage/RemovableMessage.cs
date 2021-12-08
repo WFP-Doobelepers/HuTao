@@ -1,11 +1,10 @@
 ﻿using Discord;
 
-namespace Zhongli.Services.AutoRemoveMessage
-{
-    public class RemovableMessage
-    {
-        public IMessage Message { get; set; }
+namespace Zhongli.Services.AutoRemoveMessage;
 
-        public IUser[] Users { get; set; }
-    }
+public class RemovableMessage
+{
+    public IMessage Message { get; set; }
+
+    public IUser[] Users { get; set; }
 }

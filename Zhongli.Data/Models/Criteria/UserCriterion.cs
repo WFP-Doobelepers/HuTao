@@ -1,15 +1,14 @@
 ﻿using Zhongli.Data.Models.Discord;
 
-namespace Zhongli.Data.Models.Criteria
+namespace Zhongli.Data.Models.Criteria;
+
+public class UserCriterion : Criterion, IUserEntity
 {
-    public class UserCriterion : Criterion, IUserEntity
-    {
-        protected UserCriterion() { }
+    protected UserCriterion() { }
 
-        public UserCriterion(ulong userId) { UserId = userId; }
+    public UserCriterion(ulong userId) { UserId = userId; }
 
-        public ulong UserId { get; set; }
+    public ulong UserId { get; set; }
 
-        public override string ToString() => this.MentionUser();
-    }
+    public override string ToString() => this.MentionUser();
 }

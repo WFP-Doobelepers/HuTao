@@ -1,9 +1,8 @@
-namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
-{
-    public interface ITrigger
-    {
-        TriggerMode Mode { get; set; }
+namespace Zhongli.Data.Models.Moderation.Infractions.Triggers;
 
-        uint Amount { get; set; }
-    }
+public interface ITrigger
+{
+    TriggerMode Mode { get; set; }
+
+    uint Amount { get; set; }
 }

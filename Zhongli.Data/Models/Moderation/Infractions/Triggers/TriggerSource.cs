@@ -1,9 +1,8 @@
-namespace Zhongli.Data.Models.Moderation.Infractions.Triggers
+namespace Zhongli.Data.Models.Moderation.Infractions.Triggers;
+
+public enum TriggerSource
 {
-    public enum TriggerSource
-    {
-        Notice,
-        Warning,
-        Censored
-    }
+    Notice,
+    Warning,
+    Censored
 }

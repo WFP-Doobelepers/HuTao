@@ -1,9 +1,8 @@
 using System;
 
-namespace Zhongli.Data.Models.Moderation.Infractions
+namespace Zhongli.Data.Models.Moderation.Infractions;
+
+public interface ILength
 {
-    public interface ILength
-    {
-        TimeSpan? Length { get; set; }
-    }
+    TimeSpan? Length { get; set; }
 }

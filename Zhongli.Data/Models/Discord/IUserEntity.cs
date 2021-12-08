@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Discord
+namespace Zhongli.Data.Models.Discord;
+
+public interface IUserEntity
 {
-    public interface IUserEntity
-    {
-        ulong UserId { get; set; }
-    }
+    ulong UserId { get; set; }
 }

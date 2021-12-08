@@ -1,8 +1,7 @@
-namespace Zhongli.Data.Models.Authorization
+namespace Zhongli.Data.Models.Authorization;
+
+public enum AccessType
 {
-    public enum AccessType
-    {
-        Allow,
-        Deny
-    }
+    Allow,
+    Deny
 }

@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Discord
+namespace Zhongli.Data.Models.Discord;
+
+public interface IRoleEntity : IGuildEntity
 {
-    public interface IRoleEntity : IGuildEntity
-    {
-        ulong RoleId { get; set; }
-    }
+    ulong RoleId { get; set; }
 }

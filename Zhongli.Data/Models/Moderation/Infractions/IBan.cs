@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Moderation.Infractions
+namespace Zhongli.Data.Models.Moderation.Infractions;
+
+public interface IBan : ILength
 {
-    public interface IBan : ILength
-    {
-        uint DeleteDays { get; set; }
-    }
+    uint DeleteDays { get; set; }
 }

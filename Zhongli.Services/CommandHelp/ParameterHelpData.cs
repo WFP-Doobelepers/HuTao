@@ -7,75 +7,74 @@ using Discord.Commands;
 using Namotion.Reflection;
 using Zhongli.Services.Utilities;
 
-namespace Zhongli.Services.CommandHelp
+namespace Zhongli.Services.CommandHelp;
+
+public class ParameterHelpData
 {
-    public class ParameterHelpData
+    private IEnumerable<ParameterHelpData> _options = null!;
+
+    private ParameterHelpData(
+        string name, Type type,
+        string? summary = null,
+        bool isOptional = false)
     {
-        private IEnumerable<ParameterHelpData> _options = null!;
+        Name       = name;
+        Summary    = summary;
+        Type       = type;
+        IsOptional = isOptional;
+    }
 
-        private ParameterHelpData(
-            string name, Type type,
-            string? summary = null,
-            bool isOptional = false)
+    public bool IsOptional { get; set; }
+
+    public IEnumerable<ParameterHelpData> Options => LazyInitializer.EnsureInitialized(ref _options, () =>
+    {
+        var type = Type.GetGenericArguments().FirstOrDefault() ?? Type;
+
+        return type switch
         {
-            Name       = name;
-            Summary    = summary;
-            Type       = type;
-            IsOptional = isOptional;
-        }
+            var t when t.IsEnum                                                 => FromEnum(t),
+            var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(t),
+            _                                                                   => Enumerable.Empty<ParameterHelpData>()
+        };
+    });
 
-        public bool IsOptional { get; set; }
+    public string Name { get; set; }
 
-        public IEnumerable<ParameterHelpData> Options => LazyInitializer.EnsureInitialized(ref _options, () =>
-        {
-            var type = Type.GetGenericArguments().FirstOrDefault() ?? Type;
+    public string? Summary { get; set; }
 
-            return type switch
+    public Type Type { get; set; }
+
+    public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
+    {
+        var type = parameter.Type.ToContextualType();
+        return new ParameterHelpData(parameter.Name, type.Type, parameter.Summary,
+            parameter.IsOptional || type.Nullability == Nullability.Nullable);
+    }
+
+    private static IEnumerable<ParameterHelpData> FromEnum(Type type)
+    {
+        return type.GetEnumValues()
+            .OfType<Enum>()
+            .Select(e =>
             {
-                var t when t.IsEnum => FromEnum(t),
-                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(t),
-                _ => Enumerable.Empty<ParameterHelpData>()
-            };
-        });
+                var summary =
+                    e.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text ??
+                    e.GetAttributeOfEnum<DescriptionAttribute>()?.Description;
 
-        public string Name { get; set; }
-
-        public string? Summary { get; set; }
-
-        public Type Type { get; set; }
-
-        public static ParameterHelpData FromParameterInfo(ParameterInfo parameter)
-        {
-            var type = parameter.Type.ToContextualType();
-            return new ParameterHelpData(parameter.Name, type.Type, parameter.Summary,
-                parameter.IsOptional || type.Nullability == Nullability.Nullable);
-        }
-
-        private static IEnumerable<ParameterHelpData> FromEnum(Type type)
-        {
-            return type.GetEnumValues()
-                .OfType<Enum>()
-                .Select(e =>
-                {
-                    var summary =
-                        e.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text ??
-                        e.GetAttributeOfEnum<DescriptionAttribute>()?.Description;
-
-                    return new ParameterHelpData(e.ToString(), type, summary);
-                });
-        }
-
-        private static IEnumerable<ParameterHelpData> FromNamedArgumentInfo(Type type)
-        {
-            var properties = type.GetProperties();
-
-            return properties.Select(p =>
-            {
-                var info = p.ToContextualProperty();
-                return new ParameterHelpData(info.Name, info.PropertyType,
-                    info.GetContextAttribute<HelpSummaryAttribute>()?.Text,
-                    info.Nullability == Nullability.Nullable);
+                return new ParameterHelpData(e.ToString(), type, summary);
             });
-        }
+    }
+
+    private static IEnumerable<ParameterHelpData> FromNamedArgumentInfo(Type type)
+    {
+        var properties = type.GetProperties();
+
+        return properties.Select(p =>
+        {
+            var info = p.ToContextualProperty();
+            return new ParameterHelpData(info.Name, info.PropertyType,
+                info.GetContextAttribute<HelpSummaryAttribute>()?.Text,
+                info.Nullability == Nullability.Nullable);
+        });
     }
 }

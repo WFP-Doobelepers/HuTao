@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Zhongli.Data.Models.Criteria
+namespace Zhongli.Data.Models.Criteria;
+
+public abstract class Criterion
 {
-    public abstract class Criterion
-    {
-        public Guid Id { get; set; }
-    }
+    public Guid Id { get; set; }
 }

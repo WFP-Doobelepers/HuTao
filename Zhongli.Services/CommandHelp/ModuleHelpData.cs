@@ -4,47 +4,46 @@ using System.Linq;
 using Discord.Commands;
 using Humanizer;
 
-namespace Zhongli.Services.CommandHelp
+namespace Zhongli.Services.CommandHelp;
+
+public class ModuleHelpData
 {
-    public class ModuleHelpData
+    public IReadOnlyCollection<CommandHelpData> Commands { get; set; }
+
+    public IReadOnlyCollection<string> HelpTags { get; set; }
+
+    public string Name { get; set; }
+
+    public string? Summary { get; set; }
+
+    public static ModuleHelpData FromModuleInfo(ModuleInfo module)
     {
-        public IReadOnlyCollection<CommandHelpData> Commands { get; set; }
+        var moduleName = module.Name;
 
-        public IReadOnlyCollection<string> HelpTags { get; set; }
+        var suffixPosition = moduleName.IndexOf("Module", StringComparison.Ordinal);
+        if (suffixPosition > -1) moduleName = module.Name[..suffixPosition].Humanize();
 
-        public string Name { get; set; }
+        moduleName = moduleName.ApplyCase(LetterCasing.Title);
 
-        public string? Summary { get; set; }
-
-        public static ModuleHelpData FromModuleInfo(ModuleInfo module)
+        var ret = new ModuleHelpData
         {
-            var moduleName = module.Name;
+            Name    = moduleName,
+            Summary = string.IsNullOrWhiteSpace(module.Summary) ? "No Summary." : module.Summary,
+            Commands = module.Commands
+                .Where(x => !ShouldBeHidden(x))
+                .Select(CommandHelpData.FromCommandInfo)
+                .ToArray(),
+            HelpTags = module.Attributes
+                    .OfType<HelpTagsAttribute>()
+                    .SingleOrDefault()
+                    ?.Tags
+                ?? Array.Empty<string>()
+        };
 
-            var suffixPosition = moduleName.IndexOf("Module", StringComparison.Ordinal);
-            if (suffixPosition > -1) moduleName = module.Name[..suffixPosition].Humanize();
+        return ret;
 
-            moduleName = moduleName.ApplyCase(LetterCasing.Title);
-
-            var ret = new ModuleHelpData
-            {
-                Name    = moduleName,
-                Summary = string.IsNullOrWhiteSpace(module.Summary) ? "No Summary." : module.Summary,
-                Commands = module.Commands
-                    .Where(x => !ShouldBeHidden(x))
-                    .Select(CommandHelpData.FromCommandInfo)
-                    .ToArray(),
-                HelpTags = module.Attributes
-                        .OfType<HelpTagsAttribute>()
-                        .SingleOrDefault()
-                        ?.Tags
-                    ?? Array.Empty<string>()
-            };
-
-            return ret;
-
-            static bool ShouldBeHidden(CommandInfo command) =>
-                command.Preconditions.Any(x => x is RequireOwnerAttribute)
-                || command.Attributes.Any(x => x is HiddenFromHelpAttribute);
-        }
+        static bool ShouldBeHidden(CommandInfo command) =>
+            command.Preconditions.Any(x => x is RequireOwnerAttribute)
+            || command.Attributes.Any(x => x is HiddenFromHelpAttribute);
     }
 }

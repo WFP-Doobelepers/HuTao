@@ -1,14 +1,13 @@
-namespace Zhongli.Services.Moderation
+namespace Zhongli.Services.Moderation;
+
+public enum InfractionType
 {
-    public enum InfractionType
-    {
-        All,
-        Ban,
-        Censored,
-        Kick,
-        Mute,
-        Note,
-        Notice,
-        Warning
-    }
+    All,
+    Ban,
+    Censored,
+    Kick,
+    Mute,
+    Note,
+    Notice,
+    Warning
 }

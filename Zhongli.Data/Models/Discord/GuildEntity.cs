@@ -7,44 +7,43 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Data.Models.VoiceChat;
 
-namespace Zhongli.Data.Models.Discord
+namespace Zhongli.Data.Models.Discord;
+
+public class GuildEntity
 {
-    public class GuildEntity
-    {
-        protected GuildEntity() { }
+    protected GuildEntity() { }
 
-        public GuildEntity(ulong id) { Id = id; }
+    public GuildEntity(ulong id) { Id = id; }
 
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public ulong Id { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public ulong Id { get; set; }
 
-        public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
+    public virtual GenshinTimeTrackingRules? GenshinRules { get; set; }
 
-        public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
-            = new List<AuthorizationGroup>();
+    public virtual ICollection<AuthorizationGroup> AuthorizationGroups { get; set; }
+        = new List<AuthorizationGroup>();
 
-        public virtual ICollection<DeleteLog> DeleteLogs { get; set; }
-            = new List<DeleteLog>();
+    public virtual ICollection<DeleteLog> DeleteLogs { get; set; }
+        = new List<DeleteLog>();
 
-        public virtual ICollection<MessageLog> MessageLogs { get; set; }
-            = new List<MessageLog>();
+    public virtual ICollection<MessageLog> MessageLogs { get; set; }
+        = new List<MessageLog>();
 
-        public virtual ICollection<ReactionLog> ReactionLogs { get; set; }
-            = new List<ReactionLog>();
+    public virtual ICollection<ReactionLog> ReactionLogs { get; set; }
+        = new List<ReactionLog>();
 
-        public virtual ICollection<Reprimand> ReprimandHistory { get; set; }
-            = new List<Reprimand>();
+    public virtual ICollection<Reprimand> ReprimandHistory { get; set; }
+        = new List<Reprimand>();
 
-        public virtual ICollection<TemporaryRole> TemporaryRoles { get; set; }
-            = new List<TemporaryRole>();
+    public virtual ICollection<TemporaryRole> TemporaryRoles { get; set; }
+        = new List<TemporaryRole>();
 
-        public virtual ICollection<TemporaryRoleMember> TemporaryRoleMembers { get; set; }
-            = new List<TemporaryRoleMember>();
+    public virtual ICollection<TemporaryRoleMember> TemporaryRoleMembers { get; set; }
+        = new List<TemporaryRoleMember>();
 
-        public virtual LoggingRules LoggingRules { get; set; } = null!;
+    public virtual LoggingRules LoggingRules { get; set; } = null!;
 
-        public virtual ModerationRules ModerationRules { get; set; } = null!;
+    public virtual ModerationRules ModerationRules { get; set; } = null!;
 
-        public virtual VoiceChatRules? VoiceChatRules { get; set; }
-    }
+    public virtual VoiceChatRules? VoiceChatRules { get; set; }
 }

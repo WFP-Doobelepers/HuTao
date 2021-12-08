@@ -7,29 +7,28 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 
-namespace Zhongli.Services.Expirable
+namespace Zhongli.Services.Expirable;
+
+public class ExpiredEntityBehavior<T> : INotificationHandler<ReadyNotification>
+    where T : class, IExpirable
 {
-    public class ExpiredEntityBehavior<T> : INotificationHandler<ReadyNotification>
-        where T : class, IExpirable
+    private readonly ExpirableService<T> _expire;
+    private readonly ZhongliContext _db;
+
+    public ExpiredEntityBehavior(ZhongliContext db, ExpirableService<T> expire)
     {
-        private readonly ExpirableService<T> _expire;
-        private readonly ZhongliContext _db;
+        _db     = db;
+        _expire = expire;
+    }
 
-        public ExpiredEntityBehavior(ZhongliContext db, ExpirableService<T> expire)
+    public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
+    {
+        var active = _db.Set<T>().AsAsyncEnumerable()
+            .Where(m => m.IsActive());
+
+        await foreach (var entity in active.WithCancellation(cancellationToken))
         {
-            _db     = db;
-            _expire = expire;
-        }
-
-        public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
-        {
-            var active = _db.Set<T>().AsAsyncEnumerable()
-                .Where(m => m.IsActive());
-
-            await foreach (var entity in active.WithCancellation(cancellationToken))
-            {
-                _expire.EnqueueExpirableEntity(entity, cancellationToken);
-            }
+            _expire.EnqueueExpirableEntity(entity, cancellationToken);
         }
     }
 }

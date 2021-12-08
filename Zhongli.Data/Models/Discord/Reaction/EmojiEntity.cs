@@ -1,13 +1,12 @@
 using Discord;
 
-namespace Zhongli.Data.Models.Discord.Reaction
+namespace Zhongli.Data.Models.Discord.Reaction;
+
+public class EmojiEntity : ReactionEntity
 {
-    public class EmojiEntity : ReactionEntity
-    {
-        protected EmojiEntity() { }
+    protected EmojiEntity() { }
 
-        public EmojiEntity(IEmote emote) : base(emote) { }
+    public EmojiEntity(IEmote emote) : base(emote) { }
 
-        public override string ToString() => Name;
-    }
+    public override string ToString() => Name;
 }

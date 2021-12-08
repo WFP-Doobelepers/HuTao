@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Discord
+namespace Zhongli.Data.Models.Discord;
+
+public interface IPermissionEntity
 {
-    public interface IPermissionEntity
-    {
-        GuildPermission Permission { get; set; }
-    }
+    GuildPermission Permission { get; set; }
 }

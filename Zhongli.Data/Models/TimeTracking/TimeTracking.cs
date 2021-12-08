@@ -1,11 +1,10 @@
 using System;
 
-namespace Zhongli.Data.Models.TimeTracking
-{
-    public abstract class TimeTracking
-    {
-        public Guid Id { get; set; }
+namespace Zhongli.Data.Models.TimeTracking;
 
-        public ulong GuildId { get; set; }
-    }
+public abstract class TimeTracking
+{
+    public Guid Id { get; set; }
+
+    public ulong GuildId { get; set; }
 }

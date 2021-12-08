@@ -5,52 +5,51 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;
 
-namespace Zhongli.Services.Interactive
+namespace Zhongli.Services.Interactive;
+
+public partial class PromptCollection<T> : IPromptCriteria<SocketMessage> where T : notnull
 {
-    public partial class PromptCollection<T> : IPromptCriteria<SocketMessage> where T : notnull
+    public PromptCollection(
+        InteractivePromptBase module,
+        string? errorMessage = null, IServiceProvider? services = null)
     {
-        public PromptCollection(
-            InteractivePromptBase module,
-            string? errorMessage = null, IServiceProvider? services = null)
+        ErrorMessage = errorMessage;
+        Module       = module;
+        Services     = services;
+        Criteria = new ICriterion<SocketMessage>[]
         {
-            ErrorMessage = errorMessage;
-            Module       = module;
-            Services     = services;
-            Criteria = new ICriterion<SocketMessage>[]
-            {
-                new EnsureSourceChannelCriterion(),
-                new EnsureSourceUserCriterion()
-            };
-        }
-
-        public int Timeout { get; set; } = 30;
-
-        public InteractivePromptBase Module { get; }
-
-        public IServiceProvider? Services { get; }
-
-        public List<Prompt<T>> Prompts { get; } = new();
-
-        public SocketCommandContext Context => Module.Context;
-
-        public string? ErrorMessage { get; set; }
-
-        public ICollection<ICriterion<SocketMessage>> Criteria { get; }
-
-        public TypeReader? TypeReader { get; set; }
+            new EnsureSourceChannelCriterion(),
+            new EnsureSourceUserCriterion()
+        };
     }
 
-    public partial class PromptOrCollection<TOptions>
-        where TOptions : notnull
+    public int Timeout { get; set; } = 30;
+
+    public InteractivePromptBase Module { get; }
+
+    public IServiceProvider? Services { get; }
+
+    public List<Prompt<T>> Prompts { get; } = new();
+
+    public SocketCommandContext Context => Module.Context;
+
+    public string? ErrorMessage { get; set; }
+
+    public ICollection<ICriterion<SocketMessage>> Criteria { get; }
+
+    public TypeReader? TypeReader { get; set; }
+}
+
+public partial class PromptOrCollection<TOptions>
+    where TOptions : notnull
+{
+    public PromptOrCollection(Prompt<TOptions> prompt, PromptCollection<TOptions> collection)
     {
-        public PromptOrCollection(Prompt<TOptions> prompt, PromptCollection<TOptions> collection)
-        {
-            Prompt     = prompt;
-            Collection = collection;
-        }
-
-        public Prompt<TOptions> Prompt { get; }
-
-        public PromptCollection<TOptions> Collection { get; }
+        Prompt     = prompt;
+        Collection = collection;
     }
+
+    public Prompt<TOptions> Prompt { get; }
+
+    public PromptCollection<TOptions> Collection { get; }
 }

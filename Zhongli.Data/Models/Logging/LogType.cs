@@ -1,11 +1,10 @@
-namespace Zhongli.Data.Models.Logging
+namespace Zhongli.Data.Models.Logging;
+
+public enum LogType
 {
-    public enum LogType
-    {
-        MessageUpdated,
-        MessageDeleted,
-        ReactionAdded,
-        ReactionRemoved,
-        MessagesBulkDeleted
-    }
+    MessageUpdated,
+    MessageDeleted,
+    ReactionAdded,
+    ReactionRemoved,
+    MessagesBulkDeleted
 }

@@ -1,14 +1,13 @@
-namespace Zhongli.Data.Models.Moderation
+namespace Zhongli.Data.Models.Moderation;
+
+public enum ReprimandType
 {
-    public enum ReprimandType
-    {
-        None,
-        Ban,
-        Censored,
-        Kick,
-        Mute,
-        Note,
-        Notice,
-        Warning
-    }
+    None,
+    Ban,
+    Censored,
+    Kick,
+    Mute,
+    Note,
+    Notice,
+    Warning
 }

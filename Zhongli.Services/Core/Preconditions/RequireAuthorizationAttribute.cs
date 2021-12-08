@@ -5,26 +5,25 @@ using Discord.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data.Models.Authorization;
 
-namespace Zhongli.Services.Core.Preconditions
+namespace Zhongli.Services.Core.Preconditions;
+
+public class RequireAuthorizationAttribute : PreconditionAttribute
 {
-    public class RequireAuthorizationAttribute : PreconditionAttribute
+    private readonly AuthorizationScope _scopes = AuthorizationScope.All;
+
+    public RequireAuthorizationAttribute(AuthorizationScope scopes) { _scopes |= scopes; }
+
+    public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context,
+        CommandInfo command, IServiceProvider services)
     {
-        private readonly AuthorizationScope _scopes = AuthorizationScope.All;
+        if (context.User is not IGuildUser user)
+            return PreconditionResult.FromError("User could not be cast as SocketGuildUser");
 
-        public RequireAuthorizationAttribute(AuthorizationScope scopes) { _scopes |= scopes; }
+        var auth = services.GetRequiredService<AuthorizationService>();
+        var isAuthorized = await auth.IsAuthorizedAsync(context, _scopes);
 
-        public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context,
-            CommandInfo command, IServiceProvider services)
-        {
-            if (context.User is not IGuildUser user)
-                return PreconditionResult.FromError("User could not be cast as SocketGuildUser");
-
-            var auth = services.GetRequiredService<AuthorizationService>();
-            var isAuthorized = await auth.IsAuthorizedAsync(context, _scopes);
-
-            return isAuthorized
-                ? PreconditionResult.FromSuccess()
-                : PreconditionResult.FromError("You do not have permission to use this command.");
-        }
+        return isAuthorized
+            ? PreconditionResult.FromSuccess()
+            : PreconditionResult.FromError("You do not have permission to use this command.");
     }
 }

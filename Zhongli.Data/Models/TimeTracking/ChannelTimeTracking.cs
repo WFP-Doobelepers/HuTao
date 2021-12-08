@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.TimeTracking
+namespace Zhongli.Data.Models.TimeTracking;
+
+public class ChannelTimeTracking : TimeTracking
 {
-    public class ChannelTimeTracking : TimeTracking
-    {
-        public ulong ChannelId { get; set; }
-    }
+    public ulong ChannelId { get; set; }
 }

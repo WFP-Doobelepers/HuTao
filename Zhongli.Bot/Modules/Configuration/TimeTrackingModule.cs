@@ -11,65 +11,64 @@ using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.TimeTracking;
 using Zhongli.Services.Utilities;
 
-namespace Zhongli.Bot.Modules.Configuration
+namespace Zhongli.Bot.Modules.Configuration;
+
+[Name("Time Tracking")]
+[Group("time")]
+[Summary("Time tracking module.")]
+[RequireAuthorization(AuthorizationScope.Configuration)]
+public class TimeTrackingModule : ModuleBase<SocketCommandContext>
 {
-    [Name("Time Tracking")]
-    [Group("time")]
-    [Summary("Time tracking module.")]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
-    public class TimeTrackingModule : ModuleBase<SocketCommandContext>
+    private readonly CommandErrorHandler _error;
+    private readonly GenshinTimeTrackingService _time;
+    private readonly ZhongliContext _db;
+
+    public TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingService time, ZhongliContext db)
     {
-        private readonly CommandErrorHandler _error;
-        private readonly GenshinTimeTrackingService _time;
-        private readonly ZhongliContext _db;
+        _error = error;
+        _time  = time;
+        _db    = db;
+    }
 
-        public TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingService time, ZhongliContext db)
+    [Command("genshin")]
+    public async Task GenshinAsync(ITextChannel channel)
+    {
+        var message = await channel.SendMessageAsync("Setting up...");
+        await GenshinAsync(message);
+    }
+
+    [Command("genshin")]
+    public async Task GenshinAsync(IUserMessage? message = null)
+    {
+        message ??= await ReplyAsync("Setting up...");
+
+        if (message.Channel is SocketGuildChannel channel
+            && channel.Guild.Id != Context.Guild.Id)
         {
-            _error = error;
-            _time  = time;
-            _db    = db;
+            await _error.AssociateError(Context.Message, "Invalid message.");
+            return;
         }
 
-        [Command("genshin")]
-        public async Task GenshinAsync(ITextChannel channel)
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        guild.GenshinRules ??= new GenshinTimeTrackingRules();
+
+        var serverStatus = guild.GenshinRules.ServerStatus;
+        if (serverStatus is not null)
         {
-            var message = await channel.SendMessageAsync("Setting up...");
-            await GenshinAsync(message);
+            var removed = _db.Remove(serverStatus).Entity;
+            RecurringJob.RemoveIfExists(removed.Id.ToString());
         }
 
-        [Command("genshin")]
-        public async Task GenshinAsync(IUserMessage? message = null)
+        guild.GenshinRules.ServerStatus = new MessageTimeTracking
         {
-            message ??= await ReplyAsync("Setting up...");
+            GuildId   = guild.Id,
+            ChannelId = message.Channel.Id,
+            MessageId = message.Id
+        };
 
-            if (message.Channel is SocketGuildChannel channel
-                && channel.Guild.Id != Context.Guild.Id)
-            {
-                await _error.AssociateError(Context.Message, "Invalid message.");
-                return;
-            }
+        await _db.SaveChangesAsync();
+        _time.TrackGenshinTime(guild.GenshinRules);
 
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-            guild.GenshinRules ??= new GenshinTimeTrackingRules();
-
-            var serverStatus = guild.GenshinRules.ServerStatus;
-            if (serverStatus is not null)
-            {
-                var removed = _db.Remove(serverStatus).Entity;
-                RecurringJob.RemoveIfExists(removed.Id.ToString());
-            }
-
-            guild.GenshinRules.ServerStatus = new MessageTimeTracking
-            {
-                GuildId   = guild.Id,
-                ChannelId = message.Channel.Id,
-                MessageId = message.Id
-            };
-
-            await _db.SaveChangesAsync();
-            _time.TrackGenshinTime(guild.GenshinRules);
-
-            await Context.Message.AddReactionAsync(new Emoji("✅"));
-        }
+        await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
 }

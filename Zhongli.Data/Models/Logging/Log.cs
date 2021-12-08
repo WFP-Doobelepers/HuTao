@@ -1,9 +1,8 @@
 using System;
 
-namespace Zhongli.Data.Models.Logging
+namespace Zhongli.Data.Models.Logging;
+
+public interface ILog
 {
-    public interface ILog
-    {
-        DateTimeOffset LogDate { get; set; }
-    }
+    DateTimeOffset LogDate { get; set; }
 }

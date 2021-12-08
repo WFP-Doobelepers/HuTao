@@ -1,7 +1,6 @@
-namespace Zhongli.Data.Models.Moderation.Infractions
+namespace Zhongli.Data.Models.Moderation.Infractions;
+
+public interface IWarning
 {
-    public interface IWarning
-    {
-        public uint Count { get; set; }
-    }
+    public uint Count { get; set; }
 }

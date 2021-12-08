@@ -6,22 +6,21 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Moderation.Infractions;
 
-namespace Zhongli.Services.Core
+namespace Zhongli.Services.Core;
+
+public static class AuthorizationRuleExtensions
 {
-    public static class AuthorizationRuleExtensions
+    public static bool Judge(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>
+        rules.Collection.Any(r => r.Judge(context, user));
+
+    public static IEnumerable<T> Scoped<T>(
+        this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
+        => rules.Where(rule => (rule.Scope & scope) != 0);
+
+    public static void AddRules(this ICollection<AuthorizationGroup> group,
+        AuthorizationScope scope, IGuildUser moderator, AccessType accessType,
+        params Criterion[] rules)
     {
-        public static bool Judge(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>
-            rules.Collection.Any(r => r.Judge(context, user));
-
-        public static IEnumerable<T> Scoped<T>(
-            this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
-            => rules.Where(rule => (rule.Scope & scope) != 0);
-
-        public static void AddRules(this ICollection<AuthorizationGroup> group,
-            AuthorizationScope scope, IGuildUser moderator, AccessType accessType,
-            params Criterion[] rules)
-        {
-            group.Add(new AuthorizationGroup(scope, accessType, rules).WithModerator(moderator));
-        }
+        group.Add(new AuthorizationGroup(scope, accessType, rules).WithModerator(moderator));
     }
 }

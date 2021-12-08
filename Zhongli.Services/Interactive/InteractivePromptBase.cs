@@ -9,53 +9,52 @@ using Zhongli.Services.Interactive.TypeReaders;
 using Zhongli.Services.Utilities;
 using Optional = Zhongli.Services.Interactive.TypeReaders.Optional;
 
-namespace Zhongli.Services.Interactive
+namespace Zhongli.Services.Interactive;
+
+public abstract class InteractivePromptBase : InteractiveBase
 {
-    public abstract class InteractivePromptBase : InteractiveBase
+    public IImageService ImageService { get; init; } = null!;
+
+    public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
+        where T : notnull => new(this, errorMessage);
+
+    internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(string question,
+        IUserMessage? message, PromptOptions? promptOptions)
     {
-        public IImageService ImageService { get; init; } = null!;
+        message = await ModifyOrSendMessage(question, message, promptOptions);
 
-        public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
-            where T : notnull => new(this, errorMessage);
+        SocketMessage? response;
+        var timeout = TimeSpan.FromSeconds(promptOptions?.SecondsTimeout ?? 30);
+        if (promptOptions?.Criterion is null)
+            response = await NextMessageAsync(timeout: timeout);
+        else
+            response = await NextMessageAsync(timeout: timeout, criterion: promptOptions.Criterion);
 
-        internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(string question,
-            IUserMessage? message, PromptOptions? promptOptions)
-        {
-            message = await ModifyOrSendMessage(question, message, promptOptions);
+        _ = response?.DeleteAsync();
 
-            SocketMessage? response;
-            var timeout = TimeSpan.FromSeconds(promptOptions?.SecondsTimeout ?? 30);
-            if (promptOptions?.Criterion is null)
-                response = await NextMessageAsync(timeout: timeout);
-            else
-                response = await NextMessageAsync(timeout: timeout, criterion: promptOptions.Criterion);
+        if (!(promptOptions?.IsRequired ?? false) && response.IsSkipped())
+            response = null;
 
-            _ = response?.DeleteAsync();
+        return (response, message);
+    }
 
-            if (!(promptOptions?.IsRequired ?? false) && response.IsSkipped())
-                response = null;
+    internal async Task<IUserMessage> ModifyOrSendMessage(string content,
+        IUserMessage? message, PromptOptions? promptOptions)
+    {
+        var embed = new EmbedBuilder()
+            .WithUserAsAuthor(Context.User)
+            .WithDescription(content)
+            .WithColor(promptOptions?.Color ??
+                await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
+            .WithFields(promptOptions?.Fields ?? Enumerable.Empty<EmbedFieldBuilder>());
 
-            return (response, message);
-        }
+        if (!promptOptions?.IsRequired ?? false)
+            embed.WithFooter($"Reply '{Optional.SkipString}' if you don't need this.");
 
-        internal async Task<IUserMessage> ModifyOrSendMessage(string content,
-            IUserMessage? message, PromptOptions? promptOptions)
-        {
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(Context.User)
-                .WithDescription(content)
-                .WithColor(promptOptions?.Color ??
-                    await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
-                .WithFields(promptOptions?.Fields ?? Enumerable.Empty<EmbedFieldBuilder>());
+        if (message is null)
+            return await ReplyAsync(embed: embed.Build());
 
-            if (!promptOptions?.IsRequired ?? false)
-                embed.WithFooter($"Reply '{Optional.SkipString}' if you don't need this.");
-
-            if (message is null)
-                return await ReplyAsync(embed: embed.Build());
-
-            await message.ModifyAsync(msg => msg.Embed = embed.Build());
-            return message;
-        }
+        await message.ModifyAsync(msg => msg.Embed = embed.Build());
+        return message;
     }
 }
