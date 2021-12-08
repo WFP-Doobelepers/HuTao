@@ -115,7 +115,7 @@ public class ModerationModule : InteractiveBase
 
         var pages = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => CreateEmbed(r));
+            .Select(CreateEmbed);
 
         var message = new PaginatedMessage
         {

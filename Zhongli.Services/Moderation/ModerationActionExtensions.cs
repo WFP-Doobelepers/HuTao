@@ -19,9 +19,11 @@ public static class ModerationActionExtensions
     public static string GetModerator(this IModerationAction action)
         => action.Action?.GetModerator() ?? "Unknown";
 
-    public static string GetReason(this ModerationAction action)
-        => Format.Bold(action.Reason ?? "No reason.");
+    public static string GetReason(this ModerationAction action, int length = 256)
+        => Format.Bold(action.Reason?.Length > length
+            ? $"{action.Reason[..length]} [...]"
+            : action.Reason ?? "No reason.");
 
-    public static string GetReason(this IModerationAction action)
-        => action.Action?.GetReason() ?? "Unknown";
+    public static string GetReason(this IModerationAction action, int length = 256)
+        => action.Action?.GetReason(length) ?? "Unknown";
 }

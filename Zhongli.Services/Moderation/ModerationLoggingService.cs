@@ -193,11 +193,8 @@ public class ModerationLoggingService
     {
         if (string.IsNullOrWhiteSpace(action?.Reason)) return;
 
-        var reason = action.Reason.Length > 1024
-            ? $"{action.Reason[..1021]}..."
-            : action.Reason;
-
-        embed.AddField("Reason", reason);
+        var reasons = action.Reason.Split(" ");
+        embed.AddItemsIntoFields("Reason", reasons.ToArray(), " ");
     }
 
     private static void AddReprimandAuthor(IGuildUser moderator, bool isAnonymous, EmbedBuilder embed)

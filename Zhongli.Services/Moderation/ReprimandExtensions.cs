@@ -129,7 +129,7 @@ public static class ReprimandExtensions
 
     public static string GetReprimandExpiration(this Reprimand reprimand)
     {
-        var line = reprimand switch
+        var expiry = reprimand switch
         {
             Ban b  => $"Expires in: {b.GetExpirationTime()}.",
             Mute m => $"Expires in: {m.GetExpirationTime()}.",
@@ -139,7 +139,8 @@ public static class ReprimandExtensions
 
         return new StringBuilder()
             .AppendLine($"User: {reprimand.MentionUser()}")
-            .AppendLine(line).ToString();
+            .AppendLine(expiry)
+            .ToString();
     }
 
     public static string GetTitle(this Reprimand action)

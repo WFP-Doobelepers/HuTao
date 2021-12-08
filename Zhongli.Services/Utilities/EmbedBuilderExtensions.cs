@@ -42,16 +42,7 @@ public static class EmbedBuilderExtensions
         IEnumerable<string> items, string? separator = null)
     {
         var splitLines = SplitItemsIntoChunks(items, separator: separator).ToArray();
-
-        if (!splitLines.Any()) return builder;
-
-        builder.AddField(title, splitLines.First());
-        foreach (var line in splitLines.Skip(1))
-        {
-            builder.AddField("\x200b", line);
-        }
-
-        return builder;
+        return builder.AddIntoFields(title, splitLines);
     }
 
     public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
@@ -86,7 +77,7 @@ public static class EmbedBuilderExtensions
                 .WithValue(e.Value));
     }
 
-    public static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
+    private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
         int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
     {
         var sb = new StringBuilder(0, maxLength);
@@ -120,6 +111,19 @@ public static class EmbedBuilderExtensions
             name += $" ({entity.Id})";
 
         return embed.WithName(name).WithIconUrl(iconUrl);
+    }
+
+    private static EmbedBuilder AddIntoFields(this EmbedBuilder builder, string title, IReadOnlyCollection<string> items)
+    {
+        if (!items.Any()) return builder;
+
+        builder.AddField(title, items.First());
+        foreach (var line in items.Skip(1))
+        {
+            builder.AddField("\x200b", line);
+        }
+
+        return builder;
     }
 
     private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
