@@ -19,6 +19,9 @@ public class UserTrackingBehavior :
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(notification.NewMember.Username))
+            return;
+
         await _db.Users.TrackUserAsync(notification.NewMember, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
     }

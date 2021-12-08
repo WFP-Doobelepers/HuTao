@@ -54,7 +54,7 @@ public static class DbSetExtensions
 
         if (userEntity is null)
             userEntity = set.Add(new GuildUserEntity(user)).Entity;
-        else if (user.Username is not null)
+        else
         {
             userEntity.Username           = user.Username;
             userEntity.Nickname           = user.Nickname;
