@@ -31,16 +31,11 @@ namespace Zhongli.Services.Core.TypeReaders
             IServiceProvider services)
         {
             var results = new Dictionary<ulong, TypeReaderValue>();
-            var channelUsers = context.Channel.GetUsersAsync(_cacheMode).Flatten();
-            IReadOnlyCollection<IGuildUser> guildUsers = ImmutableArray.Create<IGuildUser>();
 
-            if (context.Guild != null)
-                guildUsers = await context.Guild.GetUsersAsync(_cacheMode).ConfigureAwait(false);
-
-            //By Mention (1.0)
+            // By Mention (1.0)
             if (MentionUtils.TryParseUser(input, out var id))
             {
-                if (context.Guild != null)
+                if (context.Guild is not null)
                 {
                     var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                     var user = await GetUserAsync(context.Client, guildUser, id);
@@ -56,10 +51,10 @@ namespace Zhongli.Services.Core.TypeReaders
                 }
             }
 
-            //By Id (0.9)
+            // By Id (0.9)
             if (ulong.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out id))
             {
-                if (context.Guild != null)
+                if (context.Guild is not null)
                 {
                     var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                     var user = await GetUserAsync(context.Client, guildUser, id);
@@ -75,54 +70,49 @@ namespace Zhongli.Services.Core.TypeReaders
                 }
             }
 
-            //By Username + Discriminator (0.7-0.85)
-            var index = input.LastIndexOf('#');
-            if (index >= 0)
+            if (context.Guild is not null)
             {
-                var username = input[..index];
-                if (ushort.TryParse(input[(index + 1)..], out var discriminator))
+                // By Username + Discriminator (0.7-0.85)
+                var index = input.LastIndexOf('#');
+                if (index >= 0)
                 {
-                    var channelUser = await channelUsers
-                        .Where(x => x.DiscriminatorValue == discriminator)
-                        .Where(x => string.Equals(username, x.Username, StringComparison.OrdinalIgnoreCase))
-                        .FirstOrDefaultAsync()
-                        .ConfigureAwait(false);
+                    var username = input[..index];
+                    if (ushort.TryParse(input[(index + 1)..], out var discriminator))
+                    {
+                        var users = await context.Guild
+                            .SearchUsersAsync($"{username}#{discriminator}", mode: _cacheMode)
+                            .ConfigureAwait(false);
 
-                    AddResult(results, channelUser as T, channelUser?.Username == username ? 0.85f : 0.75f);
+                        foreach (var user in users)
+                        {
+                            AddResult(results, user as T, user.Username == username ? 0.85f : 0.75f);
 
-                    var guildUser = guildUsers.FirstOrDefault(x => x.DiscriminatorValue == discriminator &&
-                        string.Equals(username, x.Username, StringComparison.OrdinalIgnoreCase));
-                    AddResult(results, guildUser as T, guildUser?.Username == username ? 0.80f : 0.70f);
+                            if (user.DiscriminatorValue == discriminator && string.Equals(username, user.Username, StringComparison.OrdinalIgnoreCase))
+                            {
+                                AddResult(results, user as T, user.Username == username ? 0.80f : 0.70f);
+                            }
+
+                        }
+                    }
                 }
-            }
 
-            //By Username (0.5-0.6)
-            {
-                await channelUsers
-                    .Where(x => string.Equals(input, x.Username, StringComparison.OrdinalIgnoreCase))
-                    .ForEachAsync(channelUser
-                        => AddResult(results, channelUser as T, channelUser.Username == input ? 0.65f : 0.55f))
+                var search = await context.Guild
+                    .SearchUsersAsync(input, mode: _cacheMode)
                     .ConfigureAwait(false);
 
-                foreach (var guildUser in guildUsers.Where(x
-                    => string.Equals(input, x.Username, StringComparison.OrdinalIgnoreCase)))
+                // By Username (0.5-0.6)
+                var usernames = search.Where(x => string.Equals(input, x.Username, StringComparison.OrdinalIgnoreCase));
+                foreach (var user in usernames)
                 {
-                    AddResult(results, guildUser as T, guildUser.Username == input ? 0.60f : 0.50f);
+                    AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
                 }
-            }
 
-            //By Nickname (0.5-0.6)
-            {
-                await channelUsers
-                    .Where(x => string.Equals(input, (x as IGuildUser)?.Nickname, StringComparison.OrdinalIgnoreCase))
-                    .ForEachAsync(channelUser => AddResult(results, channelUser as T,
-                        (channelUser as IGuildUser)?.Nickname == input ? 0.65f : 0.55f))
-                    .ConfigureAwait(false);
 
-                foreach (var guildUser in guildUsers.Where(x
-                    => string.Equals(input, x.Nickname, StringComparison.OrdinalIgnoreCase)))
+                // By Nickname (0.5-0.6)
+                var nicknames = search.Where(x => string.Equals(input, x.Nickname, StringComparison.OrdinalIgnoreCase));
+                foreach (var user in nicknames)
                 {
-                    AddResult(results, guildUser as T, guildUser.Nickname == input ? 0.60f : 0.50f);
+                    AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
                 }
             }
 
