@@ -21,7 +21,7 @@ namespace Zhongli.Services.Moderation
     public static class ReprimandExtensions
     {
         public static bool IsActive(this IExpirable expirable)
-            => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.Now;
+            => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.UtcNow;
 
         public static bool IsIncluded(this Reprimand reprimand, ReprimandNoticeType type)
         {
@@ -44,9 +44,9 @@ namespace Zhongli.Services.Moderation
         {
             if (expirable.ExpireAt is not null && expirable.Length is not null)
             {
-                if (expirable.ExpireAt > DateTimeOffset.Now)
+                if (expirable.ExpireAt > DateTimeOffset.UtcNow)
                 {
-                    TimeSpan? dif = expirable.ExpireAt - DateTimeOffset.Now;
+                    TimeSpan? dif = expirable.ExpireAt - DateTimeOffset.UtcNow;
                     return $"{(int)dif.Value.TotalDays} days {dif.Value.Hours} hours {dif.Value.Minutes} minutes {dif.Value.Seconds} seconds";
 
                 }

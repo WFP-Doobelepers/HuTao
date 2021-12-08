@@ -17,7 +17,7 @@ namespace Zhongli.Data.Models.Discord
             GuildId = role.Guild.Id;
 
             Length    = length;
-            StartedAt = DateTimeOffset.Now;
+            StartedAt = DateTimeOffset.UtcNow;
             ExpireAt  = StartedAt + Length;
         }
 

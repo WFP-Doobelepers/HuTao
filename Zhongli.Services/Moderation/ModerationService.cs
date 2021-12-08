@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
@@ -347,8 +348,8 @@ namespace Zhongli.Services.Moderation
             var moderator = guild.CurrentUser;
             var details = new ReprimandDetails(user, moderator, "[Reprimand Expired]");
 
-            reprimand.EndedAt = DateTimeOffset.Now;
-            reprimand.ExpireAt = DateTimeOffset.Now;
+            reprimand.EndedAt = DateTimeOffset.UtcNow;
+            reprimand.ExpireAt = DateTimeOffset.UtcNow;
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Expired, cancellationToken);
         }
 

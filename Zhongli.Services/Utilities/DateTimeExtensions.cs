@@ -31,7 +31,7 @@ namespace Zhongli.Services.Utilities
         };
 
         public static string ToDiscordTimestamp(this TimeSpan length, TimestampStyle style = Default)
-            => ToDiscordTimestamp(DateTimeOffset.Now + length, style);
+            => ToDiscordTimestamp(DateTimeOffset.UtcNow + length, style);
 
         public static string ToDiscordTimestamp(this DateTimeOffset date, TimestampStyle style = Default)
             => $"<t:{date.ToUnixTimeSeconds()}:{TimestampStyles[style]}>";
@@ -40,7 +40,7 @@ namespace Zhongli.Services.Utilities
             => $"{Format.Bold(date.ToDiscordTimestamp(RelativeTime))} ({date.ToDiscordTimestamp()})";
 
         public static string ToUniversalTimestamp(this TimeSpan length)
-            => ToUniversalTimestamp(DateTimeOffset.Now + length);
+            => ToUniversalTimestamp(DateTimeOffset.UtcNow + length);
 
         public static TimeSpan TimeLeft(this DateTimeOffset date) => date.ToUniversalTime() - DateTimeOffset.UtcNow;
 

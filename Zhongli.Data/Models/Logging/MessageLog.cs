@@ -17,7 +17,7 @@ namespace Zhongli.Data.Models.Logging
 
         public MessageLog(GuildUserEntity user, IUserMessage message)
         {
-            LogDate = DateTimeOffset.Now;
+            LogDate = DateTimeOffset.UtcNow;
 
             User      = user;
             ChannelId = message.Channel.Id;
@@ -26,9 +26,9 @@ namespace Zhongli.Data.Models.Logging
             Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
             Embeds      = message.Embeds.Select(e => new Embed(e)).ToList();
 
-            CreatedAt       = message.CreatedAt;
-            Timestamp       = message.Timestamp;
-            EditedTimestamp = message.EditedTimestamp;
+            CreatedAt       = message.CreatedAt.ToUniversalTime();
+            Timestamp       = message.Timestamp.ToUniversalTime();
+            EditedTimestamp = message.EditedTimestamp?.ToUniversalTime();
 
             MessageId           = message.Id;
             MentionedEveryone   = message.MentionedEveryone;

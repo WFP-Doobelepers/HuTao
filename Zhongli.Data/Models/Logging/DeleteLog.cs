@@ -9,7 +9,7 @@ namespace Zhongli.Data.Models.Logging
 
         protected DeleteLog(ActionDetails? details)
         {
-            LogDate = DateTimeOffset.Now;
+            LogDate = DateTimeOffset.UtcNow;
             Action  = details?.ToModerationAction();
         }
 

@@ -42,7 +42,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions
 
         public virtual GuildUserEntity Moderator { get; set; }
 
-        [MaxLength(512)] public string? Reason { get; set; }
+        public string? Reason { get; set; }
 
         public ulong GuildId { get; set; }
 

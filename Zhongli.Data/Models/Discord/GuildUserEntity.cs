@@ -12,7 +12,7 @@ namespace Zhongli.Data.Models.Discord
 
         public GuildUserEntity(IGuildUser user) : this(user, user.Guild)
         {
-            JoinedAt = user.JoinedAt;
+            JoinedAt = user.JoinedAt?.ToUniversalTime();
             Nickname = user.Nickname;
         }
 
@@ -21,7 +21,7 @@ namespace Zhongli.Data.Models.Discord
             Id      = user.Id;
             GuildId = guild.Id;
 
-            CreatedAt          = user.CreatedAt;
+            CreatedAt          = user.CreatedAt.ToUniversalTime();
             Username           = user.Username;
             DiscriminatorValue = user.DiscriminatorValue;
         }

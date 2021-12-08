@@ -191,8 +191,13 @@ namespace Zhongli.Services.Moderation
 
         private static void AddReason(EmbedBuilder embed, ModerationAction? action)
         {
-            if (!string.IsNullOrWhiteSpace(action?.Reason))
-                embed.AddField("Reason", action.Reason);
+            if (string.IsNullOrWhiteSpace(action?.Reason)) return;
+
+            var reason = action.Reason.Length > 1024
+                ? $"{action.Reason[..1021]}..."
+                : action.Reason;
+
+            embed.AddField("Reason", reason);
         }
 
         private static void AddReprimandAuthor(IGuildUser moderator, bool isAnonymous, EmbedBuilder embed)

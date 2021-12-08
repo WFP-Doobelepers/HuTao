@@ -21,7 +21,7 @@ namespace Zhongli.Services.Expirable
             var expirable = _db.Set<T>().FirstOrDefault(e => e.Id == id);
             if (expirable?.IsActive() is true)
             {
-                expirable.EndedAt = DateTimeOffset.Now;
+                expirable.EndedAt = DateTimeOffset.UtcNow;
                 await _db.SaveChangesAsync(cancellationToken);
 
                 await OnExpiredEntity(expirable, cancellationToken);

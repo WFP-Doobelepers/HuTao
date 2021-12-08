@@ -19,7 +19,7 @@ namespace Zhongli.Data.Models.Logging
 
         public ReactionLog(GuildUserEntity user, SocketReaction reaction, ReactionEntity emote)
         {
-            LogDate   = DateTimeOffset.Now;
+            LogDate   = DateTimeOffset.UtcNow;
             User      = user;
             ChannelId = reaction.Channel.Id;
             MessageId = reaction.MessageId;

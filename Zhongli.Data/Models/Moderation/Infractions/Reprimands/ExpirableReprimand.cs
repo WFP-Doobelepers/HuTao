@@ -11,7 +11,7 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands
         protected ExpirableReprimand(TimeSpan? length, ReprimandDetails details) : base(details)
         {
             Length    = length;
-            StartedAt = DateTimeOffset.Now;
+            StartedAt = DateTimeOffset.UtcNow;
             ExpireAt  = StartedAt + Length;
         }
 
