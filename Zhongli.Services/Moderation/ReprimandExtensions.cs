@@ -109,28 +109,9 @@ public static class ReprimandExtensions
         };
     }
 
-    public static string GetExpirationTime(this IExpirable expirable)
-    {
-        if (expirable.ExpireAt is not null && expirable.Length is not null)
-        {
-            if (expirable.ExpireAt > DateTimeOffset.UtcNow)
-            {
-                var dif = expirable.ExpireAt - DateTimeOffset.UtcNow;
-                return $"{(int) dif.Value.TotalDays} days {dif.Value.Hours} hours {dif.Value.Minutes} minutes {dif.Value.Seconds} seconds";
-            }
-            return "Now";
-        }
-        return "Indefinitely";
-    }
-
-    public static string GetLength(this ILength mute)
-        => mute.Length?.Humanize(5,
-            minUnit: TimeUnit.Second,
-            maxUnit: TimeUnit.Year) ?? "indefinitely";
-
     public static string GetMessage(this Reprimand action)
     {
-        var mention = $"<@{action.UserId}>";
+        var mention = action.MentionUser();
         return action switch
         {
             Ban b      => $"{mention} was banned for {b.GetLength()}.",
@@ -148,16 +129,16 @@ public static class ReprimandExtensions
 
     public static string GetReprimandExpiration(this Reprimand reprimand)
     {
-        var mention = $"<@{reprimand.UserId}>";
         var line = reprimand switch
         {
-            Ban b  => $"Expired in: {b.GetExpirationTime()}.",
-            Mute m => $"Expired in: {m.GetExpirationTime()}.",
+            Ban b  => $"Expires in: {b.GetExpirationTime()}.",
+            Mute m => $"Expires in: {m.GetExpirationTime()}.",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "This reprimand is not expirable.")
         };
+
         return new StringBuilder()
-            .AppendLine($"User: {mention}")
+            .AppendLine($"User: {reprimand.MentionUser()}")
             .AppendLine(line).ToString();
     }
 
@@ -277,4 +258,19 @@ public static class ReprimandExtensions
     private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
         where T : Reprimand => embed.AddField(typeof(T).Name.Pluralize(),
         $"{user.HistoryCount<T>(false)}/{user.HistoryCount<T>()}", true);
+
+    private static string GetExpirationTime(this IExpirable expirable)
+    {
+        if (expirable.ExpireAt is null || expirable.Length is null) return "Indefinitely";
+
+        var length = expirable.ExpireAt.Value - DateTimeOffset.UtcNow;
+        return expirable.ExpireAt > DateTimeOffset.UtcNow
+            ? length.Humanize(5, minUnit: TimeUnit.Second, maxUnit: TimeUnit.Year)
+            : "Expired";
+    }
+
+    private static string GetLength(this ILength mute)
+        => mute.Length?.Humanize(5,
+            minUnit: TimeUnit.Second,
+            maxUnit: TimeUnit.Year) ?? "indefinitely";
 }
