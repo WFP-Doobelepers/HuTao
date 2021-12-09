@@ -141,15 +141,14 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var activeBan = await _db.BanHistory
-            .FirstOrDefaultAsync(m => m.IsActive()
-                    && m.UserId == details.User.Id
+            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
                     && m.GuildId == details.Guild.Id,
                 cancellationToken);
 
-        if (activeBan is null)
-            await details.Guild.RemoveBanAsync(details.User);
-        else
+        if (activeBan is not null && activeBan.IsActive())
             await ExpireBanAsync(activeBan, cancellationToken);
+        else
+            await details.Guild.RemoveBanAsync(details.User);
 
         return activeBan;
     }
@@ -158,12 +157,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var activeMute = await _db.MuteHistory
-            .FirstOrDefaultAsync(m => m.IsActive()
-                    && m.UserId == details.User.Id
+            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
                     && m.GuildId == details.Guild.Id,
                 cancellationToken);
 
-        if (activeMute is not null) await ExpireReprimandAsync(activeMute, cancellationToken);
+        if (activeMute is not null && activeMute.IsActive()) await ExpireReprimandAsync(activeMute, cancellationToken);
         await EndMuteAsync(await details.GetUserAsync());
 
         return activeMute;
@@ -216,8 +214,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var activeMute = await _db.MuteHistory
-            .FirstOrDefaultAsync(m => m.IsActive()
-                    && m.UserId == details.User.Id
+            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
                     && m.GuildId == details.Guild.Id,
                 cancellationToken);
 
@@ -235,7 +232,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = true);
 
-            if (activeMute is not null)
+            if (activeMute is not null && activeMute.IsActive())
             {
                 if (!guildEntity.ModerationRules.ReplaceMutes)
                     return null;
