@@ -162,6 +162,10 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
+        var activeBan = await GetActive<Ban>(details, cancellationToken);
+        if (activeBan is not null)
+            await ExpireReprimandAsync(activeBan, cancellationToken);
+
         try
         {
             var user = details.User;
@@ -209,24 +213,24 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (user is null) return null;
 
         var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
+        var activeMute = await GetActive<Mute>(details, cancellationToken);
 
         var muteRole = guildEntity.ModerationRules.MuteRoleId;
         if (muteRole is null) return null;
+
+        if (activeMute is not null)
+        {
+            if (!guildEntity.ModerationRules.ReplaceMutes)
+                return null;
+
+            await ExpireReprimandAsync(activeMute, cancellationToken);
+        }
 
         try
         {
             await user.AddRoleAsync(muteRole.Value);
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = true);
-
-            var activeMute = await GetActive<Mute>(details, cancellationToken);
-            if (activeMute is not null)
-            {
-                if (!guildEntity.ModerationRules.ReplaceMutes)
-                    return null;
-
-                await ExpireReprimandAsync(activeMute, cancellationToken);
-            }
 
             var mute = _db.Add(new Mute(length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
