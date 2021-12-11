@@ -87,6 +87,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task DeleteReprimandAsync(Reprimand reprimand, ReprimandDetails? details,
         CancellationToken cancellationToken = default)
     {
+        if (reprimand is ExpirableReprimand expirable)
+            await OnExpiredEntity(expirable, cancellationToken);
+
         if (details is not null)
             await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Deleted, cancellationToken);
 
@@ -121,9 +124,14 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await _db.SaveChangesAsync();
     }
 
-    public Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
+    public async Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
         CancellationToken cancellationToken = default)
-        => UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden, cancellationToken);
+    {
+        if (reprimand is ExpirableReprimand expirable)
+            await OnExpiredEntity(expirable, cancellationToken);
+
+        await UpdateReprimandAsync(reprimand, details, ReprimandStatus.Hidden, cancellationToken);
+    }
 
     public async Task ToggleTriggerAsync(Trigger trigger, IGuildUser moderator, bool? state)
     {
