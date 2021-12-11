@@ -108,8 +108,11 @@ public class ModerationModule : InteractiveBase
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         var history = guild.ReprimandHistory
-            .Where(r => r.Status is not ReprimandStatus.Deleted && r.Status is not ReprimandStatus.Expired)
-            .OfType(InfractionType.Mute);
+            .OfType(InfractionType.Mute)
+            .Where(r => r.Status
+                is not ReprimandStatus.Expired
+                or ReprimandStatus.Hidden
+                or ReprimandStatus.Deleted);
 
         var reprimands = new EmbedBuilder().Fields;
 
