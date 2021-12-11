@@ -140,12 +140,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<Ban?> TryUnbanAsync(ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeBan = await _db.BanHistory
-            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
-                    && m.GuildId == details.Guild.Id,
-                cancellationToken);
-
-        if (activeBan is not null && activeBan.IsActive())
+        var activeBan = await GetActive<Ban>(details, cancellationToken);
+        if (activeBan is not null)
             await ExpireBanAsync(activeBan, cancellationToken);
         else
             await details.Guild.RemoveBanAsync(details.User);
@@ -156,12 +152,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<Mute?> TryUnmuteAsync(ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeMute = await _db.MuteHistory
-            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
-                    && m.GuildId == details.Guild.Id,
-                cancellationToken);
-
-        if (activeMute is not null && activeMute.IsActive()) await ExpireReprimandAsync(activeMute, cancellationToken);
+        var activeMute = await GetActive<Mute>(details, cancellationToken);
+        if (activeMute is not null) await ExpireReprimandAsync(activeMute, cancellationToken);
         await EndMuteAsync(await details.GetUserAsync());
 
         return activeMute;
@@ -213,11 +205,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<ReprimandResult?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeMute = await _db.MuteHistory
-            .FirstOrDefaultAsync(m => m.UserId == details.User.Id
-                    && m.GuildId == details.Guild.Id,
-                cancellationToken);
-
         var user = await details.GetUserAsync();
         if (user is null) return null;
 
@@ -232,7 +219,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             if (user.VoiceChannel is not null)
                 await user.ModifyAsync(u => u.Mute = true);
 
-            if (activeMute is not null && activeMute.IsActive())
+            var activeMute = await GetActive<Mute>(details, cancellationToken);
+            if (activeMute is not null)
             {
                 if (!guildEntity.ModerationRules.ReplaceMutes)
                     return null;
@@ -415,5 +403,15 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             .Where(t => t.IsTriggered(count))
             .OrderByDescending(t => t.Amount)
             .FirstOrDefault();
+    }
+
+    private async Task<T?> GetActive<T>(ReprimandDetails details,
+        CancellationToken cancellationToken = default) where T : ExpirableReprimand
+    {
+        var entities = await _db.Set<T>()
+            .Where(m => m.UserId == details.User.Id && m.GuildId == details.Guild.Id)
+            .ToListAsync(cancellationToken);
+
+        return entities.FirstOrDefault(m => m.IsActive());
     }
 }
