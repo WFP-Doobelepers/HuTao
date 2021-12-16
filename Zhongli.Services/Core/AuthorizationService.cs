@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data;
+using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
@@ -18,9 +19,12 @@ public class AuthorizationService
 
     public AuthorizationService(ZhongliContext db) { _db = db; }
 
-    public async Task<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
+    public async ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
     {
+        if (context.User.Id == ZhongliConfig.Configuration.Owner)
+            return true;
+
         var user = (IGuildUser) context.User;
         var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
         return rules.AuthorizationGroups.Scoped(scope)
