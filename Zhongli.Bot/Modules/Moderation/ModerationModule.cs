@@ -46,13 +46,18 @@ public class ModerationModule : InteractiveBase
     public async Task BanAsync(IUser user, uint deleteDays = 0, TimeSpan? length = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason);
-        var result = await _moderation.TryBanAsync(deleteDays, length, details);
-
-        if (result is null)
-            await _error.AssociateError(Context.Message, "Failed to ban user.");
+        if (user.Id == Context.User.Id)
+            await ReplyAsync("Cannot ban yourself.");
         else
-            await ReplyReprimandAsync(result, details);
+        {
+            var details = await GetDetailsAsync(user, reason);
+            var result = await _moderation.TryBanAsync(deleteDays, length, details);
+
+            if (result is null)
+                await _error.AssociateError(Context.Message, "Failed to ban user.");
+            else
+                await ReplyReprimandAsync(result, details);
+        }
     }
 
     [Command("ban")]
