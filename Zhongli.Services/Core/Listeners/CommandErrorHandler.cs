@@ -34,12 +34,12 @@ public class CommandErrorHandler :
     private ConcurrentDictionary<ulong, ulong> ErrorReplies =>
         _memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>());
 
-    public Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
-        => ReactionAdded(notification.Message, notification.Channel, notification.Reaction);
+    public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
+        => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(), notification.Reaction);
 
-    public Task Handle(ReactionRemovedNotification notification,
+    public async Task Handle(ReactionRemovedNotification notification,
         CancellationToken cancellationToken)
-        => ReactionRemoved(notification.Message, notification.Channel, notification.Reaction);
+        => await ReactionRemoved(notification.Message, await notification.Channel.GetOrDownloadAsync(), notification.Reaction);
 
     /// <summary>
     ///     Associates a user message with an error
@@ -52,7 +52,7 @@ public class CommandErrorHandler :
         if (AssociatedErrors.TryAdd(message.Id, error)) await message.AddReactionAsync(new Emoji(Emoji));
     }
 
-    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
+    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
         //Don't trigger if the emoji is wrong, if the user is a bot, or if we've
@@ -81,7 +81,7 @@ public class CommandErrorHandler :
         }
     }
 
-    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel channel,
+    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
         //Bugfix for NRE?

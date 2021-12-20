@@ -19,19 +19,19 @@ public class MessagesBulkDeletedNotification : INotification
     /// <param name="channel">The value to use for <see cref="Channel" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="messages" /> and <paramref name="channel" />.</exception>
     public MessagesBulkDeletedNotification(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages,
-        ISocketMessageChannel channel)
+        Cacheable<IMessageChannel, ulong> channel)
     {
         Messages = messages;
         Channel  = channel;
     }
 
     /// <summary>
+    ///     The channel from which the message was deleted.
+    /// </summary>
+    public Cacheable<IMessageChannel, ulong> Channel { get; }
+
+    /// <summary>
     ///     A cache entry for the messages that were deleted.
     /// </summary>
     public IReadOnlyCollection<Cacheable<IMessage, ulong>> Messages { get; }
-
-    /// <summary>
-    ///     The channel from which the message was deleted.
-    /// </summary>
-    public ISocketMessageChannel Channel { get; }
 }

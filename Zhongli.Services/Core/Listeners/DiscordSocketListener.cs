@@ -112,23 +112,22 @@ public class DiscordSocketListener
 
     private async Task OnGuildAvailableAsync(SocketGuild guild) { await Mediator.Publish(new GuildAvailableNotification(guild), _cancellationToken); }
 
-    private async Task OnGuildMemberUpdatedAsync(SocketGuildUser oldMember, SocketGuildUser newMember) { await Mediator.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken); }
+    private async Task OnGuildMemberUpdatedAsync(Cacheable<SocketGuildUser, ulong> oldMember, SocketGuildUser newMember) { await Mediator.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken); }
 
     private async Task OnJoinedGuildAsync(SocketGuild guild) { await Mediator.Publish(new JoinedGuildNotification(guild), _cancellationToken); }
 
-    private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, ISocketMessageChannel channel) { await Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken); }
+    private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel) { await Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken); }
 
     private async Task OnMessageReceivedAsync(SocketMessage message) { await Mediator.Publish(new MessageReceivedNotification(message), _cancellationToken); }
 
-    private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages,
-        ISocketMessageChannel channel)
+    private async Task OnMessagesBulkDeletedAsync(
+        IReadOnlyCollection<Cacheable<IMessage, ulong>> messages, Cacheable<IMessageChannel, ulong> channel)
     {
         await Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
     }
 
     private async Task OnMessageUpdatedAsync(
-        Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage,
-        ISocketMessageChannel channel)
+        Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)
     {
         var scope = ServiceScope.CreateScope();
         await scope.ServiceProvider.GetRequiredService<IMediator>().Publish(
@@ -136,15 +135,13 @@ public class DiscordSocketListener
     }
 
     private async Task OnReactionAddedAsync(
-        Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
-        SocketReaction reaction)
+        Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
     {
         await Mediator.Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
     }
 
     private async Task OnReactionRemovedAsync(
-        Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
-        SocketReaction reaction)
+        Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
     {
         await Mediator.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
     }
@@ -159,7 +156,7 @@ public class DiscordSocketListener
 
     private async Task OnUserJoinedAsync(SocketGuildUser guildUser) { await Mediator.Publish(new UserJoinedNotification(guildUser), _cancellationToken); }
 
-    private async Task OnUserLeftAsync(SocketGuildUser guildUser) { await Mediator.Publish(new UserLeftNotification(guildUser), _cancellationToken); }
+    private async Task OnUserLeftAsync(SocketGuild guild, SocketUser user) { await Mediator.Publish(new UserLeftNotification(guild, user), _cancellationToken); }
 
     private async Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new) { await Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken); }
 }

@@ -12,19 +12,22 @@ public class Attachment : IAttachment, IImage
 
     public Attachment(IAttachment attachment)
     {
-        Id       = attachment.Id;
-        Size     = attachment.Size;
-        Height   = attachment.Height;
-        Width    = attachment.Width;
-        Filename = attachment.Filename;
-        ProxyUrl = attachment.ProxyUrl;
-        Url      = attachment.Url;
+        Id        = attachment.Id;
+        Ephemeral = attachment.Ephemeral;
+        Size      = attachment.Size;
+        Height    = attachment.Height;
+        Width     = attachment.Width;
+        Filename  = attachment.Filename;
+        ProxyUrl  = attachment.ProxyUrl;
+        Url       = attachment.Url;
     }
 
     [Key] public Guid AttachmentId { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public ulong Id { get; set; }
+
+    public bool Ephemeral { get; set; }
 
     public int Size { get; set; }
 

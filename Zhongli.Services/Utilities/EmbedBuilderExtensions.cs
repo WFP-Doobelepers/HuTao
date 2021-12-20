@@ -77,33 +77,6 @@ public static class EmbedBuilderExtensions
                 .WithValue(e.Value));
     }
 
-    private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
-        int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
-    {
-        var sb = new StringBuilder(0, maxLength);
-        var builders = new List<StringBuilder>();
-
-        foreach (var item in items)
-        {
-            if (sb.Length + (separator ?? Environment.NewLine).Length + item.Length > maxLength)
-            {
-                builders.Add(sb);
-                sb = new StringBuilder(0, maxLength);
-            }
-
-            if (separator is null)
-                sb.AppendLine(item);
-            else
-                sb.Append(item).Append(separator);
-        }
-
-        builders.Add(sb);
-
-        return builders
-            .Where(s => s.Length > 0)
-            .Select(s => s.ToString());
-    }
-
     private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
         string name, string iconUrl, AuthorOptions authorOptions)
     {
@@ -138,5 +111,32 @@ public static class EmbedBuilderExtensions
         return authorOptions.HasFlag(AuthorOptions.UseFooter)
             ? embed.WithFooter(name, iconUrl)
             : embed.WithAuthor(name, iconUrl);
+    }
+
+    private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
+        int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
+    {
+        var sb = new StringBuilder(0, maxLength);
+        var builders = new List<StringBuilder>();
+
+        foreach (var item in items)
+        {
+            if (sb.Length + (separator ?? Environment.NewLine).Length + item.Length > maxLength)
+            {
+                builders.Add(sb);
+                sb = new StringBuilder(0, maxLength);
+            }
+
+            if (separator is null)
+                sb.AppendLine(item);
+            else
+                sb.Append(item).Append(separator);
+        }
+
+        builders.Add(sb);
+
+        return builders
+            .Where(s => s.Length > 0)
+            .Select(s => s.ToString());
     }
 }

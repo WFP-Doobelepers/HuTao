@@ -19,6 +19,21 @@ public class AuthorizationService
 
     public AuthorizationService(ZhongliContext db) { _db = db; }
 
+    public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
+        CancellationToken cancellationToken = default)
+    {
+        var guildEntity = await GetGuildAsync(guild, cancellationToken);
+        var auth = guildEntity.AuthorizationGroups;
+
+        if (auth.Any()) return guildEntity;
+
+        var permission = new PermissionCriterion(GuildPermission.Administrator);
+        auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), AccessType.Allow, permission);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return guildEntity;
+    }
+
     public async ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
     {
@@ -34,21 +49,6 @@ public class AuthorizationService
                 var passed = rule.Judge(context, user);
                 return passed ? rule.Access == AccessType.Allow : current;
             });
-    }
-
-    public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
-        CancellationToken cancellationToken = default)
-    {
-        var guildEntity = await GetGuildAsync(guild, cancellationToken);
-        var auth = guildEntity.AuthorizationGroups;
-
-        if (auth.Any()) return guildEntity;
-
-        var permission = new PermissionCriterion(GuildPermission.Administrator);
-        auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), AccessType.Allow, permission);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return guildEntity;
     }
 
     private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)

@@ -1,3 +1,4 @@
+using Discord;
 using Discord.WebSocket;
 using MediatR;
 
@@ -15,7 +16,7 @@ public class GuildMemberUpdatedNotification : INotification
     /// <param name="oldMember">The value to use for <see cref="OldMember" />.</param>
     /// <param name="newMember">The value to use for <see cref="NewMember" />.</param>
     public GuildMemberUpdatedNotification(
-        SocketGuildUser oldMember,
+        Cacheable<SocketGuildUser, ulong> oldMember,
         SocketGuildUser newMember)
     {
         OldMember = oldMember;
@@ -23,12 +24,12 @@ public class GuildMemberUpdatedNotification : INotification
     }
 
     /// <summary>
+    ///     A model of the Guild Member that was updated, from before the update.
+    /// </summary>
+    public Cacheable<SocketGuildUser, ulong> OldMember { get; }
+
+    /// <summary>
     ///     A model of the Guild Member that was updated, from after the update.
     /// </summary>
     public SocketGuildUser NewMember { get; }
-
-    /// <summary>
-    ///     A model of the Guild Member that was updated, from before the update.
-    /// </summary>
-    public SocketGuildUser OldMember { get; }
 }

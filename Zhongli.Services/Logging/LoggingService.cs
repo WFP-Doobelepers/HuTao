@@ -48,7 +48,7 @@ public class LoggingService
 
     public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Channel is not INestedChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not INestedChannel channel) return;
 
         var reaction = notification.Reaction;
 
@@ -67,7 +67,7 @@ public class LoggingService
 
     public async Task LogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Channel is not IGuildChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
 
         var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
         await PublishLogAsync(log, LogType.ReactionRemoved, channel.Guild, cancellationToken);
@@ -75,7 +75,7 @@ public class LoggingService
 
     public async Task LogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Channel is not IGuildChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
 
         var message = notification.Message.Value;
         var details = await TryGetAuditLogDetails(message, channel.Guild);
@@ -109,7 +109,7 @@ public class LoggingService
 
     public async Task LogAsync(MessagesBulkDeletedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Channel is not IGuildChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
 
         var details = await TryGetAuditLogDetails(notification.Messages.Count, channel);
         var logs = await notification.Messages.ToAsyncEnumerable()

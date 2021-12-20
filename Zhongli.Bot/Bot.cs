@@ -46,7 +46,8 @@ public class Bot
             .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = true,
-                MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
+                MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize,
+                GatewayIntents      = GatewayIntents.All
             }))
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()

@@ -151,7 +151,7 @@ public class ModerationLoggingService
                     embed.AddField("Appeal", appealMessage);
             }
 
-            var dm = await user.GetOrCreateDMChannelAsync();
+            var dm = await user.CreateDMChannelAsync();
             _ = dm?.SendMessageAsync(embed: embed.Build());
         }
     }

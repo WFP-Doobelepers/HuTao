@@ -8,8 +8,8 @@
 
     <ItemGroup>
         <PackageReference Include="Cronos" Version="0.7.1" />
-        <PackageReference Include="Discord.InteractivityAddon" Version="2.4.0" />
-        <PackageReference Include="Discord.Net" Version="2.4.0" />
+        <PackageReference Include="Discord.InteractivityAddon" Version="2.4.1-preview-20212511.1" />
+        <PackageReference Include="Discord.Net" Version="3.0.0" />
         <PackageReference Include="Hangfire.Core" Version="1.7.28" />
         <PackageReference Include="Humanizer.Core" Version="2.13.14" />
         <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
