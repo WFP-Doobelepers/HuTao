@@ -46,7 +46,7 @@ public class ModerationModule : InteractiveBase
     public async Task BanAsync(IUser user, uint deleteDays = 0, TimeSpan? length = null,
         [Remainder] string? reason = null)
     {
-        if (user == Context.User)
+        if (user.Id == Context.User.Id)
             await ReplyAsync("Cannot ban yourself.");
         else
         {
