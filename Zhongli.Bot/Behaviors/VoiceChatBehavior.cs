@@ -5,15 +5,14 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
 using Discord.WebSocket;
+using Interactivity;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Messages;
-using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Behaviors;
@@ -24,13 +23,11 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly ICommandHelpService _commandHelp;
-    private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public VoiceChatBehavior(ICommandHelpService commandHelp, InteractiveService interactive, ZhongliContext db)
+    public VoiceChatBehavior(ICommandHelpService commandHelp, InteractivityService interactive, ZhongliContext db)
     {
         _commandHelp = commandHelp;
-        _interactive = interactive;
         _db          = db;
     }
 
@@ -93,8 +90,9 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
                 if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                 {
-                    var embed = paginated.ToEmbed();
-                    var message = await textChannel.SendMessageAsync(embed: embed.Build());
+                    var embed = await paginated.GetOrLoadCurrentPageAsync();
+                    var message = await textChannel.SendMessageAsync(embed: embed.Embed);
+
                     await message.PinAsync();
                 }
 

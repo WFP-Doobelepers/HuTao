@@ -2,18 +2,22 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
+using Discord.Commands;
 using Discord.WebSocket;
+using Interactivity;
 using Zhongli.Services.Image;
+using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.TypeReaders;
 using Zhongli.Services.Utilities;
 using Optional = Zhongli.Services.Interactive.TypeReaders.Optional;
 
 namespace Zhongli.Services.Interactive;
 
-public abstract class InteractivePromptBase : InteractiveBase
+public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
 {
     public IImageService ImageService { get; init; } = null!;
+
+    public InteractivityService Interactivity { get; init; } = null!;
 
     public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
         where T : notnull => new(this, errorMessage);
@@ -23,19 +27,19 @@ public abstract class InteractivePromptBase : InteractiveBase
     {
         message = await ModifyOrSendMessage(question, message, promptOptions);
 
-        SocketMessage? response;
+        InteractivityResult<SocketMessage>? response;
         var timeout = TimeSpan.FromSeconds(promptOptions?.SecondsTimeout ?? 30);
         if (promptOptions?.Criterion is null)
-            response = await NextMessageAsync(timeout: timeout);
+            response = await Interactivity.NextMessageAsync(timeout: timeout);
         else
-            response = await NextMessageAsync(timeout: timeout, criterion: promptOptions.Criterion);
+            response = await Interactivity.NextMessageAsync(timeout: timeout, filter: promptOptions.Criterion.AsPredicate(Context));
 
-        _ = response?.DeleteAsync();
+        _ = response?.Value?.DeleteAsync();
 
-        if (!(promptOptions?.IsRequired ?? false) && response.IsSkipped())
+        if (!(promptOptions?.IsRequired ?? false) && (response?.Value?.IsSkipped() ?? false))
             response = null;
 
-        return (response, message);
+        return (response?.Value, message);
     }
 
     internal async Task<IUserMessage> ModifyOrSendMessage(string content,

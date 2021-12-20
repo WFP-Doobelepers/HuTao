@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Discord.Addons.Interactive.Criteria;
 using Discord.Commands;
 using Discord.WebSocket;
 using Zhongli.Services.Interactive.TryParse;
@@ -33,6 +32,9 @@ public static class CriteriaExtensions
 
         return criteria;
     }
+
+    public static Predicate<T> AsPredicate<T>(this ICriterion<T> criteria, SocketCommandContext context)
+        => compare => criteria.Judge(context, compare);
 
     public static TryParseCriterion<T> AsCriterion<T>(this TryParseDelegate<T> tryParse) =>
         new(tryParse);

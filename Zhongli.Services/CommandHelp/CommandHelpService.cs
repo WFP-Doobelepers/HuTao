@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Discord;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
+using Interactivity;
+using Interactivity.Pagination;
+using Zhongli.Services.Interactive.Paginator;
 
 namespace Zhongli.Services.CommandHelp;
 
@@ -13,7 +15,7 @@ namespace Zhongli.Services.CommandHelp;
 /// </summary>
 public interface ICommandHelpService
 {
-    bool TryGetEmbed(string query, HelpDataType queries, out PaginatedMessage embed);
+    bool TryGetEmbed(string query, HelpDataType queries, out Paginator embed);
 
     /// <summary>
     ///     Retrieves command help data for the supplied query.
@@ -48,14 +50,14 @@ public interface ICommandHelpService
     /// </summary>
     /// <param name="command">The command's help data.</param>
     /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
-    PaginatedMessage GetEmbedForCommand(CommandHelpData command);
+    StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command);
 
     /// <summary>
     ///     Retrieves an embed from a <see cref="ModuleHelpData" />
     /// </summary>
     /// <param name="module">The module's help data.</param>
     /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
-    PaginatedMessage GetEmbedForModule(ModuleHelpData module);
+    StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module);
 }
 
 /// <inheritdoc />
@@ -63,17 +65,11 @@ internal class CommandHelpService : ICommandHelpService
 {
     private readonly CommandService _commandService;
 
-    private readonly PaginatedAppearanceOptions _paginatedOptions = new()
-    {
-        DisplayInformationIcon = false,
-        Timeout                = TimeSpan.FromMinutes(10)
-    };
-
     private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
     public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
-    public bool TryGetEmbed(string query, HelpDataType queries, out PaginatedMessage message)
+    public bool TryGetEmbed(string query, HelpDataType queries, out Paginator message)
     {
         message = null!;
 
@@ -83,7 +79,7 @@ internal class CommandHelpService : ICommandHelpService
             var byModule = GetModuleHelpData(query);
             if (byModule is not null)
             {
-                message = GetEmbedForModule(byModule);
+                message = GetEmbedForModule(byModule).Build();
                 return true;
             }
         }
@@ -93,7 +89,7 @@ internal class CommandHelpService : ICommandHelpService
             var byCommand = GetCommandHelpData(query);
             if (byCommand is not null)
             {
-                message = GetEmbedForCommand(byCommand);
+                message = GetEmbedForCommand(byCommand).Build();
                 return true;
             }
         }
@@ -155,33 +151,32 @@ internal class CommandHelpService : ICommandHelpService
         return null;
     }
 
-    public PaginatedMessage GetEmbedForCommand(CommandHelpData command)
+    public StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command)
     {
         var embed = new EmbedBuilder()
             .AddCommandFields(command);
 
-        return new PaginatedMessage
-        {
-            Pages   = embed.Fields,
-            Options = _paginatedOptions
-        };
+        var builder = PageBuilder.FromEmbedBuilder(embed);
+
+        return new StaticPaginatorBuilder()
+            .WithDefaultEmotes()
+            .WithPages(builder);
     }
 
-    public PaginatedMessage GetEmbedForModule(ModuleHelpData module)
+    public StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module)
     {
-        var embed = new EmbedBuilder();
-        foreach (var command in module.Commands)
+        var embed = new EmbedBuilder()
+            .WithTitle($"Module: {module.Name}")
+            .WithDescription(module.Summary);
+
+        foreach (var commands in module.Commands)
         {
-            embed.AddCommandFields(command);
+            embed.AddCommandFields(commands);
         }
 
-        return new PaginatedMessage
-        {
-            Title                = $"Module: {module.Name}",
-            AlternateDescription = module.Summary,
-            Pages                = embed.Fields,
-            Options              = _paginatedOptions
-        };
+        return new StaticPaginatorBuilder()
+            .WithDefaultEmotes()
+            .WithPages(embed.ToPageBuilders(6));
     }
 }
 

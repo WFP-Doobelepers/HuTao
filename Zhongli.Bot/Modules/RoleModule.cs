@@ -5,14 +5,15 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
+using Interactivity;
+using Interactivity.Pagination;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules;
@@ -22,15 +23,17 @@ namespace Zhongli.Bot.Modules;
 [Summary("Manages roles.")]
 [RequireBotPermission(GuildPermission.ManageRoles)]
 [RequireUserPermission(GuildPermission.ManageRoles)]
-public class RoleModule : InteractiveBase
+public class RoleModule : ModuleBase<SocketCommandContext>
 {
+    private readonly InteractivityService _interactivity;
     private readonly TemporaryRoleMemberService _member;
     private readonly TemporaryRoleService _role;
 
-    public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
+    public RoleModule(InteractivityService interactivity, TemporaryRoleMemberService member, TemporaryRoleService role)
     {
-        _member = member;
-        _role   = role;
+        _interactivity = interactivity;
+        _member        = member;
+        _role          = role;
     }
 
     [Command("add")]
@@ -57,10 +60,8 @@ public class RoleModule : InteractiveBase
     [Summary("Adds specified roles to everyone.")]
     public async Task AddRolesAsync(params SocketRole[] roles)
     {
-        var message = await ReplyAsync("Adding roles, this might take a while...");
-
-        if (!Context.Guild.HasAllMembers)
-            await Context.Guild.DownloadUsersAsync();
+        await ReplyAsync("Adding roles, this might take a while...");
+        await Context.Guild.DownloadUsersAsync();
 
         foreach (var user in Context.Guild.Users)
         {
@@ -288,20 +289,16 @@ public class RoleModule : InteractiveBase
 
     private async Task ViewRolesInfoAsync(IEnumerable<SocketRole> roles)
     {
-        var fields = roles.Select(CreateRoleEmbedField);
+        var pages = new EmbedBuilder()
+            .WithGuildAsAuthor(Context.Guild)
+            .WithFields(roles.Select(CreateRoleEmbedField))
+            .ToPageBuilders(6);
 
-        var message = new PaginatedMessage
-        {
-            Pages  = fields,
-            Author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild),
-            Options = new PaginatedAppearanceOptions
-            {
-                DisplayInformationIcon = false,
-                Timeout                = TimeSpan.FromMinutes(10)
-            }
-        };
+        var paginator = new StaticPaginatorBuilder()
+            .WithDefaultEmotes()
+            .WithPages(pages);
 
-        await PagedReplyAsync(message);
+        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [NamedArgumentType]

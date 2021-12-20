@@ -2,12 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
+using Interactivity;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,14 +45,14 @@ public class Bot
             .AddLogging(l => l.AddSerilog())
             .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
             {
-                ExclusiveBulkDelete = true,
                 AlwaysDownloadUsers = true,
                 MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize
             }))
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()
-            .AddSingleton<InteractiveService>()
+            .AddSingleton<InteractivityService>()
+            .AddSingleton(new InteractivityConfig { DefaultTimeout = TimeSpan.FromSeconds(30) })
             .AddSingleton<DiscordSocketListener>()
             .AddScoped<AuthorizationService>()
             .AddScoped<ModerationService>()

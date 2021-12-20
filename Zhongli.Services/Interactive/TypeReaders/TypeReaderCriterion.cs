@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Discord.Addons.Interactive.Criteria;
 using Discord.Commands;
 using Discord.WebSocket;
 
@@ -17,10 +15,6 @@ public class TypeReaderCriterion : ICriterion<SocketMessage>
         _services = services;
     }
 
-    public async Task<bool> JudgeAsync(SocketCommandContext sourceContext, SocketMessage parameter)
-    {
-        var result = await _reader.ReadAsync(sourceContext, parameter.Content, _services);
-
-        return result.IsSuccess;
-    }
+    public bool Judge(SocketCommandContext sourceContext, SocketMessage parameter)
+        => _reader.ReadAsync(sourceContext, parameter.Content, _services).Result.IsSuccess;
 }

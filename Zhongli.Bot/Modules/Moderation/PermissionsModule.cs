@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Humanizer;
+using Interactivity;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -18,7 +18,6 @@ using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
-using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
@@ -34,14 +33,16 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 {
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
+    private readonly InteractivityService _interactivity;
     private readonly ZhongliContext _db;
 
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, ZhongliContext db) : base(error,
+    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractivityService interactivity, ZhongliContext db) : base(error,
         db)
     {
-        _auth  = auth;
-        _error = error;
-        _db    = db;
+        _auth          = auth;
+        _error         = error;
+        _interactivity = interactivity;
+        _db            = db;
     }
 
     [Command("add")]
@@ -167,40 +168,6 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         }
 
         return sb;
-    }
-
-    private async Task<AuthorizationGroup?> TryFindAuthorizationGroup(string id,
-        CancellationToken cancellationToken = default)
-    {
-        if (id.Length < 2)
-            return null;
-
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild, cancellationToken);
-        var group = await guild.AuthorizationGroups.ToAsyncEnumerable()
-            .Where(r => r.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase))
-            .ToListAsync(cancellationToken);
-
-        if (group.Count <= 1)
-            return group.Count == 1 ? group.First() : null;
-
-        var lines = group.Select(r
-            => new StringBuilder()
-                .AppendLine($"{r.Id}")
-                .Append(GetAuthorizationGroupDetails(r))
-                .ToString());
-
-        var embed = new EmbedBuilder()
-            .WithTitle("Multiple authorization groups found. Reply with the number of the group that you want.")
-            .AddItemsIntoFields("Reprimands", lines);
-
-        await ReplyAsync(embed: embed.Build());
-
-        var containsCriterion = new FuncCriterion(m =>
-            int.TryParse(m.Content, out var selection)
-            && selection < group.Count && selection > -1);
-
-        var selected = await NextMessageAsync(containsCriterion, token: cancellationToken);
-        return selected is null ? null : group.ElementAtOrDefault(int.Parse(selected.Content));
     }
 
     [NamedArgumentType]

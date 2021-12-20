@@ -1,33 +1,35 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Discord.WebSocket;
 using Humanizer;
+using Interactivity;
+using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules;
 
 [Summary("Commands to view a user's details.")]
-public class UserModule : InteractiveBase
+public class UserModule : ModuleBase<SocketCommandContext>
 {
     private readonly AuthorizationService _auth;
+    private readonly InteractivityService _interactivity;
     private readonly ZhongliContext _db;
 
-    public UserModule(AuthorizationService auth, ZhongliContext db)
+    public UserModule(AuthorizationService auth, InteractivityService interactivity, ZhongliContext db)
     {
-        _auth = auth;
-        _db   = db;
+        _auth          = auth;
+        _interactivity = interactivity;
+        _db            = db;
     }
 
     [Command("avatar")]
@@ -68,25 +70,23 @@ public class UserModule : InteractiveBase
             .Where(u => u.UserId == user.Id)
             .OfType(type);
 
+        var embed = new EmbedBuilder()
+            .WithUserAsAuthor(user);
+
         var reprimands = new EmbedBuilder().AddReprimands(userEntity)
-            .AddField("Reprimands", "Active/Total", true).Fields;
+            .AddField("Reprimands", "Active/Total", true)
+            .ToPageBuilders(6);
+
         var pages = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => CreateEmbed(user, r));
+            .Select(r => CreateEmbed(user, r))
+            .ToPageBuilders(6, embed);
 
-        var message = new PaginatedMessage
-        {
-            Pages  = reprimands.Concat(pages),
-            Author = new EmbedAuthorBuilder().WithName($"{user}"),
-            Options = new PaginatedAppearanceOptions
-            {
-                DisplayInformationIcon = false,
-                FieldsPerPage          = 8,
-                Timeout                = TimeSpan.FromMinutes(10)
-            }
-        };
+        var paginator = new StaticPaginatorBuilder()
+            .WithDefaultEmotes()
+            .WithPages(reprimands.Concat(pages));
 
-        await PagedReplyAsync(message);
+        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [Command("user")]

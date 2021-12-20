@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
-using Discord.Addons.Interactive.Paginator;
 using Discord.Commands;
 using Humanizer;
+using Interactivity;
+using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation;
@@ -13,6 +13,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 
@@ -20,24 +21,25 @@ namespace Zhongli.Bot.Modules.Moderation;
 
 [Name("Moderation")]
 [Summary("Guild moderation commands.")]
-public class ModerationModule : InteractiveBase
+public class ModerationModule : ModuleBase<SocketCommandContext>
 {
     private readonly CommandErrorHandler _error;
+    private readonly InteractivityService _interactivity;
     private readonly ModerationLoggingService _logging;
     private readonly ModerationService _moderation;
     private readonly ZhongliContext _db;
 
-    public ModerationModule(
-        CommandErrorHandler error,
-        ZhongliContext db,
+    public ModerationModule(CommandErrorHandler error,
+        InteractivityService interactivity,
         ModerationLoggingService logging,
-        ModerationService moderation)
+        ModerationService moderation,
+        ZhongliContext db)
     {
-        _error = error;
-        _db    = db;
-
-        _logging    = logging;
-        _moderation = moderation;
+        _error         = error;
+        _interactivity = interactivity;
+        _logging       = logging;
+        _moderation    = moderation;
+        _db            = db;
     }
 
     [Command("ban")]
@@ -119,24 +121,19 @@ public class ModerationModule : InteractiveBase
                 or ReprimandStatus.Hidden
                 or ReprimandStatus.Deleted);
 
-        var reprimands = new EmbedBuilder().Fields;
+        var embed = new EmbedBuilder()
+            .WithTitle("Currently Active Mutes");
 
         var pages = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(CreateEmbed);
+            .Select(CreateEmbed)
+            .ToPageBuilder(embed);
 
-        var message = new PaginatedMessage
-        {
-            Title = "Currently Active Mutes",
-            Pages = reprimands.Concat(pages),
-            Options = new PaginatedAppearanceOptions
-            {
-                FieldsPerPage = 10,
-                Timeout       = TimeSpan.FromMinutes(10)
-            }
-        };
+        var paginator = new StaticPaginatorBuilder()
+            .WithDefaultEmotes()
+            .WithPages(pages);
 
-        await PagedReplyAsync(message);
+        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [Command("note")]
@@ -174,7 +171,7 @@ public class ModerationModule : InteractiveBase
     [HiddenFromHelp]
     [Summary("Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Helper)]
-    public async Task SayAsync([Remainder] string message)
+    public Task SayAsync([Remainder] string message)
         => SayAsync(null, message);
 
     [Command("slowmode")]

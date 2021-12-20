@@ -1,12 +1,13 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive.Paginator;
+using Interactivity;
+using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Utilities;
 using EmbedBuilderExtensions = Zhongli.Services.Utilities.EmbedBuilderExtensions;
@@ -49,21 +50,18 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
     protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection, EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
         string? title = null, EmbedAuthorBuilder? author = null)
     {
-        var pages = collection.ToEmbedFields(entityViewer);
+        var pages = collection
+            .ToEmbedFields(entityViewer).Chunk(6)
+            .Select(f => new PageBuilder()
+                .WithTitle(title)
+                .WithFields(f)
+                .WithAuthor(author));
 
-        var paginated = new PaginatedMessage
-        {
-            Title  = title,
-            Pages  = pages,
-            Author = author,
-            Options = new PaginatedAppearanceOptions
-            {
-                DisplayInformationIcon = false,
-                Timeout                = TimeSpan.FromMinutes(10)
-            }
-        };
+        var paginated = new StaticPaginatorBuilder()
+            .WithPages(pages)
+            .WithDefaultEmotes();
 
-        await PagedReplyAsync(paginated);
+        await Interactivity.SendPaginatorAsync(paginated.Build(), Context.Channel);
     }
 
     protected virtual async Task RemoveEntityAsync(string id)
@@ -109,7 +107,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             && selection < filtered.Count && selection > -1);
 
         await PagedViewAsync(filtered, "Reply with a number to select.");
-        var selected = await NextMessageAsync(containsCriterion);
-        return selected is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Content));
+        var selected = await Interactivity.NextMessageAsync(containsCriterion.AsPredicate(Context));
+        return selected?.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
     }
 }

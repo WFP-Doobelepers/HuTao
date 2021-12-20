@@ -2,12 +2,11 @@
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.Net;
+using Interactivity;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
-using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules;
@@ -15,11 +14,16 @@ namespace Zhongli.Bot.Modules;
 [Name("Help")]
 [Group("help")]
 [Summary("Provides commands for helping users to understand how to interact with the bot.")]
-public sealed class HelpModule : InteractiveBase
+public sealed class HelpModule : ModuleBase
 {
     private readonly ICommandHelpService _commandHelpService;
+    private readonly InteractivityService _interactivity;
 
-    public HelpModule(ICommandHelpService commandHelpService) { _commandHelpService = commandHelpService; }
+    public HelpModule(ICommandHelpService commandHelpService, InteractivityService interactivity)
+    {
+        _commandHelpService = commandHelpService;
+        _interactivity      = interactivity;
+    }
 
     [Command]
     [Summary("Prints a neat list of all commands.")]
@@ -83,11 +87,12 @@ public sealed class HelpModule : InteractiveBase
 
         foreach (var module in _commandHelpService.GetModuleHelpData().OrderBy(x => x.Name))
         {
-            var embed = _commandHelpService.GetEmbedForModule(module);
+            var paginator = _commandHelpService.GetEmbedForModule(module);
 
             try
             {
-                await this.PagedDMAsync(embed);
+                var dm = await Context.User.GetOrCreateDMChannelAsync();
+                await _interactivity.SendPaginatorAsync(paginator.Build(), dm);
             }
             catch (HttpException ex) when (ex.DiscordCode == 50007)
             {
@@ -115,13 +120,8 @@ public sealed class HelpModule : InteractiveBase
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
         if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
-        {
-            paginated.Content = $"Results for \"{sanitizedQuery}\":";
-
-            await PagedReplyAsync(paginated);
-            return;
-        }
-
-        await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
+            await _interactivity.SendPaginatorAsync(paginated, Context.Channel);
+        else
+            await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
     }
 }
