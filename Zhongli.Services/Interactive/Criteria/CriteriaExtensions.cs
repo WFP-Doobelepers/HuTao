@@ -15,6 +15,9 @@ public static class CriteriaExtensions
     public static CriteriaCriterion<T> AsCriterion<T>(this ICriterion<T> criteria) =>
         new(criteria);
 
+    public static Func<T, bool> AsFunc<T>(this ICriterion<T> criteria, SocketCommandContext context)
+        => compare => criteria.Judge(context, compare);
+
     public static ICriterion<T> AsCriterion<T>(this TypeReader reader, IServiceProvider? services = null)
         where T : SocketMessage =>
         reader.AsCriterion(services);

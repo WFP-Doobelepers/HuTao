@@ -3,9 +3,8 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using Humanizer;
-using Interactivity;
-using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -22,14 +21,14 @@ namespace Zhongli.Bot.Modules;
 public class UserModule : ModuleBase<SocketCommandContext>
 {
     private readonly AuthorizationService _auth;
-    private readonly InteractivityService _interactivity;
+    private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public UserModule(AuthorizationService auth, InteractivityService interactivity, ZhongliContext db)
+    public UserModule(AuthorizationService auth, InteractiveService interactive, ZhongliContext db)
     {
-        _auth          = auth;
-        _interactivity = interactivity;
-        _db            = db;
+        _auth        = auth;
+        _interactive = interactive;
+        _db          = db;
     }
 
     [Command("avatar")]
@@ -80,13 +79,11 @@ public class UserModule : ModuleBase<SocketCommandContext>
         var pages = history
             .OrderByDescending(r => r.Action?.Date)
             .Select(r => CreateEmbed(user, r))
-            .ToPageBuilders(6, embed);
+            .ToPageBuilders(8, embed);
 
-        var paginator = new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(reprimands.Concat(pages));
+        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(reprimands.Concat(pages));
 
-        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
+        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [Command("user")]

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 
@@ -12,4 +13,7 @@ public class FuncCriterion : ICriterion<SocketMessage>
 
     public bool Judge(SocketCommandContext sourceContext, SocketMessage parameter)
         => _func(parameter);
+
+    public Task<bool> JudgeAsync(SocketCommandContext sourceContext, SocketMessage parameter)
+        => Task.FromResult(_func(parameter));
 }

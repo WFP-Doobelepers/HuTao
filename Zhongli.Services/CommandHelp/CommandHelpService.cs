@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using Discord;
 using Discord.Commands;
-using Interactivity;
-using Interactivity.Pagination;
+using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using Zhongli.Services.Interactive.Paginator;
 
 namespace Zhongli.Services.CommandHelp;
@@ -153,14 +153,10 @@ internal class CommandHelpService : ICommandHelpService
 
     public StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command)
     {
-        var embed = new EmbedBuilder()
-            .AddCommandFields(command);
-
+        var embed = new EmbedBuilder().AddCommandFields(command);
         var builder = PageBuilder.FromEmbedBuilder(embed);
 
-        return new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(builder);
+        return InteractiveExtensions.CreateDefaultPaginator().WithPages(builder);
     }
 
     public StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module)
@@ -174,9 +170,7 @@ internal class CommandHelpService : ICommandHelpService
             embed.AddCommandFields(commands);
         }
 
-        return new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(embed.ToPageBuilders(6));
+        return InteractiveExtensions.CreateDefaultPaginator().WithPages(embed.ToPageBuilders(3));
     }
 }
 

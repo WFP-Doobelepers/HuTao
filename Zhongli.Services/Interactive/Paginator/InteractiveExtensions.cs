@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
-using Interactivity;
+using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 
 namespace Zhongli.Services.Interactive.Paginator;
 
@@ -20,4 +21,10 @@ public static class InteractiveExtensions
 
         return PageBuilder.FromEmbedBuilder(builder);
     }
+
+    public static StaticPaginatorBuilder CreateDefaultPaginator() => new StaticPaginatorBuilder()
+        .WithDefaultEmotes()
+        .WithInputType(InputType.Buttons)
+        .WithActionOnTimeout(ActionOnStop.DeleteInput)
+        .WithActionOnCancellation(ActionOnStop.DeleteInput);
 }

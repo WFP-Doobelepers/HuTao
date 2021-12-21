@@ -6,8 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Fergun.Interactive;
 using Humanizer;
-using Interactivity;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
@@ -33,16 +33,16 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 {
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
-    private readonly InteractivityService _interactivity;
+    private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractivityService interactivity, ZhongliContext db) : base(error,
+    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractiveService interactive, ZhongliContext db) : base(error,
         db)
     {
-        _auth          = auth;
-        _error         = error;
-        _interactivity = interactivity;
-        _db            = db;
+        _auth        = auth;
+        _error       = error;
+        _interactive = interactive;
+        _db          = db;
     }
 
     [Command("add")]

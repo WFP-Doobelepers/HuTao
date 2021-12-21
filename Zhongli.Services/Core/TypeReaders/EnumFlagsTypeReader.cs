@@ -12,6 +12,8 @@ public class EnumFlagsTypeReader<T> : TypeReader where T : struct, Enum
     private readonly string _separator;
     private readonly StringSplitOptions _splitOptions;
 
+    public EnumFlagsTypeReader() : this(true, ", ") { }
+
     public EnumFlagsTypeReader(bool ignoreCase = true, string separator = ",",
         StringSplitOptions splitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
     {

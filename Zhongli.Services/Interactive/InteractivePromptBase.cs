@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Interactivity;
+using Fergun.Interactive;
 using Zhongli.Services.Image;
 using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.TypeReaders;
@@ -17,7 +17,7 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
 {
     public IImageService ImageService { get; init; } = null!;
 
-    public InteractivityService Interactivity { get; init; } = null!;
+    public InteractiveService Interactive { get; init; } = null!;
 
     public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
         where T : notnull => new(this, errorMessage);
@@ -27,17 +27,17 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
     {
         message = await ModifyOrSendMessage(question, message, promptOptions);
 
-        InteractivityResult<SocketMessage>? response;
+        InteractiveResult<SocketMessage?> response;
         var timeout = TimeSpan.FromSeconds(promptOptions?.SecondsTimeout ?? 30);
         if (promptOptions?.Criterion is null)
-            response = await Interactivity.NextMessageAsync(timeout: timeout);
+            response = await Interactive.NextMessageAsync(timeout: timeout);
         else
-            response = await Interactivity.NextMessageAsync(timeout: timeout, filter: promptOptions.Criterion.AsPredicate(Context));
+            response = await Interactive.NextMessageAsync(timeout: timeout, filter: promptOptions.Criterion.AsFunc(Context));
 
-        _ = response?.Value?.DeleteAsync();
+        _ = response.Value?.DeleteAsync();
 
-        if (!(promptOptions?.IsRequired ?? false) && (response?.Value?.IsSkipped() ?? false))
-            response = null;
+        if (!(promptOptions?.IsRequired ?? false) && (response.Value?.IsSkipped() ?? false))
+            return (null, message);
 
         return (response?.Value, message);
     }

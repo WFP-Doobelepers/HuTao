@@ -3,12 +3,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Interactivity;
-using Interactivity.Pagination;
+using Fergun.Interactive;
 using Zhongli.Data;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.Functions;
+using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 using EmbedBuilderExtensions = Zhongli.Services.Utilities.EmbedBuilderExtensions;
 
@@ -50,18 +50,22 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
     protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection, EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
         string? title = null, EmbedAuthorBuilder? author = null)
     {
+        title ??= Title;
+        var builder = new PageBuilder();
+
+        if (!string.IsNullOrWhiteSpace(title)) builder.WithTitle(title);
+        if (author is not null) builder.WithAuthor(author);
+
         var pages = collection
             .ToEmbedFields(entityViewer).Chunk(6)
-            .Select(f => new PageBuilder()
-                .WithTitle(title)
-                .WithFields(f)
-                .WithAuthor(author));
+            .Select(f =>
+            {
+                builder.Fields = f.ToList();
+                return builder;
+            });
 
-        var paginated = new StaticPaginatorBuilder()
-            .WithPages(pages)
-            .WithDefaultEmotes();
-
-        await Interactivity.SendPaginatorAsync(paginated.Build(), Context.Channel);
+        var paginated = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
+        await Interactive.SendPaginatorAsync(paginated.Build(), Context.Channel);
     }
 
     protected virtual async Task RemoveEntityAsync(string id)
@@ -107,7 +111,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             && selection < filtered.Count && selection > -1);
 
         await PagedViewAsync(filtered, "Reply with a number to select.");
-        var selected = await Interactivity.NextMessageAsync(containsCriterion.AsPredicate(Context));
+        var selected = await Interactive.NextMessageAsync(containsCriterion.AsFunc(Context));
         return selected?.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
     }
 }

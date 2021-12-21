@@ -3,9 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Fergun.Interactive;
 using Humanizer;
-using Interactivity;
-using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -23,22 +22,22 @@ namespace Zhongli.Bot.Modules.Moderation;
 public class ModerationModule : ModuleBase<SocketCommandContext>
 {
     private readonly CommandErrorHandler _error;
-    private readonly InteractivityService _interactivity;
+    private readonly InteractiveService _interactive;
     private readonly ModerationLoggingService _logging;
     private readonly ModerationService _moderation;
     private readonly ZhongliContext _db;
 
     public ModerationModule(CommandErrorHandler error,
-        InteractivityService interactivity,
+        InteractiveService interactive,
         ModerationLoggingService logging,
         ModerationService moderation,
         ZhongliContext db)
     {
-        _error         = error;
-        _interactivity = interactivity;
-        _logging       = logging;
-        _moderation    = moderation;
-        _db            = db;
+        _error       = error;
+        _interactive = interactive;
+        _logging     = logging;
+        _moderation  = moderation;
+        _db          = db;
     }
 
     [Command("ban")]
@@ -122,11 +121,9 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             .Select(CreateEmbed)
             .ToPageBuilder(embed);
 
-        var paginator = new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(pages);
+        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
 
-        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
+        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [Command("note")]

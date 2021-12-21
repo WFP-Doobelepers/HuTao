@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Net;
-using Interactivity;
+using Fergun.Interactive;
 using Zhongli.Data.Config;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Utilities;
@@ -17,12 +17,12 @@ namespace Zhongli.Bot.Modules;
 public sealed class HelpModule : ModuleBase
 {
     private readonly ICommandHelpService _commandHelpService;
-    private readonly InteractivityService _interactivity;
+    private readonly InteractiveService _interactive;
 
-    public HelpModule(ICommandHelpService commandHelpService, InteractivityService interactivity)
+    public HelpModule(ICommandHelpService commandHelpService, InteractiveService interactive)
     {
         _commandHelpService = commandHelpService;
-        _interactivity      = interactivity;
+        _interactive        = interactive;
     }
 
     [Command]
@@ -92,7 +92,7 @@ public sealed class HelpModule : ModuleBase
             try
             {
                 var dm = await Context.User.CreateDMChannelAsync();
-                await _interactivity.SendPaginatorAsync(paginator.Build(), dm);
+                await _interactive.SendPaginatorAsync(paginator.Build(), dm);
             }
             catch (HttpException ex) when (ex.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
             {
@@ -120,7 +120,7 @@ public sealed class HelpModule : ModuleBase
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
         if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
-            await _interactivity.SendPaginatorAsync(paginated, Context.Channel);
+            await _interactive.SendPaginatorAsync(paginated, Context.Channel);
         else
             await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
     }

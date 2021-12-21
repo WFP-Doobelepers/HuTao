@@ -8,9 +8,8 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using Humanizer;
-using Interactivity;
-using Interactivity.Pagination;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Interactive.Paginator;
@@ -25,15 +24,15 @@ namespace Zhongli.Bot.Modules;
 [RequireUserPermission(GuildPermission.ManageRoles)]
 public class RoleModule : ModuleBase<SocketCommandContext>
 {
-    private readonly InteractivityService _interactivity;
+    private readonly InteractiveService _interactive;
     private readonly TemporaryRoleMemberService _member;
     private readonly TemporaryRoleService _role;
 
-    public RoleModule(InteractivityService interactivity, TemporaryRoleMemberService member, TemporaryRoleService role)
+    public RoleModule(InteractiveService interactive, TemporaryRoleMemberService member, TemporaryRoleService role)
     {
-        _interactivity = interactivity;
-        _member        = member;
-        _role          = role;
+        _interactive = interactive;
+        _member      = member;
+        _role        = role;
     }
 
     [Command("add")]
@@ -294,11 +293,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             .WithFields(roles.Select(CreateRoleEmbedField))
             .ToPageBuilders(6);
 
-        var paginator = new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(pages);
+        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
 
-        await _interactivity.SendPaginatorAsync(paginator.Build(), Context.Channel);
+        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [NamedArgumentType]

@@ -18,6 +18,12 @@ public partial class PromptCollection<T> where T : notnull
 
     public PromptCollection<T> WithError(string error) => this.Modify(c => c.ErrorMessage = error);
 
+    public PromptCollection<T> WithPrompt<TReader>(
+        T key, string question,
+        IEnumerable<EmbedFieldBuilder>? fields = null,
+        bool required = true, int? timeOut = null) where TReader : TypeReader, new()
+        => WithPrompt(key, question, fields, required, timeOut).ThatHas(new TReader());
+
     public PromptCollection<T> WithTimeout(int timeout) => this.Modify(c => c.Timeout = timeout);
 
     public PromptCollection<T> WithTypeReader(TypeReader reader) => this.Modify(p => p.TypeReader = reader);

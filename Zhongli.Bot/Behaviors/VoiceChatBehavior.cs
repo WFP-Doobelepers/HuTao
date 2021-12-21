@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using Interactivity;
+using Fergun.Interactive;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
@@ -25,7 +25,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
     private readonly ICommandHelpService _commandHelp;
     private readonly ZhongliContext _db;
 
-    public VoiceChatBehavior(ICommandHelpService commandHelp, InteractivityService interactive, ZhongliContext db)
+    public VoiceChatBehavior(ICommandHelpService commandHelp, InteractiveService interactive, ZhongliContext db)
     {
         _commandHelp = commandHelp;
         _db          = db;

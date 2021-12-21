@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using Hangfire;
 using Hangfire.AspNetCore;
 using Hangfire.PostgreSql;
-using Interactivity;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,8 +52,8 @@ public class Bot
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()
-            .AddSingleton<InteractivityService>()
-            .AddSingleton(new InteractivityConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
+            .AddSingleton<InteractiveService>()
+            .AddSingleton(new InteractiveConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
             .AddSingleton<DiscordSocketListener>()
             .AddScoped<AuthorizationService>()
             .AddScoped<ModerationService>()

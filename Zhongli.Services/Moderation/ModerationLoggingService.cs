@@ -74,7 +74,6 @@ public class ModerationLoggingService
         if (options.HasFlag(ShowTotal))
             embed.AddField("Total", await GetTotalAsync(reprimand, true, cancellationToken), true);
 
-
         if (options.HasFlag(ShowTrigger))
         {
             var trigger = await reprimand.GetTriggerAsync<Trigger>(_db, cancellationToken);
