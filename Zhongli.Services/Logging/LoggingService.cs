@@ -120,65 +120,6 @@ public class LoggingService
         await PublishLogAsync(log, LogType.MessagesBulkDeleted, channel.Guild, cancellationToken);
     }
 
-    private EmbedLog AddDetails(EmbedBuilder embed, MessageLog log)
-    {
-        var user = _client.GetUser(log.UserId);
-
-        embed
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-            .AddContent(log.Content);
-
-        var updated = log.UpdatedLog;
-        if (updated is not null)
-        {
-            var date = updated.EditedTimestamp ?? updated.LogDate;
-            embed
-                .AddField("After", updated.Content)
-                .AddField("Edited", date.ToUniversalTimestamp(), true);
-        }
-
-        embed
-            .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
-            .AddField("Message", log.JumpUrlMarkdown(), true);
-
-        var urls = log.Embeds.Select(e => e.Url);
-        return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
-    }
-
-    private EmbedLog AddDetails<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
-    {
-        var user = _client.GetUser(log.UserId);
-        var reaction = log.Emote;
-
-        embed
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-            .AddContent($"{reaction} {Format.Code($"{reaction}")}")
-            .AddField("Message", log.JumpUrlMarkdown(), true)
-            .AddField("Channel", log.ChannelMentionMarkdown(), true)
-            .AddField("Date", log.LogDate.ToUniversalTimestamp(), true);
-
-        if (reaction is EmoteEntity emote)
-            embed.WithThumbnailUrl(CDN.GetEmojiUrl(emote.EmoteId, emote.IsAnimated));
-
-        return new EmbedLog(embed);
-    }
-
-    private EmbedLog BuildLog(ILog log)
-    {
-        var embed = new EmbedBuilder()
-            .WithTitle(log.GetTitle())
-            .WithColor(Color.Blue)
-            .WithCurrentTimestamp();
-
-        return log switch
-        {
-            MessageLog message   => AddDetails(embed, message),
-            ReactionLog reaction => AddDetails(embed, reaction),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(log), log, "Invalid log type.")
-        };
-    }
-
     private static MemoryStream GenerateStreamFromString(string value)
         => new(Encoding.Unicode.GetBytes(value));
 
@@ -197,7 +138,7 @@ public class LoggingService
     {
         if (log is null) return;
 
-        var embed = BuildLog(log);
+        var embed = await BuildLogAsync(log);
         var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
 
         await PublishLogAsync(embed, channel);
@@ -297,7 +238,7 @@ public class LoggingService
         CancellationToken cancellationToken)
     {
         var deleted = await GetLatestMessage(log.MessageId, cancellationToken);
-        return deleted is null ? null : AddDetails(embed, deleted);
+        return deleted is null ? null : await AddDetailsAsync(embed, deleted);
     }
 
     private async Task<EmbedLog?> BuildLogAsync(DeleteLog log, CancellationToken cancellationToken)
@@ -319,10 +260,53 @@ public class LoggingService
         {
             MessagesDeleteLog messages => await AddDetailsAsync(embed, messages, cancellationToken),
             MessageDeleteLog message   => await AddDetailsAsync(embed, message, cancellationToken),
-            ReactionDeleteLog reaction => AddDetails(embed, reaction),
+            ReactionDeleteLog reaction => await AddDetailsAsync(embed, reaction),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(log), log, "Invalid log type.")
         };
+    }
+
+    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessageLog log)
+    {
+        var user = await GetUserAsync(log);
+
+        embed
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
+            .AddContent(log.Content);
+
+        var updated = log.UpdatedLog;
+        if (updated is not null)
+        {
+            var date = updated.EditedTimestamp ?? updated.LogDate;
+            embed
+                .AddField("After", updated.Content)
+                .AddField("Edited", date.ToUniversalTimestamp(), true);
+        }
+
+        embed
+            .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
+            .AddField("Message", log.JumpUrlMarkdown(), true);
+
+        var urls = log.Embeds.Select(e => e.Url);
+        return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
+    }
+
+    private async Task<EmbedLog> AddDetailsAsync<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
+    {
+        var user = await GetUserAsync(log);
+        var reaction = log.Emote;
+
+        embed
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+            .AddContent($"{reaction} {Format.Code($"{reaction}")}")
+            .AddField("Message", log.JumpUrlMarkdown(), true)
+            .AddField("Channel", log.ChannelMentionMarkdown(), true)
+            .AddField("Date", log.LogDate.ToUniversalTimestamp(), true);
+
+        if (reaction is EmoteEntity emote)
+            embed.WithThumbnailUrl(CDN.GetEmojiUrl(emote.EmoteId, emote.IsAnimated));
+
+        return new EmbedLog(embed);
     }
 
     private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessagesDeleteLog log,
@@ -339,6 +323,22 @@ public class LoggingService
 
         var messages = logs.OfType<MessageLog>().GetDetails();
         return new EmbedLog(embed, Attachment: messages.ToString());
+    }
+
+    private async Task<EmbedLog> BuildLogAsync(ILog log)
+    {
+        var embed = new EmbedBuilder()
+            .WithTitle(log.GetTitle())
+            .WithColor(Color.Blue)
+            .WithCurrentTimestamp();
+
+        return log switch
+        {
+            MessageLog message   => await AddDetailsAsync(embed, message),
+            ReactionLog reaction => await AddDetailsAsync(embed, reaction),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(log), log, "Invalid log type.")
+        };
     }
 
     private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(IMessage? message, IGuild guild)
@@ -381,6 +381,9 @@ public class LoggingService
         if (channel is null) return null;
         return await guild.GetTextChannelAsync(channel.ChannelId);
     }
+
+    private async Task<IUser> GetUserAsync<T>(T log) where T : IMessageEntity
+        => (IUser) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
 
     private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,
         IUserMessage message, MessageLog oldLog,
