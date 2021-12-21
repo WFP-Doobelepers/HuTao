@@ -11,9 +11,11 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Logging;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Utilities;
+using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig;
 
 namespace Zhongli.Services.Core.Listeners;
 
@@ -80,6 +82,18 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<GuildPermission>(
             new EnumFlagsTypeReader<GuildPermission>(
+                splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+        _commands.AddTypeReader<ModerationLogOptions>(
+            new EnumFlagsTypeReader<ModerationLogOptions>(
+                splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+        _commands.AddTypeReader<LogReprimandType>(
+            new EnumFlagsTypeReader<LogReprimandType>(
+                splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+        _commands.AddTypeReader<LogReprimandStatus>(
+            new EnumFlagsTypeReader<LogReprimandStatus>(
                 splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());

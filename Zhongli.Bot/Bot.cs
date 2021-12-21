@@ -53,7 +53,7 @@ public class Bot
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()
             .AddSingleton<InteractivityService>()
-            .AddSingleton(new InteractivityConfig { DefaultTimeout = TimeSpan.FromSeconds(30) })
+            .AddSingleton(new InteractivityConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
             .AddSingleton<DiscordSocketListener>()
             .AddScoped<AuthorizationService>()
             .AddScoped<ModerationService>()

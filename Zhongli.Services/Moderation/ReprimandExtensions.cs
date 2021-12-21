@@ -14,6 +14,7 @@ using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Moderation;
@@ -23,25 +24,30 @@ public static class ReprimandExtensions
     public static bool IsActive(this IExpirable expirable)
         => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.UtcNow;
 
-    public static bool IsIncluded(this Reprimand reprimand, ReprimandNoticeType type)
+    public static bool IsIncluded(this Reprimand reprimand, LogReprimandType log)
     {
-        if (type == ReprimandNoticeType.All)
+        if (log == LogReprimandType.All)
             return true;
 
         return reprimand switch
         {
-            Ban      => type.HasFlag(ReprimandNoticeType.Ban),
-            Censored => type.HasFlag(ReprimandNoticeType.Censor),
-            Kick     => type.HasFlag(ReprimandNoticeType.Kick),
-            Mute     => type.HasFlag(ReprimandNoticeType.Mute),
-            Notice   => type.HasFlag(ReprimandNoticeType.Notice),
-            Warning  => type.HasFlag(ReprimandNoticeType.Warning),
-            _        => false
+            Ban      => log.HasFlag(LogReprimandType.Ban),
+            Censored => log.HasFlag(LogReprimandType.Censored),
+            Kick     => log.HasFlag(LogReprimandType.Kick),
+            Mute     => log.HasFlag(LogReprimandType.Mute),
+            Note     => log.HasFlag(LogReprimandType.Note),
+            Notice   => log.HasFlag(LogReprimandType.Notice),
+            Warning  => log.HasFlag(LogReprimandType.Warning),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(reprimand), reprimand, "This reprimand type cannot be logged.")
         };
     }
 
     public static Color GetColor(this Reprimand reprimand)
     {
+        if (reprimand.Status is not ReprimandStatus.Added)
+            return Color.Purple;
+
         return reprimand switch
         {
             Ban      => Color.Red,
@@ -143,7 +149,7 @@ public static class ReprimandExtensions
             .ToString();
     }
 
-    public static string GetTitle(this Reprimand action)
+    public static string GetTitle(this Reprimand action, bool showId)
     {
         var title = action switch
         {
@@ -159,7 +165,7 @@ public static class ReprimandExtensions
                 nameof(action), action, "An unknown reprimand was given.")
         };
 
-        return $"{title.Humanize()}: {action.Id}";
+        return showId ? $"{title.Humanize()}: {action.Id}" : title.Humanize();
     }
 
     public static StringBuilder GetReprimandDetails(this Reprimand r)
@@ -225,36 +231,61 @@ public static class ReprimandExtensions
     public static uint WarningCount(this GuildUserEntity user, bool countHidden = true)
         => (uint) user.Reprimands<Warning>(countHidden).Sum(w => w.Count);
 
+    public static async ValueTask<bool> IsIncludedAsync(this Reprimand reprimand, ModerationLogConfig config, DbContext db, CancellationToken cancellationToken)
+    {
+        var trigger = await reprimand.GetTriggerAsync<ReprimandTrigger>(db, cancellationToken);
+        return trigger?.Source is TriggerSource.Warning or TriggerSource.Notice
+            ? config.Options.HasFlag(ModerationLogConfig.ModerationLogOptions.Verbose)
+            : reprimand.IsIncluded(config.LogReprimands) && reprimand.IsIncluded(config.LogReprimandStatus);
+    }
+
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
     {
-        return reprimand.Guild ??
-            await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken);
+        return (reprimand.Guild ??
+            await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken))!;
     }
 
     public static async ValueTask<GuildUserEntity> GetUserAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
     {
-        return reprimand.User ??
+        return (reprimand.User ??
             await db.FindAsync<GuildUserEntity>(new object[] { reprimand.UserId, reprimand.GuildId },
-                cancellationToken);
+                cancellationToken))!;
     }
 
-    public static async ValueTask<Trigger?> GetTriggerAsync(this Reprimand reprimand, DbContext db,
-        CancellationToken cancellationToken = default)
+    public static async ValueTask<T?> GetTriggerAsync<T>(this Reprimand reprimand, DbContext db,
+        CancellationToken cancellationToken = default) where T : Trigger
     {
-        var trigger = reprimand.Trigger;
-        if (reprimand.TriggerId is not null)
-        {
-            trigger ??= await db.FindAsync<Trigger>(new object[] { reprimand.TriggerId },
-                cancellationToken);
-        }
+        if (reprimand.Trigger is T trigger)
+            return trigger;
 
-        return trigger;
+        if (reprimand.TriggerId is not null)
+            return await db.FindAsync<T>(new object[] { reprimand.TriggerId }, cancellationToken);
+
+        return null;
     }
 
     private static bool IsCounted(Reprimand reprimand)
         => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
+
+    private static bool IsIncluded(this Reprimand reprimand, LogReprimandStatus status)
+    {
+        if (status == LogReprimandStatus.All)
+            return true;
+
+        return reprimand.Status switch
+        {
+            ReprimandStatus.Unknown => false,
+            ReprimandStatus.Added   => status.HasFlag(LogReprimandStatus.Added),
+            ReprimandStatus.Expired => status.HasFlag(LogReprimandStatus.Expired),
+            ReprimandStatus.Updated => status.HasFlag(LogReprimandStatus.Updated),
+            ReprimandStatus.Hidden  => status.HasFlag(LogReprimandStatus.Hidden),
+            ReprimandStatus.Deleted => status.HasFlag(LogReprimandStatus.Deleted),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(reprimand), reprimand, "This reprimand type cannot be logged.")
+        };
+    }
 
     private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
         where T : Reprimand => embed.AddField(typeof(T).Name.Pluralize(),

@@ -145,7 +145,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
                     .FirstOrDefault();
 
                 if (banDetails is not null)
-                    embed.AddField(banDetails.GetTitle(), banDetails.GetReprimandDetails().ToString());
+                    embed.AddField(banDetails.GetTitle(true), banDetails.GetReprimandDetails().ToString());
                 else
                     embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
             }
@@ -166,6 +166,6 @@ public class UserModule : ModuleBase<SocketCommandContext>
     }
 
     private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
-        .WithName(r.GetTitle())
+        .WithName(r.GetTitle(true))
         .WithValue(r.GetReprimandDetails().ToString());
 }

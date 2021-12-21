@@ -4,6 +4,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Data.Models.VoiceChat;
 
@@ -42,6 +43,8 @@ public class GuildEntity
         = new List<TemporaryRoleMember>();
 
     public virtual LoggingRules LoggingRules { get; set; } = null!;
+
+    public virtual ModerationLoggingRules ModerationLoggingRules { get; set; } = null!;
 
     public virtual ModerationRules ModerationRules { get; set; } = null!;
 

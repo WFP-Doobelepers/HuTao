@@ -15,8 +15,8 @@ public static class InteractiveExtensions
 
     public static PageBuilder ToPageBuilder(this IEnumerable<EmbedFieldBuilder> fields, EmbedBuilder? builder = null)
     {
-        builder ??= new EmbedBuilder();
-        builder.Fields = fields.ToList();
+        builder        ??= new EmbedBuilder();
+        builder.Fields =   fields.ToList();
 
         return PageBuilder.FromEmbedBuilder(builder);
     }

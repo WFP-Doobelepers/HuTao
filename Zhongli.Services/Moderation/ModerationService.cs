@@ -150,7 +150,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var activeBan = await GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
-            await ExpireBanAsync(activeBan, cancellationToken);
+            await ExpireBanAsync(activeBan, cancellationToken, details);
         else
             await details.Guild.RemoveBanAsync(details.User);
 
@@ -161,8 +161,10 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var activeMute = await GetActive<Mute>(details, cancellationToken);
-        if (activeMute is not null) await ExpireReprimandAsync(activeMute, cancellationToken);
-        await EndMuteAsync(await details.GetUserAsync());
+        if (activeMute is not null)
+            await ExpireMuteAsync(activeMute, cancellationToken, details);
+        else
+            await EndMuteAsync(await details.GetUserAsync());
 
         return activeMute;
     }
@@ -172,7 +174,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var activeBan = await GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
-            await ExpireReprimandAsync(activeBan, cancellationToken);
+            await ExpireReprimandAsync(activeBan, cancellationToken, details);
 
         try
         {
@@ -231,7 +233,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             if (!guildEntity.ModerationRules.ReplaceMutes)
                 return null;
 
-            await ExpireReprimandAsync(activeMute, cancellationToken);
+            await ExpireReprimandAsync(activeMute, cancellationToken, details);
         }
 
         try
@@ -320,17 +322,17 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             await user.ModifyAsync(u => u.Mute = false);
     }
 
-    private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken)
+    private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        await ExpireReprimandAsync(ban, cancellationToken);
+        await ExpireReprimandAsync(ban, cancellationToken, details);
 
         var guild = _client.GetGuild(ban.GuildId);
         _ = guild.RemoveBanAsync(ban.UserId);
     }
 
-    private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken)
+    private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        await ExpireReprimandAsync(mute, cancellationToken);
+        await ExpireReprimandAsync(mute, cancellationToken, details);
 
         var guild = _client.GetGuild(mute.GuildId);
         var user = guild.GetUser(mute.UserId);
@@ -338,12 +340,15 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _ = EndMuteAsync(user);
     }
 
-    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken)
+    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        var guild = _client.GetGuild(reprimand.GuildId);
-        var user = await _client.Rest.GetUserAsync(reprimand.UserId);
-        var moderator = guild.CurrentUser;
-        var details = new ReprimandDetails(user, moderator, "[Reprimand Expired]");
+        if (details is null)
+        {
+            var guild = _client.GetGuild(reprimand.GuildId);
+            var user = await _client.Rest.GetUserAsync(reprimand.UserId);
+
+            details = new ReprimandDetails(user, guild.CurrentUser, "[Reprimand Expired]");
+        }
 
         reprimand.EndedAt  = DateTimeOffset.UtcNow;
         reprimand.ExpireAt = DateTimeOffset.UtcNow;
@@ -392,8 +397,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
         if (trigger is null) return new ReprimandResult(reprimand);
 
-        var (_, moderator, _, _) = details;
-        var currentUser = await moderator.Guild.GetCurrentUserAsync();
+        var currentUser = await details.Moderator.Guild.GetCurrentUserAsync();
 
         var countDetails = new ReprimandDetails(
             details.User, currentUser, $"[Reprimand Count Triggered] at {count}", trigger);

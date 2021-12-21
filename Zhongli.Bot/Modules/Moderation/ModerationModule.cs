@@ -8,7 +8,6 @@ using Interactivity;
 using Interactivity.Pagination;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
@@ -57,8 +56,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
             if (result is null)
                 await _error.AssociateError(Context.Message, "Failed to ban user.");
-            else
-                await ReplyReprimandAsync(result, details);
         }
     }
 
@@ -86,8 +83,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
         if (result is null)
             await _error.AssociateError(Context.Message, "Failed to kick user.");
-        else
-            await ReplyReprimandAsync(result, details);
     }
 
     [Command("mute")]
@@ -104,8 +99,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
                 "Either the user is already muted or there is no mute role configured. " +
                 "Configure the mute role by running the 'configure mute' command.");
         }
-        else
-            await ReplyReprimandAsync(result, details);
     }
 
     [Command("mute list")]
@@ -154,7 +147,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.NoticeAsync(details);
-        await ReplyReprimandAsync(result, details);
     }
 
     [Command("say")]
@@ -235,9 +227,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.TryUnbanAsync(details);
 
-        if (result is not null)
-            await ReplyUpdatedReprimandAsync(result, details);
-        else
+        if (result is null)
             await _error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
     }
 
@@ -249,9 +239,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.TryUnmuteAsync(details);
 
-        if (result is not null)
-            await ReplyUpdatedReprimandAsync(result, details);
-        else
+        if (result is null)
             await _error.AssociateError(Context.Message, "Unmute failed.");
     }
 
@@ -262,7 +250,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.WarnAsync(amount, details);
-        await ReplyReprimandAsync(result, details);
     }
 
     [Command("warn")]
@@ -272,36 +259,12 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         => WarnAsync(user, 1, reason);
 
     private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()
-        .WithName(r.GetTitle())
+        .WithName(r.GetTitle(true))
         .WithValue(r.GetReprimandExpiration());
-
-    private async Task ReplyReprimandAsync(ReprimandResult result, ReprimandDetails details)
-    {
-        var guild = await result.Primary.GetGuildAsync(_db);
-        if (!guild.ModerationRules.Options.HasFlag(ReprimandOptions.Silent))
-        {
-            var embed = await _logging.CreateEmbedAsync(result, details);
-            await ReplyAsync(embed: embed.Build());
-        }
-        else
-            await Context.Message.DeleteAsync();
-    }
-
-    private async Task ReplyUpdatedReprimandAsync(Reprimand reprimand, ReprimandDetails details)
-    {
-        var guild = await reprimand.GetGuildAsync(_db);
-        if (!guild.ModerationRules.Options.HasFlag(ReprimandOptions.Silent))
-        {
-            var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
-            await ReplyAsync(embed: embed.Build());
-        }
-        else
-            await Context.Message.DeleteAsync();
-    }
 
     private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
     {
-        var details = new ReprimandDetails(user, (IGuildUser) Context.User, reason);
+        var details = new ReprimandDetails(user, Context, reason);
 
         await _db.Users.TrackUserAsync(details);
         await _db.SaveChangesAsync();

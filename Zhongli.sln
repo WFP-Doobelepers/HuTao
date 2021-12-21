@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31321.278
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhongli.Bot", "Zhongli.Bot\Zhongli.Bot.csproj", "{37F817F7-DB68-45D1-8273-6067B4C9E0FA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhongli.Services", "Zhongli.Services\Zhongli.Services.csproj", "{F7A2C1E5-1F71-45D7-917F-65FD39C30F56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zhongli.Data", "Zhongli.Data\Zhongli.Data.csproj", "{DE501463-C094-4550-82F3-9513C576E5B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhongli.Data", "Zhongli.Data\Zhongli.Data.csproj", "{DE501463-C094-4550-82F3-9513C576E5B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -7,7 +7,6 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
@@ -73,7 +72,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     }
 
     protected override (string Title, StringBuilder Value) EntityViewer(Reprimand r)
-        => (r.GetTitle(), r.GetReprimandDetails());
+        => (r.GetTitle(true), r.GetReprimandDetails());
 
     protected override bool IsMatch(Reprimand entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
@@ -87,7 +86,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     }
 
     private ReprimandDetails GetDetails(IUser user, string? reason)
-        => new(user, (IGuildUser) Context.User, reason);
+        => new(user, Context, reason);
 
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
@@ -102,19 +101,6 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         var details = GetDetails(user, reason);
 
         await update(reprimand, details);
-        await ReplyReprimandAsync(reprimand, details);
-    }
-
-    private async Task ReplyReprimandAsync(Reprimand reprimand, ReprimandDetails details)
-    {
-        var guild = await reprimand.GetGuildAsync(_db);
-        if (!guild.ModerationRules.Options.HasFlag(ReprimandOptions.Silent))
-        {
-            var embed = await _logging.UpdatedEmbedAsync(reprimand, details);
-            await ReplyAsync(embed: embed.Build());
-        }
-        else
-            await Context.Message.DeleteAsync();
     }
 
     private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ReprimandDetails details,

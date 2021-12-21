@@ -102,7 +102,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
         var author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild);
         await PagedViewAsync(reprimands.OfType(type),
-            r => (r.GetTitle(), r.GetReprimandDetails()),
+            r => (r.GetTitle(true), r.GetReprimandDetails()),
             "Reprimands", author);
     }
 

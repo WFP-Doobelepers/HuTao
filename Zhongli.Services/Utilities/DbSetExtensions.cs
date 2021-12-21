@@ -8,6 +8,7 @@ using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Logging;
 
 namespace Zhongli.Services.Utilities;
 
@@ -20,8 +21,9 @@ public static class DbSetExtensions
             ?? set.Add(new GuildEntity(guild.Id)).Entity;
 
         // ReSharper disable ConstantNullCoalescingCondition
-        guildEntity.ModerationRules ??= new ModerationRules();
-        guildEntity.LoggingRules    ??= new LoggingRules();
+        guildEntity.ModerationRules        ??= new ModerationRules();
+        guildEntity.ModerationLoggingRules ??= new ModerationLoggingRules();
+        guildEntity.LoggingRules           ??= new LoggingRules();
         // ReSharper restore ConstantNullCoalescingCondition
 
         return guildEntity;
