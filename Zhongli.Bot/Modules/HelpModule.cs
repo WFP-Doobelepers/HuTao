@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -83,26 +84,32 @@ public sealed class HelpModule : ModuleBase
     [Summary("Spams the user's DMs with a list of every command available.")]
     public async Task HelpDMAsync()
     {
-        var userDM = await Context.User.CreateDMChannelAsync();
+        var tokenSource = new CancellationTokenSource();
+        var dm = await Context.User.CreateDMChannelAsync();
+        var modules = _commandHelpService
+            .GetModuleHelpData()
+            .OrderBy(x => x.Name);
 
-        foreach (var module in _commandHelpService.GetModuleHelpData().OrderBy(x => x.Name))
+        foreach (var module in modules)
         {
-            var paginator = _commandHelpService.GetEmbedForModule(module);
-
-            try
+            _ = Task.Run(async () =>
             {
-                var dm = await Context.User.CreateDMChannelAsync();
-                await _interactive.SendPaginatorAsync(paginator.Build(), dm);
-            }
-            catch (HttpException ex) when (ex.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
-            {
-                await ReplyAsync(
-                    $"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
-                return;
-            }
+                try
+                {
+                    var paginator = _commandHelpService.GetEmbedForModule(module);
+                    await _interactive.SendPaginatorAsync(paginator.Build(), dm, resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
+                }
+                catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
+                {
+                    tokenSource.Cancel();
+                }
+            }, tokenSource.Token);
         }
 
-        await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
+        if (tokenSource.IsCancellationRequested)
+            await ReplyAsync($"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
+        else
+            await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
     }
 
     [Command("module")]
