@@ -161,16 +161,23 @@ internal class CommandHelpService : ICommandHelpService
 
     public StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module)
     {
-        var embed = new EmbedBuilder()
-            .WithTitle($"Module: {module.Name}")
-            .WithDescription(module.Summary);
+        var paginator = InteractiveExtensions.CreateDefaultPaginator();
 
-        foreach (var commands in module.Commands)
+        foreach (var commands in module.Commands.Chunk(3))
         {
-            embed.AddCommandFields(commands);
+            var embed = new EmbedBuilder()
+                .WithTitle($"Module: {module.Name}")
+                .WithDescription(module.Summary);
+
+            foreach (var command in commands)
+            {
+                embed.AddCommandFields(command);
+            }
+
+            paginator.AddPage(PageBuilder.FromEmbedBuilder(embed));
         }
 
-        return InteractiveExtensions.CreateDefaultPaginator().WithPages(embed.ToPageBuilders(3));
+        return paginator;
     }
 }
 
