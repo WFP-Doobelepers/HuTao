@@ -97,7 +97,7 @@ public sealed class HelpModule : ModuleBase
                 try
                 {
                     var paginator = _commandHelpService.GetEmbedForModule(module);
-                    await _interactive.SendPaginatorAsync(paginator.Build(), dm, resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
+                    await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm, resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
                 }
                 catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
                 {
@@ -127,7 +127,7 @@ public sealed class HelpModule : ModuleBase
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
         if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
-            await _interactive.SendPaginatorAsync(paginated, Context.Channel);
+            await _interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel, resetTimeoutOnInput: true);
         else
             await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
     }

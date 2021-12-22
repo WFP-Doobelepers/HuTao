@@ -123,7 +123,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
 
-        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Channel);
+        await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), Context.Channel);
     }
 
     [Command("note")]

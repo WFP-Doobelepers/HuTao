@@ -90,7 +90,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
                 if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                 {
-                    var embed = await paginated.GetOrLoadCurrentPageAsync();
+                    var embed = await paginated.Build().GetOrLoadCurrentPageAsync();
                     var message = await textChannel.SendMessageAsync(embed: embed.Embed);
 
                     await message.PinAsync();

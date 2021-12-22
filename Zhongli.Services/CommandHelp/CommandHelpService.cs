@@ -15,7 +15,7 @@ namespace Zhongli.Services.CommandHelp;
 /// </summary>
 public interface ICommandHelpService
 {
-    bool TryGetEmbed(string query, HelpDataType queries, out Paginator embed);
+    bool TryGetEmbed(string query, HelpDataType queries, out StaticPaginatorBuilder embed);
 
     /// <summary>
     ///     Retrieves command help data for the supplied query.
@@ -69,7 +69,7 @@ internal class CommandHelpService : ICommandHelpService
 
     public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
-    public bool TryGetEmbed(string query, HelpDataType queries, out Paginator message)
+    public bool TryGetEmbed(string query, HelpDataType queries, out StaticPaginatorBuilder message)
     {
         message = null!;
 
@@ -79,7 +79,7 @@ internal class CommandHelpService : ICommandHelpService
             var byModule = GetModuleHelpData(query);
             if (byModule is not null)
             {
-                message = GetEmbedForModule(byModule).Build();
+                message = GetEmbedForModule(byModule);
                 return true;
             }
         }
@@ -89,7 +89,7 @@ internal class CommandHelpService : ICommandHelpService
             var byCommand = GetCommandHelpData(query);
             if (byCommand is not null)
             {
-                message = GetEmbedForCommand(byCommand).Build();
+                message = GetEmbedForCommand(byCommand);
                 return true;
             }
         }

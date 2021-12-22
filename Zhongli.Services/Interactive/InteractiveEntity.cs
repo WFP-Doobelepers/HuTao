@@ -65,7 +65,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             });
 
         var paginated = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
-        await Interactive.SendPaginatorAsync(paginated.Build(), Context.Channel);
+        await Interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel);
     }
 
     protected virtual async Task RemoveEntityAsync(string id)
