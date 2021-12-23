@@ -29,7 +29,6 @@ namespace Zhongli.Bot.Modules.Censors;
 [Group("censor")]
 [Alias("censors")]
 [Summary("Manages cencors and what action will be done to the user who triggers them.")]
-[RequireAuthorization(AuthorizationScope.Configuration, Group = "Censor")]
 public class CensorModule : InteractiveTrigger<Censor>
 {
     private const string PatternSummary = "The .NET flavor regex pattern to be used.";
@@ -45,6 +44,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     [Command("ban")]
     [Summary("A censor that deletes the message and also bans the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddBanCensorAsync(
         [Summary(PatternSummary)] string pattern,
         [Summary("Amount in days of messages that will be deleted when banned.")]
@@ -63,6 +63,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command("add")]
     [Alias("create")]
     [Summary("A censor that deletes the message and does nothing to the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddCensorAsync(
         [Summary(PatternSummary)] string pattern,
         CensorOptions? options = null)
@@ -75,6 +76,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     [Command("kick")]
     [Summary("A censor that deletes the message and also kicks the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddKickCensorAsync(
         [Summary(PatternSummary)] string pattern,
         CensorOptions? options = null)
@@ -88,6 +90,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     [Command("mute")]
     [Summary("A censor that deletes the message and mutes the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddMuteCensorAsync(
         [Summary(PatternSummary)] string pattern,
         [Summary("The length of the mute. Leave empty for permanent.")]
@@ -103,6 +106,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     [Command("note")]
     [Summary("A censor that deletes the message and does nothing to the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddNoteCensorAsync(
         [Summary(PatternSummary)] string pattern,
         CensorOptions? options = null)
@@ -116,6 +120,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     [Command("notice")]
     [Summary("A censor that deletes the message and gives a notice.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddNoticeCensorAsync(
         [Summary(PatternSummary)] string pattern,
         CensorOptions? options = null)
@@ -130,6 +135,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command("warning")]
     [Alias("warn")]
     [Summary("A censor that deletes the message and does nothing to the user.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddWarningCensorAsync(
         [Summary(PatternSummary)] string pattern,
         [Summary("The amount of warnings to be given. Defaults to 1.")]
@@ -146,7 +152,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command("test")]
     [Alias("testword")]
     [Summary("Test whether a word is in the list of censors or not.")]
-    [RequireAuthorization(AuthorizationScope.Helper, Group = "Censor")]
+    [RequireAuthorization(AuthorizationScope.Helper | Configuration)]
     public async Task TestCensorAsync(string word)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
@@ -162,7 +168,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command]
     [Alias("list", "view")]
     [Summary("View the censor list.")]
-    [RequireAuthorization(AuthorizationScope.Helper, Group = "Censor")]
+    [RequireAuthorization(AuthorizationScope.Helper | Configuration)]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override (string Title, StringBuilder Value) EntityViewer(Censor censor)
