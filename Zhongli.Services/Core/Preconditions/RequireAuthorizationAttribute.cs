@@ -16,9 +16,6 @@ public class RequireAuthorizationAttribute : PreconditionAttribute
     public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context,
         CommandInfo command, IServiceProvider services)
     {
-        if (context.User is not IGuildUser user)
-            return PreconditionResult.FromError("User could not be cast as SocketGuildUser");
-
         var auth = services.GetRequiredService<AuthorizationService>();
         var isAuthorized = await auth.IsAuthorizedAsync(context, _scopes);
 
