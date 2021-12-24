@@ -234,9 +234,10 @@ public static class ReprimandExtensions
     public static async ValueTask<bool> IsIncludedAsync(this Reprimand reprimand, ModerationLogConfig config, DbContext db, CancellationToken cancellationToken)
     {
         var trigger = await reprimand.GetTriggerAsync<ReprimandTrigger>(db, cancellationToken);
-        return trigger?.Source is TriggerSource.Warning or TriggerSource.Notice
-            ? config.Options.HasFlag(ModerationLogConfig.ModerationLogOptions.Verbose)
-            : reprimand.IsIncluded(config.LogReprimands) && reprimand.IsIncluded(config.LogReprimandStatus);
+        var verbose = config.Options.HasFlag(ModerationLogConfig.ModerationLogOptions.Verbose);
+        return reprimand.IsIncluded(config.LogReprimands)
+            && reprimand.IsIncluded(config.LogReprimandStatus)
+            && (verbose || trigger?.Source is not TriggerSource.Warning or TriggerSource.Notice);
     }
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
