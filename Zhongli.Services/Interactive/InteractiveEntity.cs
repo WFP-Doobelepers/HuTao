@@ -51,16 +51,16 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         string? title = null, EmbedAuthorBuilder? author = null)
     {
         title ??= Title;
-        var builder = new PageBuilder();
-
-        if (!string.IsNullOrWhiteSpace(title)) builder.WithTitle(title);
-        if (author is not null) builder.WithAuthor(author);
 
         var pages = collection
             .ToEmbedFields(entityViewer).Chunk(6)
-            .Select(f =>
+            .Select(fields =>
             {
-                builder.Fields = f.ToList();
+                var builder = new PageBuilder().WithFields(fields);
+
+                if (!string.IsNullOrWhiteSpace(title)) builder.WithTitle(title);
+                if (author is not null) builder.WithAuthor(author);
+
                 return builder;
             });
 
