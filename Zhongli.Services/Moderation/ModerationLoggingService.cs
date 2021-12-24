@@ -31,22 +31,22 @@ public class ModerationLoggingService
     public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var reprimand = result.Primary;
+        var reprimand = result.Last;
         var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
         var options = guild.ModerationLoggingRules;
 
         await PublishAsync(options.ModeratorLog);
         await PublishAsync(options.PublicLog);
 
-        if (await reprimand.IsIncludedAsync(options.CommandLog, _db, cancellationToken))
+        if (reprimand.IsIncluded(options.CommandLog))
             await PublishToChannelAsync(options.CommandLog, details.Context?.Channel);
 
-        if (await reprimand.IsIncludedAsync(options.UserLog, _db, cancellationToken))
+        if (reprimand.IsIncluded(options.UserLog))
             await PublishToChannelAsync(options.UserLog, await details.User.CreateDMChannelAsync());
 
         async Task PublishAsync<T>(T config) where T : ModerationLogConfig, IChannelEntity
         {
-            if (!await reprimand.IsIncludedAsync(config, _db, cancellationToken)) return;
+            if (!reprimand.IsIncluded(config)) return;
 
             var channel = await details.Guild.GetTextChannelAsync(config.ChannelId);
             await PublishToChannelAsync(config, channel);
@@ -82,9 +82,10 @@ public class ModerationLoggingService
         if (options.HasFlag(ShowDetails))
             embed.WithDescription(reprimand.GetMessage());
 
-        if (options.HasFlag(ShowReason) && !string.IsNullOrWhiteSpace(details.Reason))
+        var reason = reprimand.ModifiedAction?.Reason ?? reprimand.Action?.Reason;
+        if (options.HasFlag(ShowReason) && !string.IsNullOrWhiteSpace(reason))
         {
-            var reasons = details.Reason.Split(" ");
+            var reasons = reason.Split(" ");
             embed.AddItemsIntoFields("Reason", reasons.ToArray(), " ");
         }
 
@@ -154,7 +155,7 @@ public class ModerationLoggingService
 
         var showAppeal = result.Primary.IsIncluded(config.ShowAppealOnReprimands);
         await AddPrimaryAsync(embed, result.Primary, details, config.Options, cancellationToken);
-        foreach (var secondary in result.Secondary.OfType<Reprimand>())
+        foreach (var secondary in result.Secondary)
         {
             await AddSecondaryAsync(embed, secondary, config.Options, cancellationToken);
             showAppeal = showAppeal || secondary.IsIncluded(config.ShowAppealOnReprimands);

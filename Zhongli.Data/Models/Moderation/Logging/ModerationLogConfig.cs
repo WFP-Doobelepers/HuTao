@@ -16,8 +16,7 @@ public class ModerationLogConfig
         ShowAvatarThumbnail = 1 << 5,
         ShowActive = 1 << 6,
         ShowTotal = 1 << 7,
-        ShowTrigger = 1 << 8,
-        Verbose = 1 << 9
+        ShowTrigger = 1 << 8
     }
 
     public Guid Id { get; set; }

@@ -383,27 +383,32 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (reprimand is ExpirableReprimand expirable)
             EnqueueExpirableEntity(expirable, cancellationToken);
 
-        var result = await TriggerReprimand(details, reprimand, cancellationToken);
-        return await _logging.PublishReprimandAsync(result, details, cancellationToken);
+        var result = new ReprimandResult(reprimand, details.Result);
+        var secondary = details with { Result = result };
+        var trigger = await TryGetTriggerAsync(reprimand, cancellationToken);
+
+        return trigger is not null
+            ? await TriggerReprimandAsync(trigger, result, secondary, cancellationToken)
+            : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
     }
 
-    private async Task<ReprimandResult> TriggerReprimand<T>(ReprimandDetails details, T reprimand,
-        CancellationToken cancellationToken) where T : Reprimand
+    private async Task<ReprimandResult> TriggerReprimandAsync(ReprimandTrigger trigger, ReprimandResult result, ReprimandDetails details,
+        CancellationToken cancellationToken)
     {
-        if (!TryGetTriggerSource(reprimand, out var source))
-            return reprimand;
-
+        var reprimand = result.Last;
         var count = await reprimand.CountAsync(_db, false, cancellationToken);
-        var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
-        if (trigger is null) return new ReprimandResult(reprimand);
-
         var currentUser = await details.Moderator.Guild.GetCurrentUserAsync();
 
-        var countDetails = new ReprimandDetails(
-            details.User, currentUser, $"[Reprimand Count Triggered] at {count}", trigger);
-        var secondary = await ReprimandAsync(trigger.Reprimand, countDetails, cancellationToken);
+        var secondary = await ReprimandAsync(trigger.Reprimand, details with
+        {
+            Moderator = currentUser,
+            Reason = $"[Reprimand Count Triggered] at {count}",
+            Trigger = trigger
+        }, cancellationToken);
 
-        return new ReprimandResult(reprimand, secondary);
+        return secondary is null
+            ? await _logging.PublishReprimandAsync(result, details, cancellationToken)
+            : new ReprimandResult(secondary.Last, result);
     }
 
     private async Task<ReprimandTrigger?> GetCountTriggerAsync(Reprimand reprimand, uint count,
@@ -419,6 +424,17 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             .Where(t => t.IsTriggered(count))
             .OrderByDescending(t => t.Amount)
             .FirstOrDefault();
+    }
+
+    private async Task<ReprimandTrigger?> TryGetTriggerAsync(Reprimand reprimand, CancellationToken cancellationToken)
+    {
+        if (!TryGetTriggerSource(reprimand, out var source))
+            return null;
+
+        var count = await reprimand.CountAsync(_db, false, cancellationToken);
+        var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
+
+        return trigger;
     }
 
     private async Task<T?> GetActive<T>(ReprimandDetails details,

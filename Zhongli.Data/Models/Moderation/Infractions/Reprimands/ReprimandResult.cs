@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,14 +5,22 @@ namespace Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 
 public class ReprimandResult
 {
-    public ReprimandResult(Reprimand primary, ReprimandResult? secondary = null)
+    public ReprimandResult(Reprimand reprimand, ReprimandResult? result)
     {
-        Primary = primary;
-        Secondary = secondary?.Secondary.Append(secondary.Primary)
-            ?? Array.Empty<Reprimand>();
+        if (result is null)
+            Primary = reprimand;
+        else
+        {
+            Primary   = result.Primary;
+            Secondary = result.Secondary.Append(reprimand);
+        }
     }
 
-    public IEnumerable<Reprimand?> Secondary { get; }
+    public ReprimandResult(Reprimand primary) { Primary = primary; }
+
+    public IEnumerable<Reprimand> Secondary { get; } = Enumerable.Empty<Reprimand>();
+
+    public Reprimand Last => Secondary.LastOrDefault() ?? Primary;
 
     public Reprimand Primary { get; }
 }

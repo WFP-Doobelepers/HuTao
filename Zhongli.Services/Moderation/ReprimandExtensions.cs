@@ -43,6 +43,9 @@ public static class ReprimandExtensions
         };
     }
 
+    public static bool IsIncluded(this Reprimand reprimand, ModerationLogConfig config)
+        => reprimand.IsIncluded(config.LogReprimands) && reprimand.IsIncluded(config.LogReprimandStatus);
+
     public static Color GetColor(this Reprimand reprimand)
     {
         if (reprimand.Status is not ReprimandStatus.Added)
@@ -230,15 +233,6 @@ public static class ReprimandExtensions
 
     public static uint WarningCount(this GuildUserEntity user, bool countHidden = true)
         => (uint) user.Reprimands<Warning>(countHidden).Sum(w => w.Count);
-
-    public static async ValueTask<bool> IsIncludedAsync(this Reprimand reprimand, ModerationLogConfig config, DbContext db, CancellationToken cancellationToken)
-    {
-        var trigger = await reprimand.GetTriggerAsync<ReprimandTrigger>(db, cancellationToken);
-        var verbose = config.Options.HasFlag(ModerationLogConfig.ModerationLogOptions.Verbose);
-        return reprimand.IsIncluded(config.LogReprimands)
-            && reprimand.IsIncluded(config.LogReprimandStatus)
-            && (verbose || trigger?.Source is not TriggerSource.Warning or TriggerSource.Notice);
-    }
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
