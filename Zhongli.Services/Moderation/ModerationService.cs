@@ -44,7 +44,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         if (details.Trigger is Censor censor)
         {
-            if (!censor.Silent) await message.DeleteAsync();
+            if (!censor.Silent) _ = message.DeleteAsync();
 
             var triggerCount = await censored.CountAsync(censor, _db, false, cancellationToken);
             if (censor.IsTriggered(triggerCount))
