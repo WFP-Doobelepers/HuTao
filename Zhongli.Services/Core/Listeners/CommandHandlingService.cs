@@ -8,13 +8,11 @@ using Discord.Commands;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Serilog;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Core.TypeReaders;
-using Zhongli.Services.Utilities;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig;
 
 namespace Zhongli.Services.Core.Listeners;
@@ -39,8 +37,6 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _discord      = discord;
         _log          = log;
         _services     = services;
-
-        _commands.CommandExecuted += CommandExecutedAsync;
     }
 
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -70,6 +66,8 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
     public async Task InitializeAsync()
     {
+        _commands.CommandExecuted += CommandExecutedAsync;
+
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
 
         _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
@@ -108,17 +106,10 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
     {
         var error = $"{result.Error}: {result.ErrorReason}";
 
-        if (string.Equals(result.ErrorReason, "UnknownCommand", StringComparison.OrdinalIgnoreCase))
-            Log.Warning("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
-        else
-            Log.Error("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
-
-        if (result.Error == CommandError.Exception)
+        if (result.Error is not CommandError.UnknownCommand)
         {
-            await context.Channel.SendMessageAsync(
-                $"Error: {FormatUtilities.SanitizeEveryone(result.ErrorReason)}");
-        }
-        else
+            _log.LogError("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
             await _errorHandler.AssociateError(context.Message, error);
+        }
     }
 }

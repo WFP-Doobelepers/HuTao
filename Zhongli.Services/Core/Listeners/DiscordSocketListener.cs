@@ -56,6 +56,7 @@ public class DiscordSocketListener
         DiscordSocketClient.ChannelUpdated        += OnChannelUpdatedAsync;
         DiscordSocketClient.GuildAvailable        += OnGuildAvailableAsync;
         DiscordSocketClient.GuildMemberUpdated    += OnGuildMemberUpdatedAsync;
+        DiscordSocketClient.InteractionCreated    += OnInteractionCreatedAsync;
         DiscordSocketClient.JoinedGuild           += OnJoinedGuildAsync;
         DiscordSocketClient.MessageDeleted        += OnMessageDeletedAsync;
         DiscordSocketClient.MessagesBulkDeleted   += OnMessagesBulkDeletedAsync;
@@ -82,6 +83,7 @@ public class DiscordSocketListener
         DiscordSocketClient.ChannelUpdated        -= OnChannelUpdatedAsync;
         DiscordSocketClient.GuildAvailable        -= OnGuildAvailableAsync;
         DiscordSocketClient.GuildMemberUpdated    -= OnGuildMemberUpdatedAsync;
+        DiscordSocketClient.InteractionCreated    -= OnInteractionCreatedAsync;
         DiscordSocketClient.JoinedGuild           -= OnJoinedGuildAsync;
         DiscordSocketClient.MessageDeleted        -= OnMessageDeletedAsync;
         DiscordSocketClient.MessagesBulkDeleted   -= OnMessagesBulkDeletedAsync;
@@ -113,6 +115,8 @@ public class DiscordSocketListener
     private async Task OnGuildAvailableAsync(SocketGuild guild) { await Mediator.Publish(new GuildAvailableNotification(guild), _cancellationToken); }
 
     private async Task OnGuildMemberUpdatedAsync(Cacheable<SocketGuildUser, ulong> oldMember, SocketGuildUser newMember) { await Mediator.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken); }
+
+    private async Task OnInteractionCreatedAsync(SocketInteraction interaction) { await Mediator.Publish(new InteractionCreatedNotification(interaction), _cancellationToken); }
 
     private async Task OnJoinedGuildAsync(SocketGuild guild) { await Mediator.Publish(new JoinedGuildNotification(guild), _cancellationToken); }
 

@@ -8,6 +8,7 @@ using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
@@ -34,7 +35,13 @@ public class AuthorizationService
         return guildEntity;
     }
 
-    public async ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
+    public ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
+        CancellationToken cancellationToken = default) => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+
+    public ValueTask<bool> IsAuthorizedAsync(IInteractionContext context, AuthorizationScope scope,
+        CancellationToken cancellationToken = default) => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+
+    public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
     {
         if (context.User.Id == ZhongliConfig.Configuration.Owner)

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Fergun.Interactive;
 using Hangfire;
@@ -53,6 +54,8 @@ public class Bot
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()
             .AddSingleton<InteractiveService>()
+            .AddSingleton<InteractionService>()
+            .AddSingleton<InteractionHandlingService>()
             .AddSingleton(new InteractiveConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
             .AddSingleton<DiscordSocketListener>()
             .AddScoped<AuthorizationService>()
@@ -161,21 +164,22 @@ public class Bot
             .UseRecommendedSerializerSettings();
 
         await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
-        var commands = services.GetRequiredService<CommandService>();
+        await services.GetRequiredService<InteractionHandlingService>().InitializeAsync();
 
+        var commands = services.GetRequiredService<CommandService>();
         var client = services.GetRequiredService<DiscordSocketClient>();
+        var listener = services.GetRequiredService<DiscordSocketListener>();
 
         _reconnectCts  = new CancellationTokenSource();
         _mediatorToken = new CancellationTokenSource();
 
-        await services.GetRequiredService<DiscordSocketListener>()
-            .StartAsync(_mediatorToken.Token);
+        await listener.StartAsync(_mediatorToken.Token);
 
         client.Disconnected += _ => ClientOnDisconnected(client);
         client.Connected    += ClientOnConnected;
 
-        client.Log   += LogAsync;
         commands.Log += LogAsync;
+        client.Log   += LogAsync;
 
         await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
         await client.StartAsync();
