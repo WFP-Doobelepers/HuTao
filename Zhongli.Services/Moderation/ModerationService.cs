@@ -386,9 +386,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         var result = new ReprimandResult(reprimand, details.Result);
         var secondary = details with { Result = result };
-        var trigger = await TryGetTriggerAsync(reprimand, cancellationToken);
 
-        return trigger is not null
+        var trigger = await TryGetTriggerAsync(reprimand, cancellationToken);
+        var uniqueTrigger = details.Result?.Secondary.All(r => r.Trigger?.Id != trigger?.Id) ?? true;
+
+        return trigger is not null && uniqueTrigger
             ? await TriggerReprimandAsync(trigger, result, secondary, cancellationToken)
             : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
     }
