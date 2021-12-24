@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -9,6 +10,7 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Data.Models.Moderation.Logging;
+using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Utilities;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig.ModerationLogOptions;
@@ -17,9 +19,14 @@ namespace Zhongli.Services.Moderation;
 
 public class ModerationLoggingService
 {
+    private readonly CommandErrorHandler _error;
     private readonly ZhongliContext _db;
 
-    public ModerationLoggingService(ZhongliContext db) { _db = db; }
+    public ModerationLoggingService(CommandErrorHandler error, ZhongliContext db)
+    {
+        _error = error;
+        _db    = db;
+    }
 
     public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
@@ -47,8 +54,21 @@ public class ModerationLoggingService
 
         async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
         {
+            if (channel is null) return;
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
-            _ = channel?.SendMessageAsync(embed: embed.Build());
+            try
+            {
+                await channel.SendMessageAsync(embed: embed.Build());
+            }
+            catch (Exception e)
+            {
+                if (details.Context is null) return;
+                var message = new StringBuilder()
+                    .AppendLine($"Could not publish reprimand for {channel}.")
+                    .AppendLine(e.Message);
+
+                _ = _error.AssociateError(details.Context.Message, message.ToString());
+            }
         }
 
         return result;
