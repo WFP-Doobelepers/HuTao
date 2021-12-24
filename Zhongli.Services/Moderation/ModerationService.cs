@@ -399,7 +399,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken)
     {
         var reprimand = result.Last;
-        var count = await reprimand.CountAsync(_db, false, cancellationToken);
+        var count = await reprimand.GetTotalAsync(_db, false, cancellationToken);
         var currentUser = await details.Moderator.Guild.GetCurrentUserAsync();
 
         var secondary = await ReprimandAsync(trigger.Reprimand, details with
@@ -434,7 +434,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (!TryGetTriggerSource(reprimand, out var source))
             return null;
 
-        var count = await reprimand.CountAsync(_db, false, cancellationToken);
+        var count = await reprimand.GetTotalAsync(_db, false, cancellationToken);
         var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
 
         return trigger;

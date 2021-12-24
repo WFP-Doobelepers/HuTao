@@ -90,10 +90,10 @@ public class ModerationLoggingService
         }
 
         if (options.HasFlag(ShowActive))
-            embed.AddField("Active", await GetTotalAsync(reprimand, false, cancellationToken), true);
+            embed.AddField("Active", await reprimand.GetTotalAsync(_db, false, cancellationToken), true);
 
         if (options.HasFlag(ShowTotal))
-            embed.AddField("Total", await GetTotalAsync(reprimand, true, cancellationToken), true);
+            embed.AddField("Total", await reprimand.GetTotalAsync(_db, true, cancellationToken), true);
 
         if (options.HasFlag(ShowTrigger))
         {
@@ -136,8 +136,8 @@ public class ModerationLoggingService
 
         if (options.HasFlag(ShowActive))
         {
-            var active = await GetTotalAsync(secondary, false, cancellationToken);
-            var total = await GetTotalAsync(secondary, true, cancellationToken);
+            var active = await secondary.GetTotalAsync(_db, false, cancellationToken);
+            var total = await secondary.GetTotalAsync(_db, true, cancellationToken);
 
             embed.AddField($"{secondary.GetTitle(showId)} [{active}/{total}]", message);
         }
@@ -164,25 +164,5 @@ public class ModerationLoggingService
             embed.AddField("Appeal", config.AppealMessage);
 
         return embed;
-    }
-
-    private async ValueTask<uint> GetTotalAsync(Reprimand reprimand, bool countHidden = true,
-        CancellationToken cancellationToken = default)
-    {
-        var user = await reprimand.GetUserAsync(_db, cancellationToken);
-
-        return reprimand switch
-        {
-            Ban      => user.HistoryCount<Ban>(countHidden),
-            Censored => user.HistoryCount<Censored>(countHidden),
-            Kick     => user.HistoryCount<Kick>(countHidden),
-            Mute     => user.HistoryCount<Mute>(countHidden),
-            Note     => user.HistoryCount<Note>(countHidden),
-            Notice   => user.HistoryCount<Notice>(countHidden),
-            Warning  => user.WarningCount(countHidden),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(reprimand), reprimand, "An unknown reprimand was given.")
-        };
     }
 }

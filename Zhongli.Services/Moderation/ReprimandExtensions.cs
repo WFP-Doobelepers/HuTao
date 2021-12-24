@@ -10,7 +10,6 @@ using Humanizer.Localisation;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
@@ -93,29 +92,12 @@ public static class ReprimandExtensions
     public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = true)
         where T : Reprimand
     {
-        var reprimands = user.Guild.ReprimandHistory
-            .Where(r => r.UserId == user.Id
-                && r.Status is not ReprimandStatus.Deleted)
-            .OfType<T>();
+        var reprimands = user.Guild.ReprimandHistory.OfType<T>()
+            .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted);
 
         return countHidden
             ? reprimands
             : reprimands.Where(IsCounted);
-    }
-
-    public static ReprimandType GetReprimandType(this Reprimand reprimand)
-    {
-        return reprimand switch
-        {
-            Censored => ReprimandType.Censored,
-            Ban      => ReprimandType.Ban,
-            Mute     => ReprimandType.Mute,
-            Notice   => ReprimandType.Notice,
-            Warning  => ReprimandType.Warning,
-            Kick     => ReprimandType.Kick,
-            Note     => ReprimandType.Note,
-            _        => throw new ArgumentOutOfRangeException(nameof(reprimand))
-        };
     }
 
     public static string GetMessage(this Reprimand action)
@@ -206,18 +188,6 @@ public static class ReprimandExtensions
         => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
     public static async Task<uint> CountAsync<T>(
-        this T reprimand,
-        DbContext db, bool countHidden = true,
-        CancellationToken cancellationToken = default) where T : Reprimand
-    {
-        var user = await reprimand.GetUserAsync(db, cancellationToken);
-        if (reprimand is Warning)
-            return user.WarningCount(countHidden);
-
-        return (uint) user.Reprimands<T>(countHidden).LongCount();
-    }
-
-    public static async Task<uint> CountAsync<T>(
         this T reprimand, Trigger trigger,
         DbContext db, bool countHidden = true,
         CancellationToken cancellationToken = default) where T : Reprimand
@@ -259,6 +229,26 @@ public static class ReprimandExtensions
             return await db.FindAsync<T>(new object[] { reprimand.TriggerId }, cancellationToken);
 
         return null;
+    }
+
+    public static async ValueTask<uint> GetTotalAsync(this Reprimand reprimand, DbContext db, bool countHidden = true,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await reprimand.GetUserAsync(db, cancellationToken);
+
+        return reprimand switch
+        {
+            Ban      => user.HistoryCount<Ban>(countHidden),
+            Censored => user.HistoryCount<Censored>(countHidden),
+            Kick     => user.HistoryCount<Kick>(countHidden),
+            Mute     => user.HistoryCount<Mute>(countHidden),
+            Note     => user.HistoryCount<Note>(countHidden),
+            Notice   => user.HistoryCount<Notice>(countHidden),
+            Warning  => user.WarningCount(countHidden),
+
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(reprimand), reprimand, "An unknown reprimand was given.")
+        };
     }
 
     private static bool IsCounted(Reprimand reprimand)
