@@ -203,12 +203,13 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             var user = await details.GetUserAsync();
             if (user is null) return null;
 
-            await user.KickAsync(details.Reason);
-
             var kick = _db.Add(new Kick(details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
-            return await PublishReprimandAsync(kick, details, cancellationToken);
+            var result = await PublishReprimandAsync(kick, details, cancellationToken);
+            await user.KickAsync(details.Reason);
+
+            return result;
         }
         catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
         {
