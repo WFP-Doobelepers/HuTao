@@ -420,11 +420,9 @@ public class LoggingService
 
     private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
         CancellationToken cancellationToken) where T : class, ILog
-    {
-        return await _db.Set<T>().AsQueryable()
+        => await _db.Set<T>().AsQueryable()
             .OrderByDescending(l => l.LogDate)
             .FirstOrDefaultAsync(filter, cancellationToken);
-    }
 
     private record EmbedLog(EmbedBuilder Embed, string? Content = null, string? Attachment = null);
 }

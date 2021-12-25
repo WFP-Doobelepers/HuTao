@@ -36,10 +36,12 @@ public class AuthorizationService
     }
 
     public ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
-        CancellationToken cancellationToken = default) => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+        CancellationToken cancellationToken = default)
+        => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
 
     public ValueTask<bool> IsAuthorizedAsync(IInteractionContext context, AuthorizationScope scope,
-        CancellationToken cancellationToken = default) => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+        CancellationToken cancellationToken = default)
+        => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
 
     public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)

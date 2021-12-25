@@ -10,7 +10,10 @@ public class CriteriaCriterion<T> : ICriterion<T>
 
     public CriteriaCriterion(params ICriterion<T>[] criteria) { Criteria = criteria; }
 
-    private CriteriaCriterion(IEnumerable<ICriterion<T>> criteria, params ICriterion<T>[] newCriteria) { Criteria = criteria.Concat(newCriteria); }
+    private CriteriaCriterion(IEnumerable<ICriterion<T>> criteria, params ICriterion<T>[] newCriteria)
+    {
+        Criteria = criteria.Concat(newCriteria);
+    }
 
     private IEnumerable<ICriterion<T>> Criteria { get; }
 

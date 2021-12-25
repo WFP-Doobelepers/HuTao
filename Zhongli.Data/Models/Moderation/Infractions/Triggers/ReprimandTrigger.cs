@@ -25,10 +25,7 @@ public class ReprimandTrigger : Trigger, ITriggerAction
 
 public class ReprimandTriggerConfiguration : IEntityTypeConfiguration<ReprimandTrigger>
 {
-    public void Configure(EntityTypeBuilder<ReprimandTrigger> builder)
-    {
-        builder
-            .Property(t => t.ReprimandId)
-            .HasColumnName(nameof(ITriggerAction.ReprimandId));
-    }
+    public void Configure(EntityTypeBuilder<ReprimandTrigger> builder) => builder
+        .Property(t => t.ReprimandId)
+        .HasColumnName(nameof(ITriggerAction.ReprimandId));
 }

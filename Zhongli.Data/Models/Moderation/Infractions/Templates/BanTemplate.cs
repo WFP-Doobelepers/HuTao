@@ -21,10 +21,7 @@ public class BanTemplate : ModerationTemplate, IBan
 
 public class BanTemplateConfiguration : IEntityTypeConfiguration<BanTemplate>
 {
-    public void Configure(EntityTypeBuilder<BanTemplate> builder)
-    {
-        builder
-            .Property(t => t.Length)
-            .HasColumnName(nameof(BanTemplate.Length));
-    }
+    public void Configure(EntityTypeBuilder<BanTemplate> builder) => builder
+        .Property(t => t.Length)
+        .HasColumnName(nameof(BanTemplate.Length));
 }

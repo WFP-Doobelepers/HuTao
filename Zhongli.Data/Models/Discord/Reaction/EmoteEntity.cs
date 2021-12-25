@@ -23,10 +23,7 @@ public class EmoteEntity : ReactionEntity
 
 public class EmoteReactionConfiguration : IEntityTypeConfiguration<EmoteEntity>
 {
-    public void Configure(EntityTypeBuilder<EmoteEntity> builder)
-    {
-        builder
-            .HasIndex(e => e.EmoteId)
-            .IsUnique();
-    }
+    public void Configure(EntityTypeBuilder<EmoteEntity> builder) => builder
+        .HasIndex(e => e.EmoteId)
+        .IsUnique();
 }

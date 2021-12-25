@@ -36,7 +36,7 @@ public class Bot
     private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
     private CancellationTokenSource _reconnectCts = null!;
 
-    public static async Task Main() { await new Bot().StartAsync(); }
+    public static async Task Main() => await new Bot().StartAsync();
 
     private static ServiceProvider ConfigureServices() =>
         new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
@@ -189,12 +189,9 @@ public class Bot
         await Task.Delay(Timeout.Infinite);
     }
 
-    private static void ContextOptions(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder
-            .UseLazyLoadingProxies()
-            .UseNpgsql(ZhongliConfig.Configuration.ZhongliContext);
-    }
+    private static void ContextOptions(DbContextOptionsBuilder optionsBuilder) => optionsBuilder
+        .UseLazyLoadingProxies()
+        .UseNpgsql(ZhongliConfig.Configuration.ZhongliContext);
 
     private static void FailFast()
         => Environment.Exit(1);

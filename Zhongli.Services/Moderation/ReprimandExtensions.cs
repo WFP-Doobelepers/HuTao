@@ -73,8 +73,7 @@ public static class ReprimandExtensions
         .AddReprimand<Note>(user);
 
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, InfractionType type)
-    {
-        return type switch
+        => type switch
         {
             InfractionType.Ban      => reprimands.OfType<Ban>(),
             InfractionType.Censored => reprimands.OfType<Censored>(),
@@ -87,7 +86,6 @@ public static class ReprimandExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(type), type,
                 "Invalid Infraction type.")
         };
-    }
 
     public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = true)
         where T : Reprimand
@@ -206,18 +204,14 @@ public static class ReprimandExtensions
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
-    {
-        return (reprimand.Guild ??
+        => (reprimand.Guild ??
             await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken))!;
-    }
 
     public static async ValueTask<GuildUserEntity> GetUserAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
-    {
-        return (reprimand.User ??
+        => (reprimand.User ??
             await db.FindAsync<GuildUserEntity>(new object[] { reprimand.UserId, reprimand.GuildId },
                 cancellationToken))!;
-    }
 
     public static async ValueTask<T?> GetTriggerAsync<T>(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default) where T : Trigger

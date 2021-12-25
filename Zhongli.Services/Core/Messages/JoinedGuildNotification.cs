@@ -14,7 +14,10 @@ public class JoinedGuildNotification : INotification
     /// </summary>
     /// <param name="guild">The value to use for <see cref="Guild" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="guild" />.</exception>
-    public JoinedGuildNotification(SocketGuild guild) { Guild = guild ?? throw new ArgumentNullException(nameof(guild)); }
+    public JoinedGuildNotification(SocketGuild guild)
+    {
+        Guild = guild ?? throw new ArgumentNullException(nameof(guild));
+    }
 
     /// <summary>
     ///     The guild that the bot has joined.

@@ -49,5 +49,5 @@ public class GuildUserEntity
 
 public class GuildUserEntityConfiguration : IEntityTypeConfiguration<GuildUserEntity>
 {
-    public void Configure(EntityTypeBuilder<GuildUserEntity> builder) { builder.HasKey(w => new { w.Id, w.GuildId }); }
+    public void Configure(EntityTypeBuilder<GuildUserEntity> builder) => builder.HasKey(w => new { w.Id, w.GuildId });
 }

@@ -84,5 +84,5 @@ public class MessageLog : ILog, IMessageEntity
 
 public class MessageEntityConfiguration : IEntityTypeConfiguration<MessageLog>
 {
-    public void Configure(EntityTypeBuilder<MessageLog> builder) { builder.AddUserNavigation(m => m.User); }
+    public void Configure(EntityTypeBuilder<MessageLog> builder) => builder.AddUserNavigation(m => m.User);
 }

@@ -71,19 +71,13 @@ public static class ReflectionExtensions
     private static Attribute? GetAttributeFromMember((MemberInfo Member, Type Type) o) =>
         o.Member.GetCustomAttribute(o.Type);
 
-    private static IReadOnlyCollection<PropertyInfo> GetLists(Type t)
-    {
-        return CachedProperties[t]
-            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
-            .ToArray();
-    }
+    private static IReadOnlyCollection<PropertyInfo> GetLists(Type t) => CachedProperties[t]
+        .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+        .ToArray();
 
-    private static IReadOnlyCollection<PropertyInfo> GetPrimitives(Type t)
-    {
-        return CachedProperties[t]
-            .Where(p => !p.PropertyType.IsGenericType)
-            .ToArray();
-    }
+    private static IReadOnlyCollection<PropertyInfo> GetPrimitives(Type t) => CachedProperties[t]
+        .Where(p => !p.PropertyType.IsGenericType)
+        .ToArray();
 
     private static IReadOnlyCollection<PropertyInfo> GetPublicProperties(this Type t)
         => t.GetProperties().ToArray();

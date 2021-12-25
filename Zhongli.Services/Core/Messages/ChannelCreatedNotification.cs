@@ -15,7 +15,10 @@ public class ChannelCreatedNotification : INotification
     /// </summary>
     /// <param name="channel">The value to use for <see cref="Channel" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="channel" />.</exception>
-    public ChannelCreatedNotification(SocketChannel channel) { Channel = channel ?? throw new ArgumentNullException(nameof(channel)); }
+    public ChannelCreatedNotification(SocketChannel channel)
+    {
+        Channel = channel ?? throw new ArgumentNullException(nameof(channel));
+    }
 
     /// <summary>
     ///     The channel that was created.

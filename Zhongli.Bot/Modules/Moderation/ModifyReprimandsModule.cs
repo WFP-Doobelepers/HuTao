@@ -77,7 +77,8 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     protected override bool IsMatch(Reprimand entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
 
-    protected override async Task RemoveEntityAsync(Reprimand entity) { await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync); }
+    protected override async Task RemoveEntityAsync(Reprimand entity)
+        => await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
 
     protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
     {

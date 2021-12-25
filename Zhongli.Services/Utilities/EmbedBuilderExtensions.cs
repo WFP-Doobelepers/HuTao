@@ -69,13 +69,11 @@ public static class EmbedBuilderExtensions
 
     public static IEnumerable<EmbedFieldBuilder> ToEmbedFields<T>(this IEnumerable<T> collection,
         EntityViewerDelegate<T> entityViewer)
-    {
-        return collection
+        => collection
             .Select(entityViewer.Invoke)
             .Select((e, i) => new EmbedFieldBuilder()
                 .WithName($"{i}: {e.Title}")
                 .WithValue(e.Value));
-    }
 
     private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
         string name, string iconUrl, AuthorOptions authorOptions)
@@ -86,7 +84,8 @@ public static class EmbedBuilderExtensions
         return embed.WithName(name).WithIconUrl(iconUrl);
     }
 
-    private static EmbedBuilder AddIntoFields(this EmbedBuilder builder, string title, IReadOnlyCollection<string> items)
+    private static EmbedBuilder AddIntoFields(this EmbedBuilder builder, string title,
+        IReadOnlyCollection<string> items)
     {
         if (!items.Any()) return builder;
 

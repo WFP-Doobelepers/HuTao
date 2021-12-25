@@ -87,7 +87,8 @@ public class UserTypeReader<T> : TypeReader
                     {
                         AddResult(results, user as T, user.Username == username ? 0.85f : 0.75f);
 
-                        if (user.DiscriminatorValue == discriminator && string.Equals(username, user.Username, StringComparison.OrdinalIgnoreCase))
+                        if (user.DiscriminatorValue == discriminator && string.Equals(username, user.Username,
+                            StringComparison.OrdinalIgnoreCase))
                             AddResult(results, user as T, user.Username == username ? 0.80f : 0.70f);
                     }
                 }

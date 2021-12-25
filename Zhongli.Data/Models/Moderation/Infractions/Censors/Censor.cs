@@ -38,10 +38,7 @@ public class Censor : Trigger, ICensor, ITriggerAction
 
 public class CensorConfiguration : IEntityTypeConfiguration<Censor>
 {
-    public void Configure(EntityTypeBuilder<Censor> builder)
-    {
-        builder
-            .Property(t => t.ReprimandId)
-            .HasColumnName(nameof(ITriggerAction.ReprimandId));
-    }
+    public void Configure(EntityTypeBuilder<Censor> builder) => builder
+        .Property(t => t.ReprimandId)
+        .HasColumnName(nameof(ITriggerAction.ReprimandId));
 }

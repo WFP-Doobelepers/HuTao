@@ -27,10 +27,7 @@ public abstract class Trigger : ITrigger, IModerationAction
 
 public class TriggerConfiguration : IEntityTypeConfiguration<Trigger>
 {
-    public void Configure(EntityTypeBuilder<Trigger> builder)
-    {
-        builder
-            .Property(t => t.IsActive)
-            .HasDefaultValue(true);
-    }
+    public void Configure(EntityTypeBuilder<Trigger> builder) => builder
+        .Property(t => t.IsActive)
+        .HasDefaultValue(true);
 }

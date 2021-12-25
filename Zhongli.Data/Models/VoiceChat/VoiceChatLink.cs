@@ -24,5 +24,5 @@ public class VoiceChatLink : IGuildUserEntity
 
 public class VoiceChatLinkConfiguration : IEntityTypeConfiguration<VoiceChatLink>
 {
-    public void Configure(EntityTypeBuilder<VoiceChatLink> builder) { builder.AddUserNavigation(v => v.Owner); }
+    public void Configure(EntityTypeBuilder<VoiceChatLink> builder) => builder.AddUserNavigation(v => v.Owner);
 }

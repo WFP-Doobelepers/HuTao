@@ -15,7 +15,10 @@ public class InteractionCreatedNotification : INotification
     /// </summary>
     /// <param name="interaction">The value to use for <see cref="SocketInteraction" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="interaction" />.</exception>
-    public InteractionCreatedNotification(SocketInteraction interaction) { Interaction = interaction ?? throw new ArgumentNullException(nameof(interaction)); }
+    public InteractionCreatedNotification(SocketInteraction interaction)
+    {
+        Interaction = interaction ?? throw new ArgumentNullException(nameof(interaction));
+    }
 
     /// <summary>
     ///     The <see cref="SocketInteraction" /> that was made.

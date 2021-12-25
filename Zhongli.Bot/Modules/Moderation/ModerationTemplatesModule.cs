@@ -19,7 +19,8 @@ namespace Zhongli.Bot.Modules.Moderation;
 
 [Group("template")]
 [Alias("templates")]
-[Summary("Reprimand templates are a way to quickly reprimand a user using a template. They are executed using the `template` command.")]
+[Summary(
+    "Reprimand templates are a way to quickly reprimand a user using a template. They are executed using the `template` command.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 {
@@ -63,7 +64,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [Command("note")]
-    public async Task NoteTemplateAsync(string name, AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
+    public async Task NoteTemplateAsync(string name, AuthorizationScope scope = Moderator,
+        [Remainder] string? reason = null)
     {
         var details = new TemplateDetails(name, reason, scope);
         var template = new NoteTemplate(details);
@@ -72,7 +74,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [Command("notice")]
-    public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
+    public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = Moderator,
+        [Remainder] string? reason = null)
     {
         var details = new TemplateDetails(name, reason, scope);
         var template = new NoticeTemplate(details);
@@ -81,7 +84,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [Command("warn")]
-    public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
+    public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = Moderator,
+        [Remainder] string? reason = null)
     {
         var details = new TemplateDetails(name, reason, scope);
         var template = new WarningTemplate(amount, details);

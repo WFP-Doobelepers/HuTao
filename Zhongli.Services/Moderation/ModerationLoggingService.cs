@@ -74,7 +74,8 @@ public class ModerationLoggingService
         return result;
     }
 
-    private async Task AddPrimaryAsync(EmbedBuilder embed, Reprimand reprimand, ReprimandDetails details, ModerationLogOptions options, CancellationToken cancellationToken)
+    private async Task AddPrimaryAsync(EmbedBuilder embed, Reprimand reprimand, ReprimandDetails details,
+        ModerationLogOptions options, CancellationToken cancellationToken)
     {
         AddReprimandUser(details.User);
         AddReprimandModerator(details.Moderator);
@@ -127,7 +128,8 @@ public class ModerationLoggingService
         }
     }
 
-    private async Task AddSecondaryAsync(EmbedBuilder embed, Reprimand secondary, ModerationLogOptions options, CancellationToken cancellationToken)
+    private async Task AddSecondaryAsync(EmbedBuilder embed, Reprimand secondary, ModerationLogOptions options,
+        CancellationToken cancellationToken)
     {
         embed.WithColor(secondary.GetColor());
 
@@ -145,12 +147,14 @@ public class ModerationLoggingService
             embed.AddField($"{secondary.GetTitle(showId)}", message);
     }
 
-    private async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details, ModerationLogConfig config,
+    private async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
+        ModerationLogConfig config,
         CancellationToken cancellationToken = default)
     {
         var embed = new EmbedBuilder()
             .WithCurrentTimestamp()
-            .WithTitle($"{result.Primary.Status.Humanize()} {result.Primary.GetTitle(config.Options.HasFlag(ShowReprimandId))}")
+            .WithTitle(
+                $"{result.Primary.Status.Humanize()} {result.Primary.GetTitle(config.Options.HasFlag(ShowReprimandId))}")
             .WithColor(result.Primary.GetColor());
 
         var showAppeal = result.Primary.IsIncluded(config.ShowAppealOnReprimands);

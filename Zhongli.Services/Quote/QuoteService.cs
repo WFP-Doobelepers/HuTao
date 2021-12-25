@@ -24,7 +24,10 @@ public class QuoteService : IQuoteService
 {
     private readonly IAutoRemoveMessageService _autoRemoveMessageService;
 
-    public QuoteService(IAutoRemoveMessageService autoRemoveMessageService) { _autoRemoveMessageService = autoRemoveMessageService; }
+    public QuoteService(IAutoRemoveMessageService autoRemoveMessageService)
+    {
+        _autoRemoveMessageService = autoRemoveMessageService;
+    }
 
     /// <inheritdoc />
     public EmbedBuilder? BuildQuoteEmbed(IMessage message, IUser executingUser)
@@ -63,11 +66,8 @@ public class QuoteService : IQuoteService
             async e => await callback.Invoke(e));
     }
 
-    private static bool IsQuote(IMessage message)
-    {
-        return message
-            .Embeds?
-            .SelectMany(d => d.Fields)
-            .Any(d => d.Name == "Quoted by") == true;
-    }
+    private static bool IsQuote(IMessage message) => message
+        .Embeds?
+        .SelectMany(d => d.Fields)
+        .Any(d => d.Name == "Quoted by") == true;
 }

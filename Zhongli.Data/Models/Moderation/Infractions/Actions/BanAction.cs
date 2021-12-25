@@ -19,10 +19,7 @@ public class BanAction : ReprimandAction, IBan
 
 public class BanActionConfiguration : IEntityTypeConfiguration<BanAction>
 {
-    public void Configure(EntityTypeBuilder<BanAction> builder)
-    {
-        builder
-            .Property(t => t.Length)
-            .HasColumnName(nameof(BanAction.Length));
-    }
+    public void Configure(EntityTypeBuilder<BanAction> builder) => builder
+        .Property(t => t.Length)
+        .HasColumnName(nameof(BanAction.Length));
 }

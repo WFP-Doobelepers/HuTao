@@ -15,7 +15,10 @@ public class MessageReceivedNotification : INotification
     /// </summary>
     /// <param name="message">The value to use for <see cref="Message" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="message" />.</exception>
-    public MessageReceivedNotification(SocketMessage message) { Message = message ?? throw new ArgumentNullException(nameof(message)); }
+    public MessageReceivedNotification(SocketMessage message)
+    {
+        Message = message ?? throw new ArgumentNullException(nameof(message));
+    }
 
     /// <summary>
     ///     The message that was received.

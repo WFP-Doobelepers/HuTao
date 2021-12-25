@@ -35,7 +35,8 @@ public class MessageLinkBehavior :
         _log           = log;
     }
 
-    public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken) { await OnMessageReceivedAsync(notification.Message, cancellationToken); }
+    public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
+        => await OnMessageReceivedAsync(notification.Message, cancellationToken);
 
     public async Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
     {

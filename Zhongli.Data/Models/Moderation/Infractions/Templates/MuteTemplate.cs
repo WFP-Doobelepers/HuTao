@@ -15,10 +15,7 @@ public class MuteTemplate : ModerationTemplate, IMute
 
 public class MuteTemplateConfiguration : IEntityTypeConfiguration<MuteTemplate>
 {
-    public void Configure(EntityTypeBuilder<MuteTemplate> builder)
-    {
-        builder
-            .Property(t => t.Length)
-            .HasColumnName(nameof(MuteTemplate.Length));
-    }
+    public void Configure(EntityTypeBuilder<MuteTemplate> builder) => builder
+        .Property(t => t.Length)
+        .HasColumnName(nameof(MuteTemplate.Length));
 }

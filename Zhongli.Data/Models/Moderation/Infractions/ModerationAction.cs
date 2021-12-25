@@ -50,5 +50,5 @@ public class ModerationAction : IGuildUserEntity
 
 public class ModerationActionConfiguration : IEntityTypeConfiguration<ModerationAction>
 {
-    public void Configure(EntityTypeBuilder<ModerationAction> builder) { builder.AddUserNavigation(m => m.Moderator); }
+    public void Configure(EntityTypeBuilder<ModerationAction> builder) => builder.AddUserNavigation(m => m.Moderator);
 }

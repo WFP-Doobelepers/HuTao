@@ -66,9 +66,7 @@ public sealed class HelpModule : ModuleBase
     public async Task HelpAsync(
         [Remainder] [Summary("Name of the module or command to query.")]
         string query)
-    {
-        await HelpAsync(query, HelpDataType.Command | HelpDataType.Module);
-    }
+        => await HelpAsync(query, HelpDataType.Command | HelpDataType.Module);
 
     [Command("command")]
     [Alias("commands")]
@@ -76,9 +74,7 @@ public sealed class HelpModule : ModuleBase
     public async Task HelpCommandAsync(
         [Remainder] [Summary("Name of the module to query.")]
         string query)
-    {
-        await HelpAsync(query, HelpDataType.Command);
-    }
+        => await HelpAsync(query, HelpDataType.Command);
 
     [Command("dm")]
     [Summary("Spams the user's DMs with a list of every command available.")]
@@ -97,7 +93,8 @@ public sealed class HelpModule : ModuleBase
                 try
                 {
                     var paginator = _commandHelpService.GetEmbedForModule(module);
-                    await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm, resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
+                    await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm,
+                        resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
                 }
                 catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
                 {
@@ -107,7 +104,8 @@ public sealed class HelpModule : ModuleBase
         }
 
         if (tokenSource.IsCancellationRequested)
-            await ReplyAsync($"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
+            await ReplyAsync(
+                $"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
         else
             await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
     }
@@ -118,16 +116,15 @@ public sealed class HelpModule : ModuleBase
     public async Task HelpModuleAsync(
         [Remainder] [Summary("Name of the module to query.")]
         string query)
-    {
-        await HelpAsync(query, HelpDataType.Module);
-    }
+        => await HelpAsync(query, HelpDataType.Module);
 
     private async Task HelpAsync(string query, HelpDataType type)
     {
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
         if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
-            await _interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel, resetTimeoutOnInput: true);
+            await _interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
+                resetTimeoutOnInput: true);
         else
             await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
     }

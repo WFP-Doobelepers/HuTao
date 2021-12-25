@@ -44,5 +44,5 @@ public class TemporaryRoleMember : IRoleEntity, IGuildUserEntity, IExpirable, IM
 
 public class TemporaryRoleMemberConfiguration : IEntityTypeConfiguration<TemporaryRoleMember>
 {
-    public void Configure(EntityTypeBuilder<TemporaryRoleMember> builder) { builder.AddUserNavigation(r => r.User); }
+    public void Configure(EntityTypeBuilder<TemporaryRoleMember> builder) => builder.AddUserNavigation(r => r.User);
 }

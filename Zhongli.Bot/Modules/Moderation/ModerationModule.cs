@@ -87,7 +87,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("mute")]
     [Summary("Mute a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public async Task MuteAsync([RequireHigherRole] IGuildUser user, TimeSpan? length = null, [Remainder] string? reason = null)
+    public async Task MuteAsync([RequireHigherRole] IGuildUser user, TimeSpan? length = null,
+        [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.TryMuteAsync(length, details);

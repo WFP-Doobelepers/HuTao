@@ -47,5 +47,5 @@ public class ReactionLog : ILog, IReactionEntity
 
 public class ReactionLogConfiguration : IEntityTypeConfiguration<ReactionLog>
 {
-    public void Configure(EntityTypeBuilder<ReactionLog> builder) { builder.AddUserNavigation(r => r.User); }
+    public void Configure(EntityTypeBuilder<ReactionLog> builder) => builder.AddUserNavigation(r => r.User);
 }

@@ -51,19 +51,16 @@ public class ParameterHelpData
             parameter.IsOptional || type.Nullability == Nullability.Nullable);
     }
 
-    private static IEnumerable<ParameterHelpData> FromEnum(Type type)
-    {
-        return type.GetEnumValues()
-            .OfType<Enum>()
-            .Select(e =>
-            {
-                var summary =
-                    e.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text ??
-                    e.GetAttributeOfEnum<DescriptionAttribute>()?.Description;
+    private static IEnumerable<ParameterHelpData> FromEnum(Type type) => type.GetEnumValues()
+        .OfType<Enum>()
+        .Select(e =>
+        {
+            var summary =
+                e.GetAttributeOfEnum<HelpSummaryAttribute>()?.Text ??
+                e.GetAttributeOfEnum<DescriptionAttribute>()?.Description;
 
-                return new ParameterHelpData(e.ToString(), type, summary);
-            });
-    }
+            return new ParameterHelpData(e.ToString(), type, summary);
+        });
 
     private static IEnumerable<ParameterHelpData> FromNamedArgumentInfo(Type type)
     {

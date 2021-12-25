@@ -10,32 +10,26 @@ namespace Zhongli.Services.Moderation;
 
 public static class TriggerExtensions
 {
-    public static bool IsTriggered(this ITrigger trigger, uint amount)
+    public static bool IsTriggered(this ITrigger trigger, uint amount) => trigger.Mode switch
     {
-        return trigger.Mode switch
-        {
-            TriggerMode.Exact       => amount == trigger.Amount,
-            TriggerMode.Retroactive => amount >= trigger.Amount,
-            TriggerMode.Multiple    => amount % trigger.Amount is 0 && amount is not 0,
-            _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger.Mode,
-                "Invalid trigger mode.")
-        };
-    }
+        TriggerMode.Exact       => amount == trigger.Amount,
+        TriggerMode.Retroactive => amount >= trigger.Amount,
+        TriggerMode.Multiple    => amount % trigger.Amount is 0 && amount is not 0,
+        _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger.Mode,
+            "Invalid trigger mode.")
+    };
 
-    public static string GetTitle(this ReprimandAction action)
+    public static string GetTitle(this ReprimandAction action) => action switch
     {
-        return action switch
-        {
-            BanAction     => nameof(Ban),
-            KickAction    => nameof(Kick),
-            MuteAction    => nameof(Mute),
-            NoteAction    => nameof(Note),
-            NoticeAction  => nameof(Notice),
-            WarningAction => nameof(Warning),
-            _ => throw new ArgumentOutOfRangeException(nameof(action), action,
-                "Invalid ReprimandAction.")
-        };
-    }
+        BanAction     => nameof(Ban),
+        KickAction    => nameof(Kick),
+        MuteAction    => nameof(Mute),
+        NoteAction    => nameof(Note),
+        NoticeAction  => nameof(Notice),
+        WarningAction => nameof(Warning),
+        _ => throw new ArgumentOutOfRangeException(nameof(action), action,
+            "Invalid ReprimandAction.")
+    };
 
     public static string GetTitle(this Trigger trigger)
     {

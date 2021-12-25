@@ -1,14 +1,19 @@
-[*.{appxmanifest,asax,ascx,aspx,axaml,build,cg,cginc,compute,cs,cshtml,dtd,fs,fsi,fsscript,fsx,hlsl,hlsli,hlslinc,master,ml,mli,nuspec,paml,razor,resw,resx,shader,skin,usf,ush,vb,xaml,xamlx,xoml,xsd}]
-indent_style = space
-indent_size = 4
-tab_width = 4
 
 [*]
+charset = utf-8
+end_of_line = crlf
+trim_trailing_whitespace = true
+insert_final_newline = false
+indent_style = space
+indent_size = 4
 
 # Microsoft .NET properties
 csharp_new_line_before_members_in_object_initializers = false
-csharp_preferred_modifier_order = public, private, protected, internal, new, abstract, virtual, sealed, override, static, readonly, extern, unsafe, volatile, async:suggestion
+csharp_preferred_modifier_order = public, private, protected, internal, new, static, abstract, virtual, sealed, readonly, override, extern, unsafe, volatile, async:suggestion
 csharp_space_after_cast = true
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_methods = true:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
 csharp_style_var_elsewhere = true:suggestion
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
@@ -20,7 +25,7 @@ dotnet_naming_rule.unity_serialized_field_rule.style = lower_camel_case_style
 dotnet_naming_rule.unity_serialized_field_rule.symbols = unity_serialized_field_symbols
 dotnet_naming_style.lower_camel_case_style.capitalization = camel_case
 dotnet_naming_symbols.unity_serialized_field_symbols.applicable_accessibilities = *
-dotnet_naming_symbols.unity_serialized_field_symbols.applicable_kinds =
+dotnet_naming_symbols.unity_serialized_field_symbols.applicable_kinds = 
 dotnet_naming_symbols.unity_serialized_field_symbols.resharper_applicable_kinds = unity_serialised_field
 dotnet_naming_symbols.unity_serialized_field_symbols.resharper_required_modifiers = instance
 dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary:none
@@ -36,28 +41,39 @@ dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggest
 
 # ReSharper properties
 resharper_align_multiline_binary_expressions_chain = false
+resharper_align_multiline_statement_conditions = false
+resharper_align_ternary = none
 resharper_apply_on_completion = true
 resharper_autodetect_indent_settings = true
 resharper_blank_lines_after_block_statements = 0
+resharper_blank_lines_around_function_declaration = 1
 resharper_blank_lines_around_single_line_auto_property = 1
+resharper_blank_lines_around_single_line_function_definition = 1
 resharper_blank_lines_around_single_line_local_method = 1
 resharper_blank_lines_around_single_line_property = 1
 resharper_braces_for_for = required
 resharper_braces_for_foreach = required
 resharper_braces_for_ifelse = required_for_multiline
 resharper_braces_for_while = required
+resharper_cpp_align_multiline_argument = false
+resharper_cpp_align_multiline_parameter = false
+resharper_cpp_case_block_braces = next_line
+resharper_cpp_keep_blank_lines_in_code = 1
+resharper_cpp_keep_blank_lines_in_declarations = 1
+resharper_cpp_max_line_length = 240
 resharper_csharp_blank_lines_around_single_line_invocable = 1
-resharper_csharp_empty_block_style = together_same_line
 resharper_csharp_int_align_comments = true
 resharper_csharp_keep_blank_lines_in_code = 1
 resharper_csharp_keep_blank_lines_in_declarations = 1
 resharper_csharp_stick_comment = false
+resharper_empty_block_style = together_same_line
+resharper_indent_aligned_ternary = false
+resharper_indent_switch_labels = true
 resharper_int_align_assignments = true
 resharper_int_align_property_patterns = true
 resharper_int_align_switch_expressions = true
 resharper_int_align_switch_sections = true
 resharper_local_function_body = expression_body
-resharper_method_or_operator_body = expression_body
 resharper_outdent_statement_labels = true
 resharper_place_field_attribute_on_same_line = if_owner_is_single_line
 resharper_place_simple_method_on_single_line = true
@@ -67,7 +83,6 @@ resharper_wrap_before_eq = true
 
 # ReSharper inspection severities
 resharper_arrange_local_function_body_highlighting = suggestion
-resharper_arrange_method_or_operator_body_highlighting = suggestion
 resharper_arrange_redundant_parentheses_highlighting = hint
 resharper_arrange_this_qualifier_highlighting = hint
 resharper_arrange_type_member_modifiers_highlighting = hint
@@ -91,3 +106,8 @@ resharper_use_null_propagation_when_possible_highlighting = suggestion
 resharper_web_config_module_not_resolved_highlighting = warning
 resharper_web_config_type_not_resolved_highlighting = warning
 resharper_web_config_wrong_module_highlighting = warning
+
+[*.{appxmanifest,asax,ascx,aspx,axaml,build,cg,cginc,compute,cs,cshtml,dtd,fs,fsi,fsscript,fsx,hlsl,hlsli,hlslinc,master,ml,mli,nuspec,paml,razor,resw,resx,shader,skin,usf,ush,vb,xaml,xamlx,xoml,xsd}]
+indent_style = space
+indent_size = 4
+tab_width = 4

@@ -15,7 +15,10 @@ public class GuildAvailableNotification : INotification
     /// </summary>
     /// <param name="guild">The value to use for <see cref="Guild" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="guild" />.</exception>
-    public GuildAvailableNotification(SocketGuild guild) { Guild = guild ?? throw new ArgumentNullException(nameof(guild)); }
+    public GuildAvailableNotification(SocketGuild guild)
+    {
+        Guild = guild ?? throw new ArgumentNullException(nameof(guild));
+    }
 
     /// <summary>
     ///     The guild whose data is now available.

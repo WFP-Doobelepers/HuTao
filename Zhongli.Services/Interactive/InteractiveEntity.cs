@@ -47,7 +47,8 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         await PagedViewAsync(collection, EntityViewer, title, author);
     }
 
-    protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection, EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
+    protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
+        EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
         string? title = null, EmbedAuthorBuilder? author = null)
     {
         title ??= Title;

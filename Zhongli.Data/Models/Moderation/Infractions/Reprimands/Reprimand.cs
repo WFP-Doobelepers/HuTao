@@ -46,5 +46,5 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
 
 public class ReprimandConfiguration : IEntityTypeConfiguration<Reprimand>
 {
-    public void Configure(EntityTypeBuilder<Reprimand> builder) { builder.AddUserNavigation(r => r.User); }
+    public void Configure(EntityTypeBuilder<Reprimand> builder) => builder.AddUserNavigation(r => r.User);
 }

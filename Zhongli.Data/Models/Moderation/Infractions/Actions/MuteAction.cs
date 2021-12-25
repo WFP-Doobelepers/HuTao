@@ -13,10 +13,7 @@ public class MuteAction : ReprimandAction, IMute
 
 public class MuteActionConfiguration : IEntityTypeConfiguration<MuteAction>
 {
-    public void Configure(EntityTypeBuilder<MuteAction> builder)
-    {
-        builder
-            .Property(t => t.Length)
-            .HasColumnName(nameof(MuteAction.Length));
-    }
+    public void Configure(EntityTypeBuilder<MuteAction> builder) => builder
+        .Property(t => t.Length)
+        .HasColumnName(nameof(MuteAction.Length));
 }

@@ -35,11 +35,13 @@ public class CommandErrorHandler :
         _memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>());
 
     public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
-        => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(), notification.Reaction);
+        => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(),
+            notification.Reaction);
 
     public async Task Handle(ReactionRemovedNotification notification,
         CancellationToken cancellationToken)
-        => await ReactionRemoved(notification.Message, await notification.Channel.GetOrDownloadAsync(), notification.Reaction);
+        => await ReactionRemoved(notification.Message, await notification.Channel.GetOrDownloadAsync(),
+            notification.Reaction);
 
     /// <summary>
     ///     Associates a user message with an error

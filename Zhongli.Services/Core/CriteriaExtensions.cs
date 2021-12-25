@@ -14,17 +14,14 @@ public static class CriteriaExtensions
     public static bool Judge(this Criterion rule, ICommandContext context, IGuildUser user)
         => Judge(rule, (ITextChannel) context.Channel, user);
 
-    public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user)
+    public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user) => rule switch
     {
-        return rule switch
-        {
-            UserCriterion auth       => auth.Judge(user),
-            RoleCriterion auth       => auth.Judge(user),
-            PermissionCriterion auth => auth.Judge(user),
-            ChannelCriterion auth    => auth.Judge(channel),
-            _                        => false
-        };
-    }
+        UserCriterion auth       => auth.Judge(user),
+        RoleCriterion auth       => auth.Judge(user),
+        PermissionCriterion auth => auth.Judge(user),
+        ChannelCriterion auth    => auth.Judge(channel),
+        _                        => false
+    };
 
     public static ICollection<Criterion> AddCriteria(this ICollection<Criterion> collection,
         ICriteriaOptions options)
@@ -45,18 +42,15 @@ public static class CriteriaExtensions
     public static ICollection<Criterion> ToCriteria(this ICriteriaOptions options)
         => new List<Criterion>().AddCriteria(options);
 
-    public static Type GetCriterionType(this Criterion criterion)
+    public static Type GetCriterionType(this Criterion criterion) => criterion switch
     {
-        return criterion switch
-        {
-            UserCriterion       => typeof(UserCriterion),
-            RoleCriterion       => typeof(RoleCriterion),
-            PermissionCriterion => typeof(PermissionCriterion),
-            ChannelCriterion    => typeof(ChannelCriterion),
-            _ => throw new ArgumentOutOfRangeException(nameof(criterion), criterion,
-                "Unknown kind of Criterion.")
-        };
-    }
+        UserCriterion       => typeof(UserCriterion),
+        RoleCriterion       => typeof(RoleCriterion),
+        PermissionCriterion => typeof(PermissionCriterion),
+        ChannelCriterion    => typeof(ChannelCriterion),
+        _ => throw new ArgumentOutOfRangeException(nameof(criterion), criterion,
+            "Unknown kind of Criterion.")
+    };
 
     private static bool Judge(this IUserEntity auth, IGuildUser user)
         => auth.UserId == user.Id;

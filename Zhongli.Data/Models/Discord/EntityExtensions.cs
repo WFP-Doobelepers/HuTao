@@ -26,9 +26,7 @@ public static class EntityExtensions
     public static void AddUserNavigation<T>(
         this EntityTypeBuilder<T> builder,
         Expression<Func<T, GuildUserEntity?>> navigationExpression) where T : class, IGuildUserEntity
-    {
-        builder
+        => builder
             .HasOne(navigationExpression).WithMany()
             .HasForeignKey(r => new { r.UserId, r.GuildId });
-    }
 }

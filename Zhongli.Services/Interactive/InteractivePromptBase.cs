@@ -32,7 +32,8 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
         if (promptOptions?.Criterion is null)
             response = await Interactive.NextMessageAsync(timeout: timeout);
         else
-            response = await Interactive.NextMessageAsync(timeout: timeout, filter: promptOptions.Criterion.AsFunc(Context));
+            response = await Interactive.NextMessageAsync(timeout: timeout,
+                filter: promptOptions.Criterion.AsFunc(Context));
 
         _ = response.Value?.DeleteAsync();
 

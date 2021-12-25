@@ -36,7 +36,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractiveService interactive, ZhongliContext db) : base(error,
+    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractiveService interactive,
+        ZhongliContext db) : base(error,
         db)
     {
         _auth        = auth;

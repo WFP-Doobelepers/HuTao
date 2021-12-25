@@ -82,5 +82,6 @@ public class ZhongliContext : DbContext
 
     public DbSet<WarningTemplate> WarningTemplates { get; init; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) { modelBuilder.ApplyConfigurationsFromAssembly(typeof(ZhongliContext).Assembly); }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+        => modelBuilder.ApplyConfigurationsFromAssembly(typeof(ZhongliContext).Assembly);
 }

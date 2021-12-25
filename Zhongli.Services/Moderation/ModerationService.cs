@@ -302,14 +302,12 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
     protected override async Task OnExpiredEntity(ExpirableReprimand reprimand,
         CancellationToken cancellationToken)
-    {
-        await (reprimand switch
+        => await (reprimand switch
         {
             Ban ban   => ExpireBanAsync(ban, cancellationToken),
             Mute mute => ExpireMuteAsync(mute, cancellationToken),
             _         => ExpireReprimandAsync(reprimand, cancellationToken)
         });
-    }
 
     private static bool TryGetTriggerSource(Reprimand reprimand, out TriggerSource? source)
     {
@@ -336,7 +334,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             await user.ModifyAsync(u => u.Mute = false);
     }
 
-    private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken, ReprimandDetails? details = null)
+    private async Task ExpireBanAsync(ExpirableReprimand ban, CancellationToken cancellationToken,
+        ReprimandDetails? details = null)
     {
         await ExpireReprimandAsync(ban, cancellationToken, details);
 
@@ -344,7 +343,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _ = guild.RemoveBanAsync(ban.UserId);
     }
 
-    private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken, ReprimandDetails? details = null)
+    private async Task ExpireMuteAsync(ExpirableReprimand mute, CancellationToken cancellationToken,
+        ReprimandDetails? details = null)
     {
         await ExpireReprimandAsync(mute, cancellationToken, details);
 
@@ -354,7 +354,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _ = EndMuteAsync(user);
     }
 
-    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken, ReprimandDetails? details = null)
+    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, CancellationToken cancellationToken,
+        ReprimandDetails? details = null)
     {
         if (details is null)
         {
@@ -408,7 +409,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
     }
 
-    private async Task<ReprimandResult> TriggerReprimandAsync(ReprimandTrigger trigger, ReprimandResult result, ReprimandDetails details,
+    private async Task<ReprimandResult> TriggerReprimandAsync(ReprimandTrigger trigger, ReprimandResult result,
+        ReprimandDetails details,
         CancellationToken cancellationToken)
     {
         var reprimand = result.Last;
