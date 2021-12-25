@@ -9,6 +9,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive.Paginator;
@@ -21,21 +22,20 @@ namespace Zhongli.Bot.Modules.Moderation;
 [Summary("Guild moderation commands.")]
 public class ModerationModule : ModuleBase<SocketCommandContext>
 {
+    private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
     private readonly InteractiveService _interactive;
-    private readonly ModerationLoggingService _logging;
     private readonly ModerationService _moderation;
     private readonly ZhongliContext _db;
 
-    public ModerationModule(CommandErrorHandler error,
+    public ModerationModule(AuthorizationService auth, CommandErrorHandler error,
         InteractiveService interactive,
-        ModerationLoggingService logging,
         ModerationService moderation,
         ZhongliContext db)
     {
+        _auth        = auth;
         _error       = error;
         _interactive = interactive;
-        _logging     = logging;
         _moderation  = moderation;
         _db          = db;
     }
@@ -215,6 +215,34 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [RequireAuthorization(AuthorizationScope.Helper)]
     public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null)
         => SlowmodeAsync(length, channel);
+
+    [Command("template")]
+    [Alias("t")]
+    [Summary("Run a configured moderation template")]
+    public async Task TemplateAsync(string name, [RequireHigherRole] IUser user)
+    {
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var template = guild.ModerationTemplates
+            .FirstOrDefault(t => name.Equals(t.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (template is null)
+        {
+            await ReplyAsync("No template found with this name.");
+            return;
+        }
+
+        if (!await _auth.IsAuthorizedAsync(Context, template.Scope))
+        {
+            await _error.AssociateError(Context.Message, "You don't have permission to use this template.");
+            return;
+        }
+
+        var details = await GetDetailsAsync(user, template.Reason);
+        var result = await _moderation.ReprimandAsync(template, details);
+
+        if (result is null)
+            await _error.AssociateError(Context.Message, "Failed to use the template.");
+    }
 
     [Command("unban")]
     [Summary("Unban a user from the current guild.")]

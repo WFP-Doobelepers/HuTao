@@ -1,6 +1,4 @@
 ﻿using System;
-using Discord;
-using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,9 +11,6 @@ public class BanAction : ReprimandAction, IBan
         DeleteDays = deleteDays;
         Length     = length;
     }
-
-    public override string Action
-        => $"Ban {Format.Bold(Length?.Humanize() ?? "indefinitely")} and delete {Format.Bold(DeleteDays + " days")} of messages";
 
     public uint DeleteDays { get; set; }
 

@@ -4,6 +4,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Templates;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Data.Models.VoiceChat;
@@ -29,6 +30,9 @@ public class GuildEntity
 
     public virtual ICollection<MessageLog> MessageLogs { get; set; }
         = new List<MessageLog>();
+
+    public virtual ICollection<ModerationTemplate> ModerationTemplates { get; set; }
+        = new List<ModerationTemplate>();
 
     public virtual ICollection<ReactionLog> ReactionLogs { get; set; }
         = new List<ReactionLog>();

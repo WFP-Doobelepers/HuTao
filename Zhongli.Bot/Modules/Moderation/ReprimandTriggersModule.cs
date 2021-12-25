@@ -114,7 +114,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     protected override (string Title, StringBuilder Value) EntityViewer(ReprimandTrigger trigger)
     {
         var content = new StringBuilder()
-            .AppendLine($"▌Action: {trigger.Reprimand.Action}")
+            .AppendLine($"▌Action: {trigger.Reprimand}")
             .AppendLine($"▌Trigger: {trigger.GetTriggerDetails()}")
             .AppendLine($"▉ Active: {trigger.IsActive}")
             .AppendLine($"▉ Modified by: {trigger.GetModerator()}");
@@ -167,7 +167,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         var embed = new EmbedBuilder()
             .WithTitle("Trigger added")
             .WithColor(Color.Green)
-            .AddField("Action", trigger.Reprimand.Action)
+            .AddField("Action", trigger.Reprimand.ToString)
             .AddField("Trigger", trigger.GetTriggerDetails())
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 

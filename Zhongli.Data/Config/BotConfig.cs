@@ -12,7 +12,7 @@ public class BotConfig
 
     public string ZhongliContext { get; init; }
 
-    public ulong Owner { get; init; }
-
     public ulong Guild { get; init; }
+
+    public ulong Owner { get; init; }
 }

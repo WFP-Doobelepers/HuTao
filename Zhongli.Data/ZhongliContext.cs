@@ -6,6 +6,7 @@ using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Infractions.Templates;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Data.Models.TimeTracking;
 
@@ -18,6 +19,8 @@ public class ZhongliContext : DbContext
     public DbSet<Ban> BanHistory { get; init; }
 
     public DbSet<BanAction> BanActions { get; init; }
+
+    public DbSet<BanTemplate> BanTemplates { get; init; }
 
     public DbSet<Censor> Censors { get; init; }
 
@@ -39,19 +42,27 @@ public class ZhongliContext : DbContext
 
     public DbSet<KickAction> KickActions { get; init; }
 
+    public DbSet<KickTemplate> KickTemplates { get; init; }
+
     public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; }
 
     public DbSet<Mute> MuteHistory { get; init; }
 
     public DbSet<MuteAction> MuteActions { get; init; }
 
+    public DbSet<MuteTemplate> MuteTemplates { get; init; }
+
     public DbSet<Note> NoteHistory { get; init; }
 
     public DbSet<NoteAction> NoteActions { get; init; }
 
+    public DbSet<NoteTemplate> NoteTemplates { get; init; }
+
     public DbSet<Notice> NoticeHistory { get; init; }
 
     public DbSet<NoticeAction> NoticeActions { get; init; }
+
+    public DbSet<NoticeTemplate> NoticeTemplates { get; init; }
 
     public DbSet<PermissionCriterion> PermissionCriteria { get; init; }
 
@@ -68,6 +79,8 @@ public class ZhongliContext : DbContext
     public DbSet<Warning> WarningHistory { get; init; }
 
     public DbSet<WarningAction> WarningActions { get; init; }
+
+    public DbSet<WarningTemplate> WarningTemplates { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) { modelBuilder.ApplyConfigurationsFromAssembly(typeof(ZhongliContext).Assembly); }
 }

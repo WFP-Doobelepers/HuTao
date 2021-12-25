@@ -1,6 +1,11 @@
+using Discord;
+using Humanizer;
+
 namespace Zhongli.Data.Models.Moderation.Infractions;
 
-public interface IBan : ILength
+public interface IBan : IAction, ILength
 {
     uint DeleteDays { get; set; }
+
+    string IAction.Action => $"Ban {Format.Bold(Length?.Humanize() ?? "indefinitely")} and delete {Format.Bold(DeleteDays + " days")} of messages";
 }
