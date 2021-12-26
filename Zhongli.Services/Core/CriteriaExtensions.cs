@@ -2,16 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
-using Discord.Commands;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Services.Interactive;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Services.Core;
 
 public static class CriteriaExtensions
 {
-    public static bool Judge(this Criterion rule, ICommandContext context, IGuildUser user)
+    public static bool Judge(this Criterion rule, Context context, IGuildUser user)
         => Judge(rule, (ITextChannel) context.Channel, user);
 
     public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user) => rule switch

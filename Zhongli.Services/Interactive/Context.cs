@@ -1,11 +1,13 @@
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
+using Discord.WebSocket;
 
 namespace Zhongli.Services.Interactive;
 
-public class Context : ICommandContext, IInteractionContext
+public abstract class Context
 {
-    private Context(IDiscordClient client, IGuild guild, IMessageChannel channel, IUser user)
+    protected Context(IDiscordClient client, IGuild guild, IMessageChannel channel, IUser user)
     {
         Client  = client;
         Guild   = guild;
@@ -13,27 +15,33 @@ public class Context : ICommandContext, IInteractionContext
         User    = user;
     }
 
-    public Context(ICommandContext context)
-        : this(context.Client, context.Guild, context.Channel, context.User)
+    public IDiscordClient Client { get; }
+
+    public IGuild Guild { get; }
+
+    public IMessageChannel Channel { get; }
+
+    public IUser User { get; }
+}
+
+public class CommandContext : Context
+{
+    public CommandContext(ICommandContext context)
+        : base(context.Client, context.Guild, context.Channel, context.User)
     {
         Message = context.Message;
     }
 
-    public Context(IInteractionContext context)
-        : this(context.Client, context.Guild, context.Channel, context.User)
+    public IUserMessage Message { get; }
+}
+
+public class InteractionContext : Context
+{
+    public InteractionContext(SocketInteractionContext context)
+        : base(context.Client, context.Guild, context.Channel, context.User)
     {
         Interaction = context.Interaction;
     }
 
-    public IDiscordClient Client { get; set; }
-
-    public IGuild Guild { get; set; }
-
-    public IMessageChannel Channel { get; set; }
-
-    public IUser User { get; set; }
-
-    public IUserMessage? Message { get; set; }
-
-    public IDiscordInteraction? Interaction { get; set; }
+    public SocketInteraction Interaction { get; }
 }

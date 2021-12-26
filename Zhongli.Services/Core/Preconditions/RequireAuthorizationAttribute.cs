@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data.Models.Authorization;
+using CommandContext = Zhongli.Services.Interactive.CommandContext;
 
 namespace Zhongli.Services.Core.Preconditions;
 
@@ -16,7 +17,7 @@ public class RequireAuthorizationAttribute : PreconditionAttribute
         CommandInfo command, IServiceProvider services)
     {
         var auth = services.GetRequiredService<AuthorizationService>();
-        var isAuthorized = await auth.IsAuthorizedAsync(context, _scopes);
+        var isAuthorized = await auth.IsAuthorizedAsync(new CommandContext(context), _scopes);
 
         return isAuthorized
             ? PreconditionResult.FromSuccess()

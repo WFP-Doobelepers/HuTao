@@ -65,27 +65,24 @@ public static class ReprimandExtensions
         };
     }
 
-    public static EmbedBuilder AddReprimands(this EmbedBuilder embed, GuildUserEntity user) => embed
-        .AddField("Warnings", $"{user.WarningCount(false)}/{user.WarningCount()}", true)
-        .AddReprimand<Notice>(user)
-        .AddReprimand<Ban>(user)
-        .AddReprimand<Kick>(user)
-        .AddReprimand<Note>(user);
+    public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)
+    {
+        if (types is LogReprimandType.All or LogReprimandType.None) return reprimands;
 
-    public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, InfractionType type)
-        => type switch
-        {
-            InfractionType.Ban      => reprimands.OfType<Ban>(),
-            InfractionType.Censored => reprimands.OfType<Censored>(),
-            InfractionType.Kick     => reprimands.OfType<Kick>(),
-            InfractionType.Mute     => reprimands.OfType<Mute>(),
-            InfractionType.Note     => reprimands.OfType<Note>(),
-            InfractionType.Notice   => reprimands.OfType<Notice>(),
-            InfractionType.Warning  => reprimands.OfType<Warning>(),
-            InfractionType.All      => reprimands,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type,
-                "Invalid Infraction type.")
-        };
+        return Enum.GetValues<LogReprimandType>()
+            .Where(t => types.HasFlag(t))
+            .SelectMany(t => t switch
+            {
+                LogReprimandType.Ban      => reprimands.OfType<Ban>(),
+                LogReprimandType.Censored => reprimands.OfType<Censored>(),
+                LogReprimandType.Kick     => reprimands.OfType<Kick>(),
+                LogReprimandType.Mute     => reprimands.OfType<Mute>(),
+                LogReprimandType.Note     => reprimands.OfType<Note>(),
+                LogReprimandType.Notice   => reprimands.OfType<Notice>(),
+                LogReprimandType.Warning  => reprimands.OfType<Warning>(),
+                _                         => Enumerable.Empty<Reprimand>()
+            });
+    }
 
     public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = true)
         where T : Reprimand
@@ -185,6 +182,26 @@ public static class ReprimandExtensions
         CancellationToken cancellationToken)
         => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
+    public static async Task<T?> GetActive<T>(this DbContext db, ReprimandDetails details,
+        CancellationToken cancellationToken = default) where T : ExpirableReprimand
+    {
+        var entities = await db.Set<T>()
+            .Where(m => m.UserId == details.User.Id && m.GuildId == details.Guild.Id)
+            .ToListAsync(cancellationToken);
+
+        return entities.FirstOrDefault(m => m.IsActive());
+    }
+
+    public static async Task<T?> GetActive<T>(this DbContext db, IGuildUser user,
+        CancellationToken cancellationToken = default) where T : ExpirableReprimand
+    {
+        var entities = await db.Set<T>()
+            .Where(m => m.UserId == user.Id && m.GuildId == user.Id)
+            .ToListAsync(cancellationToken);
+
+        return entities.FirstOrDefault(m => m.IsActive());
+    }
+
     public static async Task<uint> CountAsync<T>(
         this T reprimand, Trigger trigger,
         DbContext db, bool countHidden = true,
@@ -265,10 +282,6 @@ public static class ReprimandExtensions
                 nameof(reprimand), reprimand, "This reprimand type cannot be logged.")
         };
     }
-
-    private static EmbedBuilder AddReprimand<T>(this EmbedBuilder embed, GuildUserEntity user)
-        where T : Reprimand => embed.AddField(typeof(T).Name.Pluralize(),
-        $"{user.HistoryCount<T>(false)}/{user.HistoryCount<T>()}", true);
 
     private static string GetExpirationTime(this IExpirable expirable)
     {

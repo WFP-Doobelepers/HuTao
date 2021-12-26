@@ -1,11 +1,12 @@
 using System;
+using Discord.Interactions;
 
 namespace Zhongli.Data.Models.Moderation.Logging;
 
 [Flags]
 public enum LogReprimandType
 {
-    None = 0,
+    [Hide] None = 0,
     Ban = 1 << 0,
     Censored = 1 << 1,
     Kick = 1 << 2,

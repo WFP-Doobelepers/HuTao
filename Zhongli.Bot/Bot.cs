@@ -62,6 +62,7 @@ public class Bot
             .AddScoped<ModerationService>()
             .AddScoped<ModerationLoggingService>()
             .AddScoped<LoggingService>()
+            .AddScoped<UserService>()
             .AddScoped<GenshinTimeTrackingService>()
             .AddSingleton<IQuoteService, QuoteService>()
             .AddExpirableServices()

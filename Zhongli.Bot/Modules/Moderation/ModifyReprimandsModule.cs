@@ -8,6 +8,7 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
@@ -65,7 +66,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Summary("Views the entire reprimand history of the server.")]
     protected async Task ViewEntityAsync(
         [Summary("Leave empty to show everything.")]
-        InfractionType type = InfractionType.All)
+        LogReprimandType type = LogReprimandType.All)
     {
         var collection = await GetCollectionAsync();
         await PagedViewAsync(collection.OfType(type));

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
@@ -151,7 +150,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<Ban?> TryUnbanAsync(ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeBan = await GetActive<Ban>(details, cancellationToken);
+        var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
             await ExpireBanAsync(activeBan, ReprimandStatus.Hidden, cancellationToken, details);
         else
@@ -163,7 +162,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<Mute?> TryUnmuteAsync(ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeMute = await GetActive<Mute>(details, cancellationToken);
+        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
         if (activeMute is not null)
             await ExpireMuteAsync(activeMute, ReprimandStatus.Hidden, cancellationToken, details);
         else
@@ -187,7 +186,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeBan = await GetActive<Ban>(details, cancellationToken);
+        var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
             await ExpireReprimandAsync(activeBan, ReprimandStatus.Hidden, cancellationToken, details);
 
@@ -239,7 +238,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (user is null) return null;
 
         var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
-        var activeMute = await GetActive<Mute>(details, cancellationToken);
+        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
 
         var muteRole = guildEntity.ModerationRules.MuteRoleId;
         if (muteRole is null) return null;
@@ -456,15 +455,5 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
 
         return trigger;
-    }
-
-    private async Task<T?> GetActive<T>(ReprimandDetails details,
-        CancellationToken cancellationToken = default) where T : ExpirableReprimand
-    {
-        var entities = await _db.Set<T>()
-            .Where(m => m.UserId == details.User.Id && m.GuildId == details.Guild.Id)
-            .ToListAsync(cancellationToken);
-
-        return entities.FirstOrDefault(m => m.IsActive());
     }
 }

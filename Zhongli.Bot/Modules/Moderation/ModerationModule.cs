@@ -8,6 +8,7 @@ using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
@@ -108,7 +109,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         var history = guild.ReprimandHistory
-            .OfType(InfractionType.Mute)
+            .OfType(LogReprimandType.Mute)
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
                 or ReprimandStatus.Hidden

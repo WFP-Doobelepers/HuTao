@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
-using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Moderation.Infractions;
+using Zhongli.Services.Interactive;
 
 namespace Zhongli.Services.Core;
 
 public static class AuthorizationRuleExtensions
 {
-    public static bool Judge(this AuthorizationGroup rules, ICommandContext context, IGuildUser user) =>
+    public static bool Judge(this AuthorizationGroup rules, Context context, IGuildUser user) =>
         rules.Collection.Any(r => r.Judge(context, user));
 
     public static IEnumerable<T> Scoped<T>(

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
 using Zhongli.Data;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
@@ -10,7 +11,9 @@ using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
+using CommandContext = Zhongli.Services.Interactive.CommandContext;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
+using InteractionContext = Zhongli.Services.Interactive.InteractionContext;
 
 namespace Zhongli.Services.Core;
 
@@ -35,13 +38,13 @@ public class AuthorizationService
         return guildEntity;
     }
 
-    public ValueTask<bool> IsAuthorizedAsync(ICommandContext context, AuthorizationScope scope,
+    public ValueTask<bool> IsAuthorizedAsync(SocketCommandContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
-        => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+        => IsAuthorizedAsync(new CommandContext(context), scope, cancellationToken);
 
-    public ValueTask<bool> IsAuthorizedAsync(IInteractionContext context, AuthorizationScope scope,
+    public ValueTask<bool> IsAuthorizedAsync(SocketInteractionContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
-        => IsAuthorizedAsync(new Context(context), scope, cancellationToken);
+        => IsAuthorizedAsync(new InteractionContext(context), scope, cancellationToken);
 
     public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)

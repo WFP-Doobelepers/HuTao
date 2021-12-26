@@ -11,6 +11,7 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
+using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Interactive;
@@ -86,7 +87,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     [Summary("Shows associated reprimands of this trigger.")]
     protected async Task ViewAssociatedReprimandsAsync(string id,
         [Summary("Leave empty to show everything.")]
-        InfractionType type = InfractionType.All)
+        LogReprimandType type = LogReprimandType.All)
     {
         var trigger = await TryFindEntityAsync(id);
 
