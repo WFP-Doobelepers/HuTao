@@ -10,6 +10,7 @@ using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
@@ -28,12 +29,14 @@ namespace Zhongli.Services.Logging;
 public class LoggingService
 {
     private readonly DiscordSocketClient _client;
+    private readonly IMemoryCache _memoryCache;
     private readonly ZhongliContext _db;
 
-    public LoggingService(DiscordSocketClient client, ZhongliContext db)
+    public LoggingService(DiscordSocketClient client, IMemoryCache memoryCache, ZhongliContext db)
     {
-        _client = client;
-        _db     = db;
+        _client      = client;
+        _memoryCache = memoryCache;
+        _db          = db;
     }
 
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -48,15 +51,15 @@ public class LoggingService
 
     public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
     {
-        if (await notification.Channel.GetOrDownloadAsync() is not INestedChannel channel) return;
+        var message = await GetMessageAsync(notification.Message);
+        if (message.Channel is not INestedChannel channel) return;
 
         var reaction = notification.Reaction;
-
         var user = reaction.User.GetValueOrDefault();
+
         if (user is not IGuildUser guildUser || guildUser.IsBot) return;
         if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
 
-        var message = await notification.Message.GetOrDownloadAsync();
         var metadata = message.Reactions[reaction.Emote];
         if (metadata.ReactionCount > 1) return;
 
@@ -67,7 +70,8 @@ public class LoggingService
 
     public async Task LogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
     {
-        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
+        var message = await GetMessageAsync(notification.Message);
+        if (message.Channel is not IGuildChannel channel) return;
 
         var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
         await PublishLogAsync(log, LogType.ReactionRemoved, channel.Guild, cancellationToken);
@@ -414,6 +418,13 @@ public class LoggingService
 
         return log;
     }
+
+    private async ValueTask<IUserMessage> GetMessageAsync(Cacheable<IUserMessage, ulong> cached)
+        => await _memoryCache.GetOrCreateAsync(cached.Id, async cacheEntry =>
+        {
+            cacheEntry.SlidingExpiration = TimeSpan.FromHours(1);
+            return await cached.GetOrDownloadAsync();
+        });
 
     private ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken)
         => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
