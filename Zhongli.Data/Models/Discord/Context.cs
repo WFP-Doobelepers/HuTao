@@ -1,9 +1,8 @@
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
-using Discord.WebSocket;
 
-namespace Zhongli.Services.Interactive;
+namespace Zhongli.Data.Models.Discord;
 
 public abstract class Context
 {
@@ -41,11 +40,11 @@ public class CommandContext : Context
 
 public class InteractionContext : Context
 {
-    public InteractionContext(SocketInteractionContext context)
+    public InteractionContext(IInteractionContext context)
         : base(context.Client, context.Guild, context.Channel, context.User)
     {
         Interaction = context.Interaction;
     }
 
-    public SocketInteraction Interaction { get; }
+    public IDiscordInteraction Interaction { get; }
 }

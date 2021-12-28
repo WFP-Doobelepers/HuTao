@@ -3,7 +3,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Logging;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Moderation;
 
 namespace Zhongli.Bot.Modules;

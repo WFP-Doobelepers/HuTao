@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 
-namespace Zhongli.Services.Core.Preconditions;
+namespace Zhongli.Services.Core.Preconditions.Commands;
 
 public class RequireHigherRoleAttribute : ParameterPreconditionAttribute
 {
@@ -20,11 +20,11 @@ public class RequireHigherRoleAttribute : ParameterPreconditionAttribute
                 : PreconditionResult.FromError("User not found.");
         }
 
-        if (user.Hierarchy < target.Hierarchy)
+        if (user.Hierarchy <= target.Hierarchy)
             return PreconditionResult.FromError($"You cannot {parameter.Command.Name} this user.");
 
         var bot = await context.Guild.GetCurrentUserAsync().ConfigureAwait(false);
-        return bot?.Hierarchy < target.Hierarchy
+        return bot?.Hierarchy <= target.Hierarchy
             ? PreconditionResult.FromError("The bot's role is lower than the targeted user.")
             : PreconditionResult.FromSuccess();
     }

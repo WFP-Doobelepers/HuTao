@@ -13,7 +13,6 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core;
-using Zhongli.Services.Interactive;
 using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 using static Discord.InteractionResponseType;
@@ -82,10 +81,11 @@ public class UserService
             CommandContext command => _interactive.SendPaginatorAsync(paginator, command.Channel,
                 messageAction: Components),
 
-            InteractionContext interaction => _interactive.SendPaginatorAsync(paginator, interaction.Interaction,
-                ephemeral: true,
-                responseType: update ? UpdateMessage : ChannelMessageWithSource,
-                messageAction: Components),
+            InteractionContext { Interaction: SocketInteraction interaction }
+                => _interactive.SendPaginatorAsync(paginator, interaction,
+                    ephemeral: true,
+                    responseType: update ? UpdateMessage : ChannelMessageWithSource,
+                    messageAction: Components),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid context.")

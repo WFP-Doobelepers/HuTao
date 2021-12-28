@@ -10,7 +10,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Logging;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Utilities;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig;
 

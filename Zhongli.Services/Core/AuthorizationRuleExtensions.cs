@@ -3,8 +3,8 @@ using System.Linq;
 using Discord;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
-using Zhongli.Services.Interactive;
 
 namespace Zhongli.Services.Core;
 

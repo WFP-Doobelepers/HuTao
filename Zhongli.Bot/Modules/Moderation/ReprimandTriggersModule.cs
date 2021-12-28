@@ -13,7 +13,7 @@ using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;

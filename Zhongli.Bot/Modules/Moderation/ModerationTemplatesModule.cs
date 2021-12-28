@@ -10,7 +10,7 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Templates;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
 using static Zhongli.Data.Models.Authorization.AuthorizationScope;

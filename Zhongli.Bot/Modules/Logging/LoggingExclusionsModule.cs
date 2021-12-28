@@ -11,7 +11,7 @@ using Zhongli.Data.Models.Criteria;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;

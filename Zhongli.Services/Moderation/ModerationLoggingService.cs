@@ -38,8 +38,13 @@ public class ModerationLoggingService
         await PublishAsync(options.ModeratorLog);
         await PublishAsync(options.PublicLog);
 
-        if (reprimand.IsIncluded(options.CommandLog))
-            await PublishToChannelAsync(options.CommandLog, details.Context?.Channel);
+        if (reprimand.IsIncluded(options.CommandLog) && details.Context is not null)
+        {
+            if (details.Context is InteractionContext interaction)
+                await PublishToInteractionAsync(options.CommandLog, interaction);
+            else
+                await PublishToChannelAsync(options.CommandLog, details.Context.Channel);
+        }
 
         if (reprimand.IsIncluded(options.UserLog))
             await PublishToChannelAsync(options.UserLog, await details.User.CreateDMChannelAsync());
@@ -52,6 +57,24 @@ public class ModerationLoggingService
             await PublishToChannelAsync(config, channel);
         }
 
+        async Task PublishToInteractionAsync(ModerationLogConfig config, InteractionContext context)
+        {
+            var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
+            try
+            {
+                await context.Interaction.RespondAsync(embed: embed.Build(), ephemeral: true);
+            }
+            catch (Exception e)
+            {
+                if (details.Context is null) return;
+                var message = new StringBuilder()
+                    .AppendLine($"Could not publish reprimand for {context.User}.")
+                    .AppendLine(e.Message);
+
+                await context.Interaction.RespondAsync(message.ToString(), ephemeral: true);
+            }
+        }
+
         async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
         {
             if (channel is null) return;
@@ -62,12 +85,12 @@ public class ModerationLoggingService
             }
             catch (Exception e)
             {
-                if (details.Context is null) return;
+                if (details.Context is not CommandContext context) return;
                 var message = new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {channel}.")
                     .AppendLine(e.Message);
 
-                _ = _error.AssociateError(details.Context.Message, message.ToString());
+                _ = _error.AssociateError(context.Message, message.ToString());
             }
         }
 

@@ -7,7 +7,7 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.VoiceChat;
 using Zhongli.Services.CommandHelp;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 

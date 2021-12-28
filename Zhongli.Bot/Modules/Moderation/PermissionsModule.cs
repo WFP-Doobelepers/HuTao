@@ -15,7 +15,7 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Core.TypeReaders;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Moderation;

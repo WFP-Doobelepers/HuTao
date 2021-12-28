@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Zhongli.Data.Models.Authorization;
-using CommandContext = Zhongli.Services.Interactive.CommandContext;
+using CommandContext = Zhongli.Data.Models.Discord.CommandContext;
 
-namespace Zhongli.Services.Core.Preconditions;
+namespace Zhongli.Services.Core.Preconditions.Commands;
 
 public class RequireAuthorizationAttribute : PreconditionAttribute
 {
@@ -13,8 +13,8 @@ public class RequireAuthorizationAttribute : PreconditionAttribute
 
     public RequireAuthorizationAttribute(AuthorizationScope scopes) { _scopes |= scopes; }
 
-    public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context,
-        CommandInfo command, IServiceProvider services)
+    public override async Task<PreconditionResult> CheckPermissionsAsync(
+        ICommandContext context, CommandInfo command, IServiceProvider services)
     {
         var auth = services.GetRequiredService<AuthorizationService>();
         var isAuthorized = await auth.IsAuthorizedAsync(new CommandContext(context), _scopes);

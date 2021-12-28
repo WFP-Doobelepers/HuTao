@@ -8,11 +8,10 @@ using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
@@ -44,39 +43,37 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("ban")]
     [Summary("Ban a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Ban)]
-    public async Task BanAsync([RequireHigherRole] IGuildUser user, uint deleteDays = 0, TimeSpan? length = null,
+    public async Task BanAsync([RequireHigherRole] IUser user, uint deleteDays = 0,
+        TimeSpan? length = null,
         [Remainder] string? reason = null)
     {
-        if (user.Id == Context.User.Id)
-            await ReplyAsync("Cannot ban yourself.");
-        else
-        {
-            var details = await GetDetailsAsync(user, reason);
-            var result = await _moderation.TryBanAsync(deleteDays, length, details);
+        var details = await GetDetailsAsync(user, reason);
+        var result = await _moderation.TryBanAsync(deleteDays, length, details);
 
-            if (result is null)
-                await _error.AssociateError(Context.Message, "Failed to ban user.");
-        }
+        if (result is null)
+            await _error.AssociateError(Context.Message, "Failed to ban user.");
     }
 
     [Command("ban")]
     [HiddenFromHelp]
     [Summary("Ban a user permanently from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Ban)]
-    public Task BanAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
+    public Task BanAsync([RequireHigherRole] IUser user, [Remainder] string? reason = null)
         => BanAsync(user, 0, null, reason);
 
     [Command("ban")]
     [HiddenFromHelp]
     [Summary("Ban a user permanently from the current guild, and delete messages.")]
     [RequireAuthorization(AuthorizationScope.Ban)]
-    public Task BanAsync([RequireHigherRole] IGuildUser user, uint deleteDays = 0, [Remainder] string? reason = null)
+    public Task BanAsync([RequireHigherRole] IUser user, uint deleteDays = 0,
+        [Remainder] string? reason = null)
         => BanAsync(user, deleteDays, null, reason);
 
     [Command("kick")]
     [Summary("Kick a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Kick)]
-    public async Task KickAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
+    public async Task KickAsync([RequireHigherRole] IGuildUser user,
+        [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.TryKickAsync(details);
@@ -88,7 +85,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("mute")]
     [Summary("Mute a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public async Task MuteAsync([RequireHigherRole] IGuildUser user, TimeSpan? length = null,
+    public async Task MuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
@@ -108,8 +106,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     public async Task MuteListAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        var history = guild.ReprimandHistory
-            .OfType(LogReprimandType.Mute)
+        var history = guild.ReprimandHistory.OfType<Mute>()
+            .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
                 or ReprimandStatus.Hidden
@@ -131,7 +129,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public async Task NoteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? note = null)
+    public async Task NoteAsync([RequireHigherRole] IGuildUser user,
+        [Remainder] string? note = null)
     {
         var details = await GetDetailsAsync(user, note);
         await _moderation.NoteAsync(details);
@@ -142,7 +141,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("notice")]
     [Summary("Add a notice to a user. This counts as a minor warning.")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public async Task NoticeAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
+    public async Task NoticeAsync([RequireHigherRole] IGuildUser user,
+        [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.NoticeAsync(details);
@@ -154,7 +154,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     public async Task SayAsync(ITextChannel? channel, [Remainder] string message)
     {
         channel ??= (ITextChannel) Context.Channel;
-        await Context.Channel.DeleteMessageAsync(Context.Message.Id);
+        await Context.Message.DeleteAsync();
         await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
     }
 
@@ -162,8 +162,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [HiddenFromHelp]
     [Summary("Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Helper)]
-    public Task SayAsync([Remainder] string message)
-        => SayAsync(null, message);
+    public Task SayAsync([Remainder] string message) => SayAsync(null, message);
 
     [Command("slowmode")]
     [Summary("Set a slowmode in the channel.")]
@@ -273,7 +272,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("warn")]
     [Summary("Warn a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public async Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
+    public async Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1,
+        [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.WarnAsync(amount, details);
@@ -282,7 +282,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("warn")]
     [Summary("Warn a user from the current guild once.")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public Task WarnAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
+    public Task WarnAsync([RequireHigherRole] IGuildUser user,
+        [Remainder] string? reason = null)
         => WarnAsync(user, 1, reason);
 
     private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()

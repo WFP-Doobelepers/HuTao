@@ -9,11 +9,10 @@ using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Services.Interactive;
 using Zhongli.Services.Utilities;
-using CommandContext = Zhongli.Services.Interactive.CommandContext;
+using CommandContext = Zhongli.Data.Models.Discord.CommandContext;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
-using InteractionContext = Zhongli.Services.Interactive.InteractionContext;
+using InteractionContext = Zhongli.Data.Models.Discord.InteractionContext;
 
 namespace Zhongli.Services.Core;
 

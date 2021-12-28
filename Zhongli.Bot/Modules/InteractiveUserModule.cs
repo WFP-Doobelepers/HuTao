@@ -5,7 +5,7 @@ using Discord.Interactions;
 using Mapster.Utils;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Logging;
-using Zhongli.Services.Core.Preconditions;
+using Zhongli.Services.Core.Preconditions.Interactions;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 
