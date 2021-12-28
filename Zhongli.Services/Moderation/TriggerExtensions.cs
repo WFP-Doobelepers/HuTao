@@ -61,6 +61,6 @@ public static class TriggerExtensions
         return $"{trigger.GetTriggerMode()} {action}";
     }
 
-    private static string GetTriggerMode(this ITrigger trigger)
+    public static string GetTriggerMode(this ITrigger trigger)
         => $"{trigger.Mode} {Format.Code($"{trigger.Amount}")}";
 }

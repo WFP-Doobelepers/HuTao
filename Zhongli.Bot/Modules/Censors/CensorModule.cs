@@ -177,6 +177,7 @@ public class CensorModule : InteractiveTrigger<Censor>
             .AppendLine($"▌Pattern: {Format.Code(censor.Pattern)}")
             .AppendLine($"▌Options: {censor.Options.Humanize()}")
             .AppendLine($"▌Reprimand: {censor.Reprimand?.ToString() ?? "None"}")
+            .AppendLine($"▌Trigger: {censor.GetTriggerMode()}")
             .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
             .AppendLine($"▉ Active: {censor.IsActive}")
             .AppendLine($"▉ Modified by: {censor.GetModerator()}");
