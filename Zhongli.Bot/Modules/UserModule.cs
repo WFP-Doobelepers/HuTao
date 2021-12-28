@@ -5,8 +5,6 @@ using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Preconditions;
 using Zhongli.Services.Moderation;
-using Zhongli.Services.Utilities;
-using CommandContext = Zhongli.Services.Interactive.CommandContext;
 
 namespace Zhongli.Bot.Modules;
 
@@ -25,14 +23,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
         IUser? user = null)
     {
         user ??= Context.User;
-
-        var embed = new EmbedBuilder()
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-            .WithImageUrl(user.GetAvatarUrl(size: 2048))
-            .WithColor(Color.Green)
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-        await ReplyAsync(embed: embed.Build());
+        await _user.ReplyAvatarAsync(Context, user);
     }
 
     [Command("history")]
@@ -46,7 +37,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
         LogReprimandType type = LogReprimandType.Warning)
     {
         user ??= Context.User;
-        await _user.ReplyHistoryAsync(new CommandContext(Context), type, user, false);
+        await _user.ReplyHistoryAsync(Context, type, user, false);
     }
 
     [Command("user")]
@@ -57,6 +48,6 @@ public class UserModule : ModuleBase<SocketCommandContext>
         IUser? user = null)
     {
         user ??= Context.User;
-        await _user.ReplyUserAsync(new CommandContext(Context), user);
+        await _user.ReplyUserAsync(Context, user);
     }
 }

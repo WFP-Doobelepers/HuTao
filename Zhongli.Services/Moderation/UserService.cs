@@ -33,6 +33,31 @@ public class UserService
         _db          = db;
     }
 
+    public async Task ReplyAvatarAsync(Context context, IUser user)
+    {
+        var components = await ComponentsAsync(context, user);
+        var embed = new EmbedBuilder()
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId)
+            .WithImageUrl(user.GetAvatarUrl(size: 2048))
+            .WithColor(Color.Green)
+            .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+        await (context switch
+        {
+            CommandContext command => command.Channel.SendMessageAsync(
+                embed: embed.Build(),
+                components: components),
+
+            InteractionContext interaction => interaction.Interaction.RespondAsync(
+                embeds: new[] { embed.Build() },
+                ephemeral: true,
+                components: components),
+
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(context), context, "Invalid context.")
+        });
+    }
+
     public async Task ReplyHistoryAsync(Context context, LogReprimandType type, IUser user, bool update)
     {
         var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == context.Guild.Id);
@@ -80,27 +105,22 @@ public class UserService
 
     public async Task ReplyUserAsync(Context context, IUser user)
     {
-        var authorized = await _auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Helper);
+        var components = await ComponentsAsync(context, user);
         var embed = await GetUserAsync(context, user);
-
         await (context switch
         {
             CommandContext command => command.Channel.SendMessageAsync(
                 embed: embed.Build(),
-                components: Components()),
+                components: components),
 
             InteractionContext interaction => interaction.Interaction.RespondAsync(
                 embeds: new[] { embed.Build() },
                 ephemeral: true,
-                components: Components()),
+                components: components),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid context.")
         });
-
-        MessageComponent? Components() => authorized
-            ? new ComponentBuilder().WithSelectMenu(SelectMenu(user)).Build()
-            : null;
     }
 
     private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
@@ -204,5 +224,11 @@ public class UserService
             embed.WithFields(GetReprimands(userEntity));
 
         return embed;
+    }
+
+    private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
+    {
+        var authorized = await _auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Helper);
+        return authorized ? new ComponentBuilder().WithSelectMenu(SelectMenu(user)).Build() : null;
     }
 }

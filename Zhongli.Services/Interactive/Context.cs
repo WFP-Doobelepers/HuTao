@@ -22,6 +22,10 @@ public abstract class Context
     public IMessageChannel Channel { get; }
 
     public IUser User { get; }
+
+    public static implicit operator Context(SocketCommandContext context) => new CommandContext(context);
+
+    public static implicit operator Context(SocketInteractionContext context) => new InteractionContext(context);
 }
 
 public class CommandContext : Context
