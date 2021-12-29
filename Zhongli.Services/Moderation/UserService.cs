@@ -13,6 +13,7 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core;
+using Zhongli.Services.Image;
 using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 using static Discord.InteractionResponseType;
@@ -22,23 +23,28 @@ namespace Zhongli.Services.Moderation;
 public class UserService
 {
     private readonly AuthorizationService _auth;
+    private readonly IImageService _image;
     private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public UserService(AuthorizationService auth, InteractiveService interactive, ZhongliContext db)
+    public UserService(
+        AuthorizationService auth, IImageService image,
+        InteractiveService interactive, ZhongliContext db)
     {
         _auth        = auth;
+        _image       = image;
         _interactive = interactive;
         _db          = db;
     }
 
     public async Task ReplyAvatarAsync(Context context, IUser user)
     {
+        await context.DeferAsync(true);
         var components = await ComponentsAsync(context, user);
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-            .WithImageUrl(user.GetAvatarUrl(size: 2048))
-            .WithColor(Color.Green)
+            .WithImageUrl(user.GetDefiniteAvatarUrl(2048))
+            .WithColor(await _image.GetAvatarColor(user))
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
@@ -58,7 +64,7 @@ public class UserService
         var details = GetReprimands(userEntity);
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(CreateEmbed);
+            .Select(r => CreateEmbed(r));
 
         var pages = details.Concat(reprimands).ToPageBuilders(8, embed);
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();

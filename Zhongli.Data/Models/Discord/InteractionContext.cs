@@ -10,6 +10,9 @@ namespace Zhongli.Data.Models.Discord;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class InteractionContext : Context, IInteractionContext, IDiscordInteraction
 {
+    private bool _deferred;
+    private bool _followed;
+
     public InteractionContext(IInteractionContext context)
         : base(context.Client, context.Guild, context.Channel, context.User)
     {
@@ -22,9 +25,12 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     /// <inheritdoc />
     ulong IEntity<ulong>.Id => Interaction.Id;
 
-    /// <inheritdoc />
-    public Task DeferAsync(bool ephemeral = false, RequestOptions? options = null)
-        => Interaction.DeferAsync(ephemeral, options);
+    /// <inheritdoc cref="IDiscordInteraction.DeferAsync" />
+    public override async Task DeferAsync(bool ephemeral = false, RequestOptions? options = null)
+    {
+        _deferred = true;
+        await Interaction.DeferAsync(ephemeral, options);
+    }
 
     /// <inheritdoc />
     public Task DeleteOriginalResponseAsync(RequestOptions? options = null)
@@ -51,14 +57,17 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
             embed, options);
 
     /// <inheritdoc />
-    public Task<IUserMessage> FollowupAsync(
+    public async Task<IUserMessage> FollowupAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
         Embed? embed = null, RequestOptions? options = null)
-        => Interaction.FollowupAsync(
+    {
+        _followed = true;
+        return await Interaction.FollowupAsync(
             text, embeds, isTTS,
             ephemeral, allowedMentions, components,
             embed, options);
+    }
 
     /// <inheritdoc />
     public Task<IUserMessage> FollowupWithFilesAsync(
@@ -105,8 +114,13 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
         AllowedMentions? allowedMentions = null, MessageReference? messageReference = null,
         MessageComponent? components = null, ISticker[]? stickers = null, Embed[]? embeds = null,
         bool ephemeral = false)
-        => RespondAsync(
-            message, embeds, isTTS, ephemeral,
-            allowedMentions, components,
-            embed, options);
+        => _deferred && !_followed
+            ? FollowupAsync(
+                message, embeds, isTTS, ephemeral,
+                allowedMentions, components,
+                embed, options)
+            : RespondAsync(
+                message, embeds, isTTS, ephemeral,
+                allowedMentions, components,
+                embed, options);
 }

@@ -37,6 +37,9 @@ public abstract class Context
     /// </summary>
     public IUser User { get; }
 
+    /// <inheritdoc cref="IDiscordInteraction.DeferAsync" />
+    public virtual Task DeferAsync(bool ephemeral = false, RequestOptions? options = null) => Task.CompletedTask;
+
     /// <summary>Sends a message to the context.</summary>
     /// <param name="message">
     ///     Contents of the message; optional only if <paramref name="embed" /> is specified.
