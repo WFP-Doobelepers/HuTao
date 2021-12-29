@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using ColorThiefDotNet;
 using Discord;
 using Microsoft.Extensions.Caching.Memory;
-using Zhongli.Services.Utilities;
-using Color = Discord.Color;
+using SixLabors.ImageSharp.PixelFormats;
+using Zhongli.Services.Image.ColorQuantization;
+using static System.Drawing.Color;
+using static SixLabors.ImageSharp.Image;
 
 namespace Zhongli.Services.Image;
 
@@ -41,7 +43,6 @@ public interface IImageService
 
 public sealed class ImageService : IImageService
 {
-    private readonly ColorThief _colorThief = new();
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMemoryCache _cache;
 
@@ -54,9 +55,31 @@ public sealed class ImageService : IImageService
     /// <inheritdoc />
     public Color GetDominantColor(byte[] imageBytes)
     {
-        var quantizedColor = _colorThief.GetColor(imageBytes.ToBitmap(), 8);
+        var colorTree = new Octree();
 
-        return quantizedColor.ToDiscordColor();
+        using var img = Load<Rgba32>(imageBytes);
+        for (var x = 0; x < img.Width; x++)
+        {
+            for (var y = 0; y < img.Height; y++)
+            {
+                var pixel = img[y, x];
+
+                // Don't include transparent pixels
+                if (pixel.A <= 127) continue;
+
+                colorTree.Add(FromArgb(pixel.A, pixel.R, pixel.G, pixel.B));
+            }
+        }
+
+        for (var i = 0; i < 7; i++)
+        {
+            colorTree.Reduce();
+        }
+
+        var dominant = colorTree.GetPalette()
+            .MaxBy(x => x.Weight * x.Color.GetSaturation());
+
+        return (Color) dominant.Color;
     }
 
     /// <inheritdoc />
@@ -75,15 +98,12 @@ public sealed class ImageService : IImageService
     {
         var key = GetKey(location);
 
-        if (_cache.TryGetValue(key, out Color color)) return color;
+        if (_cache.TryGetValue(key, out Color color))
+            return color;
 
         var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
-        color = GetDominantColor(imageBytes);
-
-        _cache.Set(key, color, TimeSpan.FromDays(7));
-
-        return color;
+        return _cache.Set(key, GetDominantColor(imageBytes), TimeSpan.FromDays(7));
     }
 
-    private static object GetKey(Uri uri) => new { Target = "DominantColor", uri.AbsoluteUri };
+    private static object GetKey(Uri uri) => new { Target = nameof(GetDominantColor), uri.AbsoluteUri };
 }
