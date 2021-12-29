@@ -41,7 +41,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         if (length is null)
             await ReplyAsync("Auto-pardon of notices has been disabled.");
         else
-            await ReplyAsync($"Notices will now be pardoned after {Format.Bold(length?.Humanize())}");
+            await ReplyAsync($"Notices will now be pardoned after {Format.Bold(length.Value.Humanize())}");
     }
 
     [Command("warning expiry")]
@@ -57,7 +57,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         if (length is null)
             await ReplyAsync("Auto-pardon of warnings has been disabled.");
         else
-            await ReplyAsync($"Warnings will now be pardoned after {Format.Bold(length?.Humanize())}");
+            await ReplyAsync($"Warnings will now be pardoned after {Format.Bold(length.Value.Humanize())}");
     }
 
     [Command("replace mutes")]
@@ -86,7 +86,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         if (length is null)
             await ReplyAsync("Censor range has been disabled.");
         else
-            await ReplyAsync($"Censors will now be considered active for {Format.Bold(length?.Humanize())}");
+            await ReplyAsync($"Censors will now be considered active for {Format.Bold(length.Value.Humanize())}");
     }
 
     [Command("mute")]
@@ -110,7 +110,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             "Mention, ID, or name of the hub voice channel that the user can join to create a new voice chat.")]
         IVoiceChannel hubVoiceChannel, VoiceChatOptions? options = null)
     {
-        var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
         if (hubVoiceChannel.CategoryId is null)
             return;

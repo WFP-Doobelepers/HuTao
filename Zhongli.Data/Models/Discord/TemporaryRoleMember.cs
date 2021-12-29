@@ -23,7 +23,7 @@ public class TemporaryRoleMember : IRoleEntity, IGuildUserEntity, IExpirable, IM
 
     public Guid Id { get; set; }
 
-    public virtual GuildUserEntity User { get; set; }
+    public virtual GuildUserEntity User { get; set; } = null!;
 
     public DateTimeOffset StartedAt { get; set; }
 

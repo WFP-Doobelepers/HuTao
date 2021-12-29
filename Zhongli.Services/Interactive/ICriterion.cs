@@ -1,5 +1,5 @@
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 namespace Zhongli.Services.Interactive;
 
@@ -8,14 +8,14 @@ public interface ICriterion<in T>
     bool Judge(SocketCommandContext context, T compare);
 }
 
-public class EnsureSourceChannelCriterion : ICriterion<SocketMessage>
+public class EnsureSourceChannelCriterion : ICriterion<IMessage>
 {
-    public bool Judge(SocketCommandContext context, SocketMessage compare)
+    public bool Judge(SocketCommandContext context, IMessage compare)
         => context.Channel == compare.Channel;
 }
 
-public class EnsureSourceUserCriterion : ICriterion<SocketMessage>
+public class EnsureSourceUserCriterion : ICriterion<IMessage>
 {
-    public bool Judge(SocketCommandContext context, SocketMessage compare)
+    public bool Judge(SocketCommandContext context, IMessage compare)
         => context.User.Id == compare.Author.Id;
 }

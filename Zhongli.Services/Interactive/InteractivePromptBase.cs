@@ -32,15 +32,17 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
         if (promptOptions?.Criterion is null)
             response = await Interactive.NextMessageAsync(timeout: timeout);
         else
+        {
             response = await Interactive.NextMessageAsync(timeout: timeout,
                 filter: promptOptions.Criterion.AsFunc(Context));
+        }
 
         _ = response.Value?.DeleteAsync();
 
         if (!(promptOptions?.IsRequired ?? false) && (response.Value?.IsSkipped() ?? false))
             return (null, message);
 
-        return (response?.Value, message);
+        return (response.Value, message);
     }
 
     internal async Task<IUserMessage> ModifyOrSendMessage(string content,

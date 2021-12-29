@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Zhongli.Data;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Logging;
 
@@ -14,13 +13,8 @@ public class MessageLoggingBehavior :
     INotificationHandler<MessageUpdatedNotification>
 {
     private readonly LoggingService _logging;
-    private readonly ZhongliContext _db;
 
-    public MessageLoggingBehavior(LoggingService logging, ZhongliContext db)
-    {
-        _logging = logging;
-        _db      = db;
-    }
+    public MessageLoggingBehavior(LoggingService logging) { _logging = logging; }
 
     public Task Handle(MessageDeletedNotification notification, CancellationToken cancellationToken)
         => _logging.LogAsync(notification, cancellationToken);

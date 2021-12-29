@@ -4,7 +4,6 @@ using System.Linq;
 using Discord;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Services.Interactive;
 using GuildPermission = Zhongli.Data.Models.Discord.GuildPermission;
 
 namespace Zhongli.Services.Core;

@@ -30,7 +30,7 @@ public class TemporaryRole : IRoleEntity, IExpirable, IModerationAction
 
     public TimeSpan? Length { get; set; }
 
-    public virtual ModerationAction Action { get; set; }
+    public virtual ModerationAction? Action { get; set; } = null!;
 
     public ulong RoleId { get; set; }
 }

@@ -120,7 +120,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
             .AppendLine($"▉ Active: {trigger.IsActive}")
             .AppendLine($"▉ Modified by: {trigger.GetModerator()}");
 
-        return ($"{trigger.Reprimand.GetTitle()}: {trigger.Id}", content);
+        return ($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}", content);
     }
 
     protected override bool IsMatch(ReprimandTrigger entity, string id)
@@ -168,7 +168,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         var embed = new EmbedBuilder()
             .WithTitle("Trigger added")
             .WithColor(Color.Green)
-            .AddField("Action", trigger.Reprimand.ToString)
+            .AddField("Action", trigger.Reprimand?.ToString() ?? "None")
             .AddField("Trigger", trigger.GetTriggerDetails())
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 

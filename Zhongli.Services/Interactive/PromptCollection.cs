@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;
 
 namespace Zhongli.Services.Interactive;
 
-public partial class PromptCollection<T> : IPromptCriteria<SocketMessage> where T : notnull
+public partial class PromptCollection<T> : IPromptCriteria where T : notnull
 {
     public PromptCollection(
         InteractivePromptBase module,
@@ -15,7 +15,7 @@ public partial class PromptCollection<T> : IPromptCriteria<SocketMessage> where 
         ErrorMessage = errorMessage;
         Module       = module;
         Services     = services;
-        Criteria = new ICriterion<SocketMessage>[]
+        Criteria = new ICriterion<IMessage>[]
         {
             new EnsureSourceChannelCriterion(),
             new EnsureSourceUserCriterion()
@@ -34,7 +34,7 @@ public partial class PromptCollection<T> : IPromptCriteria<SocketMessage> where 
 
     public string? ErrorMessage { get; set; }
 
-    public ICollection<ICriterion<SocketMessage>> Criteria { get; }
+    public ICollection<ICriterion<IMessage>> Criteria { get; }
 
     public TypeReader? TypeReader { get; set; }
 }

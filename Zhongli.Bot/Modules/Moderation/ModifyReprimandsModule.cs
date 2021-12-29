@@ -23,19 +23,15 @@ namespace Zhongli.Bot.Modules.Moderation;
 public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 {
     private readonly CommandErrorHandler _error;
-    private readonly ModerationLoggingService _logging;
     private readonly ModerationService _moderation;
     private readonly ZhongliContext _db;
 
-    public ModifyReprimandsModule(
-        CommandErrorHandler error, ZhongliContext db,
-        ModerationLoggingService logging, ModerationService moderation)
+    public ModifyReprimandsModule(CommandErrorHandler error, ZhongliContext db, ModerationService moderation)
         : base(error, db)
     {
         _error = error;
         _db    = db;
 
-        _logging    = logging;
         _moderation = moderation;
     }
 

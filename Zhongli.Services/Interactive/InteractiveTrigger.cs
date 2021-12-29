@@ -12,13 +12,11 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 {
     private readonly CommandErrorHandler _error;
     private readonly ModerationService _moderation;
-    private readonly ZhongliContext _db;
 
     protected InteractiveTrigger(CommandErrorHandler error, ZhongliContext db, ModerationService moderation)
         : base(error, db)
     {
         _error      = error;
-        _db         = db;
         _moderation = moderation;
     }
 

@@ -18,7 +18,7 @@ public abstract class Trigger : ITrigger, IModerationAction
 
     public bool IsActive { get; set; }
 
-    public virtual ModerationAction Action { get; set; }
+    public virtual ModerationAction? Action { get; set; } = null!;
 
     public TriggerMode Mode { get; set; }
 

@@ -113,6 +113,6 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
 
         await PagedViewAsync(filtered, "Reply with a number to select.");
         var selected = await Interactive.NextMessageAsync(containsCriterion.AsFunc(Context));
-        return selected?.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
+        return selected.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
     }
 }

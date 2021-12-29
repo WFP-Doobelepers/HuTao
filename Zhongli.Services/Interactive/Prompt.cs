@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;
 
 namespace Zhongli.Services.Interactive;
 
-public class Prompt<T> : IPromptCriteria<SocketMessage> where T : notnull
+public class Prompt<T> : IPromptCriteria where T : notnull
 {
     public Prompt(
         T key, string question, IEnumerable<EmbedFieldBuilder>? fields, bool isRequired, int? timeout,
@@ -18,7 +17,7 @@ public class Prompt<T> : IPromptCriteria<SocketMessage> where T : notnull
         IsRequired = isRequired;
         Timeout    = timeout;
         TypeReader = typeReader;
-        Criteria   = new List<ICriterion<SocketMessage>>();
+        Criteria   = new List<ICriterion<IMessage>>();
     }
 
     public bool IsRequired { get; }
@@ -31,7 +30,7 @@ public class Prompt<T> : IPromptCriteria<SocketMessage> where T : notnull
 
     public T Key { get; }
 
-    public ICollection<ICriterion<SocketMessage>>? Criteria { get; }
+    public ICollection<ICriterion<IMessage>>? Criteria { get; }
 
     public TypeReader? TypeReader { get; set; }
 }

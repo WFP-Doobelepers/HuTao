@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -31,7 +32,6 @@ namespace Zhongli.Bot;
 
 public class Bot
 {
-    private const bool AttemptReset = true;
     private static CancellationTokenSource? _mediatorToken;
     private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
     private CancellationTokenSource _reconnectCts = null!;
@@ -76,31 +76,23 @@ public class Bot
         // Client reconnected, no need to reset
         if (client.ConnectionState == ConnectionState.Connected) return;
 
-        if (AttemptReset)
+        Log.Information("Attempting to reset the client");
+
+        var timeout = Task.Delay(ResetTimeout);
+        var connect = client.StartAsync();
+        var task = await Task.WhenAny(timeout, connect);
+
+        if (task == timeout)
         {
-            Log.Information("Attempting to reset the client");
-
-            var timeout = Task.Delay(ResetTimeout);
-            var connect = client.StartAsync();
-            var task = await Task.WhenAny(timeout, connect);
-
-            if (task == timeout)
-            {
-                Log.Fatal("Client reset timed out (task deadlocked?), killing process");
-                FailFast();
-            }
-            else if (connect.IsFaulted)
-            {
-                Log.Fatal(connect.Exception, "Client reset faulted, killing process");
-                FailFast();
-            }
-            else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
-
-            return;
+            Log.Fatal("Client reset timed out (task deadlocked?), killing process");
+            FailFast();
         }
-
-        Log.Fatal("Client did not reconnect in time, killing process");
-        FailFast();
+        else if (connect.IsFaulted)
+        {
+            Log.Fatal(connect.Exception, "Client reset faulted, killing process");
+            FailFast();
+        }
+        else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
     }
 
     private Task ClientOnConnected()
@@ -128,6 +120,7 @@ public class Bot
         return Task.CompletedTask;
     }
 
+    [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
     private static Task LogAsync(LogMessage message)
     {
         var severity = message.Severity switch

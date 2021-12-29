@@ -12,5 +12,5 @@ public class Censored : ExpirableReprimand
         Content = content;
     }
 
-    public string Content { get; set; }
+    public string Content { get; set; } = null!;
 }

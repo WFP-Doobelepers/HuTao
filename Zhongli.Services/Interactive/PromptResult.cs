@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Discord.Commands;
 
 namespace Zhongli.Services.Interactive;
@@ -36,11 +37,12 @@ public static class PromptResultExtensions
         where TKey : notnull =>
         results[key].As(selector);
 
+    [SuppressMessage("ReSharper", "ConstantConditionalAccessQualifier")]
     public static TValue GetOrDefault<TKey, TValue>(
-        this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, TValue @default = default)
+        this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, TValue @default)
         where TKey : notnull
     {
-        if (results.TryGetValue(key, out var result) && result.UserResponse is TValue)
+        if (results.TryGetValue(key, out var result) && result?.UserResponse is TValue)
             return result.As<TValue>();
 
         return @default;

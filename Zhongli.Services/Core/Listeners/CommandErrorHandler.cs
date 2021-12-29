@@ -86,17 +86,13 @@ public class CommandErrorHandler :
     private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
-        //Bugfix for NRE?
-        if (reaction?.User.Value is null) return;
-
-        //Don't trigger if the emoji is wrong, or if the user is bot
+        if (!reaction.User.IsSpecified || reaction.User.Value is null) return;
         if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;
-
         if (reaction.Emote.Name != Emoji) return;
 
-        //If there's an error reply when the reaction is removed, delete that reply,
-        //remove the cached error, remove it from the cached replies, and remove
-        //the reactions from the original message
+        // If there's an error reply when the reaction is removed, delete that reply,
+        // remove the cached error, remove it from the cached replies, and remove
+        // the reactions from the original message
         if (ErrorReplies.TryGetValue(cachedMessage.Id, out var botReplyId) == false) return;
 
         await channel.DeleteMessageAsync(botReplyId);
@@ -109,9 +105,8 @@ public class CommandErrorHandler :
         {
             var originalMessage = await cachedMessage.GetOrDownloadAsync();
 
-            //If we know what user added the reaction, remove their and our reaction
-            //Otherwise just remove ours
-
+            // f we know what user added the reaction, remove their and our reaction
+            // therwise just remove ours
             if (reaction.User.IsSpecified) await originalMessage.RemoveReactionAsync(_emote, reaction.User.Value);
 
             await originalMessage.RemoveReactionAsync(_emote, _discordSocketClient.CurrentUser);

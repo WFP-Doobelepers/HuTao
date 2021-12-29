@@ -12,7 +12,7 @@ public class VoiceChatRules
 
     public bool ShowJoinLeave { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
     public virtual ICollection<VoiceChatLink> VoiceChats { get; set; } = new List<VoiceChatLink>();
 

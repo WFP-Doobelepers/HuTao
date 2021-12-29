@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Discord;
 
 namespace Zhongli.Data.Models.Discord.Message;
@@ -7,6 +8,7 @@ public class Embed
 {
     protected Embed() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public Embed(IEmbed embed)
     {
         Type        = embed.Type;

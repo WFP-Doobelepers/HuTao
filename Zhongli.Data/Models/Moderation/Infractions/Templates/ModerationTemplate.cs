@@ -20,7 +20,7 @@ public abstract class ModerationTemplate
 
     public AuthorizationScope Scope { get; set; }
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     public string? Reason { get; set; }
 

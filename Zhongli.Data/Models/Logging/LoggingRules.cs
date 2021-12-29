@@ -9,7 +9,7 @@ public class LoggingRules
 {
     public Guid Id { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
     public virtual ICollection<Criterion> LoggingExclusions { get; set; }
         = new List<Criterion>();

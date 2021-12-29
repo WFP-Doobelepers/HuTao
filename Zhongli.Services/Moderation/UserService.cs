@@ -58,7 +58,7 @@ public class UserService
         var details = GetReprimands(userEntity);
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => CreateEmbed(user, r));
+            .Select(CreateEmbed);
 
         var pages = details.Concat(reprimands).ToPageBuilders(8, embed);
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
@@ -98,7 +98,7 @@ public class UserService
         await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
     }
 
-    private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
+    private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()
         .WithName(r.GetTitle(true))
         .WithValue(r.GetReprimandDetails().ToString());
 

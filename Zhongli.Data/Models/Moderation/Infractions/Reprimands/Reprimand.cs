@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
@@ -10,6 +11,7 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
 {
     protected Reprimand() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected Reprimand(ReprimandDetails details)
     {
         Status = ReprimandStatus.Added;

@@ -8,11 +8,11 @@ namespace Zhongli.Services.CommandHelp;
 
 public class ModuleHelpData
 {
-    public IReadOnlyCollection<CommandHelpData> Commands { get; set; }
+    public IReadOnlyCollection<CommandHelpData> Commands { get; set; } = null!;
 
-    public IReadOnlyCollection<string> HelpTags { get; set; }
+    public IReadOnlyCollection<string> HelpTags { get; set; } = null!;
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     public string? Summary { get; set; }
 

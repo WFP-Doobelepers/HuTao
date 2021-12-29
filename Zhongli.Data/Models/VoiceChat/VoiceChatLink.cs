@@ -9,9 +9,9 @@ public class VoiceChatLink : IGuildUserEntity
 {
     public Guid Id { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
-    public virtual GuildUserEntity Owner { get; set; }
+    public virtual GuildUserEntity Owner { get; set; } = null!;
 
     public ulong TextChannelId { get; set; }
 

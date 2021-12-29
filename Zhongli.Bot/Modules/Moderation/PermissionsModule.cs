@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Fergun.Interactive;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
@@ -33,17 +32,13 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 {
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
-    private readonly InteractiveService _interactive;
     private readonly ZhongliContext _db;
 
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, InteractiveService interactive,
-        ZhongliContext db) : base(error,
-        db)
+    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, ZhongliContext db) : base(error, db)
     {
-        _auth        = auth;
-        _error       = error;
-        _interactive = interactive;
-        _db          = db;
+        _auth  = auth;
+        _error = error;
+        _db    = db;
     }
 
     [Command("add")]
@@ -138,8 +133,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 
     protected override async Task RemoveEntityAsync(AuthorizationGroup censor)
     {
+        if (censor.Action is not null) _db.Remove(censor.Action);
         _db.RemoveRange(censor.Collection);
-        _db.Remove(censor.Action);
         _db.Remove(censor);
 
         await _db.SaveChangesAsync();

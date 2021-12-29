@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using Fergun.Interactive;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
@@ -25,7 +25,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
     private readonly ICommandHelpService _commandHelp;
     private readonly ZhongliContext _db;
 
-    public VoiceChatBehavior(ICommandHelpService commandHelp, InteractiveService interactive, ZhongliContext db)
+    public VoiceChatBehavior(ICommandHelpService commandHelp, ZhongliContext db)
     {
         _commandHelp = commandHelp;
         _db          = db;
@@ -33,6 +33,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
     private static ConcurrentDictionary<ulong, CancellationTokenSource> PurgeTasks { get; } = new();
 
+    [SuppressMessage("ReSharper", "ConstantConditionalAccessQualifier")]
     public async Task Handle(UserVoiceStateNotification notification, CancellationToken cancellationToken)
     {
         if (notification.User.IsBot || notification.User.IsWebhook || notification.User is not SocketGuildUser user)

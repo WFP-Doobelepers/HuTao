@@ -104,8 +104,10 @@ public sealed class HelpModule : ModuleBase
         }
 
         if (tokenSource.IsCancellationRequested)
+        {
             await ReplyAsync(
                 $"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
+        }
         else
             await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
     }
@@ -123,8 +125,10 @@ public sealed class HelpModule : ModuleBase
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
         if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
+        {
             await _interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
                 resetTimeoutOnInput: true);
+        }
         else
             await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
     }

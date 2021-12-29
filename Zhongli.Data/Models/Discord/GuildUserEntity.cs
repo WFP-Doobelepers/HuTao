@@ -33,9 +33,9 @@ public class GuildUserEntity
 
     public DateTimeOffset? JoinedAt { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
-    public string Username { get; set; }
+    public string Username { get; set; } = null!;
 
     public string? Nickname { get; set; }
 

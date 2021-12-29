@@ -169,7 +169,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Summary("Removes specified roles from everyone.")]
     public async Task RemoveRolesAsync(params SocketRole[] roles)
     {
-        var message = await ReplyAsync("Removing roles, this might take a while...");
+        await ReplyAsync("Removing roles, this might take a while...");
         foreach (var role in roles)
         {
             foreach (var member in role.Members)

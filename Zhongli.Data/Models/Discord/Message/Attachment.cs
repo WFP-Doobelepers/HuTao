@@ -35,9 +35,9 @@ public class Attachment : IAttachment, IImage
 
     public int? Width { get; set; }
 
-    public string Filename { get; set; }
+    public string Filename { get; set; } = null!;
 
-    public string ProxyUrl { get; set; }
+    public string ProxyUrl { get; set; } = null!;
 
-    public string Url { get; set; }
+    public string Url { get; set; } = null!;
 }

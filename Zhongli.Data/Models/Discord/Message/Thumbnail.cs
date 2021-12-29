@@ -21,9 +21,9 @@ public class Thumbnail : IImage
 
     public int? Width { get; set; }
 
-    public string ProxyUrl { get; set; }
+    public string ProxyUrl { get; set; } = null!;
 
-    public string Url { get; set; }
+    public string Url { get; set; } = null!;
 
     public static implicit operator Thumbnail(EmbedThumbnail thumbnail) => new(thumbnail);
 }

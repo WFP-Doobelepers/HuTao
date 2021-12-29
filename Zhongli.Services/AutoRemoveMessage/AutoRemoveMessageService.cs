@@ -32,7 +32,7 @@ public interface IAutoRemoveMessageService
     /// <summary>
     ///     Registers a removable message with the service and adds an indicator for this to the provided embed.
     /// </summary>
-    /// <param name="user">The users who can remove the message.</param>
+    /// <param name="users">The users who can remove the message.</param>
     /// <param name="embed">The embed to operate on</param>
     /// <param name="callback">
     ///     A callback that returns the <see cref="IUserMessage" /> to register as removable. The modified

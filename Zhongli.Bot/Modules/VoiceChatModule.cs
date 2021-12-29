@@ -89,7 +89,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Clean up unused Voice Chats.")]
     public async Task CleanAsync()
     {
-        var guild = await _db.Guilds.FindAsync(Context.Guild.Id);
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
         if (guild.VoiceChatRules is null)
             return;

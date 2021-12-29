@@ -145,7 +145,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
-        var result = await _moderation.NoticeAsync(details);
+        await _moderation.NoticeAsync(details);
     }
 
     [Command("say")]
@@ -276,7 +276,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason);
-        var result = await _moderation.WarnAsync(amount, details);
+        await _moderation.WarnAsync(amount, details);
     }
 
     [Command("warn")]

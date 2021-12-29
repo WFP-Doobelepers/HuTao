@@ -54,7 +54,7 @@ public class AuthorizationService
         var user = (IGuildUser) context.User;
         var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
         return rules.AuthorizationGroups.Scoped(scope)
-            .OrderBy(r => r.Action.Date)
+            .OrderBy(r => r.Action?.Date)
             .Aggregate(false, (current, rule) =>
             {
                 var passed = rule.Judge(context, user);

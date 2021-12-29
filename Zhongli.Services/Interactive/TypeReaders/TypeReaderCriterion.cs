@@ -1,10 +1,10 @@
 ﻿using System;
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 namespace Zhongli.Services.Interactive.TypeReaders;
 
-public class TypeReaderCriterion : ICriterion<SocketMessage>
+public class TypeReaderCriterion : ICriterion<IMessage>
 {
     private readonly IServiceProvider? _services;
     private readonly TypeReader _reader;
@@ -15,6 +15,6 @@ public class TypeReaderCriterion : ICriterion<SocketMessage>
         _services = services;
     }
 
-    public bool Judge(SocketCommandContext sourceContext, SocketMessage parameter)
+    public bool Judge(SocketCommandContext sourceContext, IMessage parameter)
         => _reader.ReadAsync(sourceContext, parameter.Content, _services).Result.IsSuccess;
 }

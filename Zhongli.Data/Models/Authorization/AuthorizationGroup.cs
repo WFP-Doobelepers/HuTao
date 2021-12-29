@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Moderation.Infractions;
 
@@ -9,6 +10,7 @@ public class AuthorizationGroup : IModerationAction
 {
     protected AuthorizationGroup() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public AuthorizationGroup(AuthorizationScope scope, AccessType access, ICollection<Criterion> rules)
     {
         Scope      = scope;
@@ -24,5 +26,5 @@ public class AuthorizationGroup : IModerationAction
 
     public virtual ICollection<Criterion> Collection { get; set; } = new List<Criterion>();
 
-    public virtual ModerationAction Action { get; set; }
+    public virtual ModerationAction? Action { get; set; } = null!;
 }

@@ -7,7 +7,7 @@ public class ModerationLoggingRules
 {
     public Guid Id { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
     public LogReprimandType SilentReprimands { get; set; } = LogReprimandType.None;
 

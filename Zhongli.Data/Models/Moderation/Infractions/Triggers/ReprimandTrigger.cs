@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
@@ -9,6 +10,7 @@ public class ReprimandTrigger : Trigger, ITriggerAction
 {
     protected ReprimandTrigger() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public ReprimandTrigger(ITrigger? options, TriggerSource source,
         ReprimandAction reprimand) : base(options)
     {
@@ -20,7 +22,7 @@ public class ReprimandTrigger : Trigger, ITriggerAction
 
     public TriggerSource Source { get; set; }
 
-    public virtual ReprimandAction Reprimand { get; set; }
+    public virtual ReprimandAction? Reprimand { get; set; }
 }
 
 public class ReprimandTriggerConfiguration : IEntityTypeConfiguration<ReprimandTrigger>

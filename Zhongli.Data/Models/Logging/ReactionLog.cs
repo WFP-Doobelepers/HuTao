@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -17,6 +18,7 @@ public class ReactionLog : ILog, IReactionEntity
 {
     protected ReactionLog() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public ReactionLog(GuildUserEntity user, SocketReaction reaction, ReactionEntity emote)
     {
         LogDate   = DateTimeOffset.UtcNow;
@@ -28,9 +30,9 @@ public class ReactionLog : ILog, IReactionEntity
 
     public Guid Id { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
-    public virtual GuildUserEntity User { get; set; }
+    public virtual GuildUserEntity User { get; set; } = null!;
 
     public ulong ChannelId { get; set; }
 
@@ -40,7 +42,7 @@ public class ReactionLog : ILog, IReactionEntity
 
     public ulong MessageId { get; set; }
 
-    public virtual ReactionEntity Emote { get; set; }
+    public virtual ReactionEntity Emote { get; set; } = null!;
 
     public ulong UserId { get; set; }
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.TryParse;
 using Zhongli.Services.Interactive.TypeReaders;
@@ -13,8 +12,8 @@ namespace Zhongli.Services.Interactive;
 
 public partial class PromptCollection<T> where T : notnull
 {
-    public PromptCollection<T> WithCriterion(ICriterion<SocketMessage> criterion) =>
-        this.Modify(c => c.Criteria?.Add(criterion));
+    public PromptCollection<T> WithCriterion(ICriterion<IMessage> criterion) =>
+        this.Modify(c => c.Criteria.Add(criterion));
 
     public PromptCollection<T> WithError(string error) => this.Modify(c => c.ErrorMessage = error);
 
@@ -108,7 +107,7 @@ public partial class PromptOrCollection<TOptions>
         where T : struct, Enum =>
         ThatHas(tryParse.AsTypeReader(ignoreCase));
 
-    public PromptCollection<TOptions> ThatHas(ICriterion<SocketMessage> criterion)
+    public PromptCollection<TOptions> ThatHas(ICriterion<IMessage> criterion)
     {
         Prompt.Modify(p => p.Criteria?.Add(criterion));
         return Collection;

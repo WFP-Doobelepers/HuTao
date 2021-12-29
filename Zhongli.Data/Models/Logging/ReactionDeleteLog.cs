@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ public class ReactionDeleteLog : DeleteLog, IReactionEntity
 {
     protected ReactionDeleteLog() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public ReactionDeleteLog(ReactionEntity emote, SocketReaction reaction, ActionDetails? details) : base(details)
     {
         Emote = emote;
@@ -29,7 +31,7 @@ public class ReactionDeleteLog : DeleteLog, IReactionEntity
 
     public ulong MessageId { get; set; }
 
-    public virtual ReactionEntity Emote { get; set; }
+    public virtual ReactionEntity Emote { get; set; } = null!;
 
     public ulong UserId { get; set; }
 }

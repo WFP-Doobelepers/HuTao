@@ -6,11 +6,11 @@ namespace Zhongli.Services.CommandHelp;
 
 public class CommandHelpData
 {
-    public IReadOnlyCollection<ParameterHelpData> Parameters { get; set; }
+    public IReadOnlyCollection<ParameterHelpData> Parameters { get; set; } = null!;
 
-    public IReadOnlyCollection<string> Aliases { get; set; }
+    public IReadOnlyCollection<string> Aliases { get; set; } = null!;
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     public string? Summary { get; set; }
 

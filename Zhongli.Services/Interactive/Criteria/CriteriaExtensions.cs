@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Zhongli.Services.Interactive.TryParse;
 using Zhongli.Services.Interactive.TypeReaders;
 
@@ -18,20 +18,15 @@ public static class CriteriaExtensions
     public static Func<T, bool> AsFunc<T>(this ICriterion<T> criteria, SocketCommandContext context)
         => compare => criteria.Judge(context, compare);
 
-    public static ICriterion<T> AsCriterion<T>(this TypeReader reader, IServiceProvider? services = null)
-        where T : SocketMessage =>
-        reader.AsCriterion(services);
-
-    public static IEnumerable<ICriterion<T>> GetCriteria<T>(this IPromptCriteria<T> promptCriteria)
-        where T : SocketMessage
+    public static IEnumerable<ICriterion<IMessage>> GetCriteria(this IPromptCriteria promptCriteria)
     {
-        var criteria = new List<ICriterion<T>>();
+        var criteria = new List<ICriterion<IMessage>>();
 
         if (promptCriteria.Criteria is not null)
             criteria.AddRange(promptCriteria.Criteria);
 
         if (promptCriteria.TypeReader is not null)
-            criteria.Add(promptCriteria.TypeReader.AsCriterion<T>());
+            criteria.Add(promptCriteria.TypeReader.AsCriterion());
 
         return criteria;
     }

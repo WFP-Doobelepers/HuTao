@@ -4,13 +4,13 @@ public class BotConfig
 {
     public int MessageCacheSize { get; set; }
 
-    public string HangfireContext { get; init; }
+    public string HangfireContext { get; init; } = null!;
 
-    public string Prefix { get; init; }
+    public string Prefix { get; init; } = null!;
 
-    public string Token { get; init; }
+    public string Token { get; init; } = null!;
 
-    public string ZhongliContext { get; init; }
+    public string ZhongliContext { get; init; } = null!;
 
     public ulong Guild { get; init; }
 

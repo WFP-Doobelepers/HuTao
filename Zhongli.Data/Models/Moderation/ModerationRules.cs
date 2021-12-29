@@ -14,7 +14,7 @@ public class ModerationRules
 
     public bool ReplaceMutes { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
     public virtual ICollection<Criterion> CensorExclusions { get; set; }
         = new List<Criterion>();

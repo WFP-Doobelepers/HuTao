@@ -62,11 +62,7 @@ public class AutoRemoveMessageHandler :
 
         _cache.Set(
             GetKey(notification.Message.Id),
-            new RemovableMessage
-            {
-                Message = notification.Message,
-                Users   = notification.Users
-            },
+            new RemovableMessage(notification.Message, notification.Users),
             MessageCacheOptions);
 
         return Task.CompletedTask;

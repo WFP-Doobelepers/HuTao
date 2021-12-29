@@ -8,7 +8,6 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Templates;
-using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
@@ -24,14 +23,9 @@ namespace Zhongli.Bot.Modules.Moderation;
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 {
-    private readonly CommandErrorHandler _error;
     private readonly ZhongliContext _db;
 
-    public ModerationTemplatesModule(CommandErrorHandler error, ZhongliContext db) : base(error, db)
-    {
-        _error = error;
-        _db    = db;
-    }
+    public ModerationTemplatesModule(CommandErrorHandler error, ZhongliContext db) : base(error, db) { _db = db; }
 
     [Command("ban")]
     public async Task BanTemplateAsync(string name, uint deleteDays = 0, TimeSpan? length = null,
@@ -146,21 +140,5 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
-    }
-
-    private class TriggerOptions : ITrigger
-    {
-        public TriggerOptions(uint amount, TriggerSource source, TriggerMode mode)
-        {
-            Mode   = mode;
-            Amount = amount;
-            Source = source;
-        }
-
-        public TriggerSource Source { get; }
-
-        public TriggerMode Mode { get; set; }
-
-        public uint Amount { get; set; }
     }
 }

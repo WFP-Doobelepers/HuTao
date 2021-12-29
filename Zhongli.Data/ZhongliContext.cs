@@ -16,71 +16,71 @@ public class ZhongliContext : DbContext
 {
     public ZhongliContext(DbContextOptions<ZhongliContext> options) : base(options) { }
 
-    public DbSet<Ban> BanHistory { get; init; }
+    public DbSet<Ban> BanHistory { get; init; } = null!;
 
-    public DbSet<BanAction> BanActions { get; init; }
+    public DbSet<BanAction> BanActions { get; init; } = null!;
 
-    public DbSet<BanTemplate> BanTemplates { get; init; }
+    public DbSet<BanTemplate> BanTemplates { get; init; } = null!;
 
-    public DbSet<Censor> Censors { get; init; }
+    public DbSet<Censor> Censors { get; init; } = null!;
 
-    public DbSet<Censored> CensoredHistory { get; set; }
+    public DbSet<Censored> CensoredHistory { get; set; } = null!;
 
-    public DbSet<ChannelCriterion> ChannelCriteria { get; init; }
+    public DbSet<ChannelCriterion> ChannelCriteria { get; init; } = null!;
 
-    public DbSet<EmojiEntity> Emojis { get; set; }
+    public DbSet<EmojiEntity> Emojis { get; set; } = null!;
 
-    public DbSet<EmoteEntity> Emotes { get; set; }
+    public DbSet<EmoteEntity> Emotes { get; set; } = null!;
 
-    public DbSet<EnumChannel> EnumChannels { get; set; }
+    public DbSet<EnumChannel> EnumChannels { get; set; } = null!;
 
-    public DbSet<GuildEntity> Guilds { get; init; }
+    public DbSet<GuildEntity> Guilds { get; init; } = null!;
 
-    public DbSet<GuildUserEntity> Users { get; init; }
+    public DbSet<GuildUserEntity> Users { get; init; } = null!;
 
-    public DbSet<Kick> KickHistory { get; init; }
+    public DbSet<Kick> KickHistory { get; init; } = null!;
 
-    public DbSet<KickAction> KickActions { get; init; }
+    public DbSet<KickAction> KickActions { get; init; } = null!;
 
-    public DbSet<KickTemplate> KickTemplates { get; init; }
+    public DbSet<KickTemplate> KickTemplates { get; init; } = null!;
 
-    public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; }
+    public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; } = null!;
 
-    public DbSet<Mute> MuteHistory { get; init; }
+    public DbSet<Mute> MuteHistory { get; init; } = null!;
 
-    public DbSet<MuteAction> MuteActions { get; init; }
+    public DbSet<MuteAction> MuteActions { get; init; } = null!;
 
-    public DbSet<MuteTemplate> MuteTemplates { get; init; }
+    public DbSet<MuteTemplate> MuteTemplates { get; init; } = null!;
 
-    public DbSet<Note> NoteHistory { get; init; }
+    public DbSet<Note> NoteHistory { get; init; } = null!;
 
-    public DbSet<NoteAction> NoteActions { get; init; }
+    public DbSet<NoteAction> NoteActions { get; init; } = null!;
 
-    public DbSet<NoteTemplate> NoteTemplates { get; init; }
+    public DbSet<NoteTemplate> NoteTemplates { get; init; } = null!;
 
-    public DbSet<Notice> NoticeHistory { get; init; }
+    public DbSet<Notice> NoticeHistory { get; init; } = null!;
 
-    public DbSet<NoticeAction> NoticeActions { get; init; }
+    public DbSet<NoticeAction> NoticeActions { get; init; } = null!;
 
-    public DbSet<NoticeTemplate> NoticeTemplates { get; init; }
+    public DbSet<NoticeTemplate> NoticeTemplates { get; init; } = null!;
 
-    public DbSet<PermissionCriterion> PermissionCriteria { get; init; }
+    public DbSet<PermissionCriterion> PermissionCriteria { get; init; } = null!;
 
-    public DbSet<ReactionDeleteLog> ReactionDeleteLogs { get; set; }
+    public DbSet<ReactionDeleteLog> ReactionDeleteLogs { get; set; } = null!;
 
-    public DbSet<ReprimandTrigger> ReprimandTriggers { get; init; }
+    public DbSet<ReprimandTrigger> ReprimandTriggers { get; init; } = null!;
 
-    public DbSet<RoleCriterion> RoleCriteria { get; init; }
+    public DbSet<RoleCriterion> RoleCriteria { get; init; } = null!;
 
-    public DbSet<TimeTracking> TimeTrackingRules { get; init; }
+    public DbSet<TimeTracking> TimeTrackingRules { get; init; } = null!;
 
-    public DbSet<UserCriterion> UserCriteria { get; init; }
+    public DbSet<UserCriterion> UserCriteria { get; init; } = null!;
 
-    public DbSet<Warning> WarningHistory { get; init; }
+    public DbSet<Warning> WarningHistory { get; init; } = null!;
 
-    public DbSet<WarningAction> WarningActions { get; init; }
+    public DbSet<WarningAction> WarningActions { get; init; } = null!;
 
-    public DbSet<WarningTemplate> WarningTemplates { get; init; }
+    public DbSet<WarningTemplate> WarningTemplates { get; init; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
         => modelBuilder.ApplyConfigurationsFromAssembly(typeof(ZhongliContext).Assembly);

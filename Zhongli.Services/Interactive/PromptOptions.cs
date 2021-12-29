@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Discord;
-using Discord.WebSocket;
 using Zhongli.Services.Interactive.Criteria;
 
 namespace Zhongli.Services.Interactive;
@@ -11,7 +10,7 @@ internal class PromptOptions
 
     public Color? Color { get; init; }
 
-    public CriteriaCriterion<SocketMessage>? Criterion { get; init; }
+    public CriteriaCriterion<IMessage>? Criterion { get; init; }
 
     public IEnumerable<EmbedFieldBuilder>? Fields { get; init; }
 

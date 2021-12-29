@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Discord;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ public class MessageLog : ILog, IMessageEntity
 {
     protected MessageLog() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public MessageLog(GuildUserEntity user, IUserMessage message)
     {
         LogDate = DateTimeOffset.UtcNow;
@@ -52,13 +54,13 @@ public class MessageLog : ILog, IMessageEntity
     /// <inheritdoc cref="IMessage.EditedTimestamp" />
     public DateTimeOffset? EditedTimestamp { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
-    public virtual GuildUserEntity User { get; set; }
+    public virtual GuildUserEntity User { get; set; } = null!;
 
-    public virtual ICollection<Attachment> Attachments { get; set; }
+    public virtual ICollection<Attachment> Attachments { get; set; } = null!;
 
-    public virtual ICollection<Embed> Embeds { get; set; }
+    public virtual ICollection<Embed> Embeds { get; set; } = null!;
 
     public int MentionedRolesCount { get; set; }
 

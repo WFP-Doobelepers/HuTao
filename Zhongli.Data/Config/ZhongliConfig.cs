@@ -7,9 +7,9 @@ public class ZhongliConfig
     public static readonly IConfigurationRoot Secrets = new ConfigurationBuilder()
         .AddUserSecrets<ZhongliConfig>().Build();
 
-    public BotConfig Debug { get; init; }
+    public BotConfig Debug { get; init; } = null!;
 
-    public BotConfig Release { get; init; }
+    public BotConfig Release { get; init; } = null!;
 
     public static T GetValue<T>(string key) => Secrets.GetSection("Debug").GetValue<T>(key);
 

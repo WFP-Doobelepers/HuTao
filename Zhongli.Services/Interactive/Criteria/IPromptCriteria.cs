@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
+using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 namespace Zhongli.Services.Interactive.Criteria;
 
-public interface IPromptCriteria<T>
+public interface IPromptCriteria
 {
-    ICollection<ICriterion<SocketMessage>>? Criteria { get; }
+    ICollection<ICriterion<IMessage>>? Criteria { get; }
 
     TypeReader? TypeReader { get; }
 }

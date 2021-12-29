@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Discord;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ public class MessagesDeleteLog : DeleteLog, IChannelEntity, IGuildEntity
 {
     protected MessagesDeleteLog() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public MessagesDeleteLog(IEnumerable<IMessageEntity> messages, IGuildChannel channel,
         ActionDetails? details) : base(details)
     {
@@ -22,7 +24,7 @@ public class MessagesDeleteLog : DeleteLog, IChannelEntity, IGuildEntity
         Messages = messages.Select(m => new MessageDeleteLog(m, details)).ToList();
     }
 
-    public virtual ICollection<MessageDeleteLog> Messages { get; set; }
+    public virtual ICollection<MessageDeleteLog> Messages { get; set; } = null!;
 
     public ulong ChannelId { get; set; }
 

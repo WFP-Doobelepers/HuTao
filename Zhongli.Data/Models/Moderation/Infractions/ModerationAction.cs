@@ -37,9 +37,9 @@ public class ModerationAction : IGuildUserEntity
 
     public DateTimeOffset Date { get; set; }
 
-    public virtual GuildEntity Guild { get; set; }
+    public virtual GuildEntity Guild { get; set; } = null!;
 
-    public virtual GuildUserEntity Moderator { get; set; }
+    public virtual GuildUserEntity Moderator { get; set; } = null!;
 
     public string? Reason { get; set; }
 
