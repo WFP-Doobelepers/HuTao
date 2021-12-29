@@ -6,6 +6,10 @@
         <LangVersion>default</LangVersion>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DebugSymbols>true</DebugSymbols>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Cronos" Version="0.7.1" />
         <PackageReference Include="Discord.Net" Version="3.1.0" />
