@@ -104,73 +104,72 @@ public class DiscordSocketListener
         return Task.CompletedTask;
     }
 
-    private async Task OnChannelCreatedAsync(SocketChannel channel)
-        => await Mediator.Publish(new ChannelCreatedNotification(channel), _cancellationToken);
+    private Task OnChannelCreatedAsync(SocketChannel channel)
+        => Mediator.Publish(new ChannelCreatedNotification(channel), _cancellationToken);
 
-    private async Task OnChannelUpdatedAsync(SocketChannel oldChannel, SocketChannel newChannel)
-        => await Mediator.Publish(new ChannelUpdatedNotification(oldChannel, newChannel), _cancellationToken);
+    private Task OnChannelUpdatedAsync(SocketChannel oldChannel, SocketChannel newChannel)
+        => Mediator.Publish(new ChannelUpdatedNotification(oldChannel, newChannel), _cancellationToken);
 
-    private async Task OnConnectedAsync() => await Mediator.Publish(ConnectedNotification.Default, _cancellationToken);
+    private Task OnConnectedAsync()
+        => Mediator.Publish(ConnectedNotification.Default, _cancellationToken);
 
-    private async Task OnDisconnectedAsync(Exception arg)
-        => await Mediator.Publish(new DisconnectedNotification(arg), _cancellationToken);
+    private Task OnDisconnectedAsync(Exception arg)
+        => Mediator.Publish(new DisconnectedNotification(arg), _cancellationToken);
 
-    private async Task OnGuildAvailableAsync(SocketGuild guild)
-        => await Mediator.Publish(new GuildAvailableNotification(guild), _cancellationToken);
+    private Task OnGuildAvailableAsync(SocketGuild guild)
+        => Mediator.Publish(new GuildAvailableNotification(guild), _cancellationToken);
 
-    private async Task OnGuildMemberUpdatedAsync(Cacheable<SocketGuildUser, ulong> oldMember, SocketGuildUser newMember)
-        => await Mediator.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken);
+    private Task OnGuildMemberUpdatedAsync(
+        Cacheable<SocketGuildUser, ulong> oldMember, SocketGuildUser newMember)
+        => Mediator.Publish(new GuildMemberUpdatedNotification(oldMember, newMember), _cancellationToken);
 
-    private async Task OnInteractionCreatedAsync(SocketInteraction interaction)
-        => await Mediator.Publish(new InteractionCreatedNotification(interaction), _cancellationToken);
+    private Task OnInteractionCreatedAsync(SocketInteraction interaction)
+        => Mediator.Publish(new InteractionCreatedNotification(interaction), _cancellationToken);
 
-    private async Task OnJoinedGuildAsync(SocketGuild guild)
-        => await Mediator.Publish(new JoinedGuildNotification(guild), _cancellationToken);
+    private Task OnJoinedGuildAsync(SocketGuild guild)
+        => Mediator.Publish(new JoinedGuildNotification(guild), _cancellationToken);
 
-    private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message,
-        Cacheable<IMessageChannel, ulong> channel)
-        => await Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
+    private Task OnMessageDeletedAsync(
+        Cacheable<IMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel)
+        => Mediator.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
 
-    private async Task OnMessageReceivedAsync(SocketMessage message)
-        => await Mediator.Publish(new MessageReceivedNotification(message), _cancellationToken);
+    private Task OnMessageReceivedAsync(SocketMessage message)
+        => Mediator.Publish(new MessageReceivedNotification(message), _cancellationToken);
 
-    private async Task OnMessagesBulkDeletedAsync(
+    private Task OnMessagesBulkDeletedAsync(
         IReadOnlyCollection<Cacheable<IMessage, ulong>> messages, Cacheable<IMessageChannel, ulong> channel)
-        => await Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
+        => Mediator.Publish(new MessagesBulkDeletedNotification(messages, channel), _cancellationToken);
 
-    private async Task OnMessageUpdatedAsync(
+    private Task OnMessageUpdatedAsync(
         Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)
-    {
-        var scope = ServiceScope.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<IMediator>().Publish(
-            new MessageUpdatedNotification(oldMessage, newMessage, channel), _cancellationToken);
-    }
+        => Mediator.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel), _cancellationToken);
 
-    private async Task OnReactionAddedAsync(
+    private Task OnReactionAddedAsync(
         Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
-        => await Mediator.Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
+        => Mediator.Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
 
-    private async Task OnReactionRemovedAsync(
+    private Task OnReactionRemovedAsync(
         Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
-        => await Mediator.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
+        => Mediator.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
 
-    private async Task OnReadyAsync() => await Mediator.Publish(ReadyNotification.Default, _cancellationToken);
+    private Task OnReadyAsync()
+        => Mediator.Publish(ReadyNotification.Default, _cancellationToken);
 
-    private async Task OnRoleCreatedAsync(SocketRole role)
-        => await Mediator.Publish(new RoleCreatedNotification(role), _cancellationToken);
+    private Task OnRoleCreatedAsync(SocketRole role)
+        => Mediator.Publish(new RoleCreatedNotification(role), _cancellationToken);
 
-    private async Task OnRoleUpdatedAsync(SocketRole oldRole, SocketRole newRole)
-        => await Mediator.Publish(new RoleUpdatedNotification(oldRole, newRole), _cancellationToken);
+    private Task OnRoleUpdatedAsync(SocketRole oldRole, SocketRole newRole)
+        => Mediator.Publish(new RoleUpdatedNotification(oldRole, newRole), _cancellationToken);
 
-    private async Task OnUserBannedAsync(SocketUser user, SocketGuild guild)
-        => await Mediator.Publish(new UserBannedNotification(user, guild), _cancellationToken);
+    private Task OnUserBannedAsync(SocketUser user, SocketGuild guild)
+        => Mediator.Publish(new UserBannedNotification(user, guild), _cancellationToken);
 
-    private async Task OnUserJoinedAsync(SocketGuildUser guildUser)
-        => await Mediator.Publish(new UserJoinedNotification(guildUser), _cancellationToken);
+    private Task OnUserJoinedAsync(SocketGuildUser guildUser)
+        => Mediator.Publish(new UserJoinedNotification(guildUser), _cancellationToken);
 
-    private async Task OnUserLeftAsync(SocketGuild guild, SocketUser user)
-        => await Mediator.Publish(new UserLeftNotification(guild, user), _cancellationToken);
+    private Task OnUserLeftAsync(SocketGuild guild, SocketUser user)
+        => Mediator.Publish(new UserLeftNotification(guild, user), _cancellationToken);
 
-    private async Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
-        => await Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
+    private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
+        => Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
 }
