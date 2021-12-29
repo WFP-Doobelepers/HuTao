@@ -62,7 +62,7 @@ public class ModerationLoggingService
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
-                await context.Interaction.RespondAsync(embed: embed.Build(), ephemeral: true);
+                await context.RespondAsync(embed: embed.Build(), ephemeral: true);
             }
             catch (Exception e)
             {
@@ -71,7 +71,7 @@ public class ModerationLoggingService
                     .AppendLine($"Could not publish reprimand for {context.User}.")
                     .AppendLine(e.Message);
 
-                await context.Interaction.RespondAsync(message.ToString(), ephemeral: true);
+                await context.RespondAsync(message.ToString(), ephemeral: true);
             }
         }
 

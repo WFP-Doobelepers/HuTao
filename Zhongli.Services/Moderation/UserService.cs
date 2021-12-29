@@ -41,20 +41,7 @@ public class UserService
             .WithColor(Color.Green)
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await (context switch
-        {
-            CommandContext command => command.Channel.SendMessageAsync(
-                embed: embed.Build(),
-                components: components),
-
-            InteractionContext interaction => interaction.Interaction.RespondAsync(
-                embeds: new[] { embed.Build() },
-                ephemeral: true,
-                components: components),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(context), context, "Invalid context.")
-        });
+        await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
     }
 
     public async Task ReplyHistoryAsync(Context context, LogReprimandType type, IUser user, bool update)
@@ -107,20 +94,8 @@ public class UserService
     {
         var components = await ComponentsAsync(context, user);
         var embed = await GetUserAsync(context, user);
-        await (context switch
-        {
-            CommandContext command => command.Channel.SendMessageAsync(
-                embed: embed.Build(),
-                components: components),
 
-            InteractionContext interaction => interaction.Interaction.RespondAsync(
-                embeds: new[] { embed.Build() },
-                ephemeral: true,
-                components: components),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(context), context, "Invalid context.")
-        });
+        await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
     }
 
     private static EmbedFieldBuilder CreateEmbed(IUser user, Reprimand r) => new EmbedFieldBuilder()
