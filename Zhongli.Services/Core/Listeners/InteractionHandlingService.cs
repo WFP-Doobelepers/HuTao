@@ -62,11 +62,17 @@ public class InteractionHandlingService :
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }
 
-    private static Task ComponentCommandExecuted(ComponentCommandInfo info, IInteractionContext context, IResult result)
-        => Task.CompletedTask;
+    private async Task ComponentCommandExecuted(ComponentCommandInfo info, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
+            await InteractionFailedAsync(context, result);
+    }
 
-    private static Task ContextCommandExecuted(ContextCommandInfo info, IInteractionContext context, IResult result)
-        => Task.CompletedTask;
+    private async Task ContextCommandExecuted(ContextCommandInfo info, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
+            await InteractionFailedAsync(context, result);
+    }
 
     private async Task InteractionFailedAsync(IInteractionContext context, IResult result)
     {
@@ -75,10 +81,13 @@ public class InteractionHandlingService :
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
             _log.LogError("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
-            await context.Interaction.FollowupAsync(error, ephemeral: true);
+            await context.Interaction.RespondAsync(error, ephemeral: true);
         }
     }
 
-    private static Task SlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, IResult result)
-        => Task.CompletedTask;
+    private async Task SlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
+            await InteractionFailedAsync(context, result);
+    }
 }
