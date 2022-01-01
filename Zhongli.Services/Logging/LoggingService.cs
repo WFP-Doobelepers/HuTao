@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
@@ -349,29 +350,43 @@ public class LoggingService
     {
         if (message is null) return null;
 
-        var audits = await guild
-            .GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
+        try
+        {
+            var audits = await guild
+                .GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
 
-        return audits
-            .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
-            .FirstOrDefault(e
-                => e.Data is MessageDeleteAuditLogData d
-                && d.Target.Id == message.Author.Id
-                && d.ChannelId == message.Channel.Id);
+            return audits
+                .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
+                .FirstOrDefault(e
+                    => e.Data is MessageDeleteAuditLogData d
+                    && d.Target.Id == message.Author.Id
+                    && d.ChannelId == message.Channel.Id);
+        }
+        catch (HttpException e) when (e.DiscordCode == DiscordErrorCode.InsufficientPermissions)
+        {
+            return null;
+        }
     }
 
     private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(
         int messageCount, IGuildChannel channel)
     {
-        var audits = await channel.Guild
-            .GetAuditLogsAsync(actionType: ActionType.MessageBulkDeleted);
+        try
+        {
+            var audits = await channel.Guild
+                .GetAuditLogsAsync(actionType: ActionType.MessageBulkDeleted);
 
-        return audits
-            .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
-            .FirstOrDefault(e
-                => e.Data is MessageBulkDeleteAuditLogData d
-                && d.MessageCount >= messageCount
-                && d.ChannelId == channel.Id);
+            return audits
+                .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
+                .FirstOrDefault(e
+                    => e.Data is MessageBulkDeleteAuditLogData d
+                    && d.MessageCount >= messageCount
+                    && d.ChannelId == channel.Id);
+        }
+        catch (HttpException e) when (e.DiscordCode == DiscordErrorCode.InsufficientPermissions)
+        {
+            return null;
+        }
     }
 
     private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
