@@ -123,7 +123,9 @@ public class UserService
         GetReprimandHistory<Ban>(user),
         GetReprimandHistory<Kick>(user),
         GetReprimandHistory<Note>(user),
-        new EmbedFieldBuilder().WithName("Reprimands").WithValue("Active/Total").WithIsInline(true)
+        new EmbedFieldBuilder().WithName("Reprimands")
+            .WithValue("Active/Total")
+            .WithIsInline(true)
     };
 
     private static SelectMenuBuilder SelectMenu(IUser user, LogReprimandType type = LogReprimandType.None)

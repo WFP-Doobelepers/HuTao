@@ -19,18 +19,18 @@ public class UserTrackingBehavior :
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(notification.NewMember.Username))
-            return;
+        var user = notification.NewMember;
+        if (user.Username is null) return;
 
-        await _db.Users.TrackUserAsync(notification.NewMember, cancellationToken);
+        await _db.Users.TrackUserAsync(user, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Message.Author is IGuildUser { Guild: { } } author)
+        if (notification.Message.Author is IGuildUser { Username: { } } user)
         {
-            await _db.Users.TrackUserAsync(author, cancellationToken);
+            await _db.Users.TrackUserAsync(user, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
     }
