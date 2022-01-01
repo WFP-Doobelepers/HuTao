@@ -21,6 +21,7 @@ using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Evaluation;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Image;
 using Zhongli.Services.Logging;
@@ -59,6 +60,7 @@ public class Bot
             .AddSingleton(new InteractiveConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
             .AddSingleton<DiscordSocketListener>()
             .AddScoped<AuthorizationService>()
+            .AddScoped<EvaluationService>()
             .AddScoped<ModerationService>()
             .AddScoped<ModerationLoggingService>()
             .AddScoped<LoggingService>()
