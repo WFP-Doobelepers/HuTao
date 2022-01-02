@@ -136,7 +136,7 @@ public class Bot
             _                    => LogEventLevel.Information
         };
 
-        Log.Write(severity, message.Exception, message.Message);
+        Log.Write(severity, message.Exception, "[{Source}] {Message}", message.Source, message.Message);
 
         return Task.CompletedTask;
     }
@@ -147,6 +147,7 @@ public class Bot
             .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Verbose()
+            .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateLogger();
 
