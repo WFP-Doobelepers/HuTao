@@ -49,6 +49,8 @@ public class InteractionHandlingService :
 #if DEBUG
         await _commands.RegisterCommandsToGuildAsync(ZhongliConfig.Configuration.Guild);
 #else
+        var guildCommands = Array.Empty<ApplicationCommandProperties>();
+        await _discord.Rest.BulkOverwriteGuildCommands(guildCommands, ZhongliConfig.Configuration.Guild);
         await _commands.RegisterCommandsGloballyAsync();
 #endif
     }
