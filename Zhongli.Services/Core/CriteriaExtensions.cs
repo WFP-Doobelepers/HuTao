@@ -10,8 +10,10 @@ namespace Zhongli.Services.Core;
 
 public static class CriteriaExtensions
 {
-    public static bool Judge(this Criterion rule, Context context, IGuildUser user)
-        => Judge(rule, (ITextChannel) context.Channel, user);
+    public static bool Judge(this Criterion rule, Context context)
+        => context.User is IGuildUser user
+            && context.Channel is INestedChannel channel
+            && Judge(rule, channel, user);
 
     public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user) => rule switch
     {

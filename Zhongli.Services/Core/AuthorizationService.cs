@@ -51,13 +51,12 @@ public class AuthorizationService
         if (context.User.Id == ZhongliConfig.Configuration.Owner)
             return true;
 
-        var user = (IGuildUser) context.User;
-        var rules = await AutoConfigureGuild(user.Guild, cancellationToken);
+        var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
         return rules.AuthorizationGroups.Scoped(scope)
             .OrderBy(r => r.Action?.Date)
             .Aggregate(false, (current, rule) =>
             {
-                var passed = rule.Judge(context, user);
+                var passed = rule.Judge(context);
                 return passed ? rule.Access == AccessType.Allow : current;
             });
     }

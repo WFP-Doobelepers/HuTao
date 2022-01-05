@@ -10,8 +10,8 @@ namespace Zhongli.Services.Core;
 
 public static class AuthorizationRuleExtensions
 {
-    public static bool Judge(this AuthorizationGroup rules, Context context, IGuildUser user) =>
-        rules.Collection.Any(r => r.Judge(context, user));
+    public static bool Judge(this AuthorizationGroup rules, Context context) =>
+        rules.Collection.Any(r => r.Judge(context));
 
     public static IEnumerable<T> Scoped<T>(
         this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
