@@ -21,9 +21,11 @@ public enum AuthorizationScope
     [Description("Allows using the quote feature.")]
     Quote = 1 << 6,
 
-    [Description("Allows warning, mute, kick, and ban.")]
-    Moderator = Warning | Mute | Kick | Ban,
+    Note = 1 << 7,
 
-    [Description("Allows warning and mute.")]
-    Helper = Warning | Mute
+    [Description("Allows warning, mute, kick, notes, and ban.")]
+    Moderator = Warning | Mute | Kick | Ban | Note,
+
+    [Description("Allows warning, notes, and mute.")]
+    Helper = Warning | Mute | Note
 }

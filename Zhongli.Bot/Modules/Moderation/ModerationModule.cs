@@ -128,7 +128,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
-    [RequireAuthorization(AuthorizationScope.Warning)]
+    [RequireAuthorization(AuthorizationScope.Note)]
     public async Task NoteAsync([RequireHigherRole] IGuildUser user,
         [Remainder] string? note = null)
     {
