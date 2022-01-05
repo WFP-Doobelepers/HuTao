@@ -21,7 +21,7 @@ namespace Zhongli.Services.Moderation;
 public static class ReprimandExtensions
 {
     public static bool IsActive(this IExpirable expirable)
-        => expirable.EndedAt is null || expirable.ExpireAt >= DateTimeOffset.UtcNow;
+        => expirable.EndedAt is null || expirable.ExpireAt > DateTimeOffset.UtcNow;
 
     public static bool IsIncluded(this Reprimand reprimand, LogReprimandType log)
     {

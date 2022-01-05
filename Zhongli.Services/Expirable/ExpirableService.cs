@@ -30,7 +30,7 @@ public abstract class ExpirableService<T> where T : class, IExpirable
 
     public void EnqueueExpirableEntity(T expire, CancellationToken cancellationToken = default)
     {
-        if (expire.ExpireAt is not null)
+        if (expire.IsActive() && expire.ExpireAt is not null)
         {
             BackgroundJob.Schedule(()
                     => ExpireEntityAsync(expire.Id, cancellationToken),
