@@ -42,7 +42,7 @@ public class Bot
     private static ServiceProvider ConfigureServices() =>
         new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
             .AddDbContext<ZhongliContext>(ContextOptions)
-            .AddMediatR(c => c.Using<ZhongliMediator>().AsTransient(),
+            .AddMediatR(c => c.Using<ZhongliMediator>(),
                 typeof(Bot), typeof(DiscordSocketListener))
             .AddLogging(l => l.AddSerilog())
             .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
