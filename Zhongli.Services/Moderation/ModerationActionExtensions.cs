@@ -1,7 +1,7 @@
 using Discord;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
-using static Zhongli.Services.Utilities.DateTimeExtensions;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Moderation;
 
