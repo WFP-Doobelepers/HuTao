@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using Hangfire;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
@@ -123,6 +122,21 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         _db.Remove(trigger);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task ExpireReprimandAsync(ExpirableReprimand reprimand, ReprimandStatus status,
+        CancellationToken cancellationToken, ReprimandDetails? details = null)
+    {
+        if (details is null)
+        {
+            var guild = _client.GetGuild(reprimand.GuildId);
+            var user = await _client.Rest.GetUserAsync(reprimand.UserId);
+
+            details = new ReprimandDetails(user, guild.CurrentUser, $"[Reprimand {status}]");
+        }
+
+        reprimand.EndedAt ??= DateTimeOffset.UtcNow;
+        await UpdateReprimandAsync(reprimand, status, details, cancellationToken);
     }
 
     public async Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
@@ -290,6 +304,23 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         return await PublishReprimandAsync(notice, details, cancellationToken);
     }
 
+    public async Task<ReprimandResult> PublishReprimandAsync<T>(T reprimand, ReprimandDetails details,
+        CancellationToken cancellationToken) where T : Reprimand
+    {
+        if (reprimand is ExpirableReprimand expirable)
+            EnqueueExpirableEntity(expirable, cancellationToken);
+
+        var result = new ReprimandResult(reprimand, details.Result);
+        var secondary = details with { Result = result };
+
+        var trigger = await TryGetTriggerAsync(reprimand, cancellationToken);
+        var uniqueTrigger = details.Result?.Secondary.All(r => r.Trigger?.Id != trigger?.Id) ?? true;
+
+        return trigger is not null && uniqueTrigger
+            ? await TriggerReprimandAsync(trigger, result, secondary, cancellationToken)
+            : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
+    }
+
     public async Task<ReprimandResult> WarnAsync(uint amount, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
@@ -355,21 +386,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await ExpireReprimandAsync(mute, status, cancellationToken, details);
     }
 
-    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, ReprimandStatus status,
-        CancellationToken cancellationToken, ReprimandDetails? details = null)
-    {
-        if (details is null)
-        {
-            var guild = _client.GetGuild(reprimand.GuildId);
-            var user = await _client.Rest.GetUserAsync(reprimand.UserId);
-
-            details = new ReprimandDetails(user, guild.CurrentUser, $"[Reprimand {status}]");
-        }
-
-        reprimand.EndedAt  ??= DateTimeOffset.UtcNow;
-        await UpdateReprimandAsync(reprimand, status, details, cancellationToken);
-    }
-
     private async Task UpdateReprimandAsync(Reprimand reprimand,
         ReprimandStatus status, ReprimandDetails details,
         CancellationToken cancellationToken)
@@ -392,23 +408,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         INote      => await NoteAsync(details, cancellationToken),
         _          => null
     };
-
-    private async Task<ReprimandResult> PublishReprimandAsync<T>(T reprimand, ReprimandDetails details,
-        CancellationToken cancellationToken) where T : Reprimand
-    {
-        if (reprimand is ExpirableReprimand expirable)
-            EnqueueExpirableEntity(expirable, cancellationToken);
-
-        var result = new ReprimandResult(reprimand, details.Result);
-        var secondary = details with { Result = result };
-
-        var trigger = await TryGetTriggerAsync(reprimand, cancellationToken);
-        var uniqueTrigger = details.Result?.Secondary.All(r => r.Trigger?.Id != trigger?.Id) ?? true;
-
-        return trigger is not null && uniqueTrigger
-            ? await TriggerReprimandAsync(trigger, result, secondary, cancellationToken)
-            : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
-    }
 
     private async Task<ReprimandResult> TriggerReprimandAsync(ReprimandTrigger trigger, ReprimandResult result,
         ReprimandDetails details,

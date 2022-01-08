@@ -144,7 +144,6 @@ public class Bot
     private async Task StartAsync()
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Verbose()
             .Enrich.FromLogContext()

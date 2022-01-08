@@ -72,6 +72,7 @@ public class DiscordSocketListener
         DiscordSocketClient.UserBanned            += OnUserBannedAsync;
         DiscordSocketClient.UserJoined            += OnUserJoinedAsync;
         DiscordSocketClient.UserLeft              += OnUserLeftAsync;
+        DiscordSocketClient.UserUnbanned          += OnUserUnbannedAsync;
         DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync;
 
         return Task.CompletedTask;
@@ -99,6 +100,7 @@ public class DiscordSocketListener
         DiscordSocketClient.UserBanned            -= OnUserBannedAsync;
         DiscordSocketClient.UserJoined            -= OnUserJoinedAsync;
         DiscordSocketClient.UserLeft              -= OnUserLeftAsync;
+        DiscordSocketClient.UserUnbanned          -= OnUserUnbannedAsync;
         DiscordSocketClient.UserVoiceStateUpdated -= OnUserVoiceStateUpdatedAsync;
 
         return Task.CompletedTask;
@@ -169,6 +171,9 @@ public class DiscordSocketListener
 
     private Task OnUserLeftAsync(SocketGuild guild, SocketUser user)
         => Mediator.Publish(new UserLeftNotification(guild, user), _cancellationToken);
+
+    private Task OnUserUnbannedAsync(SocketUser user, SocketGuild guild)
+        => Mediator.Publish(new UserUnbannedNotification(user, guild), _cancellationToken);
 
     private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
         => Mediator.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);

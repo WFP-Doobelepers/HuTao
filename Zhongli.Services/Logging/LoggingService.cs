@@ -61,8 +61,11 @@ public class LoggingService
         if (user is not IGuildUser guildUser || guildUser.IsBot) return;
         if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
 
-        var metadata = message.Reactions[reaction.Emote];
-        if (metadata.ReactionCount > 1) return;
+        lock (message)
+        {
+            var metadata = message.Reactions[reaction.Emote];
+            if (metadata.ReactionCount > 1) return;
+        }
 
         var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);

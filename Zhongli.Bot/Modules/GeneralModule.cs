@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Humanizer;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Evaluation;
