@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -39,6 +40,9 @@ public class GuildEntity
 
     public virtual ICollection<Reprimand> ReprimandHistory { get; set; }
         = new List<Reprimand>();
+
+    public virtual ICollection<StickyMessage> StickyMessages { get; set; }
+        = new List<StickyMessage>();
 
     public virtual ICollection<TemporaryRole> TemporaryRoles { get; set; }
         = new List<TemporaryRole>();

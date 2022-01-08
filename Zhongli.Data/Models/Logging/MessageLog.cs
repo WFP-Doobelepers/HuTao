@@ -58,8 +58,10 @@ public class MessageLog : ILog, IMessageEntity
 
     public virtual GuildUserEntity User { get; set; } = null!;
 
+    /// <inheritdoc cref="IMessage.Attachments" />
     public virtual ICollection<Attachment> Attachments { get; set; } = null!;
 
+    /// <inheritdoc cref="IMessage.Embeds" />
     public virtual ICollection<Embed> Embeds { get; set; } = null!;
 
     public int MentionedRolesCount { get; set; }

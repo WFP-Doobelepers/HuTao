@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
+using Zhongli.Data.Models.Discord.Message;
+using Embed = Zhongli.Data.Models.Discord.Message.Embed;
 
 namespace Zhongli.Services.Utilities;
 
@@ -19,6 +21,12 @@ public enum AuthorOptions
 public static class EmbedBuilderExtensions
 {
     public delegate (string Title, StringBuilder Value) EntityViewerDelegate<in T>(T entity);
+
+    public static EmbedAuthorBuilder ToBuilder(this Author author)
+        => new EmbedAuthorBuilder()
+            .WithName(author.Name)
+            .WithUrl(author.Url)
+            .WithIconUrl(author.IconUrl);
 
     public static EmbedAuthorBuilder WithGuildAsAuthor(this EmbedAuthorBuilder embed, IGuild guild,
         AuthorOptions authorOptions = AuthorOptions.None)
@@ -45,6 +53,18 @@ public static class EmbedBuilderExtensions
         return builder.AddIntoFields(title, splitLines);
     }
 
+    public static EmbedBuilder ToBuilder(this Embed embed) => new EmbedBuilder()
+        .WithAuthor(embed.Author?.ToBuilder())
+        .WithColor(embed.Color ?? 0)
+        .WithDescription(embed.Description)
+        .WithFooter(embed.Footer?.ToBuilder())
+        .WithTimestamp(embed.Timestamp!.Value)
+        .WithTitle(embed.Title)
+        .WithUrl(embed.Url)
+        .WithImageUrl(embed.Image?.Url)
+        .WithThumbnailUrl(embed.Thumbnail?.Url ?? embed.Video?.Url)
+        .WithFields(embed.Fields.Select(e => e.ToBuilder()));
+
     public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
         AuthorOptions authorOptions = AuthorOptions.None)
     {
@@ -67,6 +87,16 @@ public static class EmbedBuilderExtensions
         return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
     }
 
+    public static EmbedFieldBuilder ToBuilder(this Field field)
+        => new EmbedFieldBuilder()
+            .WithName(field.Name)
+            .WithValue(field.Value)
+            .WithIsInline(field.Inline);
+
+    public static EmbedFooterBuilder ToBuilder(this Footer footer) => new EmbedFooterBuilder()
+        .WithText(footer.Text)
+        .WithIconUrl(footer.IconUrl);
+
     public static IEnumerable<EmbedFieldBuilder> ToEmbedFields<T>(this IEnumerable<T> collection,
         EntityViewerDelegate<T> entityViewer)
         => collection
@@ -74,6 +104,20 @@ public static class EmbedBuilderExtensions
             .Select((e, i) => new EmbedFieldBuilder()
                 .WithName($"{i}: {e.Title}")
                 .WithValue(e.Value));
+
+    public static int Length(this Embed embed)
+    {
+        return
+            L(embed.Title) +
+            L(embed.Author?.Name) +
+            L(embed.Description) +
+            L(embed.Footer?.Text) +
+            embed.Fields.Sum(f =>
+                L(f.Name) +
+                L(f.Value));
+
+        int L(string? s) => s?.Length ?? 0;
+    }
 
     private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
         string name, string iconUrl, AuthorOptions authorOptions)

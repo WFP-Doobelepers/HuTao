@@ -9,6 +9,7 @@ using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Utilities;
 using Attachment = Zhongli.Data.Models.Discord.Message.Attachment;
+using Embed = Zhongli.Data.Models.Discord.Message.Embed;
 
 namespace Zhongli.Services.Logging;
 
