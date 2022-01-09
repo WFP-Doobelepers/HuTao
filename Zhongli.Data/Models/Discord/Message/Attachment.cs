@@ -25,19 +25,19 @@ public class Attachment : IAttachment, IImage
     [Key] public Guid AttachmentId { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
-    public ulong Id { get; set; }
+    public ulong Id { get; init; }
 
-    public bool Ephemeral { get; set; }
+    public bool Ephemeral { get; init; }
 
-    public int Size { get; set; }
+    public int Size { get; init; }
 
-    public int? Height { get; set; }
+    public int? Height { get; init; }
 
-    public int? Width { get; set; }
+    public int? Width { get; init; }
 
-    public string Filename { get; set; } = null!;
+    public string Filename { get; init; } = null!;
 
-    public string ProxyUrl { get; set; } = null!;
+    public string ProxyUrl { get; init; } = null!;
 
-    public string Url { get; set; } = null!;
+    public string Url { get; init; } = null!;
 }

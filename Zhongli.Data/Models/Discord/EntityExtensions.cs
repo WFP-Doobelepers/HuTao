@@ -1,6 +1,5 @@
 using System;
 using System.Linq.Expressions;
-using Discord;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord.Message;
 
@@ -19,9 +18,6 @@ public static class EntityExtensions
 
     public static string MentionUser(this IUserEntity entity)
         => $"<@{entity.UserId}>";
-
-    public static Thumbnail ToThumbnail(this EmbedThumbnail thumbnail)
-        => new(thumbnail);
 
     public static void AddUserNavigation<T>(
         this EntityTypeBuilder<T> builder,

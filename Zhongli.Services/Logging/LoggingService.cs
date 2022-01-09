@@ -23,7 +23,7 @@ using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
-using Embed = Zhongli.Data.Models.Discord.Message.Embed;
+using Embed = Discord.Embed;
 
 namespace Zhongli.Services.Logging;
 
@@ -43,7 +43,7 @@ public class LoggingService
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
         if (notification.Message is not IUserMessage { Channel: INestedChannel channel } message) return;
-        if (message.Author is not IGuildUser user || user.IsBot) return;
+        if (message.Author is not IGuildUser { Username: { } } user || user.IsBot) return;
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
 
         var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
@@ -95,17 +95,14 @@ public class LoggingService
     public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
     {
         if (notification.NewMessage is not IUserMessage { Channel: INestedChannel channel } message) return;
-        if (message.Author is not IGuildUser user || user.IsBot) return;
+        if (message.Author is not IGuildUser { Username: { } } user || user.IsBot) return;
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
 
         var latest = await GetLatestMessage(message.Id, cancellationToken);
         if (latest is null) return;
 
-        if (latest.Embeds.Count != message.Embeds.Count)
-        {
-            await UpdateLogEmbedsAsync(latest, message, cancellationToken);
+        if (await LogEmbedsUpdated(latest, message, cancellationToken))
             return;
-        }
 
         var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
         var log = await LogMessageAsync(userEntity, message, latest, cancellationToken);
@@ -126,7 +123,7 @@ public class LoggingService
     }
 
     private static MemoryStream GenerateStreamFromString(string value)
-        => new(Encoding.Unicode.GetBytes(value));
+        => new(Encoding.UTF8.GetBytes(value));
 
     private async Task PublishLogAsync(DeleteLog? log, LogType type, IGuild guild,
         CancellationToken cancellationToken)
@@ -152,26 +149,12 @@ public class LoggingService
     private static async Task PublishLogAsync(EmbedLog? log, IMessageChannel? channel)
     {
         if (log is null || channel is null) return;
-        var (embed, content, attachment) = log;
+        var (embeds, attachment) = log;
 
         if (attachment is null)
-            await channel.SendMessageAsync(content, embed: embed.Build());
+            await channel.SendMessageAsync(embeds: embeds);
         else
-        {
-            await channel.SendFileAsync(GenerateStreamFromString(attachment), "Messages.md",
-                content, embed: embed.Build());
-        }
-    }
-
-    private async Task UpdateLogEmbedsAsync(MessageLog oldLog, IMessage message,
-        CancellationToken cancellationToken)
-    {
-        foreach (var embed in message.Embeds)
-        {
-            oldLog.Embeds.Add(new Embed(embed));
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
+            await channel.SendFileAsync(GenerateStreamFromString(attachment), "Messages.md", embeds: embeds);
     }
 
     private static async Task<ActionDetails?> TryGetAuditLogDetails(IMessage? message, IGuild guild)
@@ -202,6 +185,20 @@ public class LoggingService
         if (guildEntity is null || cancellationToken.IsCancellationRequested) return false;
 
         return guildEntity.LoggingRules.LoggingExclusions.Any(e => e.Judge(channel, user));
+    }
+
+    private async Task<bool> LogEmbedsUpdated(MessageLog log, IMessage message, CancellationToken cancellationToken)
+    {
+        var embeds = message.Embeds
+            .Select(embed => new Data.Models.Discord.Message.Embed(embed))
+            .ToList();
+
+        var embedsChanged = !embeds.SequenceEqual(log.Embeds);
+
+        log.Embeds = embeds;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return message.Content == log.Content && embedsChanged;
     }
 
     private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
@@ -292,8 +289,11 @@ public class LoggingService
             .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
             .AddField("Message", log.JumpUrlMarkdown(), true);
 
-        var urls = log.Embeds.Select(e => e.Url);
-        return new EmbedLog(embed.AddImages(log), string.Join(Environment.NewLine, urls));
+        var embeds = log.Embeds
+            .Where(e => e.IsViewable())
+            .Select(e => e.ToBuilder(true));
+
+        return new EmbedLog(embed, embeds);
     }
 
     private async Task<EmbedLog> AddDetailsAsync<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
@@ -327,7 +327,7 @@ public class LoggingService
             .AddField("Message Count", log.Messages.Count, true);
 
         var messages = logs.OfType<MessageLog>().GetDetails();
-        return new EmbedLog(embed, Attachment: messages.ToString());
+        return new EmbedLog(embed, messages.ToString());
     }
 
     private async Task<EmbedLog> BuildLogAsync(ILog log)
@@ -450,5 +450,12 @@ public class LoggingService
             .OrderByDescending(l => l.LogDate)
             .FirstOrDefaultAsync(filter, cancellationToken);
 
-    private record EmbedLog(EmbedBuilder Embed, string? Content = null, string? Attachment = null);
+    private record EmbedLog(Embed[] Embeds, string? Attachment = null)
+    {
+        public EmbedLog(EmbedBuilder embed, string? attachment = null)
+            : this(new[] { embed.Build() }, attachment) { }
+
+        public EmbedLog(EmbedBuilder embed, IEnumerable<EmbedBuilder> embeds)
+            : this(new[] { embed.Build() }.Concat(embeds.Select(e => e.Build())).ToArray()) { }
+    }
 }

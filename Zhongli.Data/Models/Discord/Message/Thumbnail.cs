@@ -3,7 +3,7 @@ using Discord;
 
 namespace Zhongli.Data.Models.Discord.Message;
 
-public class Thumbnail : IImage
+public class Thumbnail : IImage, IEquatable<Thumbnail>
 {
     protected Thumbnail() { }
 
@@ -15,15 +15,33 @@ public class Thumbnail : IImage
         Width    = thumbnail.Width;
     }
 
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
 
-    public int? Height { get; set; }
+    /// <inheritdoc />
+    public bool Equals(Thumbnail? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Height == other.Height && Width == other.Width && ProxyUrl == other.ProxyUrl && Url == other.Url;
+    }
 
-    public int? Width { get; set; }
+    public int? Height { get; init; }
 
-    public string ProxyUrl { get; set; } = null!;
+    public int? Width { get; init; }
 
-    public string Url { get; set; } = null!;
+    public string ProxyUrl { get; init; } = null!;
+
+    public string Url { get; init; } = null!;
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Thumbnail other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Height, Width, ProxyUrl, Url);
+
+    public static bool operator ==(Thumbnail? left, Thumbnail? right) => Equals(left, right);
+
+    public static bool operator !=(Thumbnail? left, Thumbnail? right) => !Equals(left, right);
 
     public static implicit operator Thumbnail(EmbedThumbnail thumbnail) => new(thumbnail);
 }

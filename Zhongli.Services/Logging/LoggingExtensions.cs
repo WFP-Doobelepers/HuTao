@@ -2,30 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Discord;
 using Humanizer;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Utilities;
-using Attachment = Zhongli.Data.Models.Discord.Message.Attachment;
 
 namespace Zhongli.Services.Logging;
 
 public static class LoggingExtensions
 {
-    public static EmbedBuilder AddImages(this EmbedBuilder embed, MessageLog log)
-    {
-        var images = log.GetImages().ToList();
-
-        var image = images.FirstOrDefault();
-        if (image is null) return embed;
-
-        return embed
-            .WithImageUrl(image.ProxyUrl)
-            .AddOtherImages(images.Skip(1).ToList());
-    }
-
     public static string ChannelMentionMarkdown(this IChannelEntity channel)
         => $"{channel.MentionChannel()} ({channel.ChannelId})";
 
@@ -60,14 +46,6 @@ public static class LoggingExtensions
         }
 
         return builder;
-    }
-
-    private static EmbedBuilder AddOtherImages(this EmbedBuilder embed, IReadOnlyCollection<IImage> images)
-    {
-        if (!images.Any()) return embed;
-
-        var builder = new StringBuilder().AppendImageUrls(images);
-        return embed.AddField("Other Images", builder.ToString());
     }
 
     private static IEnumerable<IImage> GetImages(this MessageLog log)

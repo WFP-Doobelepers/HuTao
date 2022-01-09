@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zhongli.Data;
@@ -11,9 +12,10 @@ using Zhongli.Data;
 namespace Zhongli.Data.Migrations
 {
     [DbContext(typeof(ZhongliContext))]
-    partial class ZhongliContextModelSnapshot : ModelSnapshot
+    [Migration("20220109055055_CompleteEmbedEntityModel")]
+    partial class CompleteEmbedEntityModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,7 +48,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildEntityId");
 
-                    b.ToTable("AuthorizationGroup", (string)null);
+                    b.ToTable("AuthorizationGroup");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Criteria.Criterion", b =>
@@ -81,7 +83,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("ModerationRulesId");
 
-                    b.ToTable("Criterion", (string)null);
+                    b.ToTable("Criterion");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Criterion");
                 });
@@ -104,7 +106,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("EnumChannels", (string)null);
+                    b.ToTable("EnumChannels");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("EnumChannel");
                 });
@@ -121,7 +123,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GenshinRulesId");
 
-                    b.ToTable("Guilds", (string)null);
+                    b.ToTable("Guilds");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.GuildUserEntity", b =>
@@ -152,7 +154,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Attachment", b =>
@@ -195,7 +197,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("MessageLogId");
 
-                    b.ToTable("Attachment", (string)null);
+                    b.ToTable("Attachment");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Author", b =>
@@ -219,7 +221,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Author", (string)null);
+                    b.ToTable("Author");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Embed", b =>
@@ -278,7 +280,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("Embed", (string)null);
+                    b.ToTable("Embed");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Field", b =>
@@ -305,7 +307,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("EmbedId");
 
-                    b.ToTable("Field", (string)null);
+                    b.ToTable("Field");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Footer", b =>
@@ -326,7 +328,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Footer", (string)null);
+                    b.ToTable("Footer");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Image", b =>
@@ -351,7 +353,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Image", (string)null);
+                    b.ToTable("Image");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Thumbnail", b =>
@@ -376,7 +378,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Thumbnail", (string)null);
+                    b.ToTable("Thumbnail");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Video", b =>
@@ -397,7 +399,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Video", (string)null);
+                    b.ToTable("Video");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Reaction.ReactionEntity", b =>
@@ -416,7 +418,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ReactionEntity", (string)null);
+                    b.ToTable("ReactionEntity");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("ReactionEntity");
                 });
@@ -457,7 +459,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildEntityId");
 
-                    b.ToTable("TemporaryRole", (string)null);
+                    b.ToTable("TemporaryRole");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.TemporaryRoleMember", b =>
@@ -501,7 +503,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("TemporaryRoleMember", (string)null);
+                    b.ToTable("TemporaryRoleMember");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Logging.DeleteLog", b =>
@@ -529,7 +531,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildEntityId");
 
-                    b.ToTable("DeleteLog", (string)null);
+                    b.ToTable("DeleteLog");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("DeleteLog");
                 });
@@ -548,7 +550,7 @@ namespace Zhongli.Data.Migrations
                     b.HasIndex("GuildId")
                         .IsUnique();
 
-                    b.ToTable("LoggingRules", (string)null);
+                    b.ToTable("LoggingRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Logging.MessageLog", b =>
@@ -607,7 +609,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("MessageLog", (string)null);
+                    b.ToTable("MessageLog");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Logging.ReactionLog", b =>
@@ -642,7 +644,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("ReactionLog", (string)null);
+                    b.ToTable("ReactionLog");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Moderation.AntiSpamRules", b =>
@@ -676,7 +678,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildId");
 
-                    b.ToTable("AntiSpamRules", (string)null);
+                    b.ToTable("AntiSpamRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Moderation.Infractions.Actions.ReprimandAction", b =>
@@ -691,7 +693,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ReprimandAction", (string)null);
+                    b.ToTable("ReprimandAction");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("ReprimandAction");
                 });
@@ -720,7 +722,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("ModerationAction", (string)null);
+                    b.ToTable("ModerationAction");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Moderation.Infractions.Reprimands.Reprimand", b =>
@@ -763,7 +765,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("Reprimand", (string)null);
+                    b.ToTable("Reprimand");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Reprimand");
                 });
@@ -795,7 +797,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("GuildEntityId");
 
-                    b.ToTable("ModerationTemplate", (string)null);
+                    b.ToTable("ModerationTemplate");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("ModerationTemplate");
                 });
@@ -833,7 +835,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("ModerationRulesId");
 
-                    b.ToTable("Trigger", (string)null);
+                    b.ToTable("Trigger");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Trigger");
                 });
@@ -865,7 +867,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ModerationLogConfig", (string)null);
+                    b.ToTable("ModerationLogConfig");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("ModerationLogConfig");
                 });
@@ -907,7 +909,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserLogId");
 
-                    b.ToTable("ModerationLoggingRules", (string)null);
+                    b.ToTable("ModerationLoggingRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Moderation.ModerationRules", b =>
@@ -944,7 +946,7 @@ namespace Zhongli.Data.Migrations
                     b.HasIndex("GuildId")
                         .IsUnique();
 
-                    b.ToTable("ModerationRules", (string)null);
+                    b.ToTable("ModerationRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.TimeTracking.GenshinTimeTrackingRules", b =>
@@ -980,7 +982,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("ServerStatusId");
 
-                    b.ToTable("GenshinTimeTrackingRules", (string)null);
+                    b.ToTable("GenshinTimeTrackingRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.TimeTracking.TimeTracking", b =>
@@ -998,7 +1000,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TimeTrackingRules", (string)null);
+                    b.ToTable("TimeTrackingRules");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("TimeTracking");
                 });
@@ -1032,7 +1034,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("UserId", "GuildId");
 
-                    b.ToTable("VoiceChatLink", (string)null);
+                    b.ToTable("VoiceChatLink");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.VoiceChat.VoiceChatRules", b =>
@@ -1064,7 +1066,7 @@ namespace Zhongli.Data.Migrations
                     b.HasIndex("GuildId")
                         .IsUnique();
 
-                    b.ToTable("VoiceChatRules", (string)null);
+                    b.ToTable("VoiceChatRules");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Criteria.ChannelCriterion", b =>

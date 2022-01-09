@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
+using Zhongli.Data.Models.Discord.Message;
+using Embed = Zhongli.Data.Models.Discord.Message.Embed;
 
 namespace Zhongli.Services.Utilities;
 
@@ -19,6 +21,11 @@ public enum AuthorOptions
 public static class EmbedBuilderExtensions
 {
     public delegate (string Title, StringBuilder Value) EntityViewerDelegate<in T>(T entity);
+
+    public static bool IsViewable(this Embed embed)
+        => embed.Length() > 0
+            || embed.Image is not null
+            || embed.Thumbnail is not null;
 
     public static EmbedAuthorBuilder WithGuildAsAuthor(this EmbedAuthorBuilder embed, IGuild guild,
         AuthorOptions authorOptions = AuthorOptions.None)
@@ -44,6 +51,20 @@ public static class EmbedBuilderExtensions
         var splitLines = SplitItemsIntoChunks(items, separator: separator).ToArray();
         return builder.AddIntoFields(title, splitLines);
     }
+
+    public static EmbedBuilder ToBuilder(this Embed embed, bool useProxy = false) => new()
+    {
+        Author       = embed.Author?.ToBuilder(useProxy),
+        Color        = embed.Color,
+        Description  = embed.Description,
+        Fields       = embed.Fields.Select(e => e.ToBuilder()).ToList(),
+        Footer       = embed.Footer?.ToBuilder(useProxy),
+        Timestamp    = embed.Timestamp,
+        Title        = embed.Title,
+        Url          = embed.Url,
+        ImageUrl     = useProxy ? embed.Image?.ProxyUrl : embed.Image?.Url,
+        ThumbnailUrl = useProxy ? embed.Thumbnail?.ProxyUrl : embed.Thumbnail?.Url
+    };
 
     public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
         AuthorOptions authorOptions = AuthorOptions.None)
@@ -74,6 +95,27 @@ public static class EmbedBuilderExtensions
             .Select((e, i) => new EmbedFieldBuilder()
                 .WithName($"{i}: {e.Title}")
                 .WithValue(e.Value));
+
+    public static int Length(this Embed embed)
+    {
+        return
+            L(embed.Title) +
+            L(embed.Author?.Name) +
+            L(embed.Description) +
+            L(embed.Footer?.Text) +
+            embed.Fields.Sum(f =>
+                L(f.Name) +
+                L(f.Value));
+
+        int L(string? s) => s?.Length ?? 0;
+    }
+
+    private static EmbedAuthorBuilder ToBuilder(this Author author, bool useProxy) => new()
+    {
+        Name    = author.Name,
+        Url     = author.Url,
+        IconUrl = useProxy ? author.ProxyIconUrl : author.IconUrl
+    };
 
     private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
         string name, string iconUrl, AuthorOptions authorOptions)
@@ -111,6 +153,19 @@ public static class EmbedBuilderExtensions
             ? embed.WithFooter(name, iconUrl)
             : embed.WithAuthor(name, iconUrl);
     }
+
+    private static EmbedFieldBuilder ToBuilder(this Field field) => new()
+    {
+        Name     = field.Name,
+        Value    = field.Value,
+        IsInline = field.Inline
+    };
+
+    private static EmbedFooterBuilder ToBuilder(this Footer footer, bool useProxy) => new()
+    {
+        Text    = footer.Text,
+        IconUrl = useProxy ? footer.ProxyUrl : footer.IconUrl
+    };
 
     private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
         int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)

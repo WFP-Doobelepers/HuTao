@@ -64,7 +64,7 @@ public class UserService
         var details = GetReprimands(userEntity);
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => CreateEmbed(r));
+            .Select(CreateEmbed);
 
         var pages = details.Concat(reprimands).ToPageBuilders(8, embed);
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
