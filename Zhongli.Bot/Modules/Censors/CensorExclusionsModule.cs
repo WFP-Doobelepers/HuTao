@@ -69,12 +69,6 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
     protected override bool IsMatch(Criterion entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
 
-    protected override async Task RemoveEntityAsync(Criterion censor)
-    {
-        _db.Remove(censor);
-        await _db.SaveChangesAsync();
-    }
-
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);

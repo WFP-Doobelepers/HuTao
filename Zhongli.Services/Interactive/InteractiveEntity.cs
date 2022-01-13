@@ -84,7 +84,11 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
 
-    protected abstract Task RemoveEntityAsync(T entity);
+    protected virtual async Task RemoveEntityAsync(T entity)
+    {
+        _db.Remove(entity);
+        await _db.SaveChangesAsync();
+    }
 
     protected virtual async Task ViewEntityAsync()
     {

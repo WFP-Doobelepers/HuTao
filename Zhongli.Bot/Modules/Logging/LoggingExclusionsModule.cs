@@ -57,23 +57,13 @@ public class LoggingExclusionsModule : InteractiveEntity<Criterion>
     [Command("exclusions")]
     [Alias("view exclusions", "list exclusions")]
     [Summary("View the configured logging exclusions.")]
-    protected async Task ViewExclusionsAsync()
-    {
-        var collection = await GetCollectionAsync();
-        await PagedViewAsync(collection);
-    }
+    protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override (string Title, StringBuilder Value) EntityViewer(Criterion entity)
         => (entity.Id.ToString(), new StringBuilder($"{entity}"));
 
     protected override bool IsMatch(Criterion entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
-    protected override async Task RemoveEntityAsync(Criterion criterion)
-    {
-        _db.Remove(criterion);
-        await _db.SaveChangesAsync();
-    }
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {

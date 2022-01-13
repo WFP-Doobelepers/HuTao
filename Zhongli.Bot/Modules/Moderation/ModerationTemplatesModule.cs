@@ -109,12 +109,6 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     protected override bool IsMatch(ModerationTemplate entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
 
-    protected override async Task RemoveEntityAsync(ModerationTemplate entity)
-    {
-        _db.Remove(entity);
-        await _db.SaveChangesAsync();
-    }
-
     protected override async Task<ICollection<ModerationTemplate>> GetCollectionAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
