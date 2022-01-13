@@ -71,7 +71,7 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
 
         _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-        _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>());
+        _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>(), false);
         _commands.AddTypeReader<IUser>(new TypeReaders.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
 
         _commands.AddTypeReader<RegexOptions>(

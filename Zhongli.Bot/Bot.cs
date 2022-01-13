@@ -27,6 +27,7 @@ using Zhongli.Services.Image;
 using Zhongli.Services.Logging;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
+using Zhongli.Services.Sticky;
 using Zhongli.Services.TimeTracking;
 
 namespace Zhongli.Bot;
@@ -65,6 +66,7 @@ public class Bot
             .AddScoped<ModerationLoggingService>()
             .AddScoped<LoggingService>()
             .AddScoped<UserService>()
+            .AddScoped<StickyService>()
             .AddScoped<GenshinTimeTrackingService>()
             .AddSingleton<IQuoteService, QuoteService>()
             .AddExpirableServices()
