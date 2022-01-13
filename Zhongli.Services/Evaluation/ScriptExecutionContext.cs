@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Humanizer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Services.Evaluation;
@@ -26,6 +25,7 @@ public class ScriptExecutionContext
             "Discord.WebSocket",
             "Humanizer",
             "Humanizer.Localisation",
+            "Microsoft.Extensions.DependencyInjection",
             "Newtonsoft.Json",
             "Newtonsoft.Json.Linq",
             "System",
@@ -45,20 +45,16 @@ public class ScriptExecutionContext
             "System.Text.Json"
         };
 
-    private static readonly List<Assembly> DefaultReferences =
+    private static readonly List<Assembly> BotAssemblies =
         new()
         {
-            typeof(Enumerable).GetTypeInfo().Assembly,
-            typeof(HttpClient).GetTypeInfo().Assembly,
-            typeof(List<>).GetTypeInfo().Assembly,
-            typeof(string).GetTypeInfo().Assembly,
-            typeof(ValueTuple).GetTypeInfo().Assembly,
-            typeof(Globals).GetTypeInfo().Assembly,
-            typeof(CollectionHumanizeExtensions).GetTypeInfo().Assembly
+            Assembly.GetEntryAssembly()!,
+            typeof(ZhongliContext).Assembly,
+            typeof(ScriptExecutionContext).Assembly
         };
 
-    private static readonly IEnumerable<string> AssemblyImports = Assembly
-        .GetEntryAssembly()!.GetTypes()
+    private static readonly IEnumerable<string> AssemblyImports = BotAssemblies
+        .SelectMany(a => a.GetTypes())
         .Select(x => x.Namespace)
         .OfType<string>();
 
@@ -77,7 +73,7 @@ public class ScriptExecutionContext
 
     public string Code { get; set; }
 
-    private HashSet<Assembly> References { get; } = new(DefaultReferences.Concat(AssemblyReferences));
+    private HashSet<Assembly> References { get; } = new(AssemblyReferences);
 
     private HashSet<string> Imports { get; } = new(DefaultImports.Concat(AssemblyImports));
 
