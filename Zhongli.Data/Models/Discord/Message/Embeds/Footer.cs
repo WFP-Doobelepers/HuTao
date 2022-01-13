@@ -1,7 +1,7 @@
 using System;
 using Discord;
 
-namespace Zhongli.Data.Models.Discord.Message;
+namespace Zhongli.Data.Models.Discord.Message.Embeds;
 
 public class Footer : IEquatable<Footer>
 {

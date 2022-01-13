@@ -23,7 +23,7 @@ using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
-using Embed = Discord.Embed;
+using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
 
 namespace Zhongli.Services.Logging;
 
@@ -190,7 +190,7 @@ public class LoggingService
     private async Task<bool> LogEmbedsUpdated(MessageLog log, IMessage message, CancellationToken cancellationToken)
     {
         var embeds = message.Embeds
-            .Select(embed => new Data.Models.Discord.Message.Embed(embed))
+            .Select(embed => new Data.Models.Discord.Message.Embeds.Embed(embed))
             .ToList();
 
         var embedsChanged = !embeds.SequenceEqual(log.Embeds);
@@ -291,7 +291,7 @@ public class LoggingService
 
         var embeds = log.Embeds
             .Where(e => e.IsViewable())
-            .Select(e => e.ToBuilder(true));
+            .Select(e => e.ToBuilder(UseProxy));
 
         return new EmbedLog(embed, embeds);
     }
@@ -437,7 +437,7 @@ public class LoggingService
     private async ValueTask<IUserMessage> GetMessageAsync(Cacheable<IUserMessage, ulong> cached)
         => await _memoryCache.GetOrCreateAsync(cached.Id, async cacheEntry =>
         {
-            cacheEntry.SlidingExpiration = TimeSpan.FromHours(1);
+            cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();
         });
 

@@ -5,6 +5,7 @@ using System.Text;
 using Humanizer;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
+using Zhongli.Data.Models.Discord.Message.Embeds;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Utilities;
 

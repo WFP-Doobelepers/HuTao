@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Discord;
 
-namespace Zhongli.Data.Models.Discord.Message;
+namespace Zhongli.Data.Models.Discord.Message.Embeds;
 
 public class Embed : IEquatable<Embed>
 {

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
-using Zhongli.Data.Models.Discord.Message;
-using Embed = Zhongli.Data.Models.Discord.Message.Embed;
+using Zhongli.Data.Models.Discord.Message.Embeds;
+using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
+using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
 
 namespace Zhongli.Services.Utilities;
 
@@ -21,6 +22,14 @@ public enum AuthorOptions
 public static class EmbedBuilderExtensions
 {
     public delegate (string Title, StringBuilder Value) EntityViewerDelegate<in T>(T entity);
+
+    [Flags]
+    public enum EmbedBuilderOptions
+    {
+        None = 0,
+        UseProxy = 1 << 0,
+        ReplaceTimestamps = 1 << 1
+    }
 
     public static bool IsViewable(this Embed embed)
         => embed.Length() > 0
@@ -52,18 +61,18 @@ public static class EmbedBuilderExtensions
         return builder.AddIntoFields(title, splitLines);
     }
 
-    public static EmbedBuilder ToBuilder(this Embed embed, bool useProxy = false) => new()
+    public static EmbedBuilder ToBuilder(this Embed embed, EmbedBuilderOptions options = None) => new()
     {
-        Author       = embed.Author?.ToBuilder(useProxy),
+        Author       = embed.Author?.ToBuilder(options),
         Color        = embed.Color,
         Description  = embed.Description,
         Fields       = embed.Fields.Select(e => e.ToBuilder()).ToList(),
-        Footer       = embed.Footer?.ToBuilder(useProxy),
-        Timestamp    = embed.Timestamp,
+        Footer       = embed.Footer?.ToBuilder(options),
+        Timestamp    = options.HasFlag(ReplaceTimestamps) ? DateTimeOffset.UtcNow : embed.Timestamp,
         Title        = embed.Title,
         Url          = embed.Url,
-        ImageUrl     = useProxy ? embed.Image?.ProxyUrl : embed.Image?.Url,
-        ThumbnailUrl = useProxy ? embed.Thumbnail?.ProxyUrl : embed.Thumbnail?.Url
+        ImageUrl     = options.HasFlag(UseProxy) ? embed.Image?.ProxyUrl : embed.Image?.Url,
+        ThumbnailUrl = options.HasFlag(UseProxy) ? embed.Thumbnail?.ProxyUrl : embed.Thumbnail?.Url
     };
 
     public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
@@ -110,11 +119,11 @@ public static class EmbedBuilderExtensions
         int L(string? s) => s?.Length ?? 0;
     }
 
-    private static EmbedAuthorBuilder ToBuilder(this Author author, bool useProxy) => new()
+    private static EmbedAuthorBuilder ToBuilder(this Author author, EmbedBuilderOptions options) => new()
     {
         Name    = author.Name,
         Url     = author.Url,
-        IconUrl = useProxy ? author.ProxyIconUrl : author.IconUrl
+        IconUrl = options.HasFlag(UseProxy) ? author.ProxyIconUrl : author.IconUrl
     };
 
     private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
@@ -161,10 +170,10 @@ public static class EmbedBuilderExtensions
         IsInline = field.Inline
     };
 
-    private static EmbedFooterBuilder ToBuilder(this Footer footer, bool useProxy) => new()
+    private static EmbedFooterBuilder ToBuilder(this Footer footer, EmbedBuilderOptions options) => new()
     {
         Text    = footer.Text,
-        IconUrl = useProxy ? footer.ProxyUrl : footer.IconUrl
+        IconUrl = options.HasFlag(UseProxy) ? footer.ProxyUrl : footer.IconUrl
     };
 
     private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,

@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
+using Zhongli.Data.Models.Discord.Message.Components;
 using Attachment = Zhongli.Data.Models.Discord.Message.Attachment;
-using Embed = Zhongli.Data.Models.Discord.Message.Embed;
+using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
 
 namespace Zhongli.Data.Models.Logging;
 
@@ -24,7 +25,9 @@ public class MessageLog : ILog, IMessageEntity
         User      = user;
         ChannelId = message.Channel.Id;
 
-        Content     = message.Content;
+        Content = message.Content;
+
+        Components  = message.Components.Cast<ActionRowComponent>().Select(c => new ActionRow(c)).ToList();
         Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
         Embeds      = message.Embeds.Select(e => new Embed(e)).ToList();
 
@@ -57,6 +60,10 @@ public class MessageLog : ILog, IMessageEntity
     public virtual GuildEntity Guild { get; set; } = null!;
 
     public virtual GuildUserEntity User { get; set; } = null!;
+
+    /// <inheritdoc cref="IMessage.Components" />
+    public virtual ICollection<ActionRow> Components { get; set; }
+        = new List<ActionRow>();
 
     /// <inheritdoc cref="IMessage.Attachments" />
     public virtual ICollection<Attachment> Attachments { get; set; } = null!;

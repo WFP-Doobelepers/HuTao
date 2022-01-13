@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Discord.Message.Components;
 using Zhongli.Data.Models.Discord.Reaction;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
@@ -21,6 +22,8 @@ public class ZhongliContext : DbContext
     public DbSet<BanAction> BanActions { get; init; } = null!;
 
     public DbSet<BanTemplate> BanTemplates { get; init; } = null!;
+
+    public DbSet<Button> Buttons { get; set; } = null!;
 
     public DbSet<Censor> Censors { get; init; } = null!;
 
@@ -71,6 +74,8 @@ public class ZhongliContext : DbContext
     public DbSet<ReprimandTrigger> ReprimandTriggers { get; init; } = null!;
 
     public DbSet<RoleCriterion> RoleCriteria { get; init; } = null!;
+
+    public DbSet<SelectMenu> SelectMenus { get; set; } = null!;
 
     public DbSet<TimeTracking> TimeTrackingRules { get; init; } = null!;
 
