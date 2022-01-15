@@ -40,7 +40,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
         var template = new MessageTemplate(message, options?.AllowMentions ?? false, options?.ResetTimestamps ?? false);
         var sticky = new StickyMessage(template, options?.TimeDelay, options?.CountDelay, channel);
 
-        await _sticky.AddStickyMessage(sticky, Context.Guild);
+        await _sticky.AddAsync(sticky, Context.Guild);
         await _sticky.SendStickyMessage(sticky, channel);
     }
 
@@ -59,6 +59,8 @@ public class StickyModule : InteractiveEntity<StickyMessage>
 
     protected override bool IsMatch(StickyMessage entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override Task RemoveEntityAsync(StickyMessage entity) => _sticky.DeleteAsync(entity);
 
     protected override Task<ICollection<StickyMessage>> GetCollectionAsync()
         => _sticky.GetStickyMessages(Context.Guild);

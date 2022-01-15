@@ -83,4 +83,10 @@ public static class DbSetExtensions
     public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
         CancellationToken cancellationToken = default)
         where T : class => dbSet.FindAsync(new[] { key }, cancellationToken);
+
+    public static void TryRemove<T>(this DbContext context, T? entity)
+    {
+        if (entity is not null)
+            context.Remove(entity);
+    }
 }

@@ -12,7 +12,7 @@ public class MenuOption
     {
         IsDefault   = option.IsDefault;
         Description = option.Description;
-        Emote       = option.Emote.ToString();
+        Emote       = option.Emote?.ToString();
         Label       = option.Label;
         Value       = option.Value;
     }

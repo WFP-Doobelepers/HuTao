@@ -11,7 +11,8 @@ public class Button : Component
     {
         IsDisabled = button.IsDisabled;
         CustomId   = button.CustomId;
-        Emote      = button.Emote.ToString();
+        Style      = button.Style;
+        Emote      = button.Emote?.ToString();
         Label      = button.Label;
         Url        = button.Url;
     }

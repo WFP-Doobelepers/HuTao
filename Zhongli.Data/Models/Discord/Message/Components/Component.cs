@@ -9,5 +9,5 @@ public abstract class Component
 
     public bool IsDisabled { get; set; }
 
-    [MaxLength(100)] public string CustomId { get; set; } = null!;
+    [MaxLength(100)] public string? CustomId { get; set; }
 }
