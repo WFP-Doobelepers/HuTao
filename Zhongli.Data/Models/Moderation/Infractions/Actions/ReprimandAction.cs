@@ -6,5 +6,5 @@ public abstract class ReprimandAction
 {
     public Guid Id { get; set; }
 
-    public override string ToString() => ((IAction) this).Action;
+    public override string? ToString() => (this as IAction)?.Action;
 }

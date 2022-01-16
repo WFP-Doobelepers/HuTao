@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Discord;
+using Zhongli.Data.Models.Discord.Message.Linking;
 
 namespace Zhongli.Data.Models.Discord.Message;
 

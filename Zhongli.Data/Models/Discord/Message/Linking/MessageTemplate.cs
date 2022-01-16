@@ -1,31 +1,32 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Discord;
 using Zhongli.Data.Models.Discord.Message.Components;
 using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
 
-namespace Zhongli.Data.Models.Discord.Message;
+namespace Zhongli.Data.Models.Discord.Message.Linking;
 
 public class MessageTemplate
 {
     protected MessageTemplate() { }
 
-    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public MessageTemplate(IMessage message, bool allowMentions, bool replaceTimeStamps)
+    public MessageTemplate(IMessage message, IMessageTemplateOptions? options)
     {
-        AllowMentions     = allowMentions;
-        ReplaceTimestamps = replaceTimeStamps;
+        ChannelId         = message.Channel.Id;
+        MessageId         = message.Id;
+        AllowMentions     = options?.AllowMentions ?? false;
+        IsLive            = options?.Live ?? false;
+        ReplaceTimestamps = options?.ReplaceTimestamps ?? false;
 
-        Content     = message.Content;
-        Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
-        Embeds      = message.Embeds.Select(e => new Embed(e)).ToList();
+        UpdateTemplate(message);
     }
 
     public Guid Id { get; set; }
 
     public bool AllowMentions { get; set; }
+
+    public bool IsLive { get; set; }
 
     public bool ReplaceTimestamps { get; set; }
 
@@ -43,4 +44,17 @@ public class MessageTemplate
 
     /// <inheritdoc cref="IMessage.Content" />
     public string? Content { get; set; }
+
+    /// <inheritdoc cref="IMessage.Channel" />
+    public ulong ChannelId { get; set; }
+
+    /// <inheritdoc cref="IMessage.Id" />
+    public ulong MessageId { get; set; }
+
+    public void UpdateTemplate(IMessage message)
+    {
+        Content     = message.Content;
+        Attachments = message.Attachments.Select(a => new Attachment(a)).ToList();
+        Embeds      = message.Embeds.Select(e => new Embed(e)).ToList();
+    }
 }

@@ -8,10 +8,12 @@ using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord.Message;
+using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
+using Zhongli.Services.Linking;
 using Zhongli.Services.Sticky;
 
 namespace Zhongli.Bot.Modules;
@@ -37,7 +39,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
         StickyMessageOptions? options = null)
     {
         var channel = options?.Channel ?? (ITextChannel) Context.Channel;
-        var template = new MessageTemplate(message, options?.AllowMentions ?? false, options?.ResetTimestamps ?? false);
+        var template = new MessageTemplate(message, options);
         var sticky = new StickyMessage(template, options?.TimeDelay, options?.CountDelay, channel);
 
         await _sticky.AddAsync(sticky, Context.Guild);
@@ -65,12 +67,13 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     protected override Task<ICollection<StickyMessage>> GetCollectionAsync()
         => _sticky.GetStickyMessages(Context.Guild);
 
-    private static StringBuilder GetStickyMessageDetails(StickyMessage entity)
+    private StringBuilder GetStickyMessageDetails(StickyMessage entity)
     {
         var template = entity.Template;
         var builder = new StringBuilder()
             .AppendLine($"▌Channel: <#{entity.ChannelId}>")
             .AppendLine($"▌Content: {template.Content}")
+            .AppendLine($"▌Live: [{template.GetJumpUrl(Context.Guild)}](Jump)")
             .AppendLine($"▌Embeds: {template.Embeds.Count}");
 
         var embed = template.Embeds.FirstOrDefault();
@@ -85,14 +88,8 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     }
 
     [NamedArgumentType]
-    public class StickyMessageOptions
+    public class StickyMessageOptions : IMessageTemplateOptions
     {
-        [HelpSummary("True to allow mentions and False to not.")]
-        public bool AllowMentions { get; set; }
-
-        [HelpSummary("True if you want embed timestamps to use the current time, false if not.")]
-        public bool ResetTimestamps { get; set; }
-
         [HelpSummary("Optionally the text channel that the sticky message will be sent to.")]
         public ITextChannel? Channel { get; set; }
 
@@ -101,5 +98,14 @@ public class StickyModule : InteractiveEntity<StickyMessage>
 
         [HelpSummary("The message count delay to wait before sending another sticky.")]
         public uint? CountDelay { get; set; }
+
+        [HelpSummary("True to allow mentions and False to not.")]
+        public bool AllowMentions { get; set; }
+
+        [HelpSummary("True if you want the message to be live, where it will update its contents continuously.")]
+        public bool Live { get; set; }
+
+        [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
+        public bool ReplaceTimestamps { get; set; }
     }
 }

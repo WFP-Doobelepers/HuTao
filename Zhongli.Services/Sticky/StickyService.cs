@@ -9,6 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Components;
+using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.Utilities;
 using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
 
@@ -75,8 +76,10 @@ public class StickyService
     public async Task SendStickyMessage(StickyMessage sticky, ITextChannel channel)
     {
         var template = sticky.Template;
-
         if (!ShouldResendSticky(sticky, out var details)) return;
+
+        if (sticky.Template.IsLive)
+            await UpdateAsync(template, details, channel.Guild);
 
         while (details.Messages.TryDequeue(out var message))
         {
@@ -128,5 +131,17 @@ public class StickyService
 
             return true;
         }
+    }
+
+    private static async Task UpdateAsync(MessageTemplate template, StickyMessageDetails details, IGuild guild)
+    {
+        if (details.LiveMessage is null)
+        {
+            var channel = await guild.GetTextChannelAsync(template.ChannelId);
+            details.LiveMessage = await channel.GetMessageAsync(template.MessageId);
+        }
+
+        if (details.LiveMessage is null) return;
+        template.UpdateTemplate(details.LiveMessage);
     }
 }
