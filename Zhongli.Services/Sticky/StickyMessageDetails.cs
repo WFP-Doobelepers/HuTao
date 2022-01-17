@@ -9,7 +9,7 @@ public class StickyMessageDetails
 {
     public CancellationTokenSource Token { get; set; } = new();
 
-    public ConcurrentQueue<IUserMessage> Messages { get; } = new();
+    public ConcurrentBag<IUserMessage> Messages { get; } = new();
 
     public DateTimeOffset? LastSent { get; set; }
 

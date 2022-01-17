@@ -81,7 +81,7 @@ public class StickyService
         if (sticky.Template.IsLive)
             await UpdateAsync(template, details, channel.Guild);
 
-        while (details.Messages.TryDequeue(out var message))
+        while (details.Messages.TryTake(out var message))
         {
             _ = message?.DeleteAsync();
         }
@@ -91,7 +91,7 @@ public class StickyService
         var components = template.Components.ToBuilder();
 
         if (details.Token.IsCancellationRequested) return;
-        details.Messages.Enqueue(await channel.SendMessageAsync(
+        details.Messages.Add(await channel.SendMessageAsync(
             template.Content,
             allowedMentions: template.AllowMentions
                 ? AllowedMentions.All
