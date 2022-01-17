@@ -10,7 +10,9 @@ using Discord.Net;
 using Discord.WebSocket;
 using Fergun.Interactive;
 using Humanizer;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
@@ -21,7 +23,8 @@ namespace Zhongli.Bot.Modules;
 [Name("Role Management")]
 [Summary("Manages roles.")]
 [RequireBotPermission(GuildPermission.ManageRoles)]
-[RequireUserPermission(GuildPermission.ManageRoles)]
+[RequireUserPermission(GuildPermission.ManageRoles, Group = nameof(RoleModule))]
+[RequireAuthorization(AuthorizationScope.Roles, Group = nameof(RoleModule))]
 public class RoleModule : ModuleBase<SocketCommandContext>
 {
     private readonly InteractiveService _interactive;

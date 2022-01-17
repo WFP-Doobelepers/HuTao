@@ -23,6 +23,9 @@ public enum AuthorizationScope
 
     Note = 1 << 7,
 
+    [Description("Allows managing of roles.")]
+    Roles = 1 << 8,
+
     [Description("Allows warning, mute, kick, notes, and ban.")]
     Moderator = Warning | Mute | Kick | Ban | Note,
 
