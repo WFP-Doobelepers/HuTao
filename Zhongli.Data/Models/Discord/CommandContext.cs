@@ -12,6 +12,5 @@ public class CommandContext : Context, ICommandContext
         Message = context.Message;
     }
 
-    /// <inheritdoc />
     public IUserMessage Message { get; }
 }
