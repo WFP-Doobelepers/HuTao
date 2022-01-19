@@ -13,7 +13,5 @@ public class StickyMessageDetails
 
     public DateTimeOffset? LastSent { get; set; }
 
-    public IMessage? LiveMessage { get; set; }
-
     public int MessageCount { get; set; }
 }

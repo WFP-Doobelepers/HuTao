@@ -79,7 +79,7 @@ public class StickyService
         if (!ShouldResendSticky(sticky, out var details)) return;
 
         if (sticky.Template.IsLive)
-            await UpdateAsync(template, details, channel.Guild);
+            await UpdateAsync(template, channel.Guild);
 
         while (details.Messages.TryTake(out var message))
         {
@@ -133,15 +133,12 @@ public class StickyService
         }
     }
 
-    private static async Task UpdateAsync(MessageTemplate template, StickyMessageDetails details, IGuild guild)
+    private static async Task UpdateAsync(MessageTemplate template, IGuild guild)
     {
-        if (details.LiveMessage is null)
-        {
-            var channel = await guild.GetTextChannelAsync(template.ChannelId);
-            details.LiveMessage = await channel.GetMessageAsync(template.MessageId);
-        }
+        var channel = await guild.GetTextChannelAsync(template.ChannelId);
+        var message = await channel.GetMessageAsync(template.MessageId);
 
-        if (details.LiveMessage is null) return;
-        template.UpdateTemplate(details.LiveMessage);
+        if (message is null) return;
+        template.UpdateTemplate(message);
     }
 }
