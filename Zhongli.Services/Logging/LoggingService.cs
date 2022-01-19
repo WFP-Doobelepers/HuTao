@@ -289,11 +289,14 @@ public class LoggingService
             .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
             .AddField("Message", log.JumpUrlMarkdown(), true);
 
+        var attachments = log.Attachments.Chunk(4)
+            .SelectMany(attachments => attachments.ToBuilder());
+
         var embeds = log.Embeds
             .Where(e => e.IsViewable())
             .Select(e => e.ToBuilder(UseProxy));
 
-        return new EmbedLog(embed, embeds);
+        return new EmbedLog(embed, attachments.Concat(embeds));
     }
 
     private async Task<EmbedLog> AddDetailsAsync<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
