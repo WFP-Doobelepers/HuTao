@@ -101,8 +101,15 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public InteractionType Type => Interaction.Type;
 
     /// <inheritdoc />
+    public string GuildLocale => Interaction.GuildLocale;
+
+    /// <inheritdoc />
     public string Token => Interaction.Token;
 
+    /// <inheritdoc />
+    public string UserLocale => Interaction.UserLocale;
+
+    /// <inheritdoc />
     public IDiscordInteraction Interaction { get; }
 
     /// <inheritdoc />

@@ -15,13 +15,9 @@ public static class ComponentBuilderExtensions
 
         var builders = rows
             .Select(r => r.Components.Select(c => c.ToComponent()))
-            .Select(c => new ActionRowBuilder().WithComponents(c.ToList()))
-            .ToList();
+            .Select(c => new ActionRowBuilder().WithComponents(c.ToList()));
 
-        return new ComponentBuilder
-        {
-            ActionRows = builders
-        };
+        return new ComponentBuilder().WithRows(builders);
     }
 
     private static ButtonBuilder ToBuilder(this Button button) => new()
