@@ -277,6 +277,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         var embed = new EmbedBuilder()
             .WithGuildAsAuthor(Context.Guild)
             .WithTitle($"{role.Name} ({role.Id})")
+            .WithColor(role.Color)
             .AddField("Mention", role.Mention, true)
             .AddField("Members", members.Count, true)
             .AddField("Color", role.Color, true)
