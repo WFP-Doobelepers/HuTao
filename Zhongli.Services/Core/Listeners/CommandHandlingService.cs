@@ -59,8 +59,6 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
                 _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild,
                     message.Author);
             }
-            else if (!result.IsSuccess)
-                await CommandFailedAsync(context, result);
         }
     }
 
@@ -99,17 +97,17 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }
 
-    private static Task CommandExecutedAsync(
-        Optional<CommandInfo> command, ICommandContext context, IResult result) => Task.CompletedTask;
-
-    private async Task CommandFailedAsync(ICommandContext context, IResult result)
+    private async Task CommandExecutedAsync(
+        Optional<CommandInfo> command, ICommandContext context, IResult result)
     {
-        var error = $"{result.Error}: {result.ErrorReason}";
+        if (result.IsSuccess) return;
 
         if (result.Error is not CommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
-            await _errorHandler.AssociateError(context.Message, error);
+            _log.LogError("{Error}: {ErrorReason} in {Name}",
+                result.Error, result.ErrorReason, command.Value?.Name);
+
+            await _errorHandler.AssociateError(context.Message, $"{result.Error}: {result.ErrorReason}");
         }
     }
 }
