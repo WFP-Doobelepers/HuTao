@@ -166,6 +166,7 @@ public class Bot
         await services.GetRequiredService<InteractionHandlingService>().InitializeAsync();
 
         var commands = services.GetRequiredService<CommandService>();
+        var interaction = services.GetRequiredService<InteractionService>();
         var client = services.GetRequiredService<DiscordSocketClient>();
         var listener = services.GetRequiredService<DiscordSocketListener>();
 
@@ -177,8 +178,9 @@ public class Bot
         client.Disconnected += _ => ClientOnDisconnected(client);
         client.Connected    += ClientOnConnected;
 
-        commands.Log += LogAsync;
-        client.Log   += LogAsync;
+        client.Log      += LogAsync;
+        commands.Log    += LogAsync;
+        interaction.Log += LogAsync;
 
         await client.LoginAsync(TokenType.Bot, ZhongliConfig.Configuration.Token);
         await client.StartAsync();
