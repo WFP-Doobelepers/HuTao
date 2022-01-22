@@ -18,6 +18,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Command("avatar")]
     [Alias("av")]
     [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public async Task AvatarAsync(
         [Summary("The mention, username or ID of the user.")]
         IUser? user = null)
@@ -43,6 +44,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Command("user")]
     [Alias("whois")]
     [Summary("Views the information of a user. Leave blank to view self.")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public async Task UserAsync(
         [Summary("The mention, username or ID of the user.")]
         IUser? user = null)
