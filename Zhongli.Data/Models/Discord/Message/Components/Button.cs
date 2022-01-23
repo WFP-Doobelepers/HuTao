@@ -29,4 +29,8 @@ public class Button : Component
 
     /// <inheritdoc cref="ButtonComponent.Url" />
     public string? Url { get; init; }
+
+    public static implicit operator Button(ButtonComponent row) => new(row);
+
+    public static implicit operator Button(ButtonBuilder builder) => new(builder.Build());
 }

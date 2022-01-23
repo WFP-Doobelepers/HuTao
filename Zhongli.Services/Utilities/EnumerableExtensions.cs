@@ -60,4 +60,10 @@ public static class EnumerableExtensions
                 possibleTail.Enqueue(item);
         }
     }
+
+    public static T Insert<T>(this ICollection<T> collection, T add)
+    {
+        collection.Add(add);
+        return add;
+    }
 }

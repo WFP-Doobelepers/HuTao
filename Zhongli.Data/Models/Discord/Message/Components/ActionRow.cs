@@ -8,12 +8,16 @@ namespace Zhongli.Data.Models.Discord.Message.Components;
 
 public class ActionRow
 {
-    protected ActionRow() { }
+    public ActionRow() { }
+
+    public ActionRow(ActionRowComponent row) : this(row.Components) { }
+
+    public ActionRow(ActionRowBuilder row) : this(row.Components) { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public ActionRow(ActionRowComponent row)
+    private ActionRow(IEnumerable<IMessageComponent> components)
     {
-        Components = row.Components
+        Components = components
             .Select<IMessageComponent, Component>(c => c switch
             {
                 ButtonComponent button   => new Button(button),
@@ -26,4 +30,8 @@ public class ActionRow
     public Guid Id { get; set; }
 
     public virtual ICollection<Component> Components { get; set; } = new List<Component>();
+
+    public static implicit operator ActionRow(ActionRowComponent row) => new(row);
+
+    public static implicit operator ActionRow(ActionRowBuilder builder) => new(builder);
 }

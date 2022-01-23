@@ -24,6 +24,7 @@ using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Evaluation;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Image;
+using Zhongli.Services.Linking;
 using Zhongli.Services.Logging;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
@@ -67,6 +68,7 @@ public class Bot
             .AddScoped<LoggingService>()
             .AddScoped<UserService>()
             .AddScoped<StickyService>()
+            .AddScoped<LinkingService>()
             .AddScoped<GenshinTimeTrackingService>()
             .AddSingleton<IQuoteService, QuoteService>()
             .AddExpirableServices()

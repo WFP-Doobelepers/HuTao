@@ -36,4 +36,8 @@ public class MenuOption
 
     /// <inheritdoc cref="SelectMenuOption.Emote" />
     public string? Emote { get; set; }
+
+    public static implicit operator MenuOption(SelectMenuOption row) => new(row);
+
+    public static implicit operator MenuOption(SelectMenuOptionBuilder builder) => new(builder.Build());
 }

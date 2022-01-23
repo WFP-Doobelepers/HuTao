@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord.Message;
-using Zhongli.Data.Models.Discord.Message.Components;
-using Zhongli.Data.Models.Discord.Message.Linking;
+using Zhongli.Services.Linking;
 using Zhongli.Services.Utilities;
 using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
 
@@ -46,40 +46,20 @@ public class StickyService
 
         _cache.Remove(template.Id);
 
-        foreach (var component in template.Components.SelectMany(c => c.Components))
-        {
-            _db.Remove(component);
-            if (component is SelectMenu menu)
-                _db.RemoveRange(menu.Options);
-        }
-
-        foreach (var embed in template.Embeds)
-        {
-            _db.RemoveRange(embed.Fields);
-            _db.TryRemove(embed.Author);
-            _db.TryRemove(embed.Footer);
-            _db.TryRemove(embed.Image);
-            _db.TryRemove(embed.Thumbnail);
-            _db.TryRemove(embed.Video);
-        }
-
-        _db.RemoveRange(template.Attachments);
-        _db.RemoveRange(template.Components);
-        _db.RemoveRange(template.Embeds);
-
-        _db.Remove(template);
+        _db.TryRemove(template);
         _db.Remove(sticky);
 
         await _db.SaveChangesAsync();
     }
 
+    [SuppressMessage("ReSharper", "ConstantConditionalAccessQualifier")]
     public async Task SendStickyMessage(StickyMessage sticky, ITextChannel channel)
     {
         var template = sticky.Template;
         if (!ShouldResendSticky(sticky, out var details)) return;
 
         if (sticky.Template.IsLive)
-            await UpdateAsync(template, channel.Guild);
+            await template.UpdateAsync(channel.Guild);
 
         while (details.Messages.TryTake(out var message))
         {
@@ -131,14 +111,5 @@ public class StickyService
 
             return true;
         }
-    }
-
-    private static async Task UpdateAsync(MessageTemplate template, IGuild guild)
-    {
-        var channel = await guild.GetTextChannelAsync(template.ChannelId);
-        var message = await channel.GetMessageAsync(template.MessageId);
-
-        if (message is null) return;
-        template.UpdateTemplate(message);
     }
 }

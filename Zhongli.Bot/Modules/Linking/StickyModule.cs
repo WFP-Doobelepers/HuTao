@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
@@ -16,7 +15,7 @@ using Zhongli.Services.Interactive;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Sticky;
 
-namespace Zhongli.Bot.Modules;
+namespace Zhongli.Bot.Modules.Linking;
 
 [Name("Sticky Messages")]
 [Group("sticky")]
@@ -70,21 +69,10 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     private StringBuilder GetStickyMessageDetails(StickyMessage entity)
     {
         var template = entity.Template;
-        var builder = new StringBuilder()
+
+        return new StringBuilder()
             .AppendLine($"▌Channel: <#{entity.ChannelId}>")
-            .AppendLine($"▌Content: {template.Content}")
-            .AppendLine($"▌Live: [{template.GetJumpUrl(Context.Guild)}](Jump)")
-            .AppendLine($"▌Embeds: {template.Embeds.Count}");
-
-        var embed = template.Embeds.FirstOrDefault();
-        if (embed is not null)
-        {
-            builder
-                .AppendLine($"▌▌Title: {embed.Title}")
-                .AppendLine($"▌▌Description: {embed.Description}");
-        }
-
-        return builder;
+            .Append(template.GetTemplateDetails(Context.Guild));
     }
 
     [NamedArgumentType]
@@ -103,7 +91,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
         public bool AllowMentions { get; set; }
 
         [HelpSummary("True if you want the message to be live, where it will update its contents continuously.")]
-        public bool Live { get; set; }
+        public bool IsLive { get; set; }
 
         [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
         public bool ReplaceTimestamps { get; set; }

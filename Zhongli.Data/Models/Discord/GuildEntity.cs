@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord.Message;
+using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -28,6 +29,9 @@ public class GuildEntity
 
     public virtual ICollection<DeleteLog> DeleteLogs { get; set; }
         = new List<DeleteLog>();
+
+    public virtual ICollection<LinkedButton> LinkedButtons { get; set; }
+        = new List<LinkedButton>();
 
     public virtual ICollection<MessageLog> MessageLogs { get; set; }
         = new List<MessageLog>();

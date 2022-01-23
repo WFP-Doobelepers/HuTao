@@ -8,17 +8,42 @@ namespace Zhongli.Services.Utilities;
 
 public static class ComponentBuilderExtensions
 {
-    public static ComponentBuilder? ToBuilder(this ICollection<ActionRow> rows)
-    {
-        if (rows.Count is 0)
-            return null;
+    private const int MaxActionRowCount = 5;
+    private const int MaxComponentsCount = 5;
 
+    public static ComponentBuilder ToBuilder(this IEnumerable<ActionRow> rows)
+    {
         var builders = rows
             .Select(r => r.Components.Select(c => c.ToComponent()))
             .Select(c => new ActionRowBuilder().WithComponents(c.ToList()));
 
         return new ComponentBuilder().WithRows(builders);
     }
+
+    public static ICollection<ActionRow> AddComponent(this ICollection<ActionRow> rows, Component component,
+        int row = 0)
+    {
+        if (row > MaxActionRowCount)
+            throw new ArgumentOutOfRangeException(nameof(row), row, $"There can only be {MaxActionRowCount} rows.");
+
+        var actionRow = rows.ElementAtOrDefault(row) ?? rows.Insert(new ActionRow());
+
+        if (actionRow.CanTakeComponent(component))
+            actionRow.AddComponent(component);
+        else if (row < MaxActionRowCount)
+            rows.AddComponent(component, row + 1);
+        else
+            throw new InvalidOperationException($"There is no more row to add this {nameof(component)}.");
+
+        return rows;
+    }
+
+    private static bool CanTakeComponent(this ActionRow row, Component component) => component switch
+    {
+        Button     => row.Components.All(c => c is not SelectMenu) && row.Components.Count < MaxComponentsCount,
+        SelectMenu => row.Components.Count is 0,
+        _          => false
+    };
 
     private static ButtonBuilder ToBuilder(this Button button) => new()
     {
@@ -59,4 +84,12 @@ public static class ComponentBuilderExtensions
         Label       = option.Label,
         Value       = option.Value
     };
+
+    private static void AddComponent(this ActionRow row, Component component)
+    {
+        if (row.Components.Count >= MaxComponentsCount)
+            throw new InvalidOperationException($"Components count reached {MaxComponentsCount}");
+
+        row.Components.Insert(component);
+    }
 }

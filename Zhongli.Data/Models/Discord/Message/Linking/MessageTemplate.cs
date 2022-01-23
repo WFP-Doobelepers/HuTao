@@ -16,7 +16,7 @@ public class MessageTemplate
         ChannelId         = message.Channel.Id;
         MessageId         = message.Id;
         AllowMentions     = options?.AllowMentions ?? false;
-        IsLive            = options?.Live ?? false;
+        IsLive            = options?.IsLive ?? false;
         ReplaceTimestamps = options?.ReplaceTimestamps ?? false;
 
         UpdateTemplate(message);

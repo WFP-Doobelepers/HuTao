@@ -33,4 +33,8 @@ public class SelectMenu : Component
     /// <inheritdoc cref="SelectMenuComponent.Placeholder" />
     [MaxLength(100)]
     public string? Placeholder { get; set; }
+
+    public static implicit operator SelectMenu(SelectMenuComponent row) => new(row);
+
+    public static implicit operator SelectMenu(SelectMenuBuilder builder) => new(builder.Build());
 }
