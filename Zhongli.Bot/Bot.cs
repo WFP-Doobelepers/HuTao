@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -126,7 +125,6 @@ public class Bot
         return Task.CompletedTask;
     }
 
-    [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
     private static Task LogAsync(LogMessage message)
     {
         var severity = message.Severity switch
