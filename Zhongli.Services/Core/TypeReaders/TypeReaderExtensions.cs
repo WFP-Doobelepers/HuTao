@@ -5,11 +5,7 @@ namespace Zhongli.Services.Core.TypeReaders;
 
 public static class TypeReaderExtensions
 {
-    public static CommandService AddEnumerableTypeReader<TResult, TReader>(
-        this CommandService commands) where TReader : TypeReader, new()
-        => commands.AddEnumerableTypeReader<TResult>(new TReader());
-
-    public static CommandService AddEnumerableTypeReader<TResult>(
+    public static void AddEnumerableTypeReader<TResult>(
         this CommandService commands, TypeReader typeReader)
     {
         var reader = new EnumerableTypeReader<TResult>(typeReader);
@@ -23,7 +19,11 @@ public static class TypeReaderExtensions
         commands.AddTypeReader<TResult[]>(reader);
         commands.AddTypeReader<ICollection<TResult>>(reader);
         commands.AddTypeReader<IReadOnlyCollection<TResult>>(reader);
-
-        return commands;
     }
+
+    public static void AddTypeReaders<TResult>(this CommandService commands, params TypeReader[] readers)
+        => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
+
+    public static void AddTypeReaders<TResult>(this CommandService commands, IEnumerable<TypeReader> readers)
+        => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
 }

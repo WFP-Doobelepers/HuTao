@@ -68,11 +68,15 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
 
-        _commands.AddTypeReader<IMessage>(new JumpUrlTypeReader());
-        _commands.AddTypeReader<IMessage>(new TypeReaders.MessageTypeReader<IMessage>(), false);
         _commands.AddTypeReader<IUser>(new TypeReaders.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
-        _commands.AddTypeReader<IEmote>(new TryParseTypeReader<Emote>(Emote.TryParse));
-        _commands.AddTypeReader<IEmote>(new TryParseTypeReader<Emoji>(Emoji.TryParse));
+
+        _commands.AddTypeReaders<IMessage>(
+            new JumpUrlTypeReader(),
+            new TypeReaders.MessageTypeReader<IMessage>());
+
+        _commands.AddTypeReaders<IEmote>(
+            new TryParseTypeReader<Emote>(Emote.TryParse),
+            new TryParseTypeReader<Emoji>(Emoji.TryParse));
 
         _commands.AddTypeReader<RegexOptions>(
             new EnumFlagsTypeReader<RegexOptions>(
