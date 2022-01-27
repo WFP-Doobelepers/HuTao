@@ -29,7 +29,7 @@ public class Censor : Trigger, ICensor, ITriggerAction
 
     public bool Silent { get; set; }
 
-    public virtual ICollection<Criterion> Exclusions { get; set; } = null!;
+    public virtual ICollection<Criterion> Exclusions { get; set; } = new List<Criterion>();
 
     public RegexOptions Options { get; set; }
 

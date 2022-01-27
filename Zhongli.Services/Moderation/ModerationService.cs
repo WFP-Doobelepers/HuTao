@@ -37,9 +37,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task CensorAsync(SocketMessage message, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var censored = new Censored(message.Content, length, details);
-
-        _db.Add(censored);
+        var censored =  _db.Add(new Censored(message.Content, length, details)).Entity;
         await _db.SaveChangesAsync(cancellationToken);
 
         if (details.Trigger is Censor censor)

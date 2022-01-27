@@ -9,10 +9,9 @@ using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
-using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
 
-namespace Zhongli.Bot.Behaviors;
+namespace Zhongli.Services.Moderation;
 
 public class CensorBehavior :
     INotificationHandler<MessageReceivedNotification>,
@@ -42,8 +41,8 @@ public class CensorBehavior :
             return;
 
         var guild = channel.Guild;
-        var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
-        if (guildEntity is null || cancellationToken.IsCancellationRequested)
+        var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+        if (cancellationToken.IsCancellationRequested)
             return;
 
         if (guildEntity.ModerationRules.CensorExclusions.Any(e => e.Judge(channel, user)))

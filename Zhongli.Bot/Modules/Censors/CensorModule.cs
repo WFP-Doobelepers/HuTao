@@ -28,7 +28,7 @@ namespace Zhongli.Bot.Modules.Censors;
 [Name("Censor")]
 [Group("censor")]
 [Alias("censors")]
-[Summary("Manages cencors and what action will be done to the user who triggers them.")]
+[Summary("Manages censors and what action will be done to the user who triggers them.")]
 public class CensorModule : InteractiveTrigger<Censor>
 {
     private const string PatternSummary = "The .NET flavor regex pattern to be used.";
