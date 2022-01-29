@@ -24,8 +24,7 @@ public static class InteractiveExtensions
     }
 
     public static StaticPaginatorBuilder CreateDefaultPaginator() => new StaticPaginatorBuilder()
-        .WithDefaultEmotes()
         .WithInputType(InputType.Buttons)
-        .WithActionOnTimeout(ActionOnStop.DeleteInput)
-        .WithActionOnCancellation(ActionOnStop.DeleteInput);
+        .WithActionOnTimeout(ActionOnStop.DisableInput)
+        .WithActionOnCancellation(ActionOnStop.DisableInput);
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -60,11 +59,11 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
     [Summary("View message templates.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(MessageTemplate entity)
-        => (entity.Id.ToString(), entity.GetTemplateDetails(Context.Guild));
-
     protected override bool IsMatch(MessageTemplate entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(MessageTemplate entity)
+        => new EmbedBuilder().WithTemplateDetails(entity, Context.Guild);
 
     protected override Task RemoveEntityAsync(MessageTemplate entity) => _linking.DeleteAsync(entity);
 

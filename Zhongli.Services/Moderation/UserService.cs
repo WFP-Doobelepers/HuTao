@@ -60,13 +60,22 @@ public class UserService
             .Where(u => u.UserId == user.Id)
             .OfType(type);
 
-        var embed = new EmbedBuilder().WithUserAsAuthor(user);
-        var details = GetReprimands(userEntity);
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(CreateEmbed);
+            .Select(r => r.ToEmbedBuilder(true))
+            .ToList();
 
-        var pages = details.Concat(reprimands).ToPageBuilders(8, embed);
+        reprimands.Insert(0, GetReprimands(userEntity)
+            .WithColor(await _image.GetAvatarColor(user))
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
+
+        var pages = reprimands.Chunk(4)
+            .Select(builders =>
+            {
+                builders.First().WithUserAsAuthor(user, AuthorOptions.IncludeId);
+                return new MultiEmbedPageBuilder().WithBuilders(builders);
+            });
+
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
 
         await (context switch
@@ -99,34 +108,32 @@ public class UserService
     public async Task ReplyUserAsync(Context context, IUser user)
     {
         var components = await ComponentsAsync(context, user);
-        var embed = await GetUserAsync(context, user);
+        var builders = await GetUserAsync(context, user);
+        var embeds = builders.Select(e => e.Build()).ToArray();
 
-        await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
+        await context.ReplyAsync(embeds: embeds, ephemeral: true, components: components);
     }
 
-    private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()
-        .WithName(r.GetTitle(true))
-        .WithValue(r.GetReprimandDetails().ToString());
+    private static EmbedBuilder GetReprimands(GuildUserEntity user) => new EmbedBuilder()
+        .WithTitle("Reprimands [Active/Total]")
+        .AddField(Warnings(user))
+        .AddField(Reprimands<Notice>(user))
+        .AddField(Reprimands<Ban>(user))
+        .AddField(Reprimands<Kick>(user))
+        .AddField(Reprimands<Note>(user))
+        .AddField(Reprimands<Mute>(user))
+        .AddField(Reprimands<Censored>(user));
 
-    private static EmbedFieldBuilder GetReprimandHistory<T>(GuildUserEntity user)
+    private static EmbedFieldBuilder Reprimands<T>(GuildUserEntity user)
         where T : Reprimand => new EmbedFieldBuilder()
-        .WithName(typeof(T).Name.Pluralize())
+        .WithName(typeof(T).Name)
         .WithValue($"{user.HistoryCount<T>(false)}/{user.HistoryCount<T>()}")
         .WithIsInline(true);
 
-    private static IEnumerable<EmbedFieldBuilder> GetReprimands(GuildUserEntity user) => new[]
-    {
-        new EmbedFieldBuilder().WithName("Warnings")
-            .WithValue($"{user.WarningCount(false)}/{user.WarningCount()}")
-            .WithIsInline(true),
-        GetReprimandHistory<Notice>(user),
-        GetReprimandHistory<Ban>(user),
-        GetReprimandHistory<Kick>(user),
-        GetReprimandHistory<Note>(user),
-        new EmbedFieldBuilder().WithName("Reprimands")
-            .WithValue("Active/Total")
-            .WithIsInline(true)
-    };
+    private static EmbedFieldBuilder Warnings(GuildUserEntity user) => new EmbedFieldBuilder()
+        .WithName(nameof(Warning))
+        .WithValue($"{user.WarningCount(false)}/{user.WarningCount()}")
+        .WithIsInline(true);
 
     private static SelectMenuBuilder SelectMenu(IUser user, LogReprimandType type = LogReprimandType.None)
     {
@@ -147,7 +154,7 @@ public class UserService
         return menu;
     }
 
-    private async Task<EmbedBuilder> GetUserAsync(Context context, IUser user)
+    private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(Context context, IUser user)
     {
         var isAuthorized = await _auth
             .IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Moderator);
@@ -155,11 +162,13 @@ public class UserService
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
         var guildUser = user as SocketGuildUser;
 
+        var embeds = new List<EmbedBuilder>();
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
             .WithDescription(user.Mention)
             .AddField("Created", user.CreatedAt.ToUniversalTimestamp());
+        embeds.Add(embed);
 
         if (userEntity?.JoinedAt is not null)
             embed.AddField("First Joined", userEntity.JoinedAt.Value.ToUniversalTimestamp());
@@ -190,7 +199,7 @@ public class UserService
         }
 
         var ban = await context.Guild.GetBanAsync(user);
-        if (!isAuthorized || ban is null) return embed;
+        if (!isAuthorized || ban is null) return embeds;
 
         embed.WithColor(Color.Red);
 
@@ -199,14 +208,14 @@ public class UserService
             .FirstOrDefault();
 
         if (banDetails is not null)
-            embed.AddField(banDetails.GetTitle(true), banDetails.GetReprimandDetails().ToString());
+            embeds.Add(banDetails.ToEmbedBuilder(true));
         else
             embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
 
         if (userEntity is not null)
-            embed.WithFields(GetReprimands(userEntity));
+            embeds.Add(GetReprimands(userEntity));
 
-        return embed;
+        return embeds;
     }
 
     private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)

@@ -68,10 +68,6 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
     private async Task ToggleTriggerAsync(T entity, bool? state)
     {
         await _moderation.ToggleTriggerAsync(entity, (IGuildUser) Context.User, state);
-
-        var (title, value) = EntityViewer(entity);
-        var embed = new EmbedBuilder().AddField(title, value);
-
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(embed: EntityViewer(entity).Build());
     }
 }

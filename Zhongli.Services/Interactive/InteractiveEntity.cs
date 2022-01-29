@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Fergun.Interactive;
@@ -9,8 +9,6 @@ using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Interactive.Criteria;
 using Zhongli.Services.Interactive.Functions;
 using Zhongli.Services.Interactive.Paginator;
-using Zhongli.Services.Utilities;
-using EmbedBuilderExtensions = Zhongli.Services.Utilities.EmbedBuilderExtensions;
 
 namespace Zhongli.Services.Interactive;
 
@@ -26,11 +24,9 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         _db    = db;
     }
 
-    protected virtual string? Title { get; } = null;
-
-    protected abstract (string Title, StringBuilder Value) EntityViewer(T entity);
-
     protected abstract bool IsMatch(T entity, string id);
+
+    protected abstract EmbedBuilder EntityViewer(T entity);
 
     protected async Task AddEntityAsync(T entity)
     {
@@ -41,28 +37,17 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
 
-    protected async Task PagedViewAsync(IEnumerable<T> collection, string? title = null)
-    {
-        var author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild);
-        await PagedViewAsync(collection, EntityViewer, title, author);
-    }
+    protected async Task PagedViewAsync(IEnumerable<T> collection) => await PagedViewAsync(collection, EntityViewer);
 
     protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
-        EmbedBuilderExtensions.EntityViewerDelegate<TEntity> entityViewer,
-        string? title = null, EmbedAuthorBuilder? author = null)
+        Func<TEntity, EmbedBuilder> entityViewer)
     {
-        title ??= Title;
-
         var pages = collection
-            .ToEmbedFields(entityViewer).Chunk(6)
+            .Chunk(6)
             .Select(fields =>
             {
-                var builder = new PageBuilder().WithFields(fields);
-
-                if (!string.IsNullOrWhiteSpace(title)) builder.WithTitle(title);
-                if (author is not null) builder.WithAuthor(author);
-
-                return builder;
+                var builders = fields.Select(entityViewer);
+                return new MultiEmbedPageBuilder().WithBuilders(builders);
             });
 
         var paginated = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
@@ -115,7 +100,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             int.TryParse(m.Content, out var selection)
             && selection < filtered.Count && selection > -1);
 
-        await PagedViewAsync(filtered, "Reply with a number to select.");
+        await PagedViewAsync(filtered);
         var selected = await Interactive.NextMessageAsync(containsCriterion.AsFunc(Context));
         return selected.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
     }

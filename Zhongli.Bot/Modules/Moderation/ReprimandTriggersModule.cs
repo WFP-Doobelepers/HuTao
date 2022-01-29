@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -101,10 +100,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
             .Where(r => r.TriggerId == trigger.Id)
             .ToListAsync();
 
-        var author = new EmbedAuthorBuilder().WithGuildAsAuthor(Context.Guild);
-        await PagedViewAsync(reprimands.OfType(type),
-            r => (r.GetTitle(true), r.GetReprimandDetails()),
-            "Reprimands", author);
+        await PagedViewAsync(reprimands.OfType(type), r => r.ToEmbedBuilder(true));
     }
 
     [Command]
@@ -112,19 +108,15 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     [Summary("View the reprimand trigger list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(ReprimandTrigger trigger)
-    {
-        var content = new StringBuilder()
-            .AppendLine($"▌Action: {trigger.Reprimand}")
-            .AppendLine($"▌Trigger: {trigger.GetTriggerDetails()}")
-            .AppendLine($"▉ Active: {trigger.IsActive}")
-            .AppendLine($"▉ Modified by: {trigger.GetModerator()}");
-
-        return ($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}", content);
-    }
-
     protected override bool IsMatch(ReprimandTrigger entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(ReprimandTrigger trigger) => new EmbedBuilder()
+        .WithTitle($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}")
+        .AddField("Action", $"{trigger.Reprimand}")
+        .AddField("Trigger", trigger.GetTriggerDetails())
+        .AddField("Active", $"{trigger.IsActive}")
+        .AddField("Modified by", trigger.GetModerator());
 
     protected override async Task RemoveEntityAsync(ReprimandTrigger entity)
     {

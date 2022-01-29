@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -63,11 +62,22 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     [Summary("View linked buttons.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(LinkedButton entity)
-        => (entity.Id.ToString(), GetLinkedButtonDetails(entity));
-
     protected override bool IsMatch(LinkedButton entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(LinkedButton entity)
+    {
+        var template = entity.Message;
+        var embed = new EmbedBuilder().AddField("Ephemeral", $"{entity.Ephemeral}", true);
+        if (template is not null) embed.WithTemplateDetails(template, Context.Guild);
+
+        foreach (var role in entity.Roles.GroupBy(r => r.Behavior))
+        {
+            embed.AddField($"{role.Key} Roles", role.Humanize(r => r.MentionRole()));
+        }
+
+        return embed;
+    }
 
     protected override Task RemoveEntityAsync(LinkedButton entity) => _linking.DeleteAsync(entity);
 
@@ -75,24 +85,6 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.LinkedButtons;
-    }
-
-    private StringBuilder GetLinkedButtonDetails(LinkedButton entity)
-    {
-        var template = entity.Message;
-        var builder = new StringBuilder()
-            .AppendLine($"▌Ephemeral: {entity.Ephemeral}");
-
-        if (template is not null)
-            builder.Append(template.GetTemplateDetails(Context.Guild));
-
-        var roles = entity.Roles.GroupBy(r => r.Behavior);
-        foreach (var role in roles)
-        {
-            builder.AppendLine($"▌{role.Key}: {role.Humanize(r => r.MentionRole())}");
-        }
-
-        return builder;
     }
 
     private async Task<IUserMessage> GetMessageAsync(IMessage message)

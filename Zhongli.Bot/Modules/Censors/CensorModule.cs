@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
@@ -39,8 +38,6 @@ public class CensorModule : InteractiveTrigger<Censor>
     {
         _db = db;
     }
-
-    protected override string Title { get; } = "Censors";
 
     [Command("ban")]
     [Summary("A censor that deletes the message and also bans the user.")]
@@ -171,23 +168,18 @@ public class CensorModule : InteractiveTrigger<Censor>
     [RequireAuthorization(AuthorizationScope.Helper | AuthorizationScope.Configuration)]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(Censor censor)
-    {
-        var value = new StringBuilder()
-            .AppendLine($"▌Pattern: {Format.Code(censor.Pattern)}")
-            .AppendLine($"▌Options: {censor.Options.Humanize()}")
-            .AppendLine($"▌Silent: {censor.Silent}")
-            .AppendLine($"▌Reprimand: {censor.Reprimand?.ToString() ?? "None"}")
-            .AppendLine($"▌Trigger: {censor.GetTriggerMode()}")
-            .AppendLine($"▌Exclusions: {censor.Exclusions.Humanize()}")
-            .AppendLine($"▉ Active: {censor.IsActive}")
-            .AppendLine($"▉ Modified by: {censor.GetModerator()}");
-
-        return (censor.Id.ToString(), value);
-    }
-
     protected override bool IsMatch(Censor entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(Censor censor) => new EmbedBuilder()
+        .AddField("Pattern", Format.Code(censor.Pattern))
+        .AddField("Options", censor.Options.Humanize(), true)
+        .AddField("Silent", $"{censor.Silent}", true)
+        .AddField("Reprimand", censor.Reprimand?.ToString() ?? "None", true)
+        .AddField("Trigger", censor.GetTriggerMode(), true)
+        .AddField("Exclusions", censor.Exclusions.Humanize().DefaultIfNullOrEmpty("None"), true)
+        .AddField("Active", $"{censor.IsActive}", true)
+        .AddField("Modified by", censor.GetModerator(), true);
 
     protected override async Task<ICollection<Censor>> GetCollectionAsync()
     {
@@ -209,15 +201,7 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     private async Task ReplyCensorAsync(Censor censor)
     {
-        var (title, value) = EntityViewer(censor);
-
-        var embed = new EmbedBuilder()
-            .WithTitle("Censor added successfully.")
-            .WithDescription(value.ToString())
-            .AddField("ID", title)
-            .WithColor(Color.Green)
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
+        var embed = EntityViewer(censor);
         await ReplyAsync(embed: embed.Build());
     }
 

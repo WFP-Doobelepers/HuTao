@@ -104,7 +104,7 @@ public class ModerationLoggingService
         AddReprimandModerator(details.Moderator);
 
         if (options.HasFlag(ShowDetails))
-            embed.WithDescription(reprimand.GetMessage());
+            embed.WithDescription(reprimand.GetAction());
 
         var reason = reprimand.ModifiedAction?.Reason ?? reprimand.Action?.Reason;
         if (options.HasFlag(ShowReason) && !string.IsNullOrWhiteSpace(reason))
@@ -157,7 +157,7 @@ public class ModerationLoggingService
         embed.WithColor(secondary.GetColor());
 
         var showId = options.HasFlag(ShowReprimandId);
-        var message = secondary.GetMessage();
+        var message = secondary.GetAction();
 
         if (options.HasFlag(ShowActive))
         {
@@ -174,10 +174,10 @@ public class ModerationLoggingService
         ModerationLogConfig config,
         CancellationToken cancellationToken = default)
     {
+        var title = result.Primary.GetTitle(config.Options.HasFlag(ShowReprimandId));
         var embed = new EmbedBuilder()
             .WithCurrentTimestamp()
-            .WithTitle(
-                $"{result.Primary.Status.Humanize()} {result.Primary.GetTitle(config.Options.HasFlag(ShowReprimandId))}")
+            .WithTitle($"{result.Primary.Status.Humanize()} {title}")
             .WithColor(result.Primary.GetColor());
 
         var showAppeal = result.Primary.IsIncluded(config.ShowAppealOnReprimands);

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -122,14 +121,10 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     [Summary("Remove an authorization group.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-    protected override (string Title, StringBuilder Value) EntityViewer(AuthorizationGroup entity)
-    {
-        var details = GetAuthorizationGroupDetails(entity);
-        return (entity.Id.ToString(), details);
-    }
-
     protected override bool IsMatch(AuthorizationGroup entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(AuthorizationGroup entity) => GetAuthorizationGroupDetails(entity);
 
     protected override async Task RemoveEntityAsync(AuthorizationGroup censor)
     {
@@ -146,13 +141,14 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         return guild.AuthorizationGroups;
     }
 
-    private static StringBuilder GetAuthorizationGroupDetails(AuthorizationGroup group)
+    private static EmbedBuilder GetAuthorizationGroupDetails(AuthorizationGroup group)
     {
-        var sb = new StringBuilder()
-            .AppendLine($"▌Scope: {Format.Bold(group.Scope.Humanize())}")
-            .AppendLine($"▌Type: {Format.Bold(group.Access.Humanize())}")
-            .AppendLine($"▌Moderator: {group.GetModerator()}")
-            .AppendLine($"▌Date: {group.GetDate()}");
+        var embed = new EmbedBuilder()
+            .WithTitle($"{group.Scope}: {group.Id}").WithTimestamp(group)
+            .WithColor(group.Access is AccessType.Allow ? Color.Green : Color.Red)
+            .AddField("Type", Format.Bold(group.Access.Humanize()), true)
+            .AddField("Scope", Format.Bold(group.Scope.Humanize()), true)
+            .AddField("Moderator", group.GetModerator(), true);
 
         foreach (var rules in group.Collection.ToLookup(g => g.GetCriterionType()))
         {
@@ -160,10 +156,13 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
                 .Replace(nameof(Criterion), string.Empty)
                 .Pluralize().Humanize(LetterCasing.Title);
 
-            sb.AppendLine($"▉ {GetGroupingName()}: {rules.Humanize()}");
+            embed.AddField(e => e
+                .WithName(GetGroupingName())
+                .WithValue(rules.Humanize())
+                .WithIsInline(true));
         }
 
-        return sb;
+        return embed;
     }
 
     [NamedArgumentType]

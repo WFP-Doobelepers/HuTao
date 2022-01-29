@@ -65,6 +65,32 @@ public static class ReprimandExtensions
         };
     }
 
+    public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId)
+    {
+        var embed = new EmbedBuilder()
+            .WithTitle($"{r.Status} {r.GetTitle(showId)}")
+            .WithDescription(r.GetReason().Truncate(EmbedBuilder.MaxDescriptionLength))
+            .WithColor(r.GetColor()).WithTimestamp(r)
+            .AddField("Reprimand", r.GetAction(), true)
+            .AddField("Moderator", r.GetModerator(), true);
+
+        if (r.ModifiedAction is not null)
+        {
+            embed.AddField(e => e
+                .WithName("Modified")
+                .WithValue(new StringBuilder()
+                    .AppendLine($"▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
+                    .AppendLine($"▌{r.ModifiedAction.GetDate()}")
+                    .AppendLine($"{r.ModifiedAction.GetReason()}")
+                    .ToString()));
+        }
+
+        if (r.Trigger is not null)
+            embed.AddField($"Trigger: {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
+
+        return embed;
+    }
+
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)
     {
         if (types is LogReprimandType.All or LogReprimandType.None) return reprimands;
@@ -95,7 +121,7 @@ public static class ReprimandExtensions
             : reprimands.Where(IsCounted);
     }
 
-    public static string GetMessage(this Reprimand action)
+    public static string GetAction(this Reprimand action)
     {
         var mention = action.MentionUser();
         return action switch
@@ -146,36 +172,6 @@ public static class ReprimandExtensions
         };
 
         return showId ? $"{title.Humanize()}: {action.Id}" : title.Humanize();
-    }
-
-    public static StringBuilder GetReprimandDetails(this Reprimand r)
-    {
-        var content = new StringBuilder()
-            .AppendLine($"▌{GetMessage(r)}")
-            .AppendLine($"▌Reason: {r.GetReason()}")
-            .AppendLine($"▌Moderator: {r.GetModerator()}")
-            .AppendLine($"▌Date: {r.GetDate()}")
-            .AppendLine($"▌Status: {Format.Bold(r.Status.Humanize())}");
-
-        if (r.ModifiedAction is not null)
-        {
-            content
-                .AppendLine("▌")
-                .AppendLine($"▌▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
-                .AppendLine($"▌▌{r.ModifiedAction.GetDate()}")
-                .AppendLine($"▌▌{r.ModifiedAction.GetReason()}");
-        }
-
-        var t = r.Trigger;
-        if (t is not null)
-        {
-            content
-                .AppendLine("▌")
-                .AppendLine($"▌▌{t.GetTitle()}")
-                .AppendLine($"▌▌Trigger: {t.GetTriggerDetails()}");
-        }
-
-        return content;
     }
 
     public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, ZhongliContext db,

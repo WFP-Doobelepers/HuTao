@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -55,25 +54,21 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     [Summary("View sticky messages.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(StickyMessage entity)
-        => (entity.Id.ToString(), GetStickyMessageDetails(entity));
-
     protected override bool IsMatch(StickyMessage entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(StickyMessage entity)
+    {
+        var template = entity.Template;
+        return new EmbedBuilder()
+            .AddField("Channel", $"<#{entity.ChannelId}>")
+            .WithTemplateDetails(template, Context.Guild);
+    }
 
     protected override Task RemoveEntityAsync(StickyMessage entity) => _sticky.DeleteAsync(entity);
 
     protected override Task<ICollection<StickyMessage>> GetCollectionAsync()
         => _sticky.GetStickyMessages(Context.Guild);
-
-    private StringBuilder GetStickyMessageDetails(StickyMessage entity)
-    {
-        var template = entity.Template;
-
-        return new StringBuilder()
-            .AppendLine($"▌Channel: <#{entity.ChannelId}>")
-            .Append(template.GetTemplateDetails(Context.Guild));
-    }
 
     [NamedArgumentType]
     public class StickyMessageOptions : IMessageTemplateOptions

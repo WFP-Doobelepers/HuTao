@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -29,7 +28,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
 
     public CensorExclusionsModule(CommandErrorHandler error, ZhongliContext db) : base(error, db) { _db = db; }
 
-    protected override string Title => "Censor Exclusions";
+    protected virtual string Title => "Censor Exclusions";
 
     [Command("exclude")]
     [Alias("ignore")]
@@ -63,11 +62,10 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
         await PagedViewAsync(collection);
     }
 
-    protected override (string Title, StringBuilder Value) EntityViewer(Criterion entity)
-        => (entity.Id.ToString(), new StringBuilder($"{entity}"));
-
     protected override bool IsMatch(Criterion entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(Criterion entity) => entity.ToEmbedBuilder();
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {

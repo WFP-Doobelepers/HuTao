@@ -24,6 +24,10 @@ public static class CriteriaExtensions
         _                        => false
     };
 
+    public static EmbedBuilder ToEmbedBuilder(this Criterion criterion) => new EmbedBuilder()
+        .WithTitle($"{criterion.Id}")
+        .WithDescription($"{criterion}");
+
     public static ICollection<Criterion> AddCriteria(this ICollection<Criterion> collection,
         ICriteriaOptions options)
     {

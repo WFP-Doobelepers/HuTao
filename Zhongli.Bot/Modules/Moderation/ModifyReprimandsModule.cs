@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -68,11 +67,11 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         await PagedViewAsync(collection.OfType(type));
     }
 
-    protected override (string Title, StringBuilder Value) EntityViewer(Reprimand r)
-        => (r.GetTitle(true), r.GetReprimandDetails());
-
     protected override bool IsMatch(Reprimand entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(Reprimand entity)
+        => entity.ToEmbedBuilder(true);
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
         => await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);

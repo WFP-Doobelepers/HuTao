@@ -94,6 +94,12 @@ public static class FormatUtilities
         return formatted;
     }
 
+    public static string DefaultIfNullOrEmpty(this string? content, string text)
+        => string.IsNullOrEmpty(content) ? text : content;
+
+    public static string DefaultIfNullOrWhiteSpace(this string? content, string text)
+        => string.IsNullOrWhiteSpace(content) ? text : content;
+
     /// <summary>
     ///     Attempts to fix the indentation of a piece of code by aligning the left sidie.
     /// </summary>

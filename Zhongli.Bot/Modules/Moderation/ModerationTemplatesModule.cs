@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -97,17 +96,13 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     [Summary("View the reprimand trigger list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override (string Title, StringBuilder Value) EntityViewer(ModerationTemplate template)
-    {
-        var content = new StringBuilder()
-            .AppendLine($"▌Action: {template}")
-            .AppendLine($"▌Reason: {template.Reason ?? "None"}");
-
-        return ($"{template.Name}: {template.Id}", content);
-    }
-
     protected override bool IsMatch(ModerationTemplate entity, string id)
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+
+    protected override EmbedBuilder EntityViewer(ModerationTemplate template) => new EmbedBuilder()
+        .WithTitle($"{template.Name}: {template.Id}")
+        .WithDescription(template.Reason ?? "No reason")
+        .AddField("Action", $"{template}");
 
     protected override async Task<ICollection<ModerationTemplate>> GetCollectionAsync()
     {
@@ -125,12 +120,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         guild.ModerationTemplates.Add(template);
         await _db.SaveChangesAsync();
 
-        var (title, description) = EntityViewer(template);
-        var embed = new EmbedBuilder()
+        var embed = EntityViewer(template)
             .WithColor(Color.Green)
-            .WithTitle("Template Added")
-            .WithDescription(description.ToString())
-            .AddField("Name", title)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());

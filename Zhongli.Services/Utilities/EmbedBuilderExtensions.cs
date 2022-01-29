@@ -21,8 +21,6 @@ public enum AuthorOptions
 
 public static class EmbedBuilderExtensions
 {
-    public delegate (string Title, StringBuilder Value) EntityViewerDelegate<in T>(T entity);
-
     [Flags]
     public enum EmbedBuilderOptions
     {
@@ -96,14 +94,6 @@ public static class EmbedBuilderExtensions
 
         return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
     }
-
-    public static IEnumerable<EmbedFieldBuilder> ToEmbedFields<T>(this IEnumerable<T> collection,
-        EntityViewerDelegate<T> entityViewer)
-        => collection
-            .Select(entityViewer.Invoke)
-            .Select((e, i) => new EmbedFieldBuilder()
-                .WithName($"{i}: {e.Title}")
-                .WithValue(e.Value));
 
     public static int Length(this Embed embed)
     {
