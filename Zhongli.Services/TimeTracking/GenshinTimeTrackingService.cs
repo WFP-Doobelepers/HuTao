@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Cronos;
 using Discord;
@@ -35,7 +36,7 @@ public class GenshinTimeTrackingService
         [ServerRegion.SAR]     = ("SAR", 8)
     };
 
-    // ReSharper disable once MemberCanBePrivate.Global
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
     {
         var guild = await GetGuildAsync(guildId);
@@ -48,7 +49,7 @@ public class GenshinTimeTrackingService
     }
 
     [AutomaticRetry(Attempts = 0)]
-    // ReSharper disable once MemberCanBePrivate.Global
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
     {
         var guild = await GetGuildAsync(guildId);

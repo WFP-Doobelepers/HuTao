@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Utilities;
@@ -14,10 +15,10 @@ public class TemporaryRoleService : ExpirableService<TemporaryRole>
     private readonly DiscordSocketClient _client;
     private readonly ZhongliContext _db;
 
-    public TemporaryRoleService(ZhongliContext db, DiscordSocketClient client) : base(db)
+    public TemporaryRoleService(IMemoryCache cache, ZhongliContext db, DiscordSocketClient client) : base(cache, db)
     {
-        _db     = db;
         _client = client;
+        _db     = db;
     }
 
     public async Task CreateTemporaryRoleAsync(IRole role, TimeSpan length,

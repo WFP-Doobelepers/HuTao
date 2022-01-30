@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -14,17 +15,16 @@ namespace Zhongli.Services.Utilities;
 
 public static class DbSetExtensions
 {
+    [SuppressMessage("ReSharper", "ConstantNullCoalescingCondition")]
     public static async Task<GuildEntity> TrackGuildAsync(this DbSet<GuildEntity> set, IGuild guild,
         CancellationToken cancellationToken = default)
     {
         var guildEntity = await set.FindByIdAsync(guild.Id, cancellationToken)
             ?? set.Add(new GuildEntity(guild.Id)).Entity;
 
-        // ReSharper disable ConstantNullCoalescingCondition
         guildEntity.ModerationRules        ??= new ModerationRules();
         guildEntity.ModerationLoggingRules ??= new ModerationLoggingRules();
         guildEntity.LoggingRules           ??= new LoggingRules();
-        // ReSharper restore ConstantNullCoalescingCondition
 
         return guildEntity;
     }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions;
@@ -26,8 +27,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private readonly ModerationLoggingService _logging;
     private readonly ZhongliContext _db;
 
-    public ModerationService(ZhongliContext db, DiscordSocketClient client, ModerationLoggingService logging)
-        : base(db)
+    public ModerationService(IMemoryCache cache, ZhongliContext db, DiscordSocketClient client,
+        ModerationLoggingService logging) : base(cache, db)
     {
         _client  = client;
         _logging = logging;
@@ -37,7 +38,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     public async Task CensorAsync(SocketMessage message, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var censored =  _db.Add(new Censored(message.Content, length, details)).Entity;
+        var censored = _db.Add(new Censored(message.Content, length, details)).Entity;
         await _db.SaveChangesAsync(cancellationToken);
 
         if (details.Trigger is Censor censor)
