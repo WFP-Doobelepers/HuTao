@@ -86,7 +86,7 @@ public static class ReprimandExtensions
         }
 
         if (r.Trigger is not null)
-            embed.AddField($"Trigger: {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
+            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
 
         return embed;
     }
