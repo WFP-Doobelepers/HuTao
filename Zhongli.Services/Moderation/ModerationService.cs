@@ -48,14 +48,21 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             var triggerCount = await censored.CountAsync(censor, _db, false, cancellationToken);
             if (censor.IsTriggered(triggerCount))
             {
-                var triggerDetails = new ReprimandDetails(
-                    details.User, details.Moderator, $"[Reprimand Triggered] at {triggerCount}", censor);
+                var censorDetails = details with
+                {
+                    Reason = $"[Reprimand Triggered] at {triggerCount}",
+                    Trigger = censor,
+                    Result = new ReprimandResult(censored)
+                };
 
-                await ReprimandAsync(censor.Reprimand, triggerDetails, cancellationToken);
+                await ReprimandAsync(censor.Reprimand, censorDetails, cancellationToken);
             }
         }
-
-        await PublishReprimandAsync(censored, details, cancellationToken);
+        else
+        {
+            _ = message.DeleteAsync();
+            await PublishReprimandAsync(censored, details, cancellationToken);
+        }
     }
 
     public async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)

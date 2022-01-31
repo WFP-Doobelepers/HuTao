@@ -127,7 +127,7 @@ public static class ReprimandExtensions
         return action switch
         {
             Ban b      => $"{mention} was banned for {b.GetLength()}.",
-            Censored c => $"{mention} was censored. Message: {c.CensoredMessage()}",
+            Censored c => $"{mention} was censored. Message: {c.CensoredMessage().Truncate(512)}",
             Kick       => $"{mention} was kicked.",
             Mute m     => $"{mention} was muted for {m.GetLength()}.",
             Note       => $"{mention} was given a note.",

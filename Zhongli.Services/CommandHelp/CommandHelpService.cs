@@ -64,7 +64,6 @@ public interface ICommandHelpService
 internal class CommandHelpService : ICommandHelpService
 {
     private readonly CommandService _commandService;
-
     private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
     public CommandHelpService(CommandService commandService) { _commandService = commandService; }
