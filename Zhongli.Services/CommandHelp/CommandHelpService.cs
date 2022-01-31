@@ -153,8 +153,8 @@ internal class CommandHelpService : ICommandHelpService
 
     public StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command)
     {
-        var embed = new EmbedBuilder().AddCommandFields(command);
-        var builder = PageBuilder.FromEmbedBuilder(embed);
+        var embed = command.ToEmbedBuilder();
+        var builder = new MultiEmbedPageBuilder().AddBuilder(embed);
 
         return InteractiveExtensions.CreateDefaultPaginator().WithPages(builder);
     }
@@ -163,21 +163,15 @@ internal class CommandHelpService : ICommandHelpService
     {
         var paginator = InteractiveExtensions.CreateDefaultPaginator();
 
-        foreach (var commands in module.Commands.Chunk(3))
-        {
-            var embed = new EmbedBuilder()
-                .WithTitle($"Module: {module.Name}")
-                .WithDescription(module.Summary);
+        var builders = module.Commands.Select(c => c.ToEmbedBuilder()).ToList();
+        builders.Insert(0, new EmbedBuilder()
+            .WithTitle($"Module: {module.Name}")
+            .WithDescription(module.Summary));
 
-            foreach (var command in commands)
-            {
-                embed.AddCommandFields(command);
-            }
+        var pages = builders.Chunk(5)
+            .Select(b => new MultiEmbedPageBuilder().WithBuilders(b));
 
-            paginator.AddPage(PageBuilder.FromEmbedBuilder(embed));
-        }
-
-        return paginator;
+        return paginator.WithPages(pages);
     }
 }
 

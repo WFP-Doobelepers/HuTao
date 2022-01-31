@@ -11,8 +11,9 @@ namespace Zhongli.Services.CommandHelp;
 
 public static class CommandHelpDataExtensions
 {
-    public static EmbedBuilder AddCommandFields(this EmbedBuilder embed, CommandHelpData command)
+    public static EmbedBuilder ToEmbedBuilder(this CommandHelpData command)
     {
+        var embed = new EmbedBuilder();
         var builder = new StringBuilder(command.Summary ?? "No summary.").AppendLine();
         var name = command.Aliases.FirstOrDefault();
 
