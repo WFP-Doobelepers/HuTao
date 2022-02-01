@@ -61,8 +61,10 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     {
         var template = entity.Template;
         return new EmbedBuilder()
-            .AddField("Channel", $"<#{entity.ChannelId}>")
-            .WithTemplateDetails(template, Context.Guild);
+            .AddField("Template ID", template.Id, true)
+            .AddField("Channel", $"<#{entity.ChannelId}>", true)
+            .WithTemplateDetails(template, Context.Guild)
+            .WithTitle($"Sticky: {entity.Id}");
     }
 
     protected override Task RemoveEntityAsync(StickyMessage entity) => _sticky.DeleteAsync(entity);
