@@ -84,16 +84,19 @@ public class LinkingService
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
 
         var builder = GetButtonBuilder(options);
-        var button = new LinkedButton(builder, options);
+        var linked = GetButton(guild, new LinkedButton(builder, options));
 
-        template.Components.AddComponent(button.Button).ToBuilder().Build();
-        return await AddButtonAsync(guild, button);
+        template.Components.AddComponent(linked.Button).ToBuilder().Build();
+
+        await _db.SaveChangesAsync();
+        return linked;
     }
 
     private static bool IsLink(ILinkedButtonOptions options) => !string.IsNullOrWhiteSpace(options.Url);
 
     private static ButtonBuilder GetButtonBuilder(ILinkedButtonOptions options) => new()
     {
+        CustomId   = IsLink(options) ? null : $"linked:{Guid.Empty}",
         IsDisabled = options.IsDisabled,
         Emote      = options.Emote,
         Label      = options.Label,
@@ -183,13 +186,5 @@ public class LinkingService
                 .WithColor(Color.Red)
                 .WithDescription(removed.Humanize(r => r.MentionRole()))
         };
-    }
-
-    private async Task<LinkedButton> AddButtonAsync(GuildEntity guild, LinkedButton button)
-    {
-        var linked = GetButton(guild, button);
-        await _db.SaveChangesAsync();
-
-        return linked;
     }
 }
