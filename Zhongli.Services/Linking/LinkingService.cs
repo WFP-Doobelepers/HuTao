@@ -159,12 +159,12 @@ public class LinkingService
                 if (user.HasRole(toggle.RoleId))
                 {
                     await user.RemoveRoleAsync(toggle.RoleId);
-                    added.Add(toggle);
+                    removed.Add(toggle);
                 }
                 else
                 {
                     await user.AddRoleAsync(toggle.RoleId);
-                    removed.Add(toggle);
+                    added.Add(toggle);
                 }
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
