@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Humanizer;
+using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message.Components;
@@ -22,10 +23,11 @@ public class LinkingService
 
     public async Task DeleteAsync(LinkedButton button)
     {
-        _db.TryRemove(button.Message);
-        _db.RemoveRange(button.Roles);
-        _db.Remove(button.Button);
-        _db.Remove(button);
+        var rows = _db.Set<ActionRow>();
+        var row = await rows.FirstOrDefaultAsync(r => r.Components.All(c => c == button.Button));
+
+        _db.TryRemove(button);
+        _db.TryRemove(row);
 
         await _db.SaveChangesAsync();
     }
