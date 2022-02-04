@@ -56,13 +56,12 @@ public class LoggingService
         if (message.Channel is not INestedChannel channel) return;
 
         var reaction = notification.Reaction;
-        var user = reaction.User.GetValueOrDefault();
+        if (message.Reactions.TryGetValue(reaction.Emote, out var metadata) && metadata.ReactionCount > 1)
+            return;
 
+        var user = reaction.User.GetValueOrDefault();
         if (user is not IGuildUser guildUser || guildUser.IsBot) return;
         if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
-
-        var metadata = message.Reactions[reaction.Emote];
-        if (metadata.ReactionCount > 1) return;
 
         var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
@@ -74,7 +73,11 @@ public class LoggingService
         var message = await GetMessageAsync(notification.Message);
         if (message.Channel is not IGuildChannel channel) return;
 
-        var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
+        var reaction = notification.Reaction;
+        if (message.Reactions.ContainsKey(reaction.Emote))
+            return;
+
+        var log = await LogDeletionAsync(reaction, null, cancellationToken);
         await PublishLogAsync(log, LogType.ReactionRemoved, channel.Guild, cancellationToken);
     }
 
