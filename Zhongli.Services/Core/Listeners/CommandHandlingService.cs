@@ -9,6 +9,7 @@ using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Zhongli.Data.Config;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Messages;
@@ -84,6 +85,10 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<GuildPermission>(
             new EnumFlagsTypeReader<GuildPermission>(
+                splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+
+        _commands.AddTypeReader<AuthorizationScope>(
+            new EnumFlagsTypeReader<AuthorizationScope>(
                 splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
         _commands.AddTypeReader<ModerationLogOptions>(
