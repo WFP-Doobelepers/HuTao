@@ -5,7 +5,6 @@ using Discord.Interactions;
 using Mapster.Utils;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Logging;
-using Zhongli.Services.Core;
 using Zhongli.Services.Core.Preconditions.Interactions;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Utilities;
@@ -15,14 +14,9 @@ namespace Zhongli.Bot.Modules;
 public class InteractiveUserModule : InteractionModuleBase<SocketInteractionContext>
 {
     private static readonly GenericBitwise<LogReprimandType> InfractionTypeBitwise = new();
-    private readonly AuthorizationService _auth;
     private readonly UserService _user;
 
-    public InteractiveUserModule(AuthorizationService auth, UserService user)
-    {
-        _auth = auth;
-        _user = user;
-    }
+    public InteractiveUserModule(UserService user) { _user = user; }
 
     [UserCommand("Show Avatar")]
     [SlashCommand("avatar", "Get the avatar of the user.")]
@@ -48,11 +42,9 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task UserHistoryAsync(IUser user) => HistoryAsync(user);
 
     [ComponentInteraction("r:*")]
+    [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task ViewHistoryAsync(string id, string[] selections)
     {
-        if (!await _auth.IsAuthorizedAsync(Context, AuthorizationScope.All | AuthorizationScope.Moderator))
-            return;
-
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
         var types = InfractionTypeBitwise.Or(selections.Select(Enum<LogReprimandType>.Parse));
 
