@@ -18,6 +18,7 @@
         <PackageReference Include="Humanizer.Core" Version="2.14.1" />
         <PackageReference Include="Mapster" Version="7.2.0" />
         <PackageReference Include="MediatR" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
         <PackageReference Include="Microsoft.CodeAnalysis.Scripting" Version="4.0.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="6.0.1" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
