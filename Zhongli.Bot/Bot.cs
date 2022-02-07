@@ -69,6 +69,7 @@ public class Bot
             .AddScoped<StickyService>()
             .AddScoped<LinkingService>()
             .AddScoped<GenshinTimeTrackingService>()
+            .AddScoped<GenericApiService>()
             .AddSingleton<IQuoteService, QuoteService>()
             .AddExpirableServices()
             .AddAutoRemoveMessage()
