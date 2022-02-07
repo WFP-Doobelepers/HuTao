@@ -86,7 +86,7 @@ public static class ReprimandExtensions
         }
 
         if (r.Trigger is not null)
-            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
+            embed.AddField($"Trigger: {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
 
         return embed;
     }
@@ -127,7 +127,7 @@ public static class ReprimandExtensions
         return action switch
         {
             Ban b      => $"{mention} was banned for {b.GetLength()}.",
-            Censored c => $"{mention} was censored. Message: {c.CensoredMessage().Truncate(512)}",
+            Censored c => $"{mention} was censored. Message: {c.CensoredMessage()}",
             Kick       => $"{mention} was kicked.",
             Mute m     => $"{mention} was muted for {m.GetLength()}.",
             Note       => $"{mention} was given a note.",

@@ -69,20 +69,14 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     {
         var template = entity.Message;
         var embed = new EmbedBuilder().AddField("Ephemeral", $"{entity.Ephemeral}", true);
-
-        if (template is not null)
-        {
-            embed
-                .AddField("Template ID", template.Id, true)
-                .WithTemplateDetails(template, Context.Guild);
-        }
+        if (template is not null) embed.WithTemplateDetails(template, Context.Guild);
 
         foreach (var role in entity.Roles.GroupBy(r => r.Behavior))
         {
             embed.AddField($"{role.Key} Roles", role.Humanize(r => r.MentionRole()));
         }
 
-        return embed.WithTitle($"Button: {entity.Id}");
+        return embed;
     }
 
     protected override Task RemoveEntityAsync(LinkedButton entity) => _linking.DeleteAsync(entity);

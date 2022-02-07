@@ -172,7 +172,6 @@ public class CensorModule : InteractiveTrigger<Censor>
         => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
 
     protected override EmbedBuilder EntityViewer(Censor censor) => new EmbedBuilder()
-        .WithTitle($"{censor.Reprimand?.GetTitle()} Censor: {censor.Id}")
         .AddField("Pattern", Format.Code(censor.Pattern))
         .AddField("Options", censor.Options.Humanize(), true)
         .AddField("Silent", $"{censor.Silent}", true)

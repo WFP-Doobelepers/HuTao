@@ -2,8 +2,6 @@
 
 public class BotConfig
 {
-    public bool AlwaysDownloadUsers { get; set; }
-
     public int MessageCacheSize { get; set; }
 
     public string HangfireContext { get; init; } = null!;

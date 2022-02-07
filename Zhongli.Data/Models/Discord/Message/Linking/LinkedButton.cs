@@ -19,8 +19,6 @@ public class LinkedButton
         Ephemeral = options.Ephemeral;
     }
 
-    public Guid ButtonId { get; set; }
-
     public Guid Id { get; set; }
 
     public bool Ephemeral { get; set; }

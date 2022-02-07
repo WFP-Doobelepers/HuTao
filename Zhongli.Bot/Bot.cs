@@ -48,7 +48,7 @@ public class Bot
             .AddLogging(l => l.AddSerilog())
             .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
             {
-                AlwaysDownloadUsers = ZhongliConfig.Configuration.AlwaysDownloadUsers,
+                AlwaysDownloadUsers = true,
                 MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize,
                 GatewayIntents      = GatewayIntents.All
             }))

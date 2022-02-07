@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Discord;
-using Zhongli.Data.Models.Discord.Message.Linking;
 
 namespace Zhongli.Data.Models.Discord.Message.Components;
 
@@ -20,8 +19,6 @@ public class Button : Component
 
     /// <inheritdoc cref="ButtonComponent.Style" />
     public ButtonStyle Style { get; set; }
-
-    public virtual LinkedButton? Link { get; set; }
 
     /// <inheritdoc cref="ButtonComponent.Emote" />
     public string? Emote { get; init; }

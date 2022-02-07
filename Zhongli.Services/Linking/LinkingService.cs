@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Humanizer;
-using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message.Components;
@@ -23,11 +22,10 @@ public class LinkingService
 
     public async Task DeleteAsync(LinkedButton button)
     {
-        var rows = _db.Set<ActionRow>();
-        var row = await rows.FirstOrDefaultAsync(r => r.Components.All(c => c == button.Button));
-
-        _db.TryRemove(button);
-        _db.TryRemove(row);
+        _db.TryRemove(button.Message);
+        _db.RemoveRange(button.Roles);
+        _db.Remove(button.Button);
+        _db.Remove(button);
 
         await _db.SaveChangesAsync();
     }
@@ -86,19 +84,16 @@ public class LinkingService
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
 
         var builder = GetButtonBuilder(options);
-        var linked = GetButton(guild, new LinkedButton(builder, options));
+        var button = new LinkedButton(builder, options);
 
-        template.Components.AddComponent(linked.Button).ToBuilder().Build();
-
-        await _db.SaveChangesAsync();
-        return linked;
+        template.Components.AddComponent(button.Button).ToBuilder().Build();
+        return await AddButtonAsync(guild, button);
     }
 
     private static bool IsLink(ILinkedButtonOptions options) => !string.IsNullOrWhiteSpace(options.Url);
 
     private static ButtonBuilder GetButtonBuilder(ILinkedButtonOptions options) => new()
     {
-        CustomId   = IsLink(options) ? null : $"linked:{Guid.Empty}",
         IsDisabled = options.IsDisabled,
         Emote      = options.Emote,
         Label      = options.Label,
@@ -159,12 +154,12 @@ public class LinkingService
                 if (user.HasRole(toggle.RoleId))
                 {
                     await user.RemoveRoleAsync(toggle.RoleId);
-                    removed.Add(toggle);
+                    added.Add(toggle);
                 }
                 else
                 {
                     await user.AddRoleAsync(toggle.RoleId);
-                    added.Add(toggle);
+                    removed.Add(toggle);
                 }
             }
             catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
@@ -188,5 +183,13 @@ public class LinkingService
                 .WithColor(Color.Red)
                 .WithDescription(removed.Humanize(r => r.MentionRole()))
         };
+    }
+
+    private async Task<LinkedButton> AddButtonAsync(GuildEntity guild, LinkedButton button)
+    {
+        var linked = GetButton(guild, button);
+        await _db.SaveChangesAsync();
+
+        return linked;
     }
 }

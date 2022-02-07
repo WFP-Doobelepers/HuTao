@@ -516,8 +516,7 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ButtonId")
-                        .IsUnique();
+                    b.HasIndex("ButtonId");
 
                     b.HasIndex("GuildId");
 
@@ -1887,8 +1886,8 @@ namespace Zhongli.Data.Migrations
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", b =>
                 {
                     b.HasOne("Zhongli.Data.Models.Discord.Message.Components.Button", "Button")
-                        .WithOne("Link")
-                        .HasForeignKey("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", "ButtonId")
+                        .WithMany()
+                        .HasForeignKey("ButtonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2387,11 +2386,6 @@ namespace Zhongli.Data.Migrations
             modelBuilder.Entity("Zhongli.Data.Models.VoiceChat.VoiceChatRules", b =>
                 {
                     b.Navigation("VoiceChats");
-                });
-
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Components.Button", b =>
-                {
-                    b.Navigation("Link");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Components.SelectMenu", b =>

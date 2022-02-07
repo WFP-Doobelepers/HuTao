@@ -50,40 +50,26 @@ public static class MessageTemplateExtensions
     {
         if (template is null) return;
 
-        db.RemoveRange(template.Attachments);
         db.TryRemove(template.Components);
         db.TryRemove(template.Embeds);
 
+        db.RemoveRange(template.Attachments);
+        db.RemoveRange(template.Components);
+        db.RemoveRange(template.Embeds);
+
         db.Remove(template);
-    }
-
-    internal static void TryRemove(this DbContext db, LinkedButton? button)
-    {
-        if (button is null) return;
-
-        db.TryRemove(button.Message);
-        db.RemoveRange(button.Roles);
-        db.Remove(button.Button);
-        db.Remove(button);
     }
 
     private static string GetJumpUrl(this MessageTemplate template, IGuild guild)
         => $"https://discord.com/channels/{guild.Id}/{template.ChannelId}/{template.MessageId}";
 
-    private static void TryRemove(this DbContext db, ICollection<ActionRow> rows)
+    private static void TryRemove(this DbContext db, IEnumerable<ActionRow> rows)
     {
-        db.RemoveRange(rows);
-        foreach (var row in rows)
+        foreach (var component in rows.SelectMany(c => c.Components))
         {
-            db.RemoveRange(row.Components);
-            foreach (var component in row.Components)
-            {
-                if (component is Button button)
-                    db.TryRemove(button.Link);
-
-                if (component is SelectMenu menu)
-                    db.RemoveRange(menu.Options);
-            }
+            db.Remove(component);
+            if (component is SelectMenu menu)
+                db.RemoveRange(menu.Options);
         }
     }
 
@@ -91,7 +77,6 @@ public static class MessageTemplateExtensions
     {
         foreach (var embed in embeds)
         {
-            db.Remove(embed);
             db.RemoveRange(embed.Fields);
             db.TryRemove(embed.Author);
             db.TryRemove(embed.Footer);
