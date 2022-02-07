@@ -7,7 +7,6 @@ using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Data.Models.Moderation.Infractions.Templates;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Data.Models.TimeTracking;
 
@@ -20,8 +19,6 @@ public class ZhongliContext : DbContext
     public DbSet<Ban> BanHistory { get; init; } = null!;
 
     public DbSet<BanAction> BanActions { get; init; } = null!;
-
-    public DbSet<BanTemplate> BanTemplates { get; init; } = null!;
 
     public DbSet<Button> Buttons { get; set; } = null!;
 
@@ -45,27 +42,19 @@ public class ZhongliContext : DbContext
 
     public DbSet<KickAction> KickActions { get; init; } = null!;
 
-    public DbSet<KickTemplate> KickTemplates { get; init; } = null!;
-
     public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; } = null!;
 
     public DbSet<Mute> MuteHistory { get; init; } = null!;
 
     public DbSet<MuteAction> MuteActions { get; init; } = null!;
 
-    public DbSet<MuteTemplate> MuteTemplates { get; init; } = null!;
-
     public DbSet<Note> NoteHistory { get; init; } = null!;
 
     public DbSet<NoteAction> NoteActions { get; init; } = null!;
 
-    public DbSet<NoteTemplate> NoteTemplates { get; init; } = null!;
-
     public DbSet<Notice> NoticeHistory { get; init; } = null!;
 
     public DbSet<NoticeAction> NoticeActions { get; init; } = null!;
-
-    public DbSet<NoticeTemplate> NoticeTemplates { get; init; } = null!;
 
     public DbSet<PermissionCriterion> PermissionCriteria { get; init; } = null!;
 
@@ -84,8 +73,6 @@ public class ZhongliContext : DbContext
     public DbSet<Warning> WarningHistory { get; init; } = null!;
 
     public DbSet<WarningAction> WarningActions { get; init; } = null!;
-
-    public DbSet<WarningTemplate> WarningTemplates { get; init; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
         => modelBuilder.ApplyConfigurationsFromAssembly(typeof(ZhongliContext).Assembly);
