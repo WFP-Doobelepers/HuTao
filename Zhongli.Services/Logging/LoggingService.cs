@@ -56,13 +56,12 @@ public class LoggingService
         if (message.Channel is not INestedChannel channel) return;
 
         var reaction = notification.Reaction;
-        var user = reaction.User.GetValueOrDefault();
+        if (message.Reactions.TryGetValue(reaction.Emote, out var metadata) && metadata.ReactionCount > 1)
+            return;
 
+        var user = reaction.User.GetValueOrDefault();
         if (user is not IGuildUser guildUser || guildUser.IsBot) return;
         if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
-
-        var metadata = message.Reactions[reaction.Emote];
-        if (metadata.ReactionCount > 1) return;
 
         var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
@@ -74,8 +73,12 @@ public class LoggingService
         var message = await GetMessageAsync(notification.Message);
         if (message.Channel is not IGuildChannel channel) return;
 
-        var log = await LogDeletionAsync(notification.Reaction, null, cancellationToken);
-        await PublishLogAsync(log, LogType.ReactionRemoved, channel.Guild, cancellationToken);
+        var reaction = notification.Reaction;
+        if (message.Reactions.ContainsKey(reaction.Emote))
+            return;
+
+        var log = await LogDeletionAsync(reaction, null, cancellationToken);
+        await PublishLogAsync(new ReactionDeleteDetails(log, channel.Guild), cancellationToken);
     }
 
     public async Task LogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
@@ -89,7 +92,7 @@ public class LoggingService
         if (latest is null) return;
 
         var log = await LogDeletionAsync(latest, details, cancellationToken);
-        await PublishLogAsync(log, LogType.MessageDeleted, channel.Guild, cancellationToken);
+        await PublishLogAsync(new MessageDeleteDetails(latest, log, channel.Guild), cancellationToken);
     }
 
     public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
@@ -114,24 +117,43 @@ public class LoggingService
         if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
 
         var details = await TryGetAuditLogDetails(notification.Messages.Count, channel);
-        var logs = await notification.Messages.ToAsyncEnumerable()
-            .SelectAwait(async m => await GetLatestMessage(m.Id, cancellationToken))
-            .ToListAsync(cancellationToken);
+        var messages = GetLatestMessages(notification.Channel.Id, notification.Messages.Select(x => x.Id)).ToList();
 
-        var log = await LogDeletionAsync(logs.OfType<MessageLog>(), channel, details, cancellationToken);
-        await PublishLogAsync(log, LogType.MessagesBulkDeleted, channel.Guild, cancellationToken);
+        var log = await LogDeletionAsync(messages, channel, details, cancellationToken);
+        await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
     }
+
+    private static EmbedLog AddDetails(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
+    {
+        embed
+            .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
+            .AddField("Message Count", logs.Count, true);
+
+        var content = logs.GetDetails();
+        return new EmbedLog(embed, content.ToString());
+    }
+
+    private IEnumerable<MessageLog> GetLatestMessages(ulong channelId, IEnumerable<ulong> messageIds)
+        => _db.Set<MessageLog>()
+            .Where(m => m.ChannelId == channelId)
+            .Where(m => m.UpdatedLog == null)
+            .Where(m => messageIds.Contains(m.MessageId))
+            .OrderByDescending(m => m.LogDate);
 
     private static MemoryStream GenerateStreamFromString(string value)
         => new(Encoding.UTF8.GetBytes(value));
 
-    private async Task PublishLogAsync(DeleteLog? log, LogType type, IGuild guild,
+    private async Task PublishLogAsync(DeleteDetails details,
         CancellationToken cancellationToken)
     {
-        if (log is null) return;
-
-        var embed = await BuildLogAsync(log, cancellationToken);
-        var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
+        var embed = await BuildLogAsync(details);
+        var channel = await GetLoggingChannelAsync(details switch
+        {
+            MessageDeleteDetails  => LogType.MessageDeleted,
+            MessagesDeleteDetails => LogType.MessagesBulkDeleted,
+            ReactionDeleteDetails => LogType.ReactionRemoved,
+            _                     => throw new ArgumentOutOfRangeException(nameof(details))
+        }, details.Guild, cancellationToken);
 
         await PublishLogAsync(embed, channel);
     }
@@ -201,73 +223,6 @@ public class LoggingService
         return message.Content == log.Content && embedsChanged;
     }
 
-    private async Task<DeleteLog?> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
-        CancellationToken cancellationToken)
-    {
-        var deleted = new MessageDeleteLog(message, details);
-
-        _db.Add(deleted);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return deleted;
-    }
-
-    private async Task<DeleteLog?> LogDeletionAsync(IEnumerable<MessageLog> messages,
-        IGuildChannel channel, ActionDetails? details,
-        CancellationToken cancellationToken)
-    {
-        var deleted = new MessagesDeleteLog(messages, channel, details);
-
-        _db.Add(deleted);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return deleted;
-    }
-
-    private async Task<DeleteLog?> LogDeletionAsync(SocketReaction reaction, ActionDetails? details,
-        CancellationToken cancellationToken)
-    {
-        var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
-        var deleted = new ReactionDeleteLog(emote, reaction, details);
-
-        _db.Add(deleted);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return deleted;
-    }
-
-    private async Task<EmbedLog?> AddDetailsAsync(EmbedBuilder embed, IMessageEntity log,
-        CancellationToken cancellationToken)
-    {
-        var deleted = await GetLatestMessage(log.MessageId, cancellationToken);
-        return deleted is null ? null : await AddDetailsAsync(embed, deleted);
-    }
-
-    private async Task<EmbedLog?> BuildLogAsync(DeleteLog log, CancellationToken cancellationToken)
-    {
-        var embed = new EmbedBuilder()
-            .WithTitle($"{log.GetTitle()} Deleted")
-            .WithColor(Color.Red)
-            .WithCurrentTimestamp();
-
-        if (log.Action is not null)
-        {
-            embed
-                .AddField("Deleted by", log.GetModerator(), true)
-                .AddField("Deleted on", log.GetDate(), true)
-                .AddField("Reason", log.GetReason(), true);
-        }
-
-        return log switch
-        {
-            MessagesDeleteLog messages => await AddDetailsAsync(embed, messages, cancellationToken),
-            MessageDeleteLog message   => await AddDetailsAsync(embed, message, cancellationToken),
-            ReactionDeleteLog reaction => await AddDetailsAsync(embed, reaction),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(log), log, "Invalid log type.")
-        };
-    }
-
     private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessageLog log)
     {
         var user = await GetUserAsync(log);
@@ -317,20 +272,29 @@ public class LoggingService
         return new EmbedLog(embed);
     }
 
-    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessagesDeleteLog log,
-        CancellationToken cancellationToken)
+    private async Task<EmbedLog> BuildLogAsync(DeleteDetails details)
     {
-        var logs = await log.Messages
-            .ToAsyncEnumerable()
-            .SelectAwait(async m => await GetLatestMessage(m.MessageId, cancellationToken))
-            .ToListAsync(cancellationToken);
+        var log = details.Deleted;
+        var embed = new EmbedBuilder()
+            .WithTitle($"{log.GetTitle()} Deleted")
+            .WithColor(Color.Red)
+            .WithCurrentTimestamp();
 
-        embed
-            .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
-            .AddField("Message Count", log.Messages.Count, true);
+        if (log.Action is not null)
+        {
+            embed
+                .AddField("Deleted by", log.GetModerator(), true)
+                .AddField("Deleted on", log.GetDate(), true)
+                .AddField("Reason", log.GetReason(), true);
+        }
 
-        var messages = logs.OfType<MessageLog>().GetDetails();
-        return new EmbedLog(embed, messages.ToString());
+        return details switch
+        {
+            MessagesDeleteDetails messages => AddDetails(embed, messages.Log, messages.Messages),
+            MessageDeleteDetails message => await AddDetailsAsync(embed, message.Message),
+            ReactionDeleteDetails reaction => await AddDetailsAsync(embed, reaction.Log),
+            _ => throw new ArgumentOutOfRangeException(nameof(log), log, "Invalid log type.")
+        };
     }
 
     private async Task<EmbedLog> BuildLogAsync(ILog log)
@@ -407,6 +371,15 @@ public class LoggingService
     private async Task<IUser> GetUserAsync<T>(T log) where T : IMessageEntity
         => (IUser) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
 
+    private async Task<MessageDeleteLog> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
+        CancellationToken cancellationToken)
+    {
+        var deleted = _db.Add(new MessageDeleteLog(message, details)).Entity;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return deleted;
+    }
+
     private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,
         IUserMessage message, MessageLog oldLog,
         CancellationToken cancellationToken)
@@ -424,6 +397,28 @@ public class LoggingService
         await _db.SaveChangesAsync(cancellationToken);
 
         return log;
+    }
+
+    private async Task<MessagesDeleteLog> LogDeletionAsync(IEnumerable<MessageLog> messages,
+        IGuildChannel channel, ActionDetails? details,
+        CancellationToken cancellationToken)
+    {
+        var deleted = _db.Add(new MessagesDeleteLog(messages, channel, details)).Entity;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return deleted;
+    }
+
+    private async Task<ReactionDeleteLog> LogDeletionAsync(SocketReaction reaction, ActionDetails? details,
+        CancellationToken cancellationToken)
+    {
+        var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
+        var deleted = new ReactionDeleteLog(emote, reaction, details);
+
+        _db.Add(deleted);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return deleted;
     }
 
     private async Task<ReactionLog?> LogReactionAsync(GuildUserEntity user, SocketReaction reaction,
@@ -452,6 +447,17 @@ public class LoggingService
         => await _db.Set<T>().AsQueryable()
             .OrderByDescending(l => l.LogDate)
             .FirstOrDefaultAsync(filter, cancellationToken);
+
+    private record DeleteDetails(DeleteLog Deleted, IGuild Guild);
+
+    private record ReactionDeleteDetails(ReactionDeleteLog Log, IGuild Guild)
+        : DeleteDetails(Log, Guild);
+
+    private record MessageDeleteDetails(MessageLog Message, DeleteLog Deleted, IGuild Guild)
+        : DeleteDetails(Deleted, Guild);
+
+    private record MessagesDeleteDetails(IReadOnlyCollection<MessageLog> Messages, MessagesDeleteLog Log, IGuild Guild)
+        : DeleteDetails(Log, Guild);
 
     private record EmbedLog(Embed[] Embeds, string? Attachment = null)
     {

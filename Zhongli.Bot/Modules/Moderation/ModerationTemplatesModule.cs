@@ -6,7 +6,7 @@ using Discord;
 using Discord.Commands;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Moderation.Infractions.Templates;
+using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
@@ -30,60 +30,60 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     public async Task BanTemplateAsync(string name, uint deleteDays = 0, TimeSpan? length = null,
         AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new BanTemplate(deleteDays, length, details);
+        var action = new BanAction(deleteDays, length);
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("kick")]
     public async Task KickTemplateAsync(string name,
         AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new KickTemplate(details);
+        var action = new KickAction();
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("mute")]
     public async Task MuteTemplateAsync(string name, TimeSpan? length = null,
         AuthorizationScope scope = Moderator, [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new MuteTemplate(length, details);
+        var action = new MuteAction(length);
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("note")]
     public async Task NoteTemplateAsync(string name, AuthorizationScope scope = Moderator,
         [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new NoteTemplate(details);
+        var action = new NoteAction();
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("notice")]
     public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = Moderator,
         [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new NoticeTemplate(details);
+        var action = new NoticeAction();
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("warn")]
     public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = Moderator,
         [Remainder] string? reason = null)
     {
-        var details = new TemplateDetails(name, reason, scope);
-        var template = new WarningTemplate(amount, details);
+        var action = new WarningAction(amount);
+        var details = new TemplateDetails(name, action, reason, scope);
 
-        await AddTemplateAsync(template);
+        await AddTemplateAsync(details);
     }
 
     [Command("remove")]
@@ -110,8 +110,9 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         return guild.ModerationTemplates;
     }
 
-    private async Task AddTemplateAsync(ModerationTemplate template)
+    private async Task AddTemplateAsync(TemplateDetails details)
     {
+        var template = new ModerationTemplate(details);
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
         var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name == template.Name);

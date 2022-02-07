@@ -14,7 +14,6 @@ namespace Zhongli.Bot.Modules;
 public class InteractiveUserModule : InteractionModuleBase<SocketInteractionContext>
 {
     private static readonly GenericBitwise<LogReprimandType> InfractionTypeBitwise = new();
-
     private readonly UserService _user;
 
     public InteractiveUserModule(UserService user) { _user = user; }
@@ -43,6 +42,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task UserHistoryAsync(IUser user) => HistoryAsync(user);
 
     [ComponentInteraction("r:*")]
+    [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task ViewHistoryAsync(string id, string[] selections)
     {
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));

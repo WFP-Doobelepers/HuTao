@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zhongli.Data;
@@ -11,9 +12,10 @@ using Zhongli.Data;
 namespace Zhongli.Data.Migrations
 {
     [DbContext(typeof(ZhongliContext))]
-    partial class ZhongliContextModelSnapshot : ModelSnapshot
+    [Migration("20220206182835_ModerationTemplateReprimandActionNavigation")]
+    partial class ModerationTemplateReprimandActionNavigation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -516,7 +518,8 @@ namespace Zhongli.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ButtonId");
+                    b.HasIndex("ButtonId")
+                        .IsUnique();
 
                     b.HasIndex("GuildId");
 
@@ -1827,8 +1830,8 @@ namespace Zhongli.Data.Migrations
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", b =>
                 {
                     b.HasOne("Zhongli.Data.Models.Discord.Message.Components.Button", "Button")
-                        .WithMany()
-                        .HasForeignKey("ButtonId")
+                        .WithOne("Link")
+                        .HasForeignKey("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", "ButtonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2335,6 +2338,11 @@ namespace Zhongli.Data.Migrations
             modelBuilder.Entity("Zhongli.Data.Models.VoiceChat.VoiceChatRules", b =>
                 {
                     b.Navigation("VoiceChats");
+                });
+
+            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Components.Button", b =>
+                {
+                    b.Navigation("Link");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Components.SelectMenu", b =>

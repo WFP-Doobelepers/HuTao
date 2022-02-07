@@ -64,7 +64,6 @@ public interface ICommandHelpService
 internal class CommandHelpService : ICommandHelpService
 {
     private readonly CommandService _commandService;
-
     private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
     public CommandHelpService(CommandService commandService) { _commandService = commandService; }
@@ -154,7 +153,7 @@ internal class CommandHelpService : ICommandHelpService
     public StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command)
     {
         var embed = command.ToEmbedBuilder();
-        var builder = PageBuilder.FromEmbedBuilder(embed);
+        var builder = new MultiEmbedPageBuilder().AddBuilder(embed);
 
         return InteractiveExtensions.CreateDefaultPaginator().WithPages(builder);
     }

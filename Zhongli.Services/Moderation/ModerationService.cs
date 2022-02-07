@@ -13,7 +13,6 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
-using Zhongli.Data.Models.Moderation.Infractions.Templates;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.Expirable;
 using Zhongli.Services.Utilities;
@@ -170,17 +169,20 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         return activeMute;
     }
 
-    public async Task<ReprimandResult?> ReprimandAsync(ModerationTemplate template, ReprimandDetails details,
-        CancellationToken cancellationToken = default) => template switch
-    {
-        IBan b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-        IKick      => await TryKickAsync(details, cancellationToken),
-        IMute m    => await TryMuteAsync(m.Length, details, cancellationToken),
-        IWarning w => await WarnAsync(w.Count, details, cancellationToken),
-        INotice    => await NoticeAsync(details, cancellationToken),
-        INote      => await NoteAsync(details, cancellationToken),
-        _          => null
-    };
+    public Task<ReprimandResult?> ReprimandAsync(ModerationTemplate template, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+        => ReprimandAsync(template.Action, details, cancellationToken);
+
+    //     => template switch
+    // {
+    //     IBan b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+    //     IKick      => await TryKickAsync(details, cancellationToken),
+    //     IMute m    => await TryMuteAsync(m.Length, details, cancellationToken),
+    //     IWarning w => await WarnAsync(w.Count, details, cancellationToken),
+    //     INotice    => await NoticeAsync(details, cancellationToken),
+    //     INote      => await NoteAsync(details, cancellationToken),
+    //     _          => null
+    // };
 
     public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
