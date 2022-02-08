@@ -73,7 +73,7 @@ public class LinkingService
         var builder = GetButtonBuilder(options);
         var linked = GetButton(guild, new LinkedButton(builder, options));
 
-        var component = rows.AddComponent(linked.Button);
+        var component = rows.AddComponent(linked.Button, options.Row);
         await message.ModifyAsync(m => m.Components = component.ToBuilder().Build());
 
         await _db.SaveChangesAsync();
@@ -88,7 +88,7 @@ public class LinkingService
         var builder = GetButtonBuilder(options);
         var linked = GetButton(guild, new LinkedButton(builder, options));
 
-        template.Components.AddComponent(linked.Button).ToBuilder().Build();
+        template.Components.AddComponent(linked.Button, options.Row).ToBuilder().Build();
 
         await _db.SaveChangesAsync();
         return linked;

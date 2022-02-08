@@ -29,6 +29,8 @@ public interface ILinkedButtonOptions : IMessageTemplateOptions
 
     public IMessage? Message { get; set; }
 
+    public int Row { get; set; }
+
     public MessageTemplate? MessageTemplate
         => Message is null ? null : new MessageTemplate(Message, this);
 

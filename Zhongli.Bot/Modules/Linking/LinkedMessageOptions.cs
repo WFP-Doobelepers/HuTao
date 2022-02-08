@@ -33,6 +33,9 @@ public class LinkedMessageOptions : ILinkedButtonOptions
     [HelpSummary("The message to use as a template for the message link.")]
     public IMessage? Message { get; set; }
 
+    [HelpSummary("The row where the button should be placed.")]
+    public int Row { get; set; }
+
     [HelpSummary("The text label that is shown on the Button.")]
     public string? Label { get; set; }
 
