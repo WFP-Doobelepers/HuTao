@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Discord.Webhook;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -22,6 +23,7 @@ public class ScriptExecutionContext
             "Discord",
             "Discord.Commands",
             "Discord.Interactions",
+            "Discord.Webhook",
             "Discord.WebSocket",
             "Humanizer",
             "Humanizer.Localisation",
@@ -50,7 +52,8 @@ public class ScriptExecutionContext
         {
             Assembly.GetEntryAssembly()!,
             typeof(ZhongliContext).Assembly,
-            typeof(ScriptExecutionContext).Assembly
+            typeof(ScriptExecutionContext).Assembly,
+            typeof(DiscordWebhookClient).Assembly
         };
 
     private static readonly IEnumerable<string> AssemblyImports = BotAssemblies
