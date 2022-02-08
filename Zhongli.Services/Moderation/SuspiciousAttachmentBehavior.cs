@@ -20,12 +20,12 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
     private static readonly IReadOnlyCollection<string> BlacklistedExtensions = new[]
     {
-        ".application", ".bat", ".bin", ".cmd", ".com", ".com", ".cpl", ".dll", ".doc", ".docm", ".dotm", ".exe",
+        ".7z", ".application", ".bat", ".bin", ".cmd", ".com", ".com", ".cpl", ".dll", ".doc", ".docm", ".dotm", ".exe",
         ".gadget", ".hta", ".inf", ".inf1", ".ins", ".inx", ".isu", ".jar", ".job", ".js", ".jse", ".lnk", ".msc",
         ".msh", ".msh1", ".msh1xml", ".msh2", ".msh2xml", ".mshxml", ".msi", ".msp", ".paf", ".pasc2", ".pdb", ".pif",
-        ".potm", ".ppam", ".ppsm", ".ppt", ".pptm", ".ps1", ".ps1xml", ".ps2", ".ps2xml", ".psc1", ".reg", ".rgs",
-        ".sb", ".scf", ".scr", ".sct", ".sh", ".shb", ".shs", ".sldn", ".u3p", ".vbe", ".vbs", ".vbscript", ".ws",
-        ".wsc", ".wsf", ".wsh", ".xlam", ".xls", ".xlsm", ".xltm"
+        ".potm", ".ppam", ".ppsm", ".ppt", ".pptm", ".ps1", ".ps1xml", ".ps2", ".ps2xml", ".psc1", ".rar", ".reg",
+        ".rgs", ".sb", ".scf", ".scr", ".sct", ".sh", ".shb", ".shs", ".sldn", ".u3p", ".vbe", ".vbs", ".vbscript",
+        ".ws", ".wsc", ".wsf", ".wsh", ".xlam", ".xls", ".xlsm", ".xltm", ".zip"
     };
 
     private readonly ModerationService _moderation;
