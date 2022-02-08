@@ -31,20 +31,24 @@ public static class MessageTemplateExtensions
                 ? EmbedBuilderExtensions.EmbedBuilderOptions.ReplaceTimestamps
                 : EmbedBuilderExtensions.EmbedBuilderOptions.None));
 
-    public static async Task UpdateAsync(this MessageTemplate template, IGuild guild)
-    {
-        var channel = await guild.GetTextChannelAsync(template.ChannelId);
-        var message = await channel.GetMessageAsync(template.MessageId);
-        if (message is null) return;
-
-        template.UpdateTemplate(message);
-    }
-
     public static Task<IUserMessage> SendMessageAsync(this MessageTemplate template, IMessageChannel channel)
         => channel.SendMessageAsync(template.Content,
             allowedMentions: template.AllowMentions ? AllowedMentions.All : AllowedMentions.None,
             embeds: template.GetEmbedBuilders().Select(e => e.Build()).ToArray(),
             components: template.Components.ToBuilder().Build());
+
+    internal static async Task UpdateAsync(this DbContext db, MessageTemplate template, IGuild guild)
+    {
+        var channel = await guild.GetTextChannelAsync(template.ChannelId);
+        var message = await channel.GetMessageAsync(template.MessageId);
+        if (message is null) return;
+
+        db.RemoveRange(template.Attachments);
+        db.TryRemove(template.Embeds);
+
+        template.UpdateTemplate(message);
+        await db.SaveChangesAsync();
+    }
 
     internal static void TryRemove(this DbContext db, MessageTemplate? template)
     {
@@ -87,11 +91,11 @@ public static class MessageTemplateExtensions
         }
     }
 
-    private static void TryRemove(this DbContext db, IEnumerable<Embed> embeds)
+    private static void TryRemove(this DbContext db, ICollection<Embed> embeds)
     {
+        db.RemoveRange(embeds);
         foreach (var embed in embeds)
         {
-            db.Remove(embed);
             db.RemoveRange(embed.Fields);
             db.TryRemove(embed.Author);
             db.TryRemove(embed.Footer);

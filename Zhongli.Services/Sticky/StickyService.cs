@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,18 +51,17 @@ public class StickyService
         await _db.SaveChangesAsync();
     }
 
-    [SuppressMessage("ReSharper", "ConstantConditionalAccessQualifier")]
     public async Task SendStickyMessage(StickyMessage sticky, ITextChannel channel)
     {
         var template = sticky.Template;
         if (!ShouldResendSticky(sticky, out var details)) return;
 
         if (sticky.Template.IsLive)
-            await template.UpdateAsync(channel.Guild);
+            await _db.UpdateAsync(template, channel.Guild);
 
         while (details.Messages.TryTake(out var message))
         {
-            _ = message?.DeleteAsync();
+            _ = message.DeleteAsync();
         }
 
         var options = template.ReplaceTimestamps ? ReplaceTimestamps : None;
@@ -77,7 +75,7 @@ public class StickyService
                 ? AllowedMentions.All
                 : AllowedMentions.None,
             embeds: embeds.Select(e => e.Build()).ToArray(),
-            components: components?.Build()));
+            components: components.Build()));
     }
 
     public async Task<ICollection<StickyMessage>> GetStickyMessages(IGuild guild)

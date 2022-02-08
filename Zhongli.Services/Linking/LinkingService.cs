@@ -47,7 +47,7 @@ public class LinkingService
 
         var template = button.Message;
         if (template?.IsLive ?? false)
-            await template.UpdateAsync(context.Guild);
+            await _db.UpdateAsync(template, context.Guild);
 
         var roles = await ApplyRoleTemplatesAsync(context, button.Roles.ToList());
         var embeds = new List<EmbedBuilder>()
