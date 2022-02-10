@@ -7,6 +7,7 @@ using Discord.Commands;
 using Fergun.Interactive;
 using Fergun.Interactive.Pagination;
 using Zhongli.Services.Interactive.Paginator;
+using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.CommandHelp;
 
@@ -167,8 +168,16 @@ internal class CommandHelpService : ICommandHelpService
             .WithTitle($"Module: {module.Name}")
             .WithDescription(module.Summary));
 
-        var pages = builders.Chunk(5)
-            .Select(b => new MultiEmbedPageBuilder().WithBuilders(b));
+        var pages = new List<MultiEmbedPageBuilder>();
+        var page = pages.Insert(new MultiEmbedPageBuilder());
+
+        foreach (var builder in builders)
+        {
+            if (page.Builders.Sum(b => b.Length) + builder.Length > EmbedBuilder.MaxEmbedLength)
+                page = pages.Insert(new MultiEmbedPageBuilder().AddBuilder(builder));
+            else
+                page.AddBuilder(builder);
+        }
 
         return paginator.WithPages(pages);
     }
