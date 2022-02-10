@@ -117,7 +117,7 @@ public class LoggingService
         if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
 
         var details = await TryGetAuditLogDetails(notification.Messages.Count, channel);
-        var messages = GetLatestMessages(notification.Channel.Id, notification.Messages.Select(x => x.Id)).ToList();
+        var messages = GetLatestMessages(channel, notification.Messages.Select(x => x.Id)).ToList();
 
         var log = await LogDeletionAsync(messages, channel, details, cancellationToken);
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
@@ -133,9 +133,10 @@ public class LoggingService
         return new EmbedLog(embed, content.ToString());
     }
 
-    private IEnumerable<MessageLog> GetLatestMessages(ulong channelId, IEnumerable<ulong> messageIds)
+    private IEnumerable<MessageLog> GetLatestMessages(IGuildChannel channel, IEnumerable<ulong> messageIds)
         => _db.Set<MessageLog>()
-            .Where(m => m.ChannelId == channelId)
+            .Where(m => m.GuildId == channel.Guild.Id)
+            .Where(m => m.ChannelId == channel.Id)
             .Where(m => m.UpdatedLog == null)
             .Where(m => messageIds.Contains(m.MessageId))
             .OrderByDescending(m => m.LogDate);

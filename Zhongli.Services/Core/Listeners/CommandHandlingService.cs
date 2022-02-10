@@ -115,9 +115,7 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         if (result.Error is not CommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason} in {Name}",
-                result.Error, result.ErrorReason, command.Value?.Name);
-
+            _log.LogError("{Error}: {ErrorReason} in {Name}", result.Error, result.ErrorReason, command.Value?.Name);
             await _errorHandler.AssociateError(context.Message, $"{result.Error}: {result.ErrorReason}");
         }
     }

@@ -38,10 +38,7 @@ public class InteractionHandlingService :
         var interaction = notification.Interaction;
 
         var context = new SocketInteractionContext(_discord, interaction);
-        var result = await _commands.ExecuteCommandAsync(context, _services);
-
-        if (!result.IsSuccess)
-            await InteractionFailedAsync(context, result);
+        await _commands.ExecuteCommandAsync(context, _services);
     }
 
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
@@ -57,39 +54,22 @@ public class InteractionHandlingService :
 
     public async Task InitializeAsync()
     {
-        _commands.SlashCommandExecuted     += SlashCommandExecuted;
-        _commands.ContextCommandExecuted   += ContextCommandExecuted;
-        _commands.ComponentCommandExecuted += ComponentCommandExecuted;
+        _commands.SlashCommandExecuted     += CommandExecutedAsync;
+        _commands.ContextCommandExecuted   += CommandExecutedAsync;
+        _commands.ComponentCommandExecuted += CommandExecutedAsync;
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }
 
-    private async Task ComponentCommandExecuted(ComponentCommandInfo info, IInteractionContext context, IResult result)
+    private async Task CommandExecutedAsync(
+        ICommandInfo command, IInteractionContext context, IResult result)
     {
-        if (!result.IsSuccess)
-            await InteractionFailedAsync(context, result);
-    }
-
-    private async Task ContextCommandExecuted(ContextCommandInfo info, IInteractionContext context, IResult result)
-    {
-        if (!result.IsSuccess)
-            await InteractionFailedAsync(context, result);
-    }
-
-    private async Task InteractionFailedAsync(IInteractionContext context, IResult result)
-    {
-        var error = $"{result.Error}: {result.ErrorReason}";
+        if (result.IsSuccess) return;
 
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason}", result.Error, result.ErrorReason);
-            await context.Interaction.RespondAsync(error, ephemeral: true);
+            _log.LogError("{Error}: {ErrorReason} in {Name}", result.Error, result.ErrorReason, command.Name);
+            await context.Interaction.RespondAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
         }
-    }
-
-    private async Task SlashCommandExecuted(SlashCommandInfo info, IInteractionContext context, IResult result)
-    {
-        if (!result.IsSuccess)
-            await InteractionFailedAsync(context, result);
     }
 }
