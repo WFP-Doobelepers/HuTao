@@ -85,14 +85,14 @@ public static class EmbedBuilderExtensions
         return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
     }
 
-    public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder embed, IUser user,
+    public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder embed, IUser? user,
         AuthorOptions authorOptions = AuthorOptions.None, ushort size = 128)
     {
-        var username = user.GetFullUsername();
+        var username = user?.GetFullUsername() ?? "Unknown";
         if (authorOptions.HasFlag(AuthorOptions.Requested))
             username = $"Requested by {username}";
 
-        return embed.WithEntityAsAuthor(user, username, user.GetDefiniteAvatarUrl(size), authorOptions);
+        return embed.WithEntityAsAuthor(user, username, user?.GetDefiniteAvatarUrl(size), authorOptions);
     }
 
     public static int Length(this Embed embed)
@@ -139,11 +139,11 @@ public static class EmbedBuilderExtensions
         return builder;
     }
 
-    private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong> entity,
+    private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong>? entity,
         string name, string? iconUrl, AuthorOptions authorOptions)
     {
         if (authorOptions.HasFlag(AuthorOptions.IncludeId))
-            name += $" ({entity.Id})";
+            name += $" ({entity?.Id})";
 
         if (authorOptions.HasFlag(AuthorOptions.UseThumbnail))
             embed.WithThumbnailUrl(iconUrl);

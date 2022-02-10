@@ -116,11 +116,12 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         foreach (var reprimand in reprimands)
         {
-            await DeleteReprimandAsync(reprimand, silent ? null : GetModified(reprimand));
+            var details = await GetModified(reprimand);
+            await DeleteReprimandAsync(reprimand, silent ? null : details);
 
-            ReprimandDetails GetModified(IUserEntity r)
+            async Task<ReprimandDetails> GetModified(IUserEntity r)
             {
-                var user = _client.GetUser(r.UserId);
+                var user = await _client.Rest.GetUserAsync(r.UserId);
                 return new ReprimandDetails(user, moderator, "[Deleted Trigger]");
             }
         }
