@@ -21,7 +21,7 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
     public async Task PurgeAsync(int amount, PurgeFilters? options = null)
     {
         var messages = await Context.Channel
-            .GetMessagesAsync(amount)
+            .GetMessagesAsync(amount + 1)
             .Flatten().ToListAsync();
 
         var channel = (ITextChannel) Context.Channel;

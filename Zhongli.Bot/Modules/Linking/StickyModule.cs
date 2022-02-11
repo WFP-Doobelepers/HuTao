@@ -13,6 +13,7 @@ using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Sticky;
+using Humanizer;
 
 namespace Zhongli.Bot.Modules.Linking;
 
@@ -64,6 +65,8 @@ public class StickyModule : InteractiveEntity<StickyMessage>
             .AddField("Template ID", template.Id, true)
             .AddField("Channel", $"<#{entity.ChannelId}>", true)
             .WithTemplateDetails(template, Context.Guild)
+            .AddField($"Time Delay", entity.TimeDelay?.Humanize() ?? "None")
+            .AddField($"Count Delay", entity.CountDelay ?? 0)
             .WithTitle($"Sticky: {entity.Id}");
     }
 
