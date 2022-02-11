@@ -31,9 +31,6 @@ public class GeneralModule : ModuleBase<SocketCommandContext>
     [Summary("Shows the ping latency of the bot.")]
     public async Task PingAsync()
     {
-        // var sw = new Stopwatch();
-        // sw.Start();
-
         var gatewayLatency = Context.Client.Latency.Milliseconds().Humanize(5);
         var embed = new EmbedBuilder()
             .WithTitle("Pong!")
@@ -43,11 +40,8 @@ public class GeneralModule : ModuleBase<SocketCommandContext>
 
         var message = await ReplyAsync(embed: embed.Build());
 
-        // sw.Stop();
-        var discordLatency
-            = (message.CreatedAt.ToUnixTimeMilliseconds() - Context.Message.CreatedAt.ToUnixTimeMilliseconds())
-            .Milliseconds().Humanize(5);
-        embed.AddField("Discord Latency", discordLatency);
+        var discordLatency = (message.CreatedAt - Context.Message.CreatedAt).Humanize(5);
+        embed.AddField("Discord Latency", $"{discordLatency}");
 
         await message.ModifyAsync(m => m.Embeds = new[] { embed.Build() });
     }
