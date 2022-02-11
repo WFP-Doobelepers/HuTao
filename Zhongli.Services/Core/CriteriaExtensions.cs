@@ -66,10 +66,8 @@ public static class CriteriaExtensions
     private static bool Judge(this IPermissionEntity auth, IGuildUser user)
         => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0;
 
-    private static bool Judge(this IGuildChannelEntity auth, INestedChannel channel)
-        => auth.IsCategory
-            ? auth.ChannelId == channel.CategoryId
-            : auth.ChannelId == channel.Id;
+    private static bool Judge(this IChannelEntity auth, INestedChannel channel)
+        => auth.ChannelId == channel.CategoryId || auth.ChannelId == channel.Id;
 
     private static ICollection<Criterion> AddCriteria<T>(this ICollection<Criterion> collection,
         IEnumerable<T>? source, Func<T, Criterion> func)
