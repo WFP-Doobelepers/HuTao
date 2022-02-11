@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -31,21 +30,18 @@ public class GeneralModule : ModuleBase<SocketCommandContext>
     [Summary("Shows the ping latency of the bot.")]
     public async Task PingAsync()
     {
-        var sw = new Stopwatch();
-        sw.Start();
-
-        var latency = Context.Client.Latency.Milliseconds().Humanize(5);
+        var gateway = Context.Client.Latency.Milliseconds().Humanize(5);
         var embed = new EmbedBuilder()
             .WithTitle("Pong!")
             .WithUserAsAuthor(Context.User, AuthorOptions.Requested)
-            .AddField("Gateway Latency", $"{latency}")
+            .AddField("Gateway Latency", $"{gateway}")
             .WithCurrentTimestamp();
 
         var message = await ReplyAsync(embed: embed.Build());
 
-        sw.Stop();
-        embed.AddField("Discord Latency", sw.Elapsed.Humanize(5));
+        var discord = (message.CreatedAt - Context.Message.CreatedAt).Humanize(5);
+        embed.AddField("Discord Latency", $"{discord}");
 
-        await message.ModifyAsync(m => m.Embeds = new[] { embed.Build() });
+        await message.ModifyAsync(m => m.Embed = embed.Build());
     }
 }
