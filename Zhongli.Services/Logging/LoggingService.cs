@@ -23,7 +23,6 @@ using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
 using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
-using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
 
 namespace Zhongli.Services.Logging;
 
@@ -250,7 +249,7 @@ public class LoggingService
 
         var embeds = log.Embeds
             .Where(e => e.IsViewable())
-            .Select(e => e.ToBuilder(UseProxy));
+            .Select(e => e.ToBuilder(EmbedBuilderOptions.UseProxy));
 
         return new EmbedLog(embed, attachments.Concat(embeds));
     }

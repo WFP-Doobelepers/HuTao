@@ -6,6 +6,6 @@ public enum ReprimandStatus
     Added,
     Expired,
     Updated,
-    Hidden,
+    Pardoned,
     Deleted
 }

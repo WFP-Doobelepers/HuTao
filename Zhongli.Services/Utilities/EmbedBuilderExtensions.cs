@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Discord;
 using Zhongli.Data.Models.Discord.Message.Embeds;
-using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
+using static Zhongli.Services.Utilities.EmbedBuilderOptions;
 using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
 
 namespace Zhongli.Services.Utilities;
@@ -19,16 +19,16 @@ public enum AuthorOptions
     Requested = 1 << 3
 }
 
+[Flags]
+public enum EmbedBuilderOptions
+{
+    None = 0,
+    UseProxy = 1 << 0,
+    ReplaceTimestamps = 1 << 1
+}
+
 public static class EmbedBuilderExtensions
 {
-    [Flags]
-    public enum EmbedBuilderOptions
-    {
-        None = 0,
-        UseProxy = 1 << 0,
-        ReplaceTimestamps = 1 << 1
-    }
-
     public static bool IsViewable(this Embed embed)
         => embed.Length() > 0
             || embed.Image is not null

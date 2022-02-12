@@ -8,7 +8,6 @@ using Zhongli.Data.Models.Discord.Message.Components;
 using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.Utilities;
 using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
-using EmbedBuilderExtensions = Zhongli.Services.Utilities.EmbedBuilderExtensions;
 
 namespace Zhongli.Services.Linking;
 
@@ -28,8 +27,8 @@ public static class MessageTemplateExtensions
     public static IEnumerable<EmbedBuilder> GetEmbedBuilders(this MessageTemplate template)
         => template.Embeds.Select(e
             => e.ToBuilder(template.ReplaceTimestamps
-                ? EmbedBuilderExtensions.EmbedBuilderOptions.ReplaceTimestamps
-                : EmbedBuilderExtensions.EmbedBuilderOptions.None));
+                ? EmbedBuilderOptions.ReplaceTimestamps
+                : EmbedBuilderOptions.None));
 
     public static Task<IUserMessage> SendMessageAsync(this MessageTemplate template, IMessageChannel channel)
         => channel.SendMessageAsync(template.Content,

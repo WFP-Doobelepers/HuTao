@@ -134,9 +134,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
         => await (reprimand switch
         {
-            Ban ban              => ExpireBanAsync(ban, ReprimandStatus.Hidden, cancellationToken, details),
-            Mute mute            => ExpireMuteAsync(mute, ReprimandStatus.Hidden, cancellationToken, details),
-            ExpirableReprimand e => ExpireReprimandAsync(e, ReprimandStatus.Hidden, cancellationToken, details),
+            Ban ban              => ExpireBanAsync(ban, ReprimandStatus.Pardoned, cancellationToken, details),
+            Mute mute            => ExpireMuteAsync(mute, ReprimandStatus.Pardoned, cancellationToken, details),
+            ExpirableReprimand e => ExpireReprimandAsync(e, ReprimandStatus.Pardoned, cancellationToken, details),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
         });
@@ -158,7 +158,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
-            await ExpireBanAsync(activeBan, ReprimandStatus.Hidden, cancellationToken, details);
+            await ExpireBanAsync(activeBan, ReprimandStatus.Pardoned, cancellationToken, details);
         else
             await details.Guild.RemoveBanAsync(details.User);
 
@@ -170,7 +170,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
         if (activeMute is not null)
-            await ExpireMuteAsync(activeMute, ReprimandStatus.Hidden, cancellationToken, details);
+            await ExpireMuteAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
         else
             await EndMuteAsync(await details.GetUserAsync());
 
@@ -186,7 +186,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
         if (activeBan is not null)
-            await ExpireReprimandAsync(activeBan, ReprimandStatus.Hidden, cancellationToken, details);
+            await ExpireReprimandAsync(activeBan, ReprimandStatus.Pardoned, cancellationToken, details);
 
         try
         {

@@ -10,7 +10,6 @@ using Zhongli.Data;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Utilities;
-using static Zhongli.Services.Utilities.EmbedBuilderExtensions.EmbedBuilderOptions;
 
 namespace Zhongli.Services.Sticky;
 
@@ -64,7 +63,7 @@ public class StickyService
             _ = message.DeleteAsync();
         }
 
-        var options = template.ReplaceTimestamps ? ReplaceTimestamps : None;
+        var options = template.ReplaceTimestamps ? EmbedBuilderOptions.ReplaceTimestamps : EmbedBuilderOptions.None;
         var embeds = template.Embeds.Select(e => e.ToBuilder(options));
         var components = template.Components.ToBuilder();
 

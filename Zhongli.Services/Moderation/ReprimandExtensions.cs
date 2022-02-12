@@ -124,15 +124,17 @@ public static class ReprimandExtensions
     public static string GetAction(this Reprimand action)
     {
         var mention = action.MentionUser();
+        var status = action.Status;
+
         return action switch
         {
-            Ban b      => $"{mention} was banned for {b.GetLength()}.",
-            Censored c => $"{mention} was censored. Message: {c.CensoredMessage().Truncate(512)}",
-            Kick       => $"{mention} was kicked.",
-            Mute m     => $"{mention} was muted for {m.GetLength()}.",
-            Note       => $"{mention} was given a note.",
-            Notice     => $"{mention} was given a notice.",
-            Warning w  => $"{mention} was warned {w.Count} times.",
+            Ban b      => $"{status} ban to {mention} for {b.GetLength()}.",
+            Censored c => $"{status} censor to {mention}. Message: {c.CensoredMessage().Truncate(512)}",
+            Kick       => $"{status} kick to {mention}.",
+            Mute m     => $"{status} mute to {mention} for {m.GetLength()}.",
+            Note       => $"{status} note to {mention}.",
+            Notice     => $"{status} notice to {mention}.",
+            Warning w  => $"{status} warn to {mention} {w.Count} times.",
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(action), action, "An unknown reprimand was given.")
@@ -268,12 +270,12 @@ public static class ReprimandExtensions
 
         return reprimand.Status switch
         {
-            ReprimandStatus.Unknown => false,
-            ReprimandStatus.Added   => status.HasFlag(LogReprimandStatus.Added),
-            ReprimandStatus.Expired => status.HasFlag(LogReprimandStatus.Expired),
-            ReprimandStatus.Updated => status.HasFlag(LogReprimandStatus.Updated),
-            ReprimandStatus.Hidden  => status.HasFlag(LogReprimandStatus.Hidden),
-            ReprimandStatus.Deleted => status.HasFlag(LogReprimandStatus.Deleted),
+            ReprimandStatus.Unknown  => false,
+            ReprimandStatus.Added    => status.HasFlag(LogReprimandStatus.Added),
+            ReprimandStatus.Expired  => status.HasFlag(LogReprimandStatus.Expired),
+            ReprimandStatus.Updated  => status.HasFlag(LogReprimandStatus.Updated),
+            ReprimandStatus.Pardoned => status.HasFlag(LogReprimandStatus.Hidden),
+            ReprimandStatus.Deleted  => status.HasFlag(LogReprimandStatus.Deleted),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "This reprimand type cannot be logged.")
         };

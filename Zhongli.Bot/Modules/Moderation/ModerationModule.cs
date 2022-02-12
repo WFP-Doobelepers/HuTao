@@ -110,7 +110,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
-                or ReprimandStatus.Hidden
+                or ReprimandStatus.Pardoned
                 or ReprimandStatus.Deleted);
 
         var embed = new EmbedBuilder()
