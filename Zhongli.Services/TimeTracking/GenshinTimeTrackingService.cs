@@ -36,6 +36,7 @@ public class GenshinTimeTrackingService
         [ServerRegion.SAR]     = ("SAR", 8)
     };
 
+    [AutomaticRetry(Attempts = 0)]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
     {
@@ -48,7 +49,7 @@ public class GenshinTimeTrackingService
         await TrackRegionAsync(channel, region);
     }
 
-    [AutomaticRetry(Attempts = 0)]
+    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
     {
