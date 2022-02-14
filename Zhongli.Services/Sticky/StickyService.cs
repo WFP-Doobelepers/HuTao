@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord.Message;
@@ -24,18 +23,15 @@ public class StickyService
         _db    = db;
     }
 
-    public async Task AddAsync(StickyMessage sticky, IGuild guild)
+    public async Task AddAsync(StickyMessage sticky, IGuildChannel channel)
     {
-        var existing = await _db.Set<StickyMessage>()
-            .FirstOrDefaultAsync(s => s.ChannelId == sticky.ChannelId);
-
-        if (existing is not null)
-            _db.Remove(existing);
-
-        var messages = await GetStickyMessages(guild);
-
+        var messages = await GetStickyMessages(channel.Guild);
         messages.Add(sticky);
-        await _db.SaveChangesAsync();
+
+        if (sticky.IsActive)
+            await EnableAsync(sticky, channel);
+        else
+            await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(StickyMessage sticky)
@@ -46,6 +42,20 @@ public class StickyService
 
         _db.TryRemove(template);
         _db.Remove(sticky);
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DisableAsync(StickyMessage sticky)
+    {
+        sticky.IsActive = false;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task EnableAsync(StickyMessage sticky, IGuildChannel channel)
+    {
+        await DisableStickiesAsync(channel);
+        sticky.IsActive = true;
 
         await _db.SaveChangesAsync();
     }
@@ -107,6 +117,15 @@ public class StickyService
             details.MessageCount = 0;
 
             return true;
+        }
+    }
+
+    private async Task DisableStickiesAsync(IGuildChannel channel)
+    {
+        var stickies = await GetStickyMessages(channel.Guild);
+        foreach (var sticky in stickies.Where(sticky => sticky.ChannelId == channel.Id && sticky.IsActive))
+        {
+            await DisableAsync(sticky);
         }
     }
 }

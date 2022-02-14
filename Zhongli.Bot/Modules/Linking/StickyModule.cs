@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord.Message;
@@ -13,7 +14,6 @@ using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Sticky;
-using Humanizer;
 
 namespace Zhongli.Bot.Modules.Linking;
 
@@ -22,10 +22,12 @@ namespace Zhongli.Bot.Modules.Linking;
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class StickyModule : InteractiveEntity<StickyMessage>
 {
+    private readonly CommandErrorHandler _error;
     private readonly StickyService _sticky;
 
     public StickyModule(CommandErrorHandler error, ZhongliContext db, StickyService sticky) : base(error, db)
     {
+        _error  = error;
         _sticky = sticky;
     }
 
@@ -39,10 +41,41 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     {
         var channel = options?.Channel ?? (ITextChannel) Context.Channel;
         var template = new MessageTemplate(message, options);
-        var sticky = new StickyMessage(template, options?.TimeDelay, options?.CountDelay, channel);
+        var sticky = new StickyMessage(template, channel, options);
 
-        await _sticky.AddAsync(sticky, Context.Guild);
+        await _sticky.AddAsync(sticky, (IGuildChannel) Context.Channel);
         await _sticky.SendStickyMessage(sticky, channel);
+    }
+
+    [Command("disable")]
+    [RequireContext(ContextType.Guild)]
+    public async Task DisableStickyMessageAsync(
+        [Summary("The ID of the sticky message to disable.")]
+        string id)
+    {
+        var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
+        if (sticky == null)
+            await _error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
+        else
+        {
+            await _sticky.DisableAsync(sticky);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+    }
+
+    [Command("enable")]
+    public async Task EnableStickyMessageAsync(
+        [Summary("The ID of the sticky message to enable.")]
+        string id)
+    {
+        var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
+        if (sticky == null)
+            await _error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
+        else
+        {
+            await _sticky.EnableAsync(sticky, (IGuildChannel) Context.Channel);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
     }
 
     [Command("remove")]
@@ -65,8 +98,9 @@ public class StickyModule : InteractiveEntity<StickyMessage>
             .AddField("Template ID", template.Id, true)
             .AddField("Channel", $"<#{entity.ChannelId}>", true)
             .WithTemplateDetails(template, Context.Guild)
-            .AddField($"Time Delay", entity.TimeDelay?.Humanize() ?? "None")
-            .AddField($"Count Delay", entity.CountDelay ?? 0)
+            .AddField("Active", entity.IsActive, true)
+            .AddField("Time Delay", entity.TimeDelay?.Humanize() ?? "None", true)
+            .AddField("Count Delay", entity.CountDelay ?? 0, true)
             .WithTitle($"Sticky: {entity.Id}");
     }
 
@@ -76,17 +110,8 @@ public class StickyModule : InteractiveEntity<StickyMessage>
         => _sticky.GetStickyMessages(Context.Guild);
 
     [NamedArgumentType]
-    public class StickyMessageOptions : IMessageTemplateOptions
+    public class StickyMessageOptions : IMessageTemplateOptions, IStickyMessageOptions
     {
-        [HelpSummary("Optionally the text channel that the sticky message will be sent to.")]
-        public ITextChannel? Channel { get; set; }
-
-        [HelpSummary("The time delay to wait before sending another sticky.")]
-        public TimeSpan? TimeDelay { get; set; }
-
-        [HelpSummary("The message count delay to wait before sending another sticky.")]
-        public uint? CountDelay { get; set; }
-
         [HelpSummary("True to allow mentions and False to not.")]
         public bool AllowMentions { get; set; }
 
@@ -95,5 +120,17 @@ public class StickyModule : InteractiveEntity<StickyMessage>
 
         [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
         public bool ReplaceTimestamps { get; set; }
+
+        [HelpSummary("False if you don't want this sticky to replace the current active one. Defaults to True.")]
+        public bool IsActive { get; set; } = true;
+
+        [HelpSummary("Optionally the text channel that the sticky message will be sent to.")]
+        public ITextChannel? Channel { get; set; }
+
+        [HelpSummary("The time delay to wait before sending another sticky.")]
+        public TimeSpan? TimeDelay { get; set; }
+
+        [HelpSummary("The message count delay to wait before sending another sticky.")]
+        public uint? CountDelay { get; set; }
     }
 }

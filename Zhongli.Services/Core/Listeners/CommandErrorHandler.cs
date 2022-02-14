@@ -92,7 +92,7 @@ public class CommandErrorHandler :
 
         // If there's an error reply when the reaction is removed, delete that reply,
         // remove the cached error, remove it from the cached replies, and remove
-        // the reactions from the original message
+        // the reactions from the original message.
         if (ErrorReplies.TryGetValue(cachedMessage.Id, out var botReplyId) == false) return;
 
         await channel.DeleteMessageAsync(botReplyId);
@@ -105,8 +105,7 @@ public class CommandErrorHandler :
         {
             var originalMessage = await cachedMessage.GetOrDownloadAsync();
 
-            // f we know what user added the reaction, remove their and our reaction
-            // therwise just remove ours
+            // If we know what user added the reaction, remove their and our reaction otherwise just remove ours.
             if (reaction.User.IsSpecified) await originalMessage.RemoveReactionAsync(_emote, reaction.User.Value);
 
             await originalMessage.RemoveReactionAsync(_emote, _discordSocketClient.CurrentUser);

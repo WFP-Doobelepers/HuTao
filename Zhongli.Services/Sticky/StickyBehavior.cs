@@ -27,7 +27,7 @@ public class StickyBehavior : INotificationHandler<MessageReceivedNotification>
 
         var guild = await _db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
 
-        var sticky = guild.StickyMessages.FirstOrDefault(m => m.ChannelId == channel.Id);
+        var sticky = guild.StickyMessages.FirstOrDefault(m => m.ChannelId == channel.Id && m.IsActive);
         if (sticky is null) return;
 
         await _sticky.SendStickyMessage(sticky, channel);
