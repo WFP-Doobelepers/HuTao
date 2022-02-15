@@ -130,7 +130,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await _db.SaveChangesAsync();
     }
 
-    public async Task HideReprimandAsync(Reprimand reprimand, ReprimandDetails details,
+    public async Task PardonReprimandAsync(Reprimand reprimand, ReprimandDetails details,
         CancellationToken cancellationToken = default)
         => await (reprimand switch
         {

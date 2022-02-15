@@ -34,13 +34,13 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         _moderation = moderation;
     }
 
-    [Command("hide")]
-    [Alias("pardon")]
-    [Summary("Hide a reprimand, this would mean they are not counted towards triggers.")]
-    public async Task HideReprimandAsync(string id, [Remainder] string? reason = null)
+    [Command("pardon")]
+    [Alias("hide")]
+    [Summary("Pardon a reprimand, this would mean they are not counted towards triggers.")]
+    public async Task PardonReprimandAsync(string id, [Remainder] string? reason = null)
     {
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, _moderation.HideReprimandAsync, reason);
+        await ModifyReprimandAsync(reprimand, _moderation.PardonReprimandAsync, reason);
     }
 
     [Command("update")]
