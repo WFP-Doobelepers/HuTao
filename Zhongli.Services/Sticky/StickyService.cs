@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
-using Zhongli.Data.Models.Discord.Message;
+using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Utilities;
 

@@ -6,7 +6,6 @@ using Discord.Commands;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;

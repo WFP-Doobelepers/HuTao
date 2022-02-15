@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation;
