@@ -84,7 +84,8 @@ public class StickyService
                 ? AllowedMentions.All
                 : AllowedMentions.None,
             embeds: embeds.Select(e => e.Build()).ToArray(),
-            components: components.Build()));
+            components: components.Build(),
+            options: new RequestOptions { CancelToken = details.Token.Token }));
     }
 
     public async Task<ICollection<StickyMessage>> GetStickyMessages(IGuild guild)
