@@ -19,10 +19,26 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         // Initialize the module here.
     }
 
+
+    /* Create Channel */
     [Command("create")]
     [Summary("Creates a new channel.")]
     public async Task CreateChannelAsync(string name)
     {
         await Context.Guild.CreateTextChannelAsync(name);
     }
+
+    /* Delete Channel */
+
+
+    /* Reorder Channel Order */
+    //@param channelName
+    //@param channelPosition = default 1
+    //@param channelCategory
+
+    /* Sync Permissions */
+    // sync permissions for a channel to the channel category group
+    //@param channelCategory
+    //@param channelName
+    /* Manage Channel Permissions*/
 }
