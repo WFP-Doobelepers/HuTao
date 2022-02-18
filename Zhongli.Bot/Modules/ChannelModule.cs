@@ -32,12 +32,14 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /* Delete Channel */
     [Command("delete")]
     [Summary("Deletes a channel.")]
-    public async Task DeleteChannelAsync(INestedChannel name)
+    public async Task DeleteChannelAsync(INestedChannel givenChannel)
     {
-        var channel = Context.Guild.Channels.FirstOrDefault(x => x.Name == name);
-        if (channel != null)
+        //check permissions
+
+
+        if (givenChannel != null)
         {
-            await channel.DeleteAsync();
+            await givenChannel.DeleteAsync();
         }
     }
 
