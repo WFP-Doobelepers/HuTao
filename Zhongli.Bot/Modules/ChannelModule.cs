@@ -12,7 +12,7 @@ namespace Zhongli.Bot.Modules;
 [Name("Channel Management")]
 [Summary("Manages channels and sync permissions.")]
 [RequireBotPermission(GuildPermission.ManageChannels)]
-[RequireUserPermission(GuildPermission.ManageChannels, Group = nameof(RoleModule))]
+[RequireUserPermission(GuildPermission.ManageChannels, Group = nameof(ChannelModule))]
 // [RequireAuthorization(AuthorizationScope., Group = nameof(RoleModule))]
 // Todo; AuthorizationScope.Channels
 
