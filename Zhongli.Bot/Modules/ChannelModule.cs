@@ -149,18 +149,30 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
      * Return an array containing positions of all channels in the given category.
      * @param ICategoryChannel channelCategory
      */
-    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId)
+    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId, bool reset = false)
     {
         SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
         var returnDict = new Dictionary<string, int>();
-        foreach (var channel in categoryChannel.Channels)
+        foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
-            await Context.Channel.SendMessageAsync(
-                $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
-            returnDict.Add(channel.Name, (int) channel.Position);
-        }
+            if (reset){await channel.ModifyAsync(gC =>
+            {
+                gC.Position = index;
+            }).ContinueWith(async t =>
+            {
+                await Context.Channel.SendMessageAsync(
+                    $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
+                returnDict.Add(channel.Name, (int) channel.Position);
+            });}
+            else
+            {
+                await Context.Channel.SendMessageAsync(
+                    $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
+                returnDict.Add(channel.Name, (int) channel.Position);
 
+            }
+        }
         return returnDict;
     }
 
