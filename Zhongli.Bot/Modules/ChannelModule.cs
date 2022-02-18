@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,10 +19,10 @@ namespace Zhongli.Bot.Modules;
 
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
-    private CommandService CommandService;
+    private ICommandHelpService CommandHelpService;
     public ChannelModule(CommandService commandService)
     {
-        this.CommandService = commandService;
+        this.CommandHelpService = commandService;
     }
 
 
@@ -38,13 +39,16 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Deletes a channel.")]
     public async Task DeleteChannelAsync(INestedChannel? givenChannel)
     {
+        //write to console
+        await Context.Channel.SendMessageAsync("Deleting channel...");
+        Console.WriteLine("Given Channel: \""+givenChannel+"\"");//loggging TODO: remove later.
         if (givenChannel is not null)
         {
             await givenChannel.DeleteAsync();
         }
         else
         {
-            //CommandService.ExecuteAsync(ZhongliConfig.Configuration.Prefix + "channel help", );
+            CommandHelpService.TryGetEmbed("channel", HelpDataType.Module, out var paginated);
         }
     }
 
