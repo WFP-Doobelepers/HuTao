@@ -20,9 +20,9 @@ namespace Zhongli.Bot.Modules;
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
     private ICommandHelpService CommandHelpService;
-    public ChannelModule(CommandService commandService)
+    public ChannelModule(ICommandHelpService CommandHelpService)
     {
-        this.CommandHelpService = commandService;
+        this.CommandHelpService = CommandHelpService;
     }
 
 
