@@ -48,7 +48,10 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         if (deleteDays > 7)
+        {
             await _error.AssociateError(Context.Message, "Failed to ban user. Delete Days cannot be greater than 7.");
+            return;
+        }
 
         var details = await GetDetailsAsync(user, reason);
         var result = await _moderation.TryBanAsync(deleteDays, length, details);
