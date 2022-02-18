@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -117,6 +118,36 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
         await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is being moved.. This might take a while..");
         Console.WriteLine($"Current position_B: {currentPosition}");
+    }
+
+    [Command("movedown")]
+    [Summary("Move a channel position downward.")]
+    public async Task PositionMoveDownChannel(INestedChannel givenChannel)
+    {
+        int currentPosition = (int) givenChannel.Position;
+        var updatedPosition = 0;
+
+        if (currentPosition == Context.Guild.Channels.Count - 1)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of the list.");
+            return;
+        }
+
+        
+        await givenChannel.ModifyAsync(gC =>
+        {
+            gC.Position     = currentPosition + 1;
+            updatedPosition = gC.Position.Value;
+        });
+
+        if (updatedPosition == currentPosition)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
+        }
+        else
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
+        }
     }
 
     [NamedArgumentType]
