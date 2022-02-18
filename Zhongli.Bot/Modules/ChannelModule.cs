@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -29,12 +30,22 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     }
 
     /* Delete Channel */
+    [Command("delete")]
+    [Summary("Deletes a channel.")]
+    public async Task DeleteChannelAsync(INestedChannel name)
+    {
+        var channel = Context.Guild.Channels.FirstOrDefault(x => x.Name == name);
+        if (channel != null)
+        {
+            await channel.DeleteAsync();
+        }
+    }
 
 
     /* Reorder Channel Order */
-    //@param channelName
-    //@param channelPosition = default 1
-    //@param channelCategory
+    //@param INestedChannel channelName
+    //@param int channelPosition = default 1
+    //@param IChannelCategory channelCategory
 
     /* Sync Permissions */
     // sync permissions for a channel to the channel category group
