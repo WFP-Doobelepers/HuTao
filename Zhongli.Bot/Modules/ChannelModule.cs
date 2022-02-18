@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Zhongli.Data.Config;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Core.Preconditions.Commands;
 
 namespace Zhongli.Bot.Modules;
 
@@ -14,8 +12,7 @@ namespace Zhongli.Bot.Modules;
 [Summary("Manages channels and sync permissions.")]
 [RequireBotPermission(GuildPermission.ManageChannels)]
 [RequireUserPermission(GuildPermission.ManageChannels, Group = nameof(ChannelModule))]
-// [RequireAuthorization(AuthorizationScope., Group = nameof(RoleModule))]
-// Todo; AuthorizationScope.Channels
+[RequireAuthorization(AuthorizationScope.Channels, Group = nameof(ChannelModule))]
 
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
@@ -39,9 +36,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Deletes a channel.")]
     public async Task DeleteChannelAsync(INestedChannel? givenChannel)
     {
-        //write to console
-        await Context.Channel.SendMessageAsync("Deleting channel...");
-        Console.WriteLine("Given Channel: \""+givenChannel+"\"");//loggging TODO: remove later.
+        await Context.Channel.SendMessageAsync("Disintegrating the channel from Discord databases... Powering off.");
         if (givenChannel is not null)
         {
             await givenChannel.DeleteAsync();

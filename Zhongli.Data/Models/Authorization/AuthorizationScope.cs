@@ -26,6 +26,9 @@ public enum AuthorizationScope
     [Description("Allows managing of roles.")]
     Roles = 1 << 8,
 
+    [Description("Allows managing of channels.")]
+    Channels = 1 << 10,
+
     [Description("Allows usage of the user module.")]
     User = 1 << 9,
 
