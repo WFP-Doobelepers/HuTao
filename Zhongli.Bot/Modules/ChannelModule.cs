@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Zhongli.Data.Config;
+using Zhongli.Services.CommandHelp;
 
 namespace Zhongli.Bot.Modules;
 
@@ -15,16 +18,17 @@ namespace Zhongli.Bot.Modules;
 
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
-    public ChannelModule()
+    private CommandService CommandService;
+    public ChannelModule(CommandService commandService)
     {
-        // Initialize the module here.
+        this.CommandService = commandService;
     }
 
 
     /* Create Channel */
     [Command("create")]
     [Summary("Creates a new channel.")]
-    public async Task CreateChannelAsync(string name)
+    public async Task CreateChannelAsync(string name, ChannelCreationOptions? options = null)
     {
         await Context.Guild.CreateTextChannelAsync(name);
     }
@@ -32,16 +36,28 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /* Delete Channel */
     [Command("delete")]
     [Summary("Deletes a channel.")]
-    public async Task DeleteChannelAsync(INestedChannel givenChannel)
+    public async Task DeleteChannelAsync(INestedChannel? givenChannel)
     {
-        //check permissions
-
-
-        if (givenChannel != null)
+        if (givenChannel is not null)
         {
             await givenChannel.DeleteAsync();
         }
+        else
+        {
+            //CommandService.ExecuteAsync(ZhongliConfig.Configuration.Prefix + "channel help", );
+        }
     }
+
+    /* Sync Permissions */
+    public async Task SyncPermissionsAsync(INestedChannel? givenChannel)
+    {
+        if (givenChannel is not null)
+        {
+            await givenChannel.SyncPermissionsAsync();
+        }
+    }
+
+
 
 
     /* Reorder Channel Order */
@@ -49,9 +65,12 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     //@param int channelPosition = default 1
     //@param IChannelCategory channelCategory
 
-    /* Sync Permissions */
-    // sync permissions for a channel to the channel category group
-    //@param channelCategory
-    //@param channelName
-    /* Manage Channel Permissions*/
+    [NamedArgumentType]
+    public class ChannelCreationOptions
+    {
+        [HelpSummary("Create a channel in a specific category.")]
+        public ICategoryChannel? ChannelCategory { get; set; }
+    }
+
+
 }
