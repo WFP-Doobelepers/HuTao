@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -36,7 +37,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Deletes a channel.")]
     public async Task DeleteChannelAsync(INestedChannel? givenChannel)
     {
-        await Context.Channel.SendMessageAsync("Disintegrating the channel from Discord databases... Powering off.");
+        await Context.Channel.SendMessageAsync("Disintegrating the channel from Discord databases... Don't power off your Discord..");
         if (givenChannel is not null)
         {
             await givenChannel.DeleteAsync();
@@ -52,9 +53,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Synchronizes permissions of a specific channel to it's channel Category.")]
     public async Task SyncPermissionsAsync(INestedChannel? givenChannel)
     {
+        Console.WriteLine("Syncing permissions...");
         if (givenChannel is not null)
         {
             await givenChannel.SyncPermissionsAsync();
+            await Context.Channel.SendMessageAsync($"Syncing permissions of \"{givenChannel}\"");
         }
     }
 
@@ -76,6 +79,27 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     //@param INestedChannel channelName
     //@param int channelPosition = default 1
     //@param IChannelCategory channelCategory
+
+    [Command("moveup")]
+    [Summary("Move a channel position upward.")]
+    public async Task PositionMoveUpChannel(INestedChannel givenChannel)
+    {
+        int currentPosition = (int) givenChannel.Position;
+        Console.WriteLine($"Current position_A: {currentPosition}");
+        if(currentPosition == 0)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of the list.");
+            return;
+        }
+        await givenChannel.ModifyAsync(gC =>
+        {
+            gC.Position = currentPosition - 1;
+        });
+
+
+        await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is being moved.. This might take a while..");
+        Console.WriteLine($"Current position_B: {currentPosition}");
+    }
 
     [NamedArgumentType]
     public class ChannelCreationOptions
