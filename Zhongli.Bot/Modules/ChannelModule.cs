@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions.Commands;
+using System.Linq;
+using Discord.WebSocket;
 
 namespace Zhongli.Bot.Modules;
 
@@ -75,6 +78,17 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
+    /* GetChannelPosition */
+    [Command("position")]
+    [Summary("Gets the position of a channel.")]
+    public async Task GetChannelPositionAsync(INestedChannel? givenChannel)
+    {
+        if (givenChannel is not null)
+        {
+            await Context.Channel.SendMessageAsync($"The position of \"{givenChannel}\" is {givenChannel.Position}");
+        }
+    }
+
     /* Reorder Channel Order */
     //@param INestedChannel channelName
     //@param int channelPosition = default 1
@@ -84,39 +98,44 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Move a channel position upward.")]
     public async Task PositionMoveUpChannel(INestedChannel givenChannel, int moveBy = 1)
     {
-        int currentPosition = (int) givenChannel.Position;
-        Console.WriteLine($"Current position_A: {currentPosition}");
-        if(currentPosition == 1)
+        if (givenChannel.CategoryId is not null)
         {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of the list.");
-            return;
-        }
-        await givenChannel.ModifyAsync(gC =>
-        {
-            gC.Position = currentPosition - moveBy;
-            moveBy--;
-        }).ContinueWith(async t =>
-        {
-            if (t.IsFaulted)
+            var channelCategoryId = (ulong) givenChannel.CategoryId;
+            var initialPosition = (int) givenChannel.Position;
+            var categoryChannels = await GetCategoryChannels(channelCategoryId);
+            //var allCategories = await GetAllCategories(channelCategoryId);
+            var categoryMinPosition = categoryChannels.Min(x => x.Value);
+            var categoryMaxPosition = categoryChannels.Max(x=>x.Value);
+            Console.WriteLine($"Current position_A: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");
+            if(initialPosition == categoryMinPosition)
             {
-                await Context.Channel.SendMessageAsync($"Failed to move the channel \"{givenChannel}\" up by {moveBy} positions.");
+                await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of the list.");
+                return;
             }
-            else
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is being moved.. This might take a while..");
+            await givenChannel.ModifyAsync(gC =>
             {
-                if (moveBy > 0)
+                if ((initialPosition - moveBy) > categoryMinPosition &&
+                    (initialPosition - moveBy) < categoryMaxPosition)
                 {
-                    await PositionMoveUpChannel(givenChannel, moveBy);
+                    gC.Position = initialPosition - 1;
+                    moveBy--;
                 }
-                else
-                {
-                    await Context.Channel.SendMessageAsync($"Moved the channel \"{givenChannel}\" up by {moveBy} positions.");
-                }
-            }
-        });
+            }).ContinueWith(async t =>
+            {
+                Console.WriteLine($"Current position_B: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");
+                 if (moveBy > 0 &&
+                     (givenChannel.Position - moveBy) >= categoryMinPosition &&
+                     (initialPosition - moveBy) <= categoryMaxPosition)
+                 {
+                     //await PositionMoveUpChannel(givenChannel, moveBy);//recursive
+                 }
+                await Context.Channel.SendMessageAsync(
+                    $"Moved the channel \"{givenChannel}\" from position \"{initialPosition}\" to position \"{givenChannel.Position}\".");
+            });
 
 
-        await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is being moved.. This might take a while..");
-        Console.WriteLine($"Current position_B: {currentPosition}");
+            Console.WriteLine($"Current position_C: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");        }
     }
 
     [NamedArgumentType]
@@ -126,5 +145,65 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         public ICategoryChannel? ChannelCategory { get; set; }
     }
 
+    /**
+     * Return an array containing positions of all channels in the given category.
+     * @param ICategoryChannel channelCategory
+     */
+    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId)
+    {
+        SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
+        var returnDict = new Dictionary<string, int>();
+        foreach (var channel in categoryChannel.Channels)
+        {
+            Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
+            await Context.Channel.SendMessageAsync(
+                $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
+            returnDict.Add(channel.Name, (int) channel.Position);
+        }
 
+        return returnDict;
+    }
+
+    /**
+     * Return an array containing positions of all channels in the given category.
+     * @param ICategoryChannel channelCategory
+     */
+    private async Task<Dictionary<string, int>> GetCategoryMinMaxPositions(ICategoryChannel categoryId)
+    {
+        //TODO: implement later
+        throw new NotImplementedException();
+    }
+
+    /**
+     * Return an array containing positions of all channels in the given category.
+     * @param ICategoryChannel channelCategory
+     */
+    private async Task<ICategoryChannel[]> GetAllCategories(ulong categoryId)
+    {
+        var returnCategories = new ICategoryChannel[0];
+        ICategoryChannel serverChannels = Context.Guild.GetCategoryChannel(categoryId);
+        //get all channels from one specific category
+
+
+        IReadOnlyCollection<IGuildChannel> channels = await serverChannels.Guild.GetChannelsAsync();
+        foreach(var channel in channels) {
+            if(channel.Id == categoryId) {
+                var categoryChannels = await channel.Guild.GetCategoriesAsync(CacheMode.AllowDownload);
+                foreach (var categoryChannel in categoryChannels)
+                {
+                    if (categoryChannel.GetType().ToString().ToLower().Contains("category"))
+                    {
+                        Console.WriteLine($"[{categoryChannel.GetType().ToString()}]Channel: {categoryChannel.Name} Positon: {categoryChannel.Position}");
+                    }
+                    else
+                    {
+
+                        Console.WriteLine($"[{categoryChannel.GetType().ToString()}]Channel: {categoryChannel.Name} Positon: {categoryChannel.Position}");
+                    }
+
+                }
+            }
+        }
+        return returnCategories;
+    }
 }
