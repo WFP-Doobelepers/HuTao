@@ -82,18 +82,36 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     [Command("moveup")]
     [Summary("Move a channel position upward.")]
-    public async Task PositionMoveUpChannel(INestedChannel givenChannel)
+    public async Task PositionMoveUpChannel(INestedChannel givenChannel, int moveBy = 1)
     {
         int currentPosition = (int) givenChannel.Position;
         Console.WriteLine($"Current position_A: {currentPosition}");
-        if(currentPosition == 0)
+        if(currentPosition == 1)
         {
             await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of the list.");
             return;
         }
         await givenChannel.ModifyAsync(gC =>
         {
-            gC.Position = currentPosition - 1;
+            gC.Position = currentPosition - moveBy;
+            moveBy--;
+        }).ContinueWith(async t =>
+        {
+            if (t.IsFaulted)
+            {
+                await Context.Channel.SendMessageAsync($"Failed to move the channel \"{givenChannel}\" up by {moveBy} positions.");
+            }
+            else
+            {
+                if (moveBy > 0)
+                {
+                    await PositionMoveUpChannel(givenChannel, moveBy);
+                }
+                else
+                {
+                    await Context.Channel.SendMessageAsync($"Moved the channel \"{givenChannel}\" up by {moveBy} positions.");
+                }
+            }
         });
 
 
