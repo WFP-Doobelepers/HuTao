@@ -16,10 +16,10 @@ namespace Zhongli.Bot.Modules;
 
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
-    private ICommandHelpService CommandHelpService;
-    public ChannelModule(ICommandHelpService CommandHelpService)
+    private readonly ICommandHelpService CommandHelpService;
+    public ChannelModule(ICommandHelpService commandHelpService)
     {
-        this.CommandHelpService = CommandHelpService;
+        this.CommandHelpService = commandHelpService;
     }
 
 
@@ -48,6 +48,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     }
 
     /* Sync Permissions */
+    [Command("sync")]
+    [Summary("Synchronizes permissions of a specific channel to it's channel Category.")]
     public async Task SyncPermissionsAsync(INestedChannel? givenChannel)
     {
         if (givenChannel is not null)
@@ -56,8 +58,19 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
-
-
+    /* Sync Permissions */
+    [Command("sync category")]
+    [Summary("Synchronizes permissions of a channels wiithin a channel category.")]
+    public async Task SyncPermissionsAsync(params INestedChannel[]? givenChannels)
+    {
+        if (givenChannels is not null && givenChannels.Length > 0)
+        {
+            foreach (var channel in givenChannels)
+            {
+                await channel.SyncPermissionsAsync();
+            }
+        }
+    }
 
     /* Reorder Channel Order */
     //@param INestedChannel channelName
