@@ -40,13 +40,13 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("add")]
     [Summary("Adds specified role to a user.")]
-    public Task AddRoleAsync(IGuildUser user, IRole role, TimeSpan? length = null)
+    public Task AddRoleAsync(IGuildUser user, [RequireHierarchy] IRole role, TimeSpan? length = null)
         => length is not null ? AddTemporaryRoleMemberAsync(user, role, length.Value) : AddRolesAsync(user, role);
 
     [HiddenFromHelp]
     [Command("add")]
     [Summary("Adds specified roles to a user.")]
-    public async Task AddRolesAsync(IGuildUser user, params IRole[] roles)
+    public async Task AddRolesAsync(IGuildUser user, [RequireHierarchy] params IRole[] roles)
     {
         await user.AddRolesAsync(roles);
 
@@ -60,7 +60,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("add everyone")]
     [Summary("Adds specified roles to everyone.")]
-    public async Task AddRolesAsync(params SocketRole[] roles)
+    public async Task AddRolesAsync([RequireHierarchy] params SocketRole[] roles)
     {
         await ReplyAsync("Adding roles, this might take a while...");
         await Context.Guild.DownloadUsersAsync();
@@ -88,7 +88,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Command("temporary add")]
     [Alias("tempadd")]
     [Summary("Puts a member into a temporary role.")]
-    public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length)
+    public async Task AddTemporaryRoleMemberAsync(IGuildUser user, [RequireHierarchy] IRole role, TimeSpan length)
     {
         await _member.AddTemporaryRoleMemberAsync(user, role, length);
         var embed = new EmbedBuilder()
@@ -103,7 +103,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("color")]
     [Summary("Changes specified roles colors.")]
-    public async Task ChangeColorsAsync(Color color, params IRole[] roles)
+    public async Task ChangeColorsAsync(Color color, [RequireHierarchy] params IRole[] roles)
     {
         foreach (var role in roles)
         {
@@ -141,7 +141,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("delete")]
     [Summary("Deletes the specified roles.")]
-    public async Task DeleteRolesAsync(params IRole[] roles)
+    public async Task DeleteRolesAsync([RequireHierarchy] params IRole[] roles)
     {
         foreach (var role in roles)
         {
@@ -157,7 +157,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("remove")]
     [Summary("Removes specified roles to a user.")]
-    public async Task RemoveRolesAsync(IGuildUser user, params IRole[] roles)
+    public async Task RemoveRolesAsync(IGuildUser user, [RequireHierarchy] params IRole[] roles)
     {
         await user.RemoveRolesAsync(roles);
 
@@ -170,7 +170,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command("remove everyone")]
     [Summary("Removes specified roles from everyone.")]
-    public async Task RemoveRolesAsync(params SocketRole[] roles)
+    public async Task RemoveRolesAsync([RequireHierarchy] params SocketRole[] roles)
     {
         await ReplyAsync("Removing roles, this might take a while...");
         foreach (var role in roles)
@@ -198,7 +198,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Command("temporary convert")]
     [Alias("tempconvert")]
     [Summary("Converts a role into a temporary role.")]
-    public async Task TemporaryRoleConvertAsync(IRole role, TimeSpan length)
+    public async Task TemporaryRoleConvertAsync([RequireHierarchy] IRole role, TimeSpan length)
     {
         await _role.CreateTemporaryRoleAsync(role, length);
 
@@ -230,7 +230,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [Command]
     [Summary("Adds or removes the specified roles to a user.")]
-    public Task ToggleRoleAsync(IGuildUser user, IRole role)
+    public Task ToggleRoleAsync(IGuildUser user, [RequireHierarchy] IRole role)
         => user.HasRole(role)
             ? RemoveRolesAsync(user, role)
             : AddRolesAsync(user, role);
@@ -238,7 +238,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Command("view")]
     [Summary("View the information of specified roles.")]
     public async Task ViewRolesAsync(
-        [Summary("Leave empty to show all roles.")]
+        [Summary("Leave empty to show all roles.")] [RequireHierarchy]
         params SocketRole[] roles)
     {
         switch (roles.Length)
