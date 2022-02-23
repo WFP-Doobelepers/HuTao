@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 
 namespace Zhongli.Services.Core.Preconditions.Interactions;
 
@@ -13,11 +16,26 @@ public class RequireHierarchyAttribute : ParameterPreconditionAttribute
         if (context.User is not IGuildUser user)
             return Task.FromResult(PreconditionResult.FromError("This command cannot be used outside of a guild."));
 
-        if (value is not IRole role)
-            return Task.FromResult(PreconditionResult.FromError("Role not found."));
+        return value switch
+        {
+            SocketRole[] roles            => Task.FromResult(CheckHierarchy(roles, user)),
+            IRole[] roles                 => Task.FromResult(CheckHierarchy(roles, user)),
+            IEnumerable<SocketRole> roles => Task.FromResult(CheckHierarchy(roles, user)),
+            IEnumerable<IRole> roles      => Task.FromResult(CheckHierarchy(roles, user)),
+            IRole role => role.Position >= user.Hierarchy
+                ? Task.FromResult(PreconditionResult.FromError("This role is higher or equal than your roles."))
+                : Task.FromResult(PreconditionResult.FromSuccess()),
+            _ => Task.FromResult(PreconditionResult.FromError("Role not found."))
+        };
+    }
 
-        return role.Position >= user.Hierarchy
-            ? Task.FromResult(PreconditionResult.FromError("This role is higher or equal than your roles."))
-            : Task.FromResult(PreconditionResult.FromSuccess());
+    private static PreconditionResult CheckHierarchy(IEnumerable<IRole> roles, IGuildUser user)
+    {
+        foreach (var role in roles.Where(role => role.Position >= user.Hierarchy))
+        {
+            return PreconditionResult.FromError($"{role} is higher or equal than your roles.");
+        }
+
+        return PreconditionResult.FromSuccess();
     }
 }

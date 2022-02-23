@@ -238,8 +238,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Command("view")]
     [Summary("View the information of specified roles.")]
     public async Task ViewRolesAsync(
-        [Summary("Leave empty to show all roles.")] [RequireHierarchy]
-        params SocketRole[] roles)
+        [Summary("Leave empty to show all roles.")] params SocketRole[] roles)
     {
         switch (roles.Length)
         {
