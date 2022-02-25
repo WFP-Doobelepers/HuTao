@@ -11,14 +11,18 @@ namespace Zhongli.Bot.Behaviors;
 public class UserTrackingBehavior :
     INotificationHandler<GuildMemberUpdatedNotification>,
     INotificationHandler<MessageReceivedNotification>,
-    INotificationHandler<UserJoinedNotification>
+    INotificationHandler<UserJoinedNotification>,
+    INotificationHandler<ReadyNotification>
 {
     private readonly ZhongliContext _db;
+    private bool _ready;
 
     public UserTrackingBehavior(ZhongliContext db) { _db = db; }
 
     public async Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
     {
+        if (!_ready) return;
+
         var user = notification.NewMember;
         if (user.Username is null) return;
 
@@ -33,6 +37,13 @@ public class UserTrackingBehavior :
             await _db.Users.TrackUserAsync(user, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    public Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
+    {
+        _ready = true;
+
+        return Task.CompletedTask;
     }
 
     public async Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)

@@ -115,7 +115,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         var template = new ModerationTemplate(details);
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
-        var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name == template.Name);
+        var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name.Equals(template.Name, StringComparison.OrdinalIgnoreCase));
         if (existing is not null) await RemoveEntityAsync(existing);
 
         guild.ModerationTemplates.Add(template);

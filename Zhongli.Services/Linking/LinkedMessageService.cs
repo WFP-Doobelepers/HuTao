@@ -21,6 +21,31 @@ public class LinkingService
 
     public LinkingService(ZhongliContext db) { _db = db; }
 
+    public static async IAsyncEnumerable<EmbedBuilder> ApplyRoleTemplatesAsync(IUser user,
+        IReadOnlyCollection<RoleTemplate> templates)
+    {
+        if (user is not IGuildUser guildUser)
+            yield break;
+
+        var (added, removed) = await AddRolesAsync(guildUser, templates);
+
+        if (added.Any())
+        {
+            yield return new EmbedBuilder()
+                .WithTitle("Added roles")
+                .WithColor(Color.Green)
+                .WithDescription(added.Humanize(r => r.Role.MentionRole()));
+        }
+
+        if (removed.Any())
+        {
+            yield return new EmbedBuilder()
+                .WithTitle("Removed roles")
+                .WithColor(Color.Red)
+                .WithDescription(removed.Humanize(r => r.Role.MentionRole()));
+        }
+    }
+
     public async Task DeleteAsync(LinkedButton button)
     {
         var rows = _db.Set<ActionRow>();
@@ -45,19 +70,81 @@ public class LinkingService
         var button = await _db.Set<LinkedButton>().FindAsync(id);
         if (button is null || button.Guild.Id != context.Guild.Id) return;
 
-        var template = button.Message;
+        await SendMessageAsync(new InteractionContext(context), button.Message, button.Roles.ToArray(),
+            button.Ephemeral);
+    }
+
+    public async Task SendMessageAsync(Context context, MessageTemplate? template,
+        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral = false)
+    {
         if (template?.IsLive ?? false)
             await _db.UpdateAsync(template, context.Guild);
 
-        var roles = await ApplyRoleTemplatesAsync(context, button.Roles.ToList());
+        var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
         var embeds = new List<EmbedBuilder>()
             .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
             .Concat(roles);
 
-        await context.Interaction.FollowupAsync(template?.Content,
-            embeds.Select(e => e.Build()).ToArray(),
+        await context.ReplyAsync(template?.Content,
+            embeds: embeds.Select(e => e.Build()).ToArray(),
             components: template?.Components.ToBuilder().Build(),
-            ephemeral: button.Ephemeral);
+            ephemeral: isEphemeral);
+    }
+
+    public static async Task<(IReadOnlyCollection<RoleMetadata> Added, IReadOnlyCollection<RoleMetadata> Removed)>
+        AddRolesAsync(IGuildUser user, IReadOnlyCollection<RoleTemplate> templates)
+    {
+        var added = new List<RoleMetadata>();
+        var removed = new List<RoleMetadata>();
+
+        foreach (var add in templates.Where(t => t.Behavior == RoleBehavior.Add))
+        {
+            try
+            {
+                await user.AddRoleAsync(add.RoleId);
+                added.Add(new RoleMetadata(add, user));
+            }
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            {
+                // Ignored
+            }
+        }
+
+        foreach (var remove in templates.Where(t => t.Behavior == RoleBehavior.Remove))
+        {
+            try
+            {
+                await user.RemoveRoleAsync(remove.RoleId);
+                removed.Add(new RoleMetadata(remove, user));
+            }
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            {
+                // Ignored
+            }
+        }
+
+        foreach (var toggle in templates.Where(t => t.Behavior == RoleBehavior.Toggle))
+        {
+            try
+            {
+                if (user.HasRole(toggle.RoleId))
+                {
+                    await user.RemoveRoleAsync(toggle.RoleId);
+                    removed.Add(new RoleMetadata(toggle, user));
+                }
+                else
+                {
+                    await user.AddRoleAsync(toggle.RoleId);
+                    added.Add(new RoleMetadata(toggle, user));
+                }
+            }
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            {
+                // Ignored
+            }
+        }
+
+        return (added, removed);
     }
 
     public async Task<LinkedButton?> LinkMessageAsync(IUserMessage message, ILinkedButtonOptions options)
@@ -117,76 +204,5 @@ public class LinkingService
         return button;
     }
 
-    private static async Task<IEnumerable<EmbedBuilder>> ApplyRoleTemplatesAsync(
-        IInteractionContext context, IReadOnlyCollection<RoleTemplate> templates)
-    {
-        if (context.User is not IGuildUser user)
-            return Enumerable.Empty<EmbedBuilder>();
-
-        var added = new List<RoleTemplate>();
-        var removed = new List<RoleTemplate>();
-
-        foreach (var add in templates.Where(t => t.Behavior == RoleBehavior.Add))
-        {
-            try
-            {
-                await user.AddRoleAsync(add.RoleId);
-                added.Add(add);
-            }
-            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        foreach (var remove in templates.Where(t => t.Behavior == RoleBehavior.Remove))
-        {
-            try
-            {
-                await user.RemoveRoleAsync(remove.RoleId);
-                removed.Add(remove);
-            }
-            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        foreach (var toggle in templates.Where(t => t.Behavior == RoleBehavior.Toggle))
-        {
-            try
-            {
-                if (user.HasRole(toggle.RoleId))
-                {
-                    await user.RemoveRoleAsync(toggle.RoleId);
-                    removed.Add(toggle);
-                }
-                else
-                {
-                    await user.AddRoleAsync(toggle.RoleId);
-                    added.Add(toggle);
-                }
-            }
-            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        if (added.Count is 0 && removed.Count is 0)
-            return Enumerable.Empty<EmbedBuilder>();
-
-        return new[]
-        {
-            new EmbedBuilder()
-                .WithTitle("Added roles")
-                .WithColor(Color.Green)
-                .WithDescription(added.Humanize(r => r.MentionRole())),
-
-            new EmbedBuilder()
-                .WithTitle("Removed roles")
-                .WithColor(Color.Red)
-                .WithDescription(removed.Humanize(r => r.MentionRole()))
-        };
-    }
+    public record RoleMetadata(RoleTemplate Role, IGuildUser User);
 }
