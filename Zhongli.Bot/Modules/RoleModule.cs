@@ -8,13 +8,11 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
-using Fergun.Interactive;
 using Humanizer;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Expirable;
-using Zhongli.Services.Interactive.Paginator;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Bot.Modules;
@@ -27,15 +25,13 @@ namespace Zhongli.Bot.Modules;
 [RequireAuthorization(AuthorizationScope.Roles, Group = nameof(RoleModule))]
 public class RoleModule : ModuleBase<SocketCommandContext>
 {
-    private readonly InteractiveService _interactive;
     private readonly TemporaryRoleMemberService _member;
     private readonly TemporaryRoleService _role;
 
-    public RoleModule(InteractiveService interactive, TemporaryRoleMemberService member, TemporaryRoleService role)
+    public RoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
     {
-        _interactive = interactive;
-        _member      = member;
-        _role        = role;
+        _member = member;
+        _role   = role;
     }
 
     [Command("add")]
@@ -238,42 +234,17 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Command("view")]
     [Summary("View the information of specified roles.")]
     public async Task ViewRolesAsync(
-        [Summary("Leave empty to show all roles.")] params SocketRole[] roles)
+        [Summary("Leave empty to show all roles.")]
+        params SocketRole[] roles)
     {
-        switch (roles.Length)
-        {
-            case 0:
-                await ViewRolesInfoAsync(Context.Guild.Roles);
-                break;
-            case 1:
-                await ViewRoleInfoAsync(roles[0]);
-                break;
-            default:
-                await ViewRolesInfoAsync(roles);
-                break;
-        }
+        var embeds = roles.Select(ViewRoleInfoAsync);
+        await ReplyAsync(embeds: embeds.Select(e => e.Build()).ToArray());
     }
 
-    private static EmbedFieldBuilder CreateRoleEmbedField(SocketRole role)
-    {
-        var content = new StringBuilder()
-            .AppendLine($"▌Mention: {role.Mention}")
-            .AppendLine($"▌Members: {role.Members.Count()}")
-            .AppendLine($"▌Color: {role.Color}")
-            .AppendLine($"▌Hoisted: {role.IsHoisted}")
-            .AppendLine($"▌Mentionable: {role.IsMentionable}")
-            .AppendLine($"▌Permissions: {role.Permissions.ToList().Humanize(p => p.Humanize())}");
-
-        return new EmbedFieldBuilder()
-            .WithName($"{role.Name} ({role.Id})")
-            .WithValue(content.ToString());
-    }
-
-    private async Task ViewRoleInfoAsync(SocketRole role)
+    private EmbedBuilder ViewRoleInfoAsync(SocketRole role)
     {
         var members = role.Members.ToList();
-
-        var embed = new EmbedBuilder()
+        return new EmbedBuilder()
             .WithGuildAsAuthor(Context.Guild)
             .WithTitle($"{role.Name} ({role.Id})")
             .WithColor(role.Color)
@@ -285,20 +256,6 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             .AddField("Managed", role.IsManaged, true)
             .AddField("Permissions", role.Permissions.ToList().Humanize(p => p.Humanize()))
             .AddItemsIntoFields("Members", members, r => r.Mention, " ");
-
-        await ReplyAsync(embed: embed.Build());
-    }
-
-    private async Task ViewRolesInfoAsync(IEnumerable<SocketRole> roles)
-    {
-        var pages = new EmbedBuilder()
-            .WithGuildAsAuthor(Context.Guild)
-            .WithFields(roles.Select(CreateRoleEmbedField))
-            .ToPageBuilders(6);
-
-        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
-
-        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Channel);
     }
 
     [NamedArgumentType]
