@@ -2,9 +2,9 @@ namespace Zhongli.Data.Models.Discord.Message.Linking;
 
 public interface IMessageTemplateOptions
 {
-    public bool AllowMentions { get; set; }
+    public bool AllowMentions { get; }
 
-    public bool IsLive { get; set; }
+    public bool IsLive { get; }
 
-    public bool ReplaceTimestamps { get; set; }
+    public bool ReplaceTimestamps { get; }
 }

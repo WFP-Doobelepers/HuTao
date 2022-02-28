@@ -1,9 +1,10 @@
-using System;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
@@ -64,7 +65,7 @@ public class ModerationLoggingService
             {
                 await context.RespondAsync(embed: embed.Build(), ephemeral: true);
             }
-            catch (Exception e)
+            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
                 if (details.Context is null) return;
                 var message = new StringBuilder()
@@ -83,14 +84,14 @@ public class ModerationLoggingService
             {
                 await channel.SendMessageAsync(embed: embed.Build());
             }
-            catch (Exception e)
+            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
                 if (details.Context is not CommandContext context) return;
                 var message = new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {channel}.")
                     .AppendLine(e.Message);
 
-                _ = _error.AssociateError(context.Message, message.ToString());
+                await _error.AssociateError(context.Message, message.ToString());
             }
         }
 

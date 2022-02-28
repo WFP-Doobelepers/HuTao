@@ -32,6 +32,9 @@ public class GuildEntity
     public virtual ICollection<LinkedButton> LinkedButtons { get; set; }
         = new List<LinkedButton>();
 
+    public virtual ICollection<LinkedCommand> LinkedCommands { get; set; }
+        = new List<LinkedCommand>();
+
     public virtual ICollection<MessageLog> MessageLogs { get; set; }
         = new List<MessageLog>();
 

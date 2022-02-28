@@ -5,6 +5,7 @@ using Discord;
 using Discord.WebSocket;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Services.Core.Messages;
 
 namespace Zhongli.Services.Core.Listeners;
@@ -53,6 +54,12 @@ public class CommandErrorHandler :
     {
         if (AssociatedErrors.TryAdd(message.Id, error)) await message.AddReactionAsync(new Emoji(Emoji));
     }
+
+    public Task AssociateError(Context context, string error) => context switch
+    {
+        CommandContext c => AssociateError(c.Message, error),
+        _                => context.ReplyAsync(error, ephemeral: true)
+    };
 
     private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
