@@ -68,7 +68,14 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     protected override EmbedBuilder EntityViewer(LinkedButton entity)
     {
         var template = entity.Message;
-        var embed = new EmbedBuilder().AddField("Ephemeral", $"{entity.Ephemeral}", true);
+        var button = entity.Button;
+        var embed = new EmbedBuilder()
+            .AddField("Ephemeral", $"{entity.Ephemeral}", true)
+            .AddField("Disabled", button.IsDisabled, true)
+            .AddField("Style", button.Style, true)
+            .AddField("Emote", button.Emote.DefaultIfNullOrEmpty("None"), true)
+            .AddField("Label", button.Label.DefaultIfNullOrEmpty("None"), true)
+            .AddField("Url", button.Url.DefaultIfNullOrEmpty("None"), true);
 
         if (template is not null)
         {

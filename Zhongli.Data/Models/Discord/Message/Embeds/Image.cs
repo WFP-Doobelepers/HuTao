@@ -15,6 +15,14 @@ public class Image : IImage, IEquatable<Image>
         Url      = image.Url;
     }
 
+    public Image(IImage thumbnail)
+    {
+        Height   = thumbnail.Height;
+        ProxyUrl = thumbnail.ProxyUrl;
+        Width    = thumbnail.Width;
+        Url      = thumbnail.Url;
+    }
+
     public Guid Id { get; init; }
 
     /// <inheritdoc />
@@ -44,4 +52,6 @@ public class Image : IImage, IEquatable<Image>
     public static bool operator !=(Image? left, Image? right) => !Equals(left, right);
 
     public static implicit operator Image(EmbedImage image) => new(image);
+
+    public static implicit operator Image(Thumbnail thumbnail) => new(thumbnail);
 }
