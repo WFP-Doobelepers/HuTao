@@ -7,7 +7,6 @@ using Discord.Commands;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Preconditions.Commands;
-using System.Linq;
 using Discord.WebSocket;
 
 namespace Zhongli.Bot.Modules;
@@ -50,6 +49,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         {
             CommandHelpService.TryGetEmbed("channel", HelpDataType.Module, out var paginated);
         }
+        await Task.CompletedTask;
     }
 
     /* Sync Permissions */
@@ -75,7 +75,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     /* Sync Permissions */
     [Command("sync category")]
-    [Summary("Synchronizes permissions of a channels wiithin a channel category.")]
+    [Summary("Synchronizes permissions of a channels within a channel category.")]
     public async Task SyncPermissionsAsync(params INestedChannel[]? givenChannels)
     {
         if (givenChannels is not null && givenChannels.Length > 0)
@@ -151,19 +151,26 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Move a channel position downward.")]
     public async Task PositionMoveDownChannel(INestedChannel givenChannel)
     {
-        int currentPosition = (int) givenChannel.Position;
-        var updatedPosition = 0;
+        if (givenChannel.CategoryId is null)
+        {
+            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
+            return;
+        };
+
+        int currentPosition = givenChannel.Position;
+        int updatedPosition = 0;
+
+        // var categoryChannels = await GetCategoryChannels((ulong) givenChannel.CategoryId);
 
         if (currentPosition == Context.Guild.Channels.Count - 1)
         {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of the list.");
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
             return;
         }
 
-
         await givenChannel.ModifyAsync(gC =>
         {
-            gC.Position     = currentPosition + 1;
+            gC.Position = currentPosition + 1;
             updatedPosition = gC.Position.Value;
         });
 
