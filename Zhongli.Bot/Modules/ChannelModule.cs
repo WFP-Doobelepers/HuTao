@@ -98,12 +98,95 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
+    [Command("movedup")]
+    [Summary("Move a channel position upward.")]
+    public async Task PositionUpDownChannel(INestedChannel givenChannel)
+    {
+        if (givenChannel.CategoryId is null)
+        {
+            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
+            return;
+        };
+
+        int currentPosition = givenChannel.Position;
+        int updatedPosition = 0;
+
+        // var categoryChannels = await GetCategoryChannels((ulong) givenChannel.CategoryId);
+
+        if (currentPosition == Context.Guild.Channels.Count - 1)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
+            return;
+        }
+
+        await givenChannel.ModifyAsync(gC =>
+        {
+            gC.Position     = currentPosition + 1;
+            updatedPosition = gC.Position.Value;
+        });
+
+        if (updatedPosition == currentPosition)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
+        }
+        else
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
+        }
+    }
+
+    [Command("movedown")]
+    [Summary("Move a channel position downward.")]
+    public async Task PositionMoveDownChannel(INestedChannel givenChannel)
+    {
+        if (givenChannel.CategoryId is null)
+        {
+            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
+            return;
+        };
+
+        int currentPosition = givenChannel.Position;
+        int updatedPosition = 0;
+
+        // var categoryChannels = await GetCategoryChannels((ulong) givenChannel.CategoryId);
+
+        if (currentPosition == Context.Guild.Channels.Count - 1)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
+            return;
+        }
+
+        await givenChannel.ModifyAsync(gC =>
+        {
+            gC.Position     = currentPosition + 1;
+            updatedPosition = gC.Position.Value;
+        });
+
+        if (updatedPosition == currentPosition)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
+        }
+        else
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
+        }
+    }
+
+    [NamedArgumentType]
+    public class ChannelCreationOptions
+    {
+        [HelpSummary("Create a channel in a specific category.")]
+        public ICategoryChannel? ChannelCategory { get; set; }
+    }
+
+
+
     /* Reorder Channel Order */
     //@param INestedChannel channelName
     //@param int channelPosition = default 1
     //@param IChannelCategory channelCategory
 
-    [Command("moveup")]
+    [Command("moveby")]
     [Summary("Move a channel position upward.")]
     public async Task PositionMoveUpChannel(INestedChannel givenChannel, int moveBy = 1)
     {
@@ -147,49 +230,6 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             Console.WriteLine($"Current position_C: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");        }
     }
 
-    [Command("movedown")]
-    [Summary("Move a channel position downward.")]
-    public async Task PositionMoveDownChannel(INestedChannel givenChannel)
-    {
-        if (givenChannel.CategoryId is null)
-        {
-            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
-            return;
-        };
-
-        int currentPosition = givenChannel.Position;
-        int updatedPosition = 0;
-
-        // var categoryChannels = await GetCategoryChannels((ulong) givenChannel.CategoryId);
-
-        if (currentPosition == Context.Guild.Channels.Count - 1)
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
-            return;
-        }
-
-        await givenChannel.ModifyAsync(gC =>
-        {
-            gC.Position = currentPosition + 1;
-            updatedPosition = gC.Position.Value;
-        });
-
-        if (updatedPosition == currentPosition)
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
-        }
-        else
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
-        }
-    }
-
-    [NamedArgumentType]
-    public class ChannelCreationOptions
-    {
-        [HelpSummary("Create a channel in a specific category.")]
-        public ICategoryChannel? ChannelCategory { get; set; }
-    }
 
     /**
      * Return an array containing positions of all channels in the given category.
