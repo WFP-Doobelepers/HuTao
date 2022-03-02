@@ -120,7 +120,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         {
             m.WithName($"Custom Commands for {socketGuild.Name}");
             m.AddAttributes(new HiddenFromHelpAttribute());
-            m.AddAttributes(new GuildCommandAttribute(guild.Id));
+            m.AddPrecondition(new GuildCommandAttribute(guild.Id));
             foreach (var command in guild.LinkedCommands.ToList())
             {
                 m.AddCommand(command.Name, async (context, args, services, _) =>
@@ -230,11 +230,15 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
             await _commands.RemoveModuleAsync(module);
     }
 
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    private class GuildCommandAttribute : Attribute
+    private class GuildCommandAttribute : PreconditionAttribute
     {
         public GuildCommandAttribute(ulong guildId) { GuildId = guildId; }
 
         public ulong GuildId { get; }
+
+        public override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command,
+            IServiceProvider services) => context.Guild.Id == GuildId
+            ? Task.FromResult(PreconditionResult.FromSuccess())
+            : Task.FromResult(PreconditionResult.FromError("This command is not available in this guild."));
     }
 }
