@@ -98,7 +98,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Command("movedup")]
+    [Command("moveup")]
     [Summary("Move a channel position upward.")]
     public async Task PositionUpDownChannel(INestedChannel givenChannel)
     {
@@ -111,27 +111,25 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         int currentPosition = givenChannel.Position;
         int updatedPosition = 0;
 
-        // var categoryChannels = await GetCategoryChannels((ulong) givenChannel.CategoryId);
-
-        if (currentPosition == Context.Guild.Channels.Count - 1)
+        if (currentPosition == 0)
         {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of all channels.");
             return;
         }
 
         await givenChannel.ModifyAsync(gC =>
         {
-            gC.Position     = currentPosition + 1;
+            gC.Position     = currentPosition - 1;
             updatedPosition = gC.Position.Value;
         });
 
         if (updatedPosition == currentPosition)
         {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved upward. It is at the top of its category.");
         }
         else
         {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved upward.");
         }
     }
 
