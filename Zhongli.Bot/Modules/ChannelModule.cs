@@ -60,8 +60,16 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         Console.WriteLine("Syncing permissions...");
         if (givenChannel is not null)
         {
-            await givenChannel.SyncPermissionsAsync();
-            await Context.Channel.SendMessageAsync($"Syncing permissions of \"{givenChannel}\"");
+            try
+            {
+                await givenChannel.SyncPermissionsAsync();
+                await Context.Channel.SendMessageAsync($"Syncing permissions of \"{givenChannel}\"");
+            }
+            catch (Exception e)
+            {
+                var errorFeedback = $"_Syncing error: **{e.Message}** _";
+                await Context.Channel.SendMessageAsync($"\"{errorFeedback}\"");
+            }
         }
     }
 
@@ -152,7 +160,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             return;
         }
 
-        
+
         await givenChannel.ModifyAsync(gC =>
         {
             gC.Position     = currentPosition + 1;
