@@ -82,7 +82,7 @@ public class LinkingService
         await SendMessageAsync(
             new InteractionContext(context),
             button.Message, button.Roles.ToArray(),
-            button.Ephemeral);
+            button.Ephemeral, button.DmUser);
     }
 
     public static async Task<(IReadOnlyCollection<RoleMetadata> Added, IReadOnlyCollection<RoleMetadata> Removed)>
@@ -209,7 +209,7 @@ public class LinkingService
     }
 
     private async Task SendMessageAsync(Context context, MessageTemplate? template,
-        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral = false)
+        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral, bool dmUser)
     {
         if (template?.IsLive ?? false)
             await _db.UpdateAsync(template, context.Guild);
@@ -219,10 +219,20 @@ public class LinkingService
             .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
             .Concat(roles);
 
-        await context.ReplyAsync(template?.Content,
-            embeds: embeds.Select(e => e.Build()).ToArray(),
-            components: template?.Components.ToBuilder().Build(),
-            ephemeral: isEphemeral);
+        if (dmUser)
+        {
+            var dm = await context.User.CreateDMChannelAsync();
+            await dm.SendMessageAsync(template?.Content,
+                embeds: embeds.Select(e => e.Build()).ToArray(),
+                components: template?.Components.ToBuilder().Build());
+        }
+        else
+        {
+            await context.ReplyAsync(template?.Content,
+                embeds: embeds.Select(e => e.Build()).ToArray(),
+                components: template?.Components.ToBuilder().Build(),
+                ephemeral: isEphemeral);
+        }
     }
 
     public record RoleMetadata(RoleTemplate Template, IGuildUser User)

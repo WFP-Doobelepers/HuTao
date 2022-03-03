@@ -9,6 +9,12 @@ namespace Zhongli.Bot.Modules.Linking;
 [NamedArgumentType]
 public class LinkedMessageOptions : ILinkedButtonOptions
 {
+    [HelpSummary("Optionally provide a channel to send the new message to.")]
+    public ITextChannel? Channel { get; set; }
+
+    [HelpSummary("DM the user if the Button is clicked.")]
+    public bool DmUser { get; set; }
+
     [HelpSummary("True to send the message as ephemeral and False to not.")]
     public bool Ephemeral { get; set; }
 
@@ -50,7 +56,4 @@ public class LinkedMessageOptions : ILinkedButtonOptions
 
     [HelpSummary("The roles to be toggled when this button is pressed.")]
     public IEnumerable<IRole>? ToggleRoles { get; set; }
-
-    [HelpSummary("Optionally provide a channel to send the new message to.")]
-    public ITextChannel? Channel { get; set; }
 }

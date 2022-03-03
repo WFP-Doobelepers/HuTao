@@ -10,6 +10,8 @@ public interface ILinkedButtonOptions : IRoleTemplateOptions, IMessageTemplateOp
 
     public ButtonStyle Style { get; }
 
+    public bool DmUser { get; }
+
     public IEmote? Emote { get; }
 
     public IMessage? Message { get; }
