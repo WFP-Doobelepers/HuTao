@@ -74,7 +74,6 @@ public class LinkingService
     public async Task SendMessageAsync(IInteractionContext context, Guid id)
     {
         if (GetLastRun(context, id) is not null) return;
-        await context.Interaction.DeferAsync();
 
         var button = await _db.Set<LinkedButton>().FindAsync(id);
         if (button is null || button.Guild.Id != context.Guild.Id) return;
@@ -211,6 +210,7 @@ public class LinkingService
     private async Task SendMessageAsync(Context context, MessageTemplate? template,
         IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral, bool dmUser)
     {
+        if (!dmUser) await context.DeferAsync();
         if (template?.IsLive ?? false)
             await _db.UpdateAsync(template, context.Guild);
 
