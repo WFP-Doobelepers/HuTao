@@ -7,6 +7,7 @@ using Discord;
 using Discord.Net;
 using Humanizer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message.Components;
@@ -17,9 +18,14 @@ namespace Zhongli.Services.Linking;
 
 public class LinkingService
 {
+    private readonly IMemoryCache _cache;
     private readonly ZhongliContext _db;
 
-    public LinkingService(ZhongliContext db) { _db = db; }
+    public LinkingService(IMemoryCache cache, ZhongliContext db)
+    {
+        _cache = cache;
+        _db    = db;
+    }
 
     public static async IAsyncEnumerable<EmbedBuilder> ApplyRoleTemplatesAsync(IUser user,
         IReadOnlyCollection<RoleTemplate> templates)
@@ -67,30 +73,16 @@ public class LinkingService
 
     public async Task SendMessageAsync(IInteractionContext context, Guid id)
     {
+        if (GetLastRun(context, id) is not null) return;
         await context.Interaction.DeferAsync();
 
         var button = await _db.Set<LinkedButton>().FindAsync(id);
         if (button is null || button.Guild.Id != context.Guild.Id) return;
 
-        await SendMessageAsync(new InteractionContext(context), button.Message, button.Roles.ToArray(),
+        await SendMessageAsync(
+            new InteractionContext(context),
+            button.Message, button.Roles.ToArray(),
             button.Ephemeral);
-    }
-
-    public async Task SendMessageAsync(Context context, MessageTemplate? template,
-        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral = false)
-    {
-        if (template?.IsLive ?? false)
-            await _db.UpdateAsync(template, context.Guild);
-
-        var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
-        var embeds = new List<EmbedBuilder>()
-            .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
-            .Concat(roles);
-
-        await context.ReplyAsync(template?.Content,
-            embeds: embeds.Select(e => e.Build()).ToArray(),
-            components: template?.Components.ToBuilder().Build(),
-            ephemeral: isEphemeral);
     }
 
     public static async Task<(IReadOnlyCollection<RoleMetadata> Added, IReadOnlyCollection<RoleMetadata> Removed)>
@@ -195,6 +187,16 @@ public class LinkingService
         Url        = options.Url
     };
 
+    private DateTimeOffset? GetLastRun(IInteractionContext context, Guid id)
+    {
+        var key = $"{context.User.Id}.{id}";
+        if (_cache.TryGetValue<DateTimeOffset>(key, out var lastRun))
+            return lastRun;
+
+        _cache.Set(key, DateTimeOffset.UtcNow, TimeSpan.FromSeconds(15));
+        return null;
+    }
+
     private LinkedButton GetButton(GuildEntity guild, LinkedButton button)
     {
         guild.LinkedButtons.Add(button);
@@ -204,6 +206,23 @@ public class LinkingService
             button.Button.CustomId = $"linked:{button.Id}";
 
         return button;
+    }
+
+    private async Task SendMessageAsync(Context context, MessageTemplate? template,
+        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral = false)
+    {
+        if (template?.IsLive ?? false)
+            await _db.UpdateAsync(template, context.Guild);
+
+        var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
+        var embeds = new List<EmbedBuilder>()
+            .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
+            .Concat(roles);
+
+        await context.ReplyAsync(template?.Content,
+            embeds: embeds.Select(e => e.Build()).ToArray(),
+            components: template?.Components.ToBuilder().Build(),
+            ephemeral: isEphemeral);
     }
 
     public record RoleMetadata(RoleTemplate Template, IGuildUser User)
