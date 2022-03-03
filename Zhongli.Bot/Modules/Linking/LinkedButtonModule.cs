@@ -43,7 +43,7 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
         IMessage link,
         [Remainder] LinkedMessageOptions options)
     {
-        var message = await GetMessageAsync(link);
+        var message = await GetMessageAsync(link, options.Channel);
         var button = await _linking.LinkMessageAsync(message, options);
 
         if (button is null)
@@ -100,12 +100,12 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
         return guild.LinkedButtons;
     }
 
-    private async Task<IUserMessage> GetMessageAsync(IMessage message)
+    private async Task<IUserMessage> GetMessageAsync(IMessage message, IMessageChannel? channel)
     {
         if (message is IUserMessage userMessage && message.Author.Id == Context.Client.CurrentUser.Id)
             return userMessage;
 
         var template = new MessageTemplate(message, null);
-        return await template.SendMessageAsync(Context.Channel);
+        return await template.SendMessageAsync(channel ?? Context.Channel);
     }
 }
