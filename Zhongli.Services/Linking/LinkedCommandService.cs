@@ -223,7 +223,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
 
     private async Task RemoveModuleAsync(GuildEntity guild)
     {
-        var module = _commands.Modules.FirstOrDefault(m => m.Attributes
+        var module = _commands.Modules.FirstOrDefault(m => m.Preconditions
             .Any(a => a is GuildCommandAttribute g && g.GuildId == guild.Id));
 
         if (module is not null)
