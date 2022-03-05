@@ -48,7 +48,7 @@ public class ModerationLoggingService
         }
 
         if (reprimand.IsIncluded(options.UserLog))
-            await PublishToChannelAsync(options.UserLog, await details.User.CreateDMChannelAsync());
+            await PublishToUserAsync(options.UserLog, details.User);
 
         async Task PublishAsync<T>(T config) where T : ModerationLogConfig, IChannelEntity
         {
@@ -76,12 +76,28 @@ public class ModerationLoggingService
             }
         }
 
-        async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
+        async Task PublishToUserAsync(ModerationLogConfig config, IUser user)
         {
-            if (channel is null) return;
-            var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
+                await PublishToChannelAsync(config, await user.CreateDMChannelAsync());
+            }
+            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+            {
+                if (details.Context is not CommandContext context) return;
+                var message = new StringBuilder()
+                    .AppendLine($"Could not publish reprimand for {user}.")
+                    .AppendLine(e.Message);
+
+                await _error.AssociateError(context.Message, message.ToString());
+            }
+        }
+
+        async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel channel)
+        {
+            try
+            {
+                var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
                 await channel.SendMessageAsync(embed: embed.Build());
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
