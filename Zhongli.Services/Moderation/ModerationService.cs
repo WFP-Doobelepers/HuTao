@@ -85,6 +85,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         foreach (var channel in await guild.GetChannelsAsync())
         {
+            if (channel is IThreadChannel) continue;
             await channel.AddPermissionOverwriteAsync(role, permissions);
         }
     }
