@@ -93,8 +93,9 @@ public class ModerationLoggingService
             }
         }
 
-        async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel channel)
+        async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
         {
+            if (channel is null) return;
             try
             {
                 var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
