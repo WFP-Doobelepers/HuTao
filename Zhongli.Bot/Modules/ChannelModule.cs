@@ -210,58 +210,17 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         public ICategoryChannel? ChannelCategory { get; set; }
     }
 
+    /*** IGNORE SKELETON CODE ***/
+
+    //moveup channel
+    //[channel position of boths to be swapped]
+    //solution 1: swap positioin method with async delay security.(slight problem, position could not be read during async callm. Also prerequisite of a category reset.)
+    //solution 2: after move up, renumber all current channels to occurring index. (slight problem, not sure we can get the channels in order. Also move up channel, )
+    /*** IGNORE SKELETON CODE ***/
 
 
-    /* Reorder Channel Order */
-    //@param INestedChannel channelName
-    //@param int channelPosition = default 1
-    //@param IChannelCategory channelCategory
 
-    [Command("moveby")]
-    [Summary("Move a channel position upward.")]
-    public async Task PositionMoveUpDownChannel(INestedChannel givenChannel, int moveBy = 1)
-    {
-        if (givenChannel.CategoryId is not null)
-        {
-            var channelCategoryId = (ulong) givenChannel.CategoryId;
-            var initialPosition = (int) givenChannel.Position;
-            var categoryChannels = await GetCategoryChannels(channelCategoryId);
-            //var allCategories = await GetAllCategories(channelCategoryId);
-            var categoryMinPosition = categoryChannels.Min(x => x.Value);
-            var categoryMaxPosition = categoryChannels.Max(x=>x.Value);
-            Console.WriteLine($"Current position_A: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");
-            if(initialPosition == categoryMinPosition)
-            {
-                await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of the list.");
-                return;
-            }
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is being moved.. This might take a while..");
-            await givenChannel.ModifyAsync(gC =>
-            {
-                if ((initialPosition - moveBy) > categoryMinPosition &&
-                    (initialPosition - moveBy) < categoryMaxPosition)
-                {
-                    gC.Position = initialPosition - 1;
-                    moveBy--;
-                }
-            }).ContinueWith(async _ =>
-            {
-
-                Console.WriteLine($"Current position_B: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");
-                 if (moveBy > 0 &&
-                     (givenChannel.Position - moveBy) >= categoryMinPosition &&
-                     (initialPosition - moveBy) <= categoryMaxPosition)
-                 {
-                     //await PositionMoveUpChannel(givenChannel, moveBy);//recursive
-                 }
-                await Context.Channel.SendMessageAsync(
-                    $"Moved the channel \"{givenChannel}\" from position \"{initialPosition}\" to position \"{givenChannel.Position}\".");
-            });
-
-
-            Console.WriteLine($"Current position_C: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");        }
-    }
-
+    //[Command("resetcategory")]
     [Command("reset")]
     [Summary("Resetting category channel positions.")]
     public async Task ResetCategoryOfChannel(INestedChannel givenChannel)
@@ -270,7 +229,29 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         try
         {
             var categoryId = (ulong) givenChannel.CategoryId;
-            await GetCategoryChannels(categoryId, true);
+            await ResetCategoryChannels(categoryId);
+            Console.WriteLine("Reset Command has finished.");
+            // return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        // return false;
+    }
+
+
+
+    //[Command("getcategory")]
+    [Command("category")]
+    [Summary("Returning category channel positions.")]
+    public async Task CategoryOfChannel(INestedChannel givenChannel)
+    {
+        Console.WriteLine("Starting the category positions command.");
+        try
+        {
+            var categoryId = (ulong) givenChannel.CategoryId;
+            await GetCategoryChannels(categoryId);
             Console.WriteLine("Reset Command has finished.");
             // return true;
         }
@@ -289,7 +270,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
      * Return an array containing positions of all channels in the given category.
      * @param ICategoryChannel channelCategory
      */
-    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId, bool reset = false)
+    private async Task<Dictionary<string, int>> ResetCategoryChannels(ulong categoryId)
     {
         SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
         var returnDict = new Dictionary<string, int>();
@@ -298,25 +279,36 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
-            if (reset)
-            {
+
                 await channel
                     .ModifyAsync(gC => {gC.Position = index;})
                     .ContinueWith(async _ =>
-                    {
-                        await Context.Channel.SendMessageAsync(
-                            $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
-                        returnDict.Add(channel.Name, (int) channel.Position);
-                    }
-                );
-            }
-            else
-            {
+                        {
+                            await Context.Channel.SendMessageAsync(
+                                $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
+                            returnDict.Add(channel.Name, (int) channel.Position);
+                        }
+                    );
+        }
+        return returnDict;
+    }
+
+    /**
+     * Return an array containing positions of all channels in the given category.
+     * @param ICategoryChannel channelCategory
+     */
+    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId)
+    {
+        SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
+        var returnDict = new Dictionary<string, int>();
+
+
+        foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
+        {
+            Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
                 await Context.Channel.SendMessageAsync(
                     $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
                 returnDict.Add(channel.Name, (int) channel.Position);
-
-            }
         }
         return returnDict;
     }
