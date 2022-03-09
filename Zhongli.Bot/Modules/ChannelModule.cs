@@ -45,23 +45,18 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /* Delete Channel */
     [Command("delete")]
     [Summary("Deletes a channel.")]
-    public async Task DeleteChannelAsync(INestedChannel? givenChannel)
+    public async Task DeleteChannelAsync(INestedChannel givenChannel)
     {
-        if (givenChannel is not null)
-        {
-            await givenChannel.DeleteAsync();
-            var channel = await Context.Guild.CreateTextChannelAsync(givenChannel.Name);
-            var embed = new EmbedBuilder()
-                .WithTitle($"Deleted Channel \"{givenChannel.Name}\" : {channel.Id}")
-                .AddField("Channel ID", channel.Id, true)
-                .WithDescription($"Disintegrating the channel from Discord databases... Don't power off your Discord.. \"{givenChannel.Name}.\"")
-                .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
-        }
-        else
-        {
-            CommandHelpService.TryGetEmbed("channel", HelpDataType.Module, out var paginated);
-        }
+            await givenChannel.DeleteAsync().ContinueWith(async _ =>
+            {
+                var channel = await Context.Guild.CreateTextChannelAsync(givenChannel.Name);
+                var embed = new EmbedBuilder()
+                    .WithTitle($"Deleted Channel \"{givenChannel.Name}\" : {channel.Id}")
+                    .AddField("Channel ID", channel.Id, true)
+                    .WithDescription($"Disintegrating the channel from Discord databases... Don't power off your Discord.. \"{givenChannel.Name}.\"")
+                    .WithAuthor(Context.User);
+                await Context.Channel.SendMessageAsync(embed: embed.Build());
+            });
     }
 
     /* Sync Permissions */
