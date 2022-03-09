@@ -151,12 +151,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the top of all channels.");
             return;
         }
-
-        await givenChannel.ModifyAsync(gC =>
-        {
-            gC.Position     = currentPosition - 1;
-            updatedPosition = gC.Position.Value;
-        });
+        //Swap channel with channel above it (upward swap are negatives values)
+        SwapChannelPositions(givenChannel, -1);
 
         if (updatedPosition == currentPosition)
         {
@@ -187,11 +183,40 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             return;
         }
 
-        await givenChannel.ModifyAsync(gC =>
+        //Swap channel with channel above it (downward swap are positive values)
+        SwapChannelPositions(givenChannel, 1);
+
+        if (updatedPosition == currentPosition)
         {
-            gC.Position     = currentPosition + 1;
-            updatedPosition = gC.Position.Value;
-        });
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
+        }
+        else
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
+        }
+    }
+
+    [Command("moveby")]
+    [Summary("Move a channel position downward.")]
+    public async Task PositionMoveDownChannel(INestedChannel givenChannel, int moveBy)
+    {
+        if (givenChannel.Id == 0)
+        {
+            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
+            return;
+        }
+
+        int currentPosition = givenChannel.Position;
+        int updatedPosition = 0;
+
+        if (currentPosition == Context.Guild.Channels.Count - 1)
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
+            return;
+        }
+
+        //Swap channel with channel above it (downward swap are positive values)
+        SwapChannelPositions(givenChannel, moveBy);
 
         if (updatedPosition == currentPosition)
         {
@@ -217,8 +242,6 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     //solution 1: swap positioin method with async delay security.(slight problem, position could not be read during async callm. Also prerequisite of a category reset.)
     //solution 2: after move up, renumber all current channels to occurring index. (slight problem, not sure we can get the channels in order. Also move up channel, )
     /*** IGNORE SKELETON CODE ***/
-
-
 
     //[Command("resetcategory")]
     [Command("reset")]
@@ -293,7 +316,6 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
-            // TODO: Fix Indentation
             await channel
                     .ModifyAsync(gC => {gC.Position = index;})
                     .ContinueWith(async _ =>
@@ -320,14 +342,44 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
-            /*
-                await Context.Channel.SendMessageAsync(
-                    $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
-            */
             returnDict.Add(channel.Name, (int) channel.Position);
         }
         return returnDict;
     }
+
+    /**
+     * Swapping two channels positions asynchronously and informs the end user.
+     */
+    private async void SwapChannelPositions(INestedChannel givenChannel, int by)
+    {
+        var categoryId = (ulong) givenChannel.CategoryId;
+        SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
+        int positionGivenChannel = givenChannel.Position;
+
+
+        foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
+        {
+            if(channel.Position == positionGivenChannel + by)
+            {
+                int positionTargetChannel = channel.Position;
+                await channel
+                .ModifyAsync(currentChannel => {currentChannel.Position = positionGivenChannel;})
+                .ContinueWith(async _ =>
+                    {
+                        //set given channel
+                        await givenChannel.ModifyAsync(gC => {gC.Position = positionTargetChannel;})
+                            .ContinueWith(async __ =>
+                            {
+                                await Context.Channel.SendMessageAsync(
+                                    $"Swapped positions of \"{givenChannel.Name}\" with \"{channel.Name}\"");
+                            });
+                    }
+                );
+                break;
+            }
+        }
+    }
+
 
     /**
      * Return an array containing positions of all channels in the given category.
