@@ -32,7 +32,18 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Creates a new channel.")]
     public async Task CreateChannelAsync(string name, ChannelCreationOptions? options = null)
     {
-        await Context.Guild.CreateTextChannelAsync(name);
+        // TODO: Add channel creation options.
+
+        var channel = await Context.Guild.CreateTextChannelAsync(name);
+
+        var embed = new EmbedBuilder()
+           .WithTitle($"Created Channel \"{name}\" : {channel.Id}")
+           .AddField("Channel ID", channel.Id, true)
+           // .AddField() TODO: Display channel creation options.
+           .WithDescription($"Successfully created channel with name \"{name}.\"")
+           .WithAuthor(Context.User);
+
+       await Context.Channel.SendMessageAsync(embed: embed.Build());
     }
 
     /* Delete Channel */
@@ -80,12 +91,36 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     {
         if (givenChannels is not null && givenChannels.Length > 0)
         {
+            var unsyncedChannels = new Dictionary<string, string>();
+
+            await Context.Channel.SendMessageAsync("Attempting to sync permissions of given channels...");
             foreach (var channel in givenChannels)
             {
-                await channel.SyncPermissionsAsync();
+                try
+                {
+                    await channel.SyncPermissionsAsync();
+                }
+                catch (Exception ex)
+                {
+                    unsyncedChannels.Add(channel.Name, ex.Message);
+                }
             }
+
+            var mappedUnsyncedChannels = "";
+            foreach (var (channelName, channelException) in unsyncedChannels)
+            {
+                mappedUnsyncedChannels += $"`\"{channelException}\" : {channelException}`\n";
+            }
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Channel Permissions Sync Result")
+                .WithDescription(unsyncedChannels.Count == 0 ? "Synced all channels successfully!" : $"**{unsyncedChannels.Count} / {givenChannels.Length} Channels failed to sync channel permissions:\n{mappedUnsyncedChannels}**")
+                .WithAuthor(Context.User);
+
+            await Context.Channel.SendMessageAsync(embed: embed.Build());
         }
     }
+
 
     /* GetChannelPosition */
     [Command("position")]
@@ -100,13 +135,13 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     [Command("moveup")]
     [Summary("Move a channel position upward.")]
-    public async Task PositionUpDownChannel(INestedChannel givenChannel)
+    public async Task PositionMoveUpChannel(INestedChannel givenChannel)
     {
-        if (givenChannel.CategoryId is null)
+        if (givenChannel.Id == 0)
         {
             await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
             return;
-        };
+        }
 
         int currentPosition = givenChannel.Position;
         int updatedPosition = 0;
@@ -137,11 +172,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Move a channel position downward.")]
     public async Task PositionMoveDownChannel(INestedChannel givenChannel)
     {
-        if (givenChannel.CategoryId is null)
+        if (givenChannel.Id == 0)
         {
             await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
             return;
-        };
+        }
 
         int currentPosition = givenChannel.Position;
         int updatedPosition = 0;
@@ -184,7 +219,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     [Command("moveby")]
     [Summary("Move a channel position upward.")]
-    public async Task PositionMoveUpChannel(INestedChannel givenChannel, int moveBy = 1)
+    public async Task PositionMoveUpDownChannel(INestedChannel givenChannel, int moveBy = 1)
     {
         if (givenChannel.CategoryId is not null)
         {
@@ -209,8 +244,9 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     gC.Position = initialPosition - 1;
                     moveBy--;
                 }
-            }).ContinueWith(async t =>
+            }).ContinueWith(async _ =>
             {
+
                 Console.WriteLine($"Current position_B: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");
                  if (moveBy > 0 &&
                      (givenChannel.Position - moveBy) >= categoryMinPosition &&
@@ -226,9 +262,9 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             Console.WriteLine($"Current position_C: {initialPosition}, Min: {categoryMinPosition}, Max: {categoryMaxPosition}, moving by: {moveBy}");        }
     }
 
-    [Command("resetcategory")]
+    [Command("reset")]
     [Summary("Resetting category channel positions.")]
-    public async Task<bool> ResetCategoryOfChannel(INestedChannel givenChannel)
+    public async Task ResetCategoryOfChannel(INestedChannel givenChannel)
     {
         Console.WriteLine("Starting the Reset Command.");
         try
@@ -236,13 +272,13 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             var categoryId = (ulong) givenChannel.CategoryId;
             await GetCategoryChannels(categoryId, true);
             Console.WriteLine("Reset Command has finished.");
-            return true;
+            // return true;
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
         }
-        return false;
+        // return false;
     }
 
 
@@ -266,7 +302,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             {
                 await channel
                     .ModifyAsync(gC => {gC.Position = index;})
-                    .ContinueWith(async t =>
+                    .ContinueWith(async _ =>
                     {
                         await Context.Channel.SendMessageAsync(
                             $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
