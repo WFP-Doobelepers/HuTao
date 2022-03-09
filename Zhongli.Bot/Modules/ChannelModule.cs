@@ -196,36 +196,13 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Command("moveby")]
+    [Command("move")]
     [Summary("Move a channel position downward.")]
-    public async Task PositionMoveDownChannel(INestedChannel givenChannel, int moveBy)
+    public async Task PositionMoveDownChannel(INestedChannel givenChannel, string direction, int givenNumber = 1)
     {
-        if (givenChannel.Id == 0)
-        {
-            await Context.Channel.SendMessageAsync($"Cannot find channel \"{givenChannel}\".");
-            return;
-        }
-
-        int currentPosition = givenChannel.Position;
-        int updatedPosition = 0;
-
-        if (currentPosition == Context.Guild.Channels.Count - 1)
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
-            return;
-        }
-
-        //Swap channel with channel above it (downward swap are positive values)
+        //Swap channel with channel above it (upward downward swap are positive values)
+        var moveBy = (direction.ToLower() == "up") ? -givenNumber : givenNumber;
         SwapChannelPositions(givenChannel, moveBy);
-
-        if (updatedPosition == currentPosition)
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has not been moved downward. It is at the bottom of its category.");
-        }
-        else
-        {
-            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" has been moved downward.");
-        }
     }
 
     [NamedArgumentType]
@@ -385,10 +362,23 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
      * Return an array containing positions of all channels in the given category.
      * @param ICategoryChannel channelCategory
      */
-    private async Task<Dictionary<string, int>> GetCategoryMinMaxPositions(ICategoryChannel categoryId)
+    private async Task<Dictionary<string, int>> GetCategoryMinMaxPositions(ulong categoryId)
     {
-        //TODO: implement later
-        throw new NotImplementedException();
+        int returnMin = 0;
+        int returnMax = 0;
+        //get all categories
+        await GetCategoryChannels(categoryId).ContinueWith(async currentCategories =>
+        {
+            returnMin = currentCategories.Result.Values.Min();
+            returnMax = currentCategories.Result.Values.Max();
+        });
+        
+        //overwrite return values with lowest and highest position
+        return new Dictionary<string, int>()
+        {
+            {"min", returnMin},
+            {"max", returnMax}
+        };
     }
 
     /**
