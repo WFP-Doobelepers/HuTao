@@ -177,11 +177,15 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         int currentPosition = givenChannel.Position;
         int updatedPosition = 0;
 
-        if (currentPosition == Context.Guild.Channels.Count - 1)
+        // var maxPosition = Context.Guild.Channels.Count - 1;
+        var categoryMinMaxPositions = await GetCategoryMinMaxPositions((ulong) givenChannel.CategoryId);
+        Console.WriteLine(categoryMinMaxPositions.Values.Max());
+        if (currentPosition == categoryMinMaxPositions.Values.Max())
         {
             await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" is already at the bottom of all channels.");
             return;
         }
+
 
         //Swap channel with channel above it (downward swap are positive values)
         SwapChannelPositions(givenChannel, 1);
@@ -372,7 +376,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             returnMin = currentCategories.Result.Values.Min();
             returnMax = currentCategories.Result.Values.Max();
         });
-        
+
         //overwrite return values with lowest and highest position
         return new Dictionary<string, int>()
         {
