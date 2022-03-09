@@ -206,7 +206,19 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     {
         //Swap channel with channel above it (upward downward swap are positive values)
         var moveBy = (direction.ToLower() == "up") ? -givenNumber : givenNumber;
-        SwapChannelPositions(givenChannel, moveBy);
+        var categoryMinMaxPositions = await GetCategoryMinMaxPositions((ulong) givenChannel.CategoryId);
+
+        if (moveBy < 0 && (moveBy + givenChannel.Position) < categoryMinMaxPositions.Values.Min())
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" can't move the channel up to that position.");
+        } else if (moveBy > 0 && (moveBy + givenChannel.Position) > categoryMinMaxPositions.Values.Max())
+        {
+            await Context.Channel.SendMessageAsync($"The channel \"{givenChannel}\" can't move the channel down to that position.");
+        }
+        else
+        {
+            SwapChannelPositions(givenChannel, moveBy);
+        }
     }
 
     [NamedArgumentType]
