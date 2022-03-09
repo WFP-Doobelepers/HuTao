@@ -225,19 +225,24 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Resetting category channel positions.")]
     public async Task ResetCategoryOfChannel(INestedChannel givenChannel)
     {
-        Console.WriteLine("Starting the Reset Command.");
+        if (givenChannel.CategoryId is null)
+        {
+            await Context.Channel.SendMessageAsync($"The channel `{givenChannel}` is not in a category.");
+            return;
+        }
+
+        var category = Context.Guild.GetCategoryChannel(givenChannel.CategoryId.Value);
         try
         {
             var categoryId = (ulong) givenChannel.CategoryId;
             await ResetCategoryChannels(categoryId);
-            Console.WriteLine("Reset Command has finished.");
-            // return true;
+
+            await Context.Channel.SendMessageAsync($"Channels in category `{category.Name}` have been reset.");
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            await Context.Channel.SendMessageAsync($"An error occurred while resetting the category `{category.Name}`: \n\t{e.Message}");
         }
-        // return false;
     }
 
 
@@ -247,19 +252,28 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Returning category channel positions.")]
     public async Task CategoryOfChannel(INestedChannel givenChannel)
     {
-        Console.WriteLine("Starting the category positions command.");
+        await Context.Channel.SendMessageAsync("Attempting to fetch channel positions...");
         try
         {
             var categoryId = (ulong) givenChannel.CategoryId;
-            await GetCategoryChannels(categoryId);
-            Console.WriteLine("Reset Command has finished.");
-            // return true;
+            var categoryChannels = await GetCategoryChannels(categoryId);
+            var mappedPositions = "";
+
+            foreach (var (channelName, channelPosition) in categoryChannels)
+            {
+                mappedPositions += $"{channelName} - Index Position: {channelPosition}\n";
+            }
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Category Channel Positions")
+                .WithDescription($"List of Channel Positions:\n{mappedPositions}");
+
+            await Context.Channel.SendMessageAsync(embed: embed.Build());
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            await Context.Channel.SendMessageAsync($"Failed to fetch channel positions.\n{e.Message}");
         }
-        // return false;
     }
 
 
@@ -279,8 +293,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
-
-                await channel
+            // TODO: Fix Indentation
+            await channel
                     .ModifyAsync(gC => {gC.Position = index;})
                     .ContinueWith(async _ =>
                         {
@@ -306,9 +320,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             Console.WriteLine($"[{channel.GetType().ToString()}]Channel: {channel.Name} Positon: {channel.Position}");
+            /*
                 await Context.Channel.SendMessageAsync(
                     $"[Category][Position][\"{channel.Position}\"][\"{channel.Name}\"]");
-                returnDict.Add(channel.Name, (int) channel.Position);
+            */
+            returnDict.Add(channel.Name, (int) channel.Position);
         }
         return returnDict;
     }
