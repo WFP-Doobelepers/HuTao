@@ -198,14 +198,15 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     [Command("move")]
     [Summary("Move a channel position \"up\" or \"down\" and add an integer to move more than one. Example: \"channel move [channelname] up 2\"")]
-    public async Task PositionMoveChannel(INestedChannel givenChannel, string direction, int givenNumber = 1)
+    public async Task PositionMoveChannel(INestedChannel givenChannel, MovementDirection direction, int givenNumber = 1)
     {
         var moveBy = 0;
-        if (direction.ToLower() == "up")
+        if (direction is MovementDirection.Up)
         {
             moveBy = -givenNumber;
 
-        } else if(direction.ToLower() == "down")
+        }
+        else if(direction is MovementDirection.Down)
         {
             moveBy = givenNumber;
         }
@@ -221,7 +222,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .WithDescription($"The channel \"{givenChannel}\" can't move the channel up to that position.")
                     .WithAuthor(Context.User);
                 await Context.Channel.SendMessageAsync(embed: embed.Build());
-            } else if (moveBy > 0 && (moveBy + givenChannel.Position) > categoryMinMaxPositions.Values.Max())
+            }
+            else if (moveBy > 0 && (moveBy + givenChannel.Position) > categoryMinMaxPositions.Values.Max())
             {
                 SwapChannelPositions(givenChannel, -1); //Swap channel with channel above it (upward swap are negatives values)
                 var embed = new EmbedBuilder()
@@ -389,5 +391,10 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     {
         [HelpSummary("Create a channel in a specific category.")]
         public ICategoryChannel? ChannelCategory { get; set; }
+    }
+    public enum MovementDirection
+    {
+        Up = -1,
+        Down = 1,
     }
 }
