@@ -310,10 +310,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     }
     /**********************************************************************************************************************/
     /*** USEFUL PRIVATE METHODS FOR THIS MODULE ***/
-    /**
-     * Resetting all positions within the given category ID.
-     * @param ulong categoryId
-     */
+    /// <summary>
+    /// Resetting all positions within the given category ID to the fetched lists index position.
+    /// </summary>
+    /// <param name="categoryId"></param>
+    /// <returns>Returns a dictionary containing channels names and positions</returns>
     private async Task<Dictionary<string, int>> ResetCategoryChannels(ulong categoryId)
     {
         SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
@@ -328,10 +329,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         return returnDict;
     }
 
-    /**
-     * Return an array containing positions of all channels in the given category.
-     * @param ulong categoryId
-     */
+    /// <summary>
+    /// Based on the given category ID, this method will return a dictionary containing channel names and positions.
+    /// </summary>
+    /// <param name="categoryId"></param>
+    /// <returns>Returns a dictionary containing channels names and positions</returns>
     private Dictionary<string, int> GetCategoryChannels(ulong categoryId)
     {
         var categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
@@ -343,9 +345,12 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         return returnDict;
     }
 
-    /**
-     * Swapping two channels positions asynchronously.
-     */
+    /// <summary>
+    /// Swapping two channels positions asynchronously.
+    /// </summary>
+    /// <param name="givenChannel">existing channel as INestedChannel type</param>
+    /// <param name="by">integer value that calculates which positioin to swap with.</param>
+    /// <returns>No return</returns>
     private async void SwapChannelPositions(INestedChannel givenChannel, int by)
     {
         var categoryId = (ulong) givenChannel.CategoryId;
@@ -368,10 +373,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    /**
-     * Return an dictionary containing the minimal and maximum position of an category.
-     * @param ulong categoryId
-     */
+    /// <summary>
+    /// Based on a given category ID, return the minimum and maximum position of all channels within the category.
+    /// </summary>
+    /// <param name="categoryId">existing channel as INestedChannel type</param>
+    /// <returns>Return an dictionary containing the minimal and maximum position of an category.</returns>
     private async Task<Dictionary<string, int>> GetCategoryMinMaxPositions(ulong categoryId)
     {
         var currentCategories = GetCategoryChannels(categoryId);
