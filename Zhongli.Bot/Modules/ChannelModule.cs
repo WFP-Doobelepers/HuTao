@@ -19,11 +19,7 @@ namespace Zhongli.Bot.Modules;
 [RequireAuthorization(AuthorizationScope.Channels, Group = nameof(ChannelModule))]
 public class ChannelModule : ModuleBase<SocketCommandContext>
 {
-    private readonly ICommandHelpService CommandHelpService;
-    public ChannelModule(ICommandHelpService commandHelpService)
-    {
-        this.CommandHelpService = commandHelpService;
-    }
+    public ChannelModule(){}
 
 
     /* Create Channel */
