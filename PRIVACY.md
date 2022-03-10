@@ -172,4 +172,4 @@ If you have any questions, concerns, or complaints regarding this Policy, the in
 
 We will attempt to resolve complaints and disputes and make every reasonable effort to honor your wish to exercise your rights as quickly as possible and in any event, within the timescales provided by applicable data protection laws.
 
-This document was last updated on March 10, 2022
+This document was last updated on February 9, 2022

@@ -15,7 +15,7 @@ namespace Zhongli.Services.Utilities;
 
 public static class DbSetExtensions
 {
-    [SuppressMessage("ReSharper", "NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract")]
+    [SuppressMessage("ReSharper", "ConstantNullCoalescingCondition")]
     public static async Task<GuildEntity> TrackGuildAsync(this DbSet<GuildEntity> set, IGuild guild,
         CancellationToken cancellationToken = default)
     {

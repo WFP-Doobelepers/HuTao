@@ -42,7 +42,7 @@ public static class PromptResultExtensions
         this IReadOnlyDictionary<TKey, PromptResult> results, TKey key, TValue @default)
         where TKey : notnull
     {
-        if (results.TryGetValue(key, out var result) && result.UserResponse is TValue)
+        if (results.TryGetValue(key, out var result) && result?.UserResponse is TValue)
             return result.As<TValue>();
 
         return @default;

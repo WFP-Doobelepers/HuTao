@@ -44,9 +44,6 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
             ephemeral, allowedMentions, components,
             embed, options);
 
-    public Task RespondWithModalAsync(Modal modal, RequestOptions? options = null)
-        => Interaction.RespondWithModalAsync(modal, options);
-
     public async Task<IUserMessage> FollowupAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
@@ -73,8 +70,6 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
         => Interaction.ModifyOriginalResponseAsync(func, options);
 
     public bool HasResponded => Interaction.HasResponded;
-
-    public bool IsDMInteraction => Interaction.IsDMInteraction;
 
     public IDiscordInteractionData Data => Interaction.Data;
 

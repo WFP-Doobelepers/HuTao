@@ -17,7 +17,7 @@ namespace Zhongli.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.3")
+                .HasAnnotation("ProductVersion", "6.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -165,12 +165,6 @@ namespace Zhongli.Data.Migrations
                     b.Property<Guid>("AttachmentId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<string>("ContentType")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
 
                     b.Property<bool>("Ephemeral")
                         .HasColumnType("boolean");
