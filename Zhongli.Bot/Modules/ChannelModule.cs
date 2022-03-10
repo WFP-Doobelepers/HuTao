@@ -47,15 +47,28 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Deletes a channel.")]
     public async Task DeleteChannelAsync(INestedChannel givenChannel)
     {
-            await givenChannel.DeleteAsync().ContinueWith(async _ =>
-            {
-                var embed = new EmbedBuilder()
-                    .WithTitle($"Deleted Channel \"{givenChannel.Name}\" : {givenChannel.Id}")
-                    .AddField("Channel ID", givenChannel.Id, true)
-                    .WithDescription($"Disintegrating the channel from Discord databases... Don't power off your Discord.. \"{givenChannel.Name}.\"")
-                    .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
-            });
+        try
+        {
+            await givenChannel.DeleteAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+
+            var embedError = new EmbedBuilder()
+                .WithTitle($"Deleted Channel \"{givenChannel.Name}\" : {givenChannel.Id} HAS FAILED")
+                .AddField("Channel ID", givenChannel.Id, true)
+                .WithDescription($"Deleting the channel \"{givenChannel.Name}.\" has failed due to an error. Error: {e.Message}")
+                .WithAuthor(Context.User);
+            await Context.Channel.SendMessageAsync(embed: embedError.Build());
+            throw;
+        }
+        var embed = new EmbedBuilder()
+            .WithTitle($"Deleted Channel \"{givenChannel.Name}\" : {givenChannel.Id}")
+            .AddField("Channel ID", givenChannel.Id, true)
+            .WithDescription($"Disintegrating the channel from Discord databases... Don't power off your Discord.. \"{givenChannel.Name}.\"")
+            .WithAuthor(Context.User);
+        await Context.Channel.SendMessageAsync(embed: embed.Build());
     }
 
     /* Sync Permissions */
