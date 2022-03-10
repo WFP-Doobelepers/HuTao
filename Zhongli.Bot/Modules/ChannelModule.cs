@@ -39,7 +39,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
            // .AddField() TODO: v2 Display channel creation options.
            .WithDescription($"Successfully created channel with name \"{name}.\"")
            .WithAuthor(Context.User);
-        await Context.Channel.SendMessageAsync(embed: embed.Build());
+        await ReplyAsync(embed: embed.Build());
     }
 
     /* Delete Channel */
@@ -60,7 +60,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"Deleting the channel \"{givenChannel.Name}.\" has failed due to an error. Error: {e.Message}")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embedError.Build());
+            await ReplyAsync(embed: embedError.Build());
             throw;
         }
         var embed = new EmbedBuilder()
@@ -68,7 +68,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .AddField("Channel ID", givenChannel.Id, true)
             .WithDescription($"Disintegrating the channel from Discord databases... Don't power off your Discord.. \"{givenChannel.Name}.\"")
             .WithAuthor(Context.User);
-        await Context.Channel.SendMessageAsync(embed: embed.Build());
+        await ReplyAsync(embed: embed.Build());
     }
 
     /* Sync Permissions */
@@ -85,13 +85,13 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddField("Channel ID", givenChannel.Id, true)
                     .WithDescription($"Synchronizing permissions of \"{givenChannel}\" to it's channel category.")
                     .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
+                await ReplyAsync(embed: embed.Build());
             });
         }
         catch (Exception e)
         {
             var errorFeedback = $"_Syncing error: **{e.Message}** _";
-            await Context.Channel.SendMessageAsync($"\"{errorFeedback}\"");
+            await ReplyAsync($"\"{errorFeedback}\"");
         }
     }
 
@@ -123,7 +123,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithTitle("Channel Permissions Sync Result")
                 .WithDescription(unsyncedChannels.Count == 0 ? "Synced all channels successfully!" : $"**{unsyncedChannels.Count} / {givenChannels.Length} Channels failed to sync channel permissions:\n{mappedUnsyncedChannels}**")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
     }
 
@@ -137,7 +137,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .AddField("Channel ID", givenChannel.Id, true)
             .WithDescription($"The position of \"{givenChannel}\" is {givenChannel.Position}")
             .WithAuthor(Context.User);
-        await Context.Channel.SendMessageAsync(embed: embed.Build());
+        await ReplyAsync(embed: embed.Build());
     }
 
     [Command("moveup")]
@@ -152,7 +152,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"The channel \"{givenChannel.Name}\" has not been moved upward. It is at the top of the category channels.")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
         else
         {
@@ -162,7 +162,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"The channel \"{givenChannel.Name}\" has been moved upward.")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
     }
 
@@ -181,7 +181,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"The channel \"{givenChannel.Name}\" has not been moved downward. It is at the bottom of the category channels.")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
         else
         {
@@ -191,7 +191,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"The channel \"{givenChannel.Name}\" has been moved downward.")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
             SwapChannelPositions(givenChannel, 1); //Swap channel with channel above it (downward swap are positive values)
         }
     }
@@ -221,7 +221,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddField("Channel ID", givenChannel.Id, true)
                     .WithDescription($"The channel \"{givenChannel}\" can't move the channel up to that position.")
                     .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
+                await ReplyAsync(embed: embed.Build());
             }
             else if (moveBy > 0 && (moveBy + givenChannel.Position) > categoryMinMaxPositions.Values.Max())
             {
@@ -231,7 +231,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddField("Channel ID", givenChannel.Id, true)
                     .WithDescription($"The channel \"{givenChannel}\" can't move the channel down to that position.")
                     .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
+                await ReplyAsync(embed: embed.Build());
             }
             else
             {
@@ -252,7 +252,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"The channel `{givenChannel}` is not in a category.")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
         else
         {
@@ -267,7 +267,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddField("Channel ID", givenChannel.Id, true)
                     .WithDescription($"Channels in category `{category.Name}` have been reset.")
                     .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
+                await ReplyAsync(embed: embed.Build());
             }
             catch (Exception e)
             {
@@ -276,7 +276,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddField("Channel ID", givenChannel.Id, true)
                     .WithDescription($"An error occurred while resetting the category `{category.Name}`: \n\t{e.Message}")
                     .WithAuthor(Context.User);
-                await Context.Channel.SendMessageAsync(embed: embed.Build());
+                await ReplyAsync(embed: embed.Build());
             }
         }
     }
@@ -284,7 +284,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Returning category channel positions.")]
     public async Task CategoryOfChannel(INestedChannel givenChannel)
     {
-        await Context.Channel.SendMessageAsync("Attempting to fetch channel positions...");
+        await ReplyAsync("Attempting to fetch channel positions...");
         try
         {
             var categoryId = (ulong) givenChannel.CategoryId;
@@ -300,7 +300,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithTitle("Category Channel Positions")
                 .WithDescription($"List of Channel Positions:\n{mappedPositions}");
 
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
         catch (Exception e)
         {
@@ -309,7 +309,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .AddField("Channel ID", givenChannel.Id, true)
                 .WithDescription($"Failed to fetch channel positions.\n{e.Message}")
                 .WithAuthor(Context.User);
-            await Context.Channel.SendMessageAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
         }
     }
     /**********************************************************************************************************************/
