@@ -3,7 +3,7 @@ Website Terms of Use
 
 Version 1.0
 
-The Zhongli website located at https://github.com/WFP-Doobelepers/Zhongli is a copyrighted work belonging to sabihoshi. Certain features of the Site may be subject to additional guidelines, terms, or rules, which will be posted on the Site in connection with such features.
+The Zhongli services located at https://github.com/WFP-Doobelepers/Zhongli is a copyrighted work belonging to sabihoshi. Certain features of the Site may be subject to additional guidelines, terms, or rules, which will be posted on the Site in connection with such features.
 
 All such additional terms, guidelines, and rules are incorporated by reference into these Terms.
 
