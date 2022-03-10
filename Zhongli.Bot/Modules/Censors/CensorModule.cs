@@ -14,7 +14,6 @@ using Zhongli.Data.Models.Moderation.Infractions.Actions;
 using Zhongli.Data.Models.Moderation.Infractions.Censors;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Services.CommandHelp;
-using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;

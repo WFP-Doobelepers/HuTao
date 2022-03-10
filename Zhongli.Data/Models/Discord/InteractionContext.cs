@@ -10,9 +10,6 @@ namespace Zhongli.Data.Models.Discord;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class InteractionContext : Context, IInteractionContext, IDiscordInteraction
 {
-    private bool _deferred;
-    private bool _followed;
-
     public InteractionContext(IInteractionContext context)
         : base(context.Client, context.Guild, context.Channel, context.User)
     {
@@ -24,10 +21,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     ulong IEntity<ulong>.Id => Interaction.Id;
 
     public override async Task DeferAsync(bool ephemeral = false, RequestOptions? options = null)
-    {
-        _deferred = true;
-        await Interaction.DeferAsync(ephemeral, options);
-    }
+        => await Interaction.DeferAsync(ephemeral, options);
 
     public Task DeleteOriginalResponseAsync(RequestOptions? options = null)
         => Interaction.DeleteOriginalResponseAsync(options);
@@ -54,13 +48,10 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
         string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
         Embed? embed = null, RequestOptions? options = null)
-    {
-        _followed = true;
-        return await Interaction.FollowupAsync(
+        => await Interaction.FollowupAsync(
             text, embeds, isTTS,
             ephemeral, allowedMentions, components,
             embed, options);
-    }
 
     public Task<IUserMessage> FollowupWithFilesAsync(
         IEnumerable<FileAttachment> attachments, string? text = null, Embed[]? embeds = null, bool isTTS = false,
@@ -101,7 +92,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
         AllowedMentions? allowedMentions = null, MessageReference? messageReference = null,
         MessageComponent? components = null, ISticker[]? stickers = null, Embed[]? embeds = null,
         bool ephemeral = false)
-        => _deferred && !_followed
+        => HasResponded
             ? FollowupAsync(
                 message, embeds, isTTS, ephemeral,
                 allowedMentions, components,

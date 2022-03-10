@@ -9,6 +9,12 @@ namespace Zhongli.Bot.Modules.Linking;
 [NamedArgumentType]
 public class LinkedMessageOptions : ILinkedButtonOptions
 {
+    [HelpSummary("Optionally provide a channel to send the new message to.")]
+    public ITextChannel? Channel { get; set; }
+
+    [HelpSummary("DM the user if the Button is clicked.")]
+    public bool DmUser { get; set; }
+
     [HelpSummary("True to send the message as ephemeral and False to not.")]
     public bool Ephemeral { get; set; }
 
@@ -20,15 +26,6 @@ public class LinkedMessageOptions : ILinkedButtonOptions
 
     [HelpSummary($"The {nameof(IEmote)} to be displayed with the Button.")]
     public IEmote? Emote { get; set; }
-
-    [HelpSummary("The roles to be added when this button is pressed.")]
-    public IEnumerable<IRole>? AddRoles { get; set; }
-
-    [HelpSummary("The roles to be removed when this button is pressed.")]
-    public IEnumerable<IRole>? RemoveRoles { get; set; }
-
-    [HelpSummary("The roles to be toggled when this button is pressed.")]
-    public IEnumerable<IRole>? ToggleRoles { get; set; }
 
     [HelpSummary("The message to use as a template for the message link.")]
     public IMessage? Message { get; set; }
@@ -50,4 +47,13 @@ public class LinkedMessageOptions : ILinkedButtonOptions
 
     [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
     public bool ReplaceTimestamps { get; set; }
+
+    [HelpSummary("The roles to be added when this button is pressed.")]
+    public IEnumerable<IRole>? AddRoles { get; set; }
+
+    [HelpSummary("The roles to be removed when this button is pressed.")]
+    public IEnumerable<IRole>? RemoveRoles { get; set; }
+
+    [HelpSummary("The roles to be toggled when this button is pressed.")]
+    public IEnumerable<IRole>? ToggleRoles { get; set; }
 }

@@ -16,6 +16,8 @@ public class ModuleHelpData
 
     public string? Summary { get; set; }
 
+    public ulong? GuildId { get; set; }
+
     public static ModuleHelpData FromModuleInfo(ModuleInfo module)
     {
         var moduleName = module.Name;

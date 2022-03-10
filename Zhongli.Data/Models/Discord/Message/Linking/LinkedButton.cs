@@ -16,12 +16,15 @@ public class LinkedButton
         Button    = button;
         Message   = options.MessageTemplate;
         Roles     = options.RoleTemplates.ToList();
+        DmUser    = options.DmUser;
         Ephemeral = options.Ephemeral;
     }
 
     public Guid ButtonId { get; set; }
 
     public Guid Id { get; set; }
+
+    public bool DmUser { get; set; }
 
     public bool Ephemeral { get; set; }
 
