@@ -173,8 +173,7 @@ internal class CommandHelpService : ICommandHelpService
 
         foreach (var builder in builders)
         {
-            var length = page.Builders.Sum(b => b.Length) + builder.Length;
-            if (length > EmbedBuilder.MaxEmbedLength || page.Builders.Count is 10)
+            if (page.Builders.Sum(b => b.Length) + builder.Length > EmbedBuilder.MaxEmbedLength)
                 page = pages.Insert(new MultiEmbedPageBuilder().AddBuilder(builder));
             else
                 page.AddBuilder(builder);

@@ -26,13 +26,14 @@ public class EnumFlagsTypeReader<T> : TypeReader where T : struct, Enum
         IServiceProvider services)
     {
         var enums = input.Split(_separator, _splitOptions)
-            .Select(content => (Success: Enum.TryParse<T>(content, _ignoreCase, out var result), Result: result))
+            .Select(content => (success: Enum.TryParse<T>(content, _ignoreCase, out var result), result))
+            .Where(e => e.success)
             .ToList();
 
         var generic = new GenericBitwise<T>();
 
-        return enums.All(e => e.Success)
-            ? Task.FromResult(TypeReaderResult.FromSuccess(generic.Or(enums.Select(e => e.Result))))
+        return enums.Any()
+            ? Task.FromResult(TypeReaderResult.FromSuccess(generic.Or(enums.Select(e => e.result))))
             : Task.FromResult(TypeReaderResult.FromError(CommandError.ParseFailed, "Failed to parse input."));
     }
 }

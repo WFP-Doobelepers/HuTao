@@ -25,7 +25,7 @@ public class EnumerableTypeReader<TResult> : TypeReader
         var results = await input
             .Split(_separator, _splitOptions).ToAsyncEnumerable()
             .SelectAwait(async i => await _typeReader.ReadAsync(context, i, services))
-            .SelectMany(r => r.Values?.ToAsyncEnumerable() ?? AsyncEnumerable.Empty<TypeReaderValue>())
+            .SelectMany(r => r.Values.ToAsyncEnumerable())
             .Select(v => v.Value).OfType<TResult>()
             .ToListAsync();
 

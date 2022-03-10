@@ -10,7 +10,6 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
-using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Messages;
@@ -48,14 +47,19 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
             return;
 
         var argPos = 0;
-        var prefix = ZhongliConfig.Configuration.Prefix;
-        var hasPrefix = message.HasStringPrefix(prefix, ref argPos, StringComparison.OrdinalIgnoreCase);
-        var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
+        var context = new SocketCommandContext(_discord, message);
 
+        var hasPrefix = message.HasStringPrefix(ZhongliConfig.Configuration.Prefix, ref argPos,
+            StringComparison.OrdinalIgnoreCase);
+        var hasMention = message.HasMentionPrefix(_discord.CurrentUser, ref argPos);
         if (hasPrefix || hasMention)
         {
-            var context = new SocketCommandContext(_discord, message);
-            await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
+            var result = await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
+            if (result is null)
+            {
+                _log.LogWarning("Command on guild {Guild} ran by user {Author} is null", context.Guild,
+                    message.Author);
+            }
         }
     }
 
@@ -97,10 +101,6 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<LogReprimandStatus>(
             new EnumFlagsTypeReader<LogReprimandStatus>(
-                splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
-
-        _commands.AddTypeReader<UserTargetOptions>(
-            new EnumFlagsTypeReader<UserTargetOptions>(
                 splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());

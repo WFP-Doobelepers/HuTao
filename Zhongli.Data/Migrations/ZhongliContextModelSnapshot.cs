@@ -65,9 +65,6 @@ namespace Zhongli.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("LinkedCommandId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid?>("LoggingRulesId")
                         .HasColumnType("uuid");
 
@@ -79,8 +76,6 @@ namespace Zhongli.Data.Migrations
                     b.HasIndex("AuthorizationGroupId");
 
                     b.HasIndex("CensorId");
-
-                    b.HasIndex("LinkedCommandId");
 
                     b.HasIndex("LoggingRulesId");
 
@@ -510,9 +505,6 @@ namespace Zhongli.Data.Migrations
                     b.Property<Guid>("ButtonId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("DmUser")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("Ephemeral")
                         .HasColumnType("boolean");
 
@@ -532,49 +524,6 @@ namespace Zhongli.Data.Migrations
                     b.HasIndex("MessageId");
 
                     b.ToTable("LinkedButton");
-                });
-
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedCommand", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<TimeSpan?>("Cooldown")
-                        .HasColumnType("interval");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Ephemeral")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal?>("GuildEntityId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<Guid?>("MessageId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Scope")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("Silent")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("UserOptions")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GuildEntityId");
-
-                    b.HasIndex("MessageId");
-
-                    b.ToTable("LinkedCommand");
                 });
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.MessageTemplate", b =>
@@ -621,9 +570,6 @@ namespace Zhongli.Data.Migrations
                     b.Property<Guid?>("LinkedButtonId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("LinkedCommandId")
-                        .HasColumnType("uuid");
-
                     b.Property<decimal>("RoleId")
                         .HasColumnType("numeric(20,0)");
 
@@ -631,12 +577,10 @@ namespace Zhongli.Data.Migrations
 
                     b.HasIndex("LinkedButtonId");
 
-                    b.HasIndex("LinkedCommandId");
-
                     b.ToTable("RoleTemplate");
                 });
 
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.StickyMessage", b =>
+            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.StickyMessage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1771,10 +1715,6 @@ namespace Zhongli.Data.Migrations
                         .WithMany("Exclusions")
                         .HasForeignKey("CensorId");
 
-                    b.HasOne("Zhongli.Data.Models.Discord.Message.Linking.LinkedCommand", null)
-                        .WithMany("Inclusions")
-                        .HasForeignKey("LinkedCommandId");
-
                     b.HasOne("Zhongli.Data.Models.Logging.LoggingRules", null)
                         .WithMany("LoggingExclusions")
                         .HasForeignKey("LoggingRulesId");
@@ -1913,31 +1853,14 @@ namespace Zhongli.Data.Migrations
                     b.Navigation("Message");
                 });
 
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedCommand", b =>
-                {
-                    b.HasOne("Zhongli.Data.Models.Discord.GuildEntity", null)
-                        .WithMany("LinkedCommands")
-                        .HasForeignKey("GuildEntityId");
-
-                    b.HasOne("Zhongli.Data.Models.Discord.Message.Linking.MessageTemplate", "Message")
-                        .WithMany()
-                        .HasForeignKey("MessageId");
-
-                    b.Navigation("Message");
-                });
-
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.RoleTemplate", b =>
                 {
                     b.HasOne("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", null)
                         .WithMany("Roles")
                         .HasForeignKey("LinkedButtonId");
-
-                    b.HasOne("Zhongli.Data.Models.Discord.Message.Linking.LinkedCommand", null)
-                        .WithMany("Roles")
-                        .HasForeignKey("LinkedCommandId");
                 });
 
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.StickyMessage", b =>
+            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.StickyMessage", b =>
                 {
                     b.HasOne("Zhongli.Data.Models.Discord.GuildEntity", null)
                         .WithMany("StickyMessages")
@@ -2340,8 +2263,6 @@ namespace Zhongli.Data.Migrations
 
                     b.Navigation("LinkedButtons");
 
-                    b.Navigation("LinkedCommands");
-
                     b.Navigation("LoggingRules")
                         .IsRequired();
 
@@ -2380,13 +2301,6 @@ namespace Zhongli.Data.Migrations
 
             modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedButton", b =>
                 {
-                    b.Navigation("Roles");
-                });
-
-            modelBuilder.Entity("Zhongli.Data.Models.Discord.Message.Linking.LinkedCommand", b =>
-                {
-                    b.Navigation("Inclusions");
-
                     b.Navigation("Roles");
                 });
 

@@ -10,7 +10,6 @@ using Discord;
 using Discord.Net;
 using Discord.Rest;
 using Discord.WebSocket;
-using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
@@ -237,7 +236,7 @@ public class LoggingService
         {
             var date = updated.EditedTimestamp ?? updated.LogDate;
             embed
-                .AddField("After", updated.Content.Truncate(EmbedFieldBuilder.MaxFieldValueLength))
+                .AddField("After", updated.Content)
                 .AddField("Edited", date.ToUniversalTimestamp(), true);
         }
 

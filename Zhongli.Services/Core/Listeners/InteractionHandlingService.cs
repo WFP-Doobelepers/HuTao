@@ -69,10 +69,7 @@ public class InteractionHandlingService :
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
             _log.LogError("{Error}: {ErrorReason} in {Name}", result.Error, result.ErrorReason, command.Name);
-            if (context.Interaction.HasResponded)
-                await context.Interaction.FollowupAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
-            else
-                await context.Interaction.RespondAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
+            await context.Interaction.RespondAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
         }
     }
 }

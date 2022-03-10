@@ -19,7 +19,6 @@ public static class MessageTemplateExtensions
         .WithDescription(template.Content)
         .AddField("Live", $"{template.IsLive} **[Jump]({template.GetJumpUrl(guild)})**", true)
         .AddField("Embeds", $"{template.Embeds.Count}", true)
-        .AddField("Components", template.Components.Sum(t => t.Components.Count), true)
         .WithFields(template.Embeds.Take(EmbedBuilder.MaxFieldCount - builder.Fields.Count)
             .Select((e, i) => new EmbedFieldBuilder()
                 .WithName($"▌Embed {i + 1}: {e.Title}")

@@ -25,6 +25,7 @@ public static class ComponentBuilderExtensions
     {
         if (row > MaxActionRowCount)
             throw new ArgumentOutOfRangeException(nameof(row), row, $"There can only be {MaxActionRowCount} rows.");
+
         var actionRow = rows.ElementAtOrDefault(row) ?? rows.Insert(new ActionRow());
 
         if (actionRow.CanTakeComponent(component))

@@ -9,18 +9,10 @@ public class Thumbnail : IImage, IEquatable<Thumbnail>
 
     public Thumbnail(EmbedThumbnail thumbnail)
     {
-        Height   = thumbnail.Height;
-        ProxyUrl = thumbnail.ProxyUrl;
-        Width    = thumbnail.Width;
         Url      = thumbnail.Url;
-    }
-
-    public Thumbnail(IImage thumbnail)
-    {
-        Height   = thumbnail.Height;
         ProxyUrl = thumbnail.ProxyUrl;
+        Height   = thumbnail.Height;
         Width    = thumbnail.Width;
-        Url      = thumbnail.Url;
     }
 
     public Guid Id { get; init; }
@@ -52,5 +44,4 @@ public class Thumbnail : IImage, IEquatable<Thumbnail>
     public static bool operator !=(Thumbnail? left, Thumbnail? right) => !Equals(left, right);
 
     public static implicit operator Thumbnail(EmbedThumbnail thumbnail) => new(thumbnail);
-    public static implicit operator Thumbnail(Image image) => new(image);
 }

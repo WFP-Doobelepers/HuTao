@@ -43,7 +43,7 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
         IMessage link,
         [Remainder] LinkedMessageOptions options)
     {
-        var message = await GetMessageAsync(link, options.Channel);
+        var message = await GetMessageAsync(link);
         var button = await _linking.LinkMessageAsync(message, options);
 
         if (button is null)
@@ -68,14 +68,7 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     protected override EmbedBuilder EntityViewer(LinkedButton entity)
     {
         var template = entity.Message;
-        var button = entity.Button;
-        var embed = new EmbedBuilder()
-            .AddField("Ephemeral", $"{entity.Ephemeral}", true)
-            .AddField("Disabled", button.IsDisabled, true)
-            .AddField("Style", button.Style, true)
-            .AddField("Emote", button.Emote.DefaultIfNullOrEmpty("None"), true)
-            .AddField("Label", button.Label.DefaultIfNullOrEmpty("None"), true)
-            .AddField("Url", button.Url.DefaultIfNullOrEmpty("None"), true);
+        var embed = new EmbedBuilder().AddField("Ephemeral", $"{entity.Ephemeral}", true);
 
         if (template is not null)
         {
@@ -100,12 +93,12 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
         return guild.LinkedButtons;
     }
 
-    private async Task<IUserMessage> GetMessageAsync(IMessage message, IMessageChannel? channel)
+    private async Task<IUserMessage> GetMessageAsync(IMessage message)
     {
         if (message is IUserMessage userMessage && message.Author.Id == Context.Client.CurrentUser.Id)
             return userMessage;
 
         var template = new MessageTemplate(message, null);
-        return await template.SendMessageAsync(channel ?? Context.Channel);
+        return await template.SendMessageAsync(Context.Channel);
     }
 }

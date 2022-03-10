@@ -6,11 +6,11 @@ namespace Zhongli.Data.Models.Criteria;
 
 public interface ICriteriaOptions
 {
-    public GuildPermission Permission { get; set; }
+    GuildPermission Permission { get; set; }
 
-    public IEnumerable<IGuildChannel>? Channels { get; set; }
+    IEnumerable<IGuildChannel>? Channels { get; set; }
 
-    public IEnumerable<IGuildUser>? Users { get; set; }
+    IEnumerable<IGuildUser>? Users { get; set; }
 
-    public IEnumerable<IRole>? Roles { get; set; }
+    IEnumerable<IRole>? Roles { get; set; }
 }
