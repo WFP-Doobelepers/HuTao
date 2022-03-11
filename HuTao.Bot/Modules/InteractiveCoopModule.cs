@@ -1,12 +1,21 @@
+<<<<<<< HEAD
 ﻿using Discord;
 using System.Linq;
 using Discord.Interactions;
 using System.Threading.Tasks;
+=======
+﻿using Discord.Interactions;
+using Discord;
+
+using System.Threading.Tasks;
+using Discord.Commands;
+>>>>>>> ae844ea (Added coop-request command and interactions)
 
 namespace HuTao.Bot.Modules;
 
 public class InteractiveCoopModule : InteractionModuleBase<SocketInteractionContext>
 {
+<<<<<<< HEAD
     [ComponentInteraction("help:*")]
 
     public async Task HelpButton(string id )
@@ -66,5 +75,14 @@ public class InteractiveCoopModule : InteractionModuleBase<SocketInteractionCont
                     ephemeral: true);
             }
         }
+=======
+    [ComponentInteraction("help")]
+    public async Task HelpButtonHandler()
+    {
+        await RespondAsync(
+            $"{Context.Interaction.User.Mention} has taken up this request on this button\nPlease follow the Co-op rules for an enjoyable and safe playing experience.");
+
+
+>>>>>>> ae844ea (Added coop-request command and interactions)
     }
 }
