@@ -123,7 +123,6 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    /* GetChannelPosition */
     [Command("position")]
     [Summary("Gets the position of a channel.")]
     public async Task GetChannelPositionAsync(INestedChannel givenChannel)
