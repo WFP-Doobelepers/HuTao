@@ -257,7 +257,6 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             {
                 var categoryId = (ulong) givenChannel.CategoryId;
                 await ResetCategoryChannels(categoryId);
-                SwapChannelPositions(givenChannel, -1); //Swap channel with channel above it (upward swap are negatives values)
                 var embed = new EmbedBuilder()
                     .WithTitle($"Reset Channel \"{givenChannel.Name}\" : {givenChannel.Id}")
                     .AddField("Channel ID", givenChannel.Id, true)
@@ -317,14 +316,21 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /// <returns>Returns a dictionary containing channels names and positions</returns>
     private async Task<Dictionary<string, int>> ResetCategoryChannels(ulong categoryId)
     {
-        SocketCategoryChannel categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
+        var client = Context.Client;
+        var socketGuild = Context.Guild;
+        var restGuild = await client.Rest.GetGuildAsync(Context.Guild.Id);
+        var restChannels = await restGuild.GetChannelsAsync();
+        var restDictionary = restChannels.OfType<INestedChannel>()
+            .Where(channel => channel.CategoryId!= null)
+            .GroupBy(c => socketGuild.GetCategoryChannel(c.CategoryId!.Value))
+            .OrderBy(c => c.Key.Position)
+            .ToDictionary(g => g.Key.Id, g => g.OrderBy(c => c is IVoiceChannel).ThenBy(c => c.Position));
         var returnDict = new Dictionary<string, int>();
-
-        foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
+        foreach (var (channel, index) in restDictionary[categoryId].Select((value, i) => (value, i)))
         {
             await channel
-                    .ModifyAsync(gC => {gC.Position = index;})
-                    .ContinueWith(async _ => {returnDict.Add(channel.Name, (int) channel.Position);});
+                .ModifyAsync(gC => {gC.Position = index;})
+                .ContinueWith(async _ => {returnDict.Add(channel.Name, (int) channel.Position);});
         }
         return returnDict;
     }
@@ -356,6 +362,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         var categoryId = (ulong) givenChannel.CategoryId;
         var categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
         var positionGivenChannel = givenChannel.Position;
+
         foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
         {
             if(channel.Position == positionGivenChannel + by)
