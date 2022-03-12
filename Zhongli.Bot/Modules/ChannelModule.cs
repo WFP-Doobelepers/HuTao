@@ -294,7 +294,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         try
         {
             var categoryId = (ulong) givenChannel.CategoryId;
-            var categoryChannels = GetCategoryChannels(categoryId);
+            var categoryChannels = await GetCategoryChannels(categoryId);
             var mappedPositions = "";
 
             foreach (var (channelName, channelPosition) in categoryChannels)
@@ -342,7 +342,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         {
             await channel
                 .ModifyAsync(gC => { gC.Position = index; })
-                .ContinueWith(async _ => { returnDict.Add(channel.Name, channel.Position); });
+                .ContinueWith( _ => { returnDict.Add(channel.Name, channel.Position); });
         }
         return returnDict;
     }
@@ -352,11 +352,19 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /// </summary>
     /// <param name="categoryId"></param>
     /// <returns>Returns a dictionary containing channels names and positions</returns>
-    private Dictionary<string, int> GetCategoryChannels(ulong categoryId)
+    private async Task<Dictionary<string, int>> GetCategoryChannels(ulong categoryId)
     {
-        var categoryChannel = Context.Guild.GetCategoryChannel(categoryId);
+        var client = Context.Client;
+        var socketGuild = Context.Guild;
+        var restGuild = await client.Rest.GetGuildAsync(Context.Guild.Id);
+        var restChannels = await restGuild.GetChannelsAsync();
+        var restDictionary = restChannels.OfType<INestedChannel>()
+            .Where(channel => channel.CategoryId != null)
+            .GroupBy(c => socketGuild.GetCategoryChannel(c.CategoryId!.Value))
+            .OrderBy(c => c.Key.Position)
+            .ToDictionary(g => g.Key.Id, g => g.OrderBy(c => c is IVoiceChannel).ThenBy(c => c.Position));
         var returnDict = new Dictionary<string, int>();
-        foreach (var (channel, index) in categoryChannel.Channels.Select((value, i) => (value, i)))
+        foreach (var (channel, index) in restDictionary[categoryId].Select((value, i) => (value, i)))
         {
             returnDict.Add(channel.Name, channel.Position);
         }
@@ -399,7 +407,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     /// <returns>Return an dictionary containing the minimal and maximum position of an category.</returns>
     private async Task<Dictionary<string, int>> GetCategoryMinMaxPositions(ulong categoryId)
     {
-        var currentCategories = GetCategoryChannels(categoryId);
+        var currentCategories = await GetCategoryChannels(categoryId);
         return new Dictionary<string, int>
         {
             {"min", currentCategories.Values.Min()},
