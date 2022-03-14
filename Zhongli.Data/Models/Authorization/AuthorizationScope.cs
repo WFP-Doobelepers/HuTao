@@ -29,6 +29,9 @@ public enum AuthorizationScope
     [Description("Allows usage of the user module.")]
     User = 1 << 9,
 
+    [Description("Allows usage of the purge module.")]
+    Purge = 1 << 10,
+
     [Description("Allows warning, mute, kick, notes, and ban.")]
     Moderator = Warning | Mute | Kick | Ban | Note,
 

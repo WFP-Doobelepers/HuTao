@@ -5,7 +5,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Zhongli.Data.Models.Authorization;
 using Zhongli.Services.CommandHelp;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Utilities;
 using static Zhongli.Bot.Modules.Moderation.PurgeModule.PurgeFilters;
 
@@ -16,6 +18,7 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
     [Command("purge")]
     [Alias("clean")]
     [Summary("Purges messages based on set rules.")]
+    [RequireAuthorization(AuthorizationScope.Purge)]
     [RequireUserPermission(ChannelPermission.ManageMessages)]
     [RequireBotPermission(ChannelPermission.ManageMessages)]
     public async Task PurgeAsync(int amount, PurgeFilters? options = null)
