@@ -254,7 +254,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             .AddField("Hoisted", role.IsHoisted, true)
             .AddField("Mentionable", role.IsMentionable, true)
             .AddField("Managed", role.IsManaged, true)
-            .AddField("Permissions", role.Permissions.ToList().Humanize(p => p.Humanize()))
+            .AddField("Permissions", role.Permissions.ToList().Humanize(p => p.Humanize()).DefaultIfNullOrEmpty("None"))
             .AddItemsIntoFields("Members", members, r => r.Mention, " ");
     }
 
