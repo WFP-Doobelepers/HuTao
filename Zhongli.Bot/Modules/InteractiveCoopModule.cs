@@ -51,7 +51,12 @@ public class InteractiveCoopModule : InteractionModuleBase<SocketInteractionCont
                     .AddField("Request Closed by", $"{interaction.User.Mention}", true)
                     .Build());
 
-                await message.ModifyAsync(m => m.Embeds = embeds.ToArray());
+                var newButtons = new ComponentBuilder()
+                    .WithButton("Help", disabled: true)
+                    .WithButton("Close", disabled: true)
+                    .Build();
+                await message.ModifyAsync(m => m.Embeds     = embeds.ToArray());
+                await message.ModifyAsync(x => x.Components = newButtons);
             }
             else
             {
