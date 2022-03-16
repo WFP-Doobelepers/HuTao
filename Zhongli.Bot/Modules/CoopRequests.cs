@@ -16,6 +16,8 @@ public class CoopRequestsModule : ModuleBase<SocketCommandContext>
 
     public async Task RequestAsync([Remainder] string request)
     {
+        await Context.Message.DeleteAsync();
+        
         var uid = Uid(request);
         var region = Region(uid);
 
