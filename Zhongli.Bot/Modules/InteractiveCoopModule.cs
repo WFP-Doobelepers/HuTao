@@ -22,7 +22,8 @@ public class InteractiveCoopModule : InteractionModuleBase<SocketInteractionCont
                     .Build());
 
                 await message.ModifyAsync(m => m.Embeds = embeds.ToArray());
-
+                await RespondAsync(
+                    $"<@{id}>, Your Co-op Request has been taken up by {Context.Interaction.User.Mention}.");
                 await RespondAsync(
                     $"{Context.Interaction.User.Mention}Please follow the Co-op rules for an enjoyable and safe playing experience.\nDo Not Re-Click on the Help Button again.",
                     ephemeral: true);
