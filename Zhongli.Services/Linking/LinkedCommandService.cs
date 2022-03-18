@@ -155,7 +155,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         if (command is null)
             return;
 
-        var included = command.Inclusions.All(c => c.Judge(context));
+        var included = command.Inclusions.Any(c => c.Judge(context));
         var authorized = await _auth.IsAuthorizedAsync(context, command.Scope | AuthorizationScope.All);
         if (!included && !authorized)
         {

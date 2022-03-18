@@ -12,14 +12,16 @@ public class Attachment : IAttachment, IImage
 
     public Attachment(IAttachment attachment)
     {
-        Id        = attachment.Id;
-        Ephemeral = attachment.Ephemeral;
-        Size      = attachment.Size;
-        Height    = attachment.Height;
-        Width     = attachment.Width;
-        Filename  = attachment.Filename;
-        ProxyUrl  = attachment.ProxyUrl;
-        Url       = attachment.Url;
+        Id          = attachment.Id;
+        Ephemeral   = attachment.Ephemeral;
+        Size        = attachment.Size;
+        Height      = attachment.Height;
+        Width       = attachment.Width;
+        Filename    = attachment.Filename;
+        ProxyUrl    = attachment.ProxyUrl;
+        Url         = attachment.Url;
+        ContentType = attachment.ContentType;
+        Description = attachment.Description;
     }
 
     [Key] public Guid AttachmentId { get; set; }
@@ -40,4 +42,8 @@ public class Attachment : IAttachment, IImage
     public string ProxyUrl { get; init; } = null!;
 
     public string Url { get; init; } = null!;
+
+    public string? ContentType { get; set; }
+
+    public string? Description { get; set; }
 }
