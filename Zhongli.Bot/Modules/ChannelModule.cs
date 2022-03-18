@@ -42,14 +42,13 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Creates a new channel.")]
     public async Task CreateChannelAsync(string name, ChannelCreationOptions? options = null)
     {
-        // TODO: V2 Add channel creation options.
-        var channel = await Context.Guild.CreateTextChannelAsync(name);
-        var embed = new EmbedBuilder()
-            .WithTitle($"Created Channel \"{name}\" : {channel.Id}")
-            .AddField("Channel ID", channel.Id, true)
-            // .AddField() TODO: v2 Display channel creation options.
-            .WithDescription($"Successfully created channel with name \"{name}.\"")
-            .WithAuthor(Context.User);
+        var channel = await Context.Guild.CreateTextChannelAsync(name,
+            c => c.CategoryId = options?.ChannelCategory?.Id);
+
+        var embed = GetChannelProperties(channel)
+            .WithAuthor(Context.User).WithTitle("Created Channel")
+            .WithDescription($"Successfully created channel")
+            .WithColor(Color.Green);
         await ReplyAsync(embed: embed.Build());
     }
 
@@ -217,7 +216,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     private EmbedBuilder GetChannelProperties(INestedChannel channel) => new EmbedBuilder()
         .WithUserAsAuthor(Context.User, AuthorOptions.Requested | AuthorOptions.UseFooter)
-        .WithTitle($"Channel: {channel.Name}")
+        .AddField("Name", channel.Name, true)
         .AddField("Channel ID", channel.Id, true)
         .AddField("Mention", $"<#{channel.Id}>", true)
         .AddField("Position", channel.Position, true)
