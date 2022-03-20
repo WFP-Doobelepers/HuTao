@@ -32,7 +32,6 @@ public class LoggingService
     private readonly DiscordSocketClient _client;
     private readonly IMemoryCache _memoryCache;
     private readonly ZhongliContext _db;
-
     public LoggingService(DiscordSocketClient client, IMemoryCache memoryCache, ZhongliContext db)
     {
         _client      = client;
@@ -121,6 +120,16 @@ public class LoggingService
 
         var log = await LogDeletionAsync(messages, channel, details, cancellationToken);
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
+    }
+
+    public async Task LogAsync(UserJoinedNotification notification, CancellationToken cancellationToken)
+    {
+        if (notification.GuildUser is not IGuildUser user) return;
+
+        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+
+        await PublishLogAsync(new UserJoinLog(userEntity, user.JoinedAt.Value),
+            LogType.GuildUserJoined, user.Guild, cancellationToken);
     }
 
     private static EmbedLog AddDetails(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
@@ -273,6 +282,23 @@ public class LoggingService
         return new EmbedLog(embed);
     }
 
+    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, UserJoinLog log)
+    {
+        var user = await _client.GetUserAsync(log.UserId);
+
+        embed
+            .AddContent(new StringBuilder()
+                .AppendLine($"{Format.Bold("`Mention:`")} <@{user.Id}>")
+                .AppendLine($"{Format.Bold("`GuildId:`")} {log.GuildId}")
+                .ToString())
+            .AddField("AccountCreationDate", user.CreatedAt.ToUniversalTimestamp(), true)
+            .AddField("JoinDate", log.JoinDate.ToUniversalTimestamp(), true)
+            .AddField("FirstJoinDate", log.FirstJoinDate.ToUniversalTimestamp(), true)
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId);
+
+        return new EmbedLog(embed);
+    }
+
     private async Task<EmbedLog> BuildLogAsync(DeleteDetails details)
     {
         var log = details.Deleted;
@@ -309,6 +335,7 @@ public class LoggingService
         {
             MessageLog message   => await AddDetailsAsync(embed, message),
             ReactionLog reaction => await AddDetailsAsync(embed, reaction),
+            UserJoinLog join     => await AddDetailsAsync(embed, join),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(log), log, "Invalid log type.")
         };

@@ -6,5 +6,6 @@ public enum LogType
     MessageDeleted,
     ReactionAdded,
     ReactionRemoved,
-    MessagesBulkDeleted
+    MessagesBulkDeleted,
+    GuildUserJoined
 }

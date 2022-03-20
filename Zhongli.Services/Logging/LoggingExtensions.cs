@@ -42,6 +42,7 @@ public static class LoggingExtensions
             MessagesDeleteLog => "Bulk Message",
             ReactionDeleteLog => "Reaction",
             ReactionLog       => "Reaction",
+            UserJoinLog       => "User Join",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(log), log, "Invalid log type.")
         };
