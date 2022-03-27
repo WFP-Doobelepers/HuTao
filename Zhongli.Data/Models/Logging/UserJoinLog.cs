@@ -19,6 +19,6 @@ public class UserJoinLog : ILog, IGuildUserEntity
     public GuildUserEntity User { get; set; }
     public DateTimeOffset FirstJoinDate { get; set; }
     public DateTimeOffset JoinDate { get; set; }
-    public ulong GuildId {get; set;}
+    public ulong GuildId { get; set; }
     public ulong UserId { get; set; }
 }
