@@ -21,4 +21,6 @@ public class RoleTemplate : IRoleEntity
     public ulong GuildId { get; set; }
 
     public ulong RoleId { get; set; }
+
+    public override string ToString() => $"{Behavior} {this.MentionRole()}";
 }

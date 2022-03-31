@@ -17,7 +17,7 @@ public class ResultDictionary<TOptions> : ReadOnlyDictionary<TOptions, PromptRes
     [SuppressMessage("ReSharper", "ConstantConditionalAccessQualifier")]
     public TValue? GetOrDefault<TValue>(TOptions key, TValue? @default = default)
     {
-        if (TryGetValue(key, out var result) && result?.UserResponse is TValue)
+        if (TryGetValue(key, out var result) && result.UserResponse is TValue)
             return result.As<TValue>();
 
         return @default;

@@ -145,7 +145,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
         else if (newChannel is not null)
         {
             if (PurgeTasks.TryRemove(newChannel.Id, out var token))
-                token?.Cancel();
+                token.Cancel();
 
             var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == newChannel.Id);
             if (voiceChat is not null)
