@@ -34,6 +34,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         var positions = await GetCategoryChannelPositionsAsync(givenChannel.CategoryId);
         await ReplyAsync(embed: new EmbedBuilder()
             .WithTitle("Category Channel Positions")
+            .AddField("Category", $"<#{givenChannel.CategoryId}>", true)
             .AddItemsIntoFields("Positions", positions,
                 p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})").Build());
     }
@@ -47,7 +48,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
         var embed = GetChannelProperties(channel)
             .WithAuthor(Context.User).WithTitle("Created Channel")
-            .WithDescription($"Successfully created channel")
+            .WithDescription($"Successfully created channel {channel.Mention}")
             .WithColor(Color.Green);
         await ReplyAsync(embed: embed.Build());
     }
@@ -60,7 +61,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithAuthor(Context.User)
             .WithTitle("Deleted Channel")
             .WithDescription(
-                "Disintegrating the channel from Discord databases... " +
+                $"Disintegrating the channel \"{givenChannel}\" from Discord databases... " +
                 "Don't power off your Discord...")
             .WithColor(Color.Red).Build());
         await givenChannel.DeleteAsync();
@@ -142,8 +143,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithDescription(givenChannel.CategoryId is null
                     ? "Channels with no category have been reset"
                     : $"Channels in the category <#{givenChannel.CategoryId}> have been reset.")
-                .AddItemsIntoFields("Positions", positions,
-                    p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})")
+                .AddItemsIntoFields("Positions", positions, p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})")
                 .WithColor(Color.Green).Build());
         }
         catch (HttpException e)
