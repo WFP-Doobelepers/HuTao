@@ -1,8 +1,6 @@
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using Mapster.Utils;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Logging;
 using Zhongli.Services.Core.Preconditions.Interactions;
@@ -43,11 +41,9 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
 
     [ComponentInteraction("r:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
-    public async Task ViewHistoryAsync(string id, string[] selections)
+    public async Task ViewHistoryAsync(string id, LogReprimandType[] types)
     {
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
-        var types = InfractionTypeBitwise.Or(selections.Select(Enum<LogReprimandType>.Parse));
-
-        await _user.ReplyHistoryAsync(Context, types, user, true);
+        await _user.ReplyHistoryAsync(Context, InfractionTypeBitwise.Or(types), user, true);
     }
 }

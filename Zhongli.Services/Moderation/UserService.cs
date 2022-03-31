@@ -52,6 +52,8 @@ public class UserService
 
     public async Task ReplyHistoryAsync(Context context, LogReprimandType type, IUser user, bool update)
     {
+        await context.DeferAsync(true);
+
         var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == context.Guild.Id);
         if (userEntity is null) return;
 
@@ -86,27 +88,39 @@ public class UserService
             InteractionContext { Interaction: SocketInteraction interaction }
                 => _interactive.SendPaginatorAsync(paginator, interaction,
                     ephemeral: true,
-                    responseType: update ? UpdateMessage : ChannelMessageWithSource,
+                    responseType: update ? DeferredUpdateMessage : DeferredChannelMessageWithSource,
                     messageAction: Components),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid context.")
         });
 
-        async void Components(IUserMessage m)
+        void Components(IUserMessage message)
         {
             var menu = SelectMenu(user, type);
-            var components = ComponentBuilder.FromMessage(m).WithSelectMenu(menu).Build();
+            var components = GetMessageComponents(message).WithSelectMenu(menu).Build();
 
-            if (m is RestInteractionMessage interaction)
-                await interaction.ModifyAsync(r => r.Components = components);
-            else
-                await m.ModifyAsync(r => r.Components = components);
+            _ = message switch
+            {
+                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components),
+                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components),
+                _                        => message.ModifyAsync(r => r.Components = components)
+            };
+        }
+
+        ComponentBuilder GetMessageComponents(IMessage message)
+        {
+            var components = ComponentBuilder.FromMessage(message);
+            components.ActionRows?.RemoveAll(row => row.Components.Any(c => c.Type is ComponentType.SelectMenu));
+
+            return components;
         }
     }
 
     public async Task ReplyUserAsync(Context context, IUser user)
     {
+        await context.DeferAsync(true);
+
         var components = await ComponentsAsync(context, user);
         var builders = await GetUserAsync(context, user);
         var embeds = builders.Select(e => e.Build()).ToArray();
