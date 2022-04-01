@@ -42,14 +42,14 @@ public class EvaluationService
         {
             embed.AddField(a => a
                 .WithName($"Result: {result.ReturnTypeName ?? "null"}")
-                .WithValue(Format.Code(returnValue.Truncate(MaxFieldValueLength), "json")));
+                .WithValue(Format.Code(returnValue, "json").Truncate(MaxFieldValueLength)));
         }
 
         if (!string.IsNullOrWhiteSpace(consoleOut))
         {
             embed.AddField(a => a
                 .WithName("Console Output")
-                .WithValue(Format.Code(consoleOut.Truncate(MaxFieldValueLength), "txt")));
+                .WithValue(Format.Code(consoleOut, "txt").Truncate(MaxFieldValueLength)));
         }
 
         if (!string.IsNullOrWhiteSpace(result.Exception))
@@ -57,7 +57,7 @@ public class EvaluationService
             var formatted = Regex.Replace(result.Exception, "^", "- ", RegexOptions.Multiline);
             embed.AddField(a => a
                 .WithName($"Exception: {result.ExceptionType}")
-                .WithValue(Format.Code(formatted.Truncate(MaxFieldValueLength), "diff")));
+                .WithValue(Format.Code(formatted, "diff").Truncate(MaxFieldValueLength)));
         }
 
         return embed;
