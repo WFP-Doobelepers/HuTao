@@ -18,7 +18,7 @@ public static class AutoRemoveMessageSetup
     /// </returns>
     public static IServiceCollection AddAutoRemoveMessage(this IServiceCollection services)
         => services
-            .AddScoped<IAutoRemoveMessageService, AutoRemoveMessageService>()
+            .AddScoped<IRemovableMessageService, RemovableMessageService>()
             .AddScoped<INotificationHandler<ReactionAddedNotification>, AutoRemoveMessageHandler>()
             .AddScoped<INotificationHandler<RemovableMessageRemovedNotification>, AutoRemoveMessageHandler>()
             .AddScoped<INotificationHandler<RemovableMessageSentNotification>, AutoRemoveMessageHandler>();

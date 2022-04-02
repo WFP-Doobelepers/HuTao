@@ -1,118 +1,93 @@
-﻿using System;
-using System.Text.RegularExpressions;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using MediatR;
-using Microsoft.Extensions.Logging;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
+using Zhongli.Data.Models.Discord;
+using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.Core;
+using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Messages;
-using Zhongli.Services.Utilities;
 using MessageExtensions = Zhongli.Services.Utilities.MessageExtensions;
 
 namespace Zhongli.Services.Quote;
 
 public class MessageLinkBehavior :
-    INotificationHandler<MessageReceivedNotification>,
-    INotificationHandler<MessageUpdatedNotification>
+    INotificationHandler<MessageReceivedNotification>
 {
     private readonly AuthorizationService _auth;
+    private readonly CommandErrorHandler _error;
     private readonly DiscordSocketClient _discordClient;
-    private readonly ILogger<MessageLinkBehavior> _log;
+    private readonly InteractiveService _interactive;
     private readonly IQuoteService _quoteService;
+    private readonly IRemovableMessageService _remove;
 
     public MessageLinkBehavior(
-        AuthorizationService auth, DiscordSocketClient discordClient,
-        IQuoteService quoteService, ILogger<MessageLinkBehavior> log)
+        AuthorizationService auth, CommandErrorHandler error,
+        DiscordSocketClient discordClient, InteractiveService interactive,
+        IQuoteService quoteService, IRemovableMessageService remove)
     {
         _auth          = auth;
+        _error         = error;
         _discordClient = discordClient;
+        _interactive   = interactive;
         _quoteService  = quoteService;
-        _log           = log;
+        _remove        = remove;
     }
 
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
         => await OnMessageReceivedAsync(notification.Message, cancellationToken);
 
-    public async Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
-    {
-        var cachedMessage = await notification.OldMessage.GetOrDownloadAsync();
-
-        if (cachedMessage is null)
-            return;
-
-        if (RegexUtilities.JumpUrl.IsMatch(cachedMessage.Content))
-            return;
-
-        await OnMessageReceivedAsync(notification.NewMessage, cancellationToken);
-    }
-
     private async Task OnMessageReceivedAsync(SocketMessage message, CancellationToken cancellationToken)
     {
+        if (message is not SocketUserMessage source || message.Author.IsBot) return;
         if (message.Content?.StartsWith(ZhongliConfig.Configuration.Prefix) ?? true) return;
-        if (message is not SocketUserMessage userMessage || message.Author.IsBot)
-            return;
 
-        var context = new SocketCommandContext(_discordClient, userMessage);
+        var context = (Context) new SocketCommandContext(_discordClient, source);
         if (!await _auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
             return;
 
-        foreach (Match match in RegexUtilities.JumpUrl.Matches(message.Content))
+        try
         {
-            // check if the link is surrounded with < and >. This was too annoying to do in regex
-            if (match.Groups["OpenBrace"].Success && match.Groups["CloseBrace"].Success)
-                continue;
-
-            if (!MessageExtensions.TryGetJumpUrl(match, out _, out var channelId, out var messageId))
-                continue;
-
-            try
-            {
-                var channel = _discordClient.GetChannel(channelId);
-                if (channel is not ITextChannel textChannel || textChannel.IsNsfw) return;
-
-                var user = await textChannel.Guild.GetUserAsync(message.Author.Id);
-                var channelPermissions = user.GetPermissions(textChannel);
-                if (!channelPermissions.ViewChannel) return;
-
-                var cacheMode = channelPermissions.ReadMessageHistory
-                    ? CacheMode.AllowDownload
-                    : CacheMode.CacheOnly;
-
-                var quote = await textChannel.GetMessageAsync(messageId, cacheMode);
-                if (quote is null) return;
-
-                var success = await SendQuoteEmbedAsync(message, quote);
-                if (success
-                    && string.IsNullOrEmpty(match.Groups["Prelink"].Value)
-                    && string.IsNullOrEmpty(match.Groups["Postlink"].Value))
-                    await userMessage.DeleteAsync();
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "An error occurred while attempting to create a quote embed");
-            }
+            await SendQuoteEmbedAsync(context, source, cancellationToken);
+        }
+        catch (HttpException ex)
+        {
+            await _error.AssociateError(context, ex.Message);
         }
     }
 
-    private async Task<bool> SendQuoteEmbedAsync(SocketMessage source, IMessage quote)
+    private async Task SendQuoteEmbedAsync(
+        Context context, SocketMessage source,
+        CancellationToken cancellationToken)
     {
-        var success = false;
-        await _quoteService.BuildRemovableEmbed(quote, source.Author,
-            async embed => //If embed building is unsuccessful, this won't execute
-            {
-                success = true;
+        var urls = MessageExtensions.GetJumpMessages(source.Content).Distinct().ToList();
+        if (!urls.Any()) return;
 
-                return await source.Channel.SendMessageAsync(
-                    embed: embed.Build(),
-                    messageReference: source.Reference,
-                    allowedMentions: AllowedMentions.None);
-            });
+        var paginator = await _quoteService.GetPaginatorAsync(context, urls);
+        if (MessageExtensions.IsJumpUrls(source.Content))
+            _ = source.DeleteAsync();
 
-        return success;
+        if (paginator.MaxPageIndex > 0)
+        {
+            await _interactive.SendPaginatorAsync(paginator, source.Channel, cancellationToken: cancellationToken);
+            return;
+        }
+
+        var page = await paginator.GetOrLoadCurrentPageAsync();
+        var builders = page.Embeds.Select(e => e.ToEmbedBuilder()).ToList();
+        await _remove.RegisterRemovableMessageAsync(context.User, builders, async embeds =>
+        {
+            return await source.Channel.SendMessageAsync(page.Text,
+                embeds: embeds.Select(e => e.Build()).ToArray(),
+                messageReference: source.Reference,
+                allowedMentions: AllowedMentions.None);
+        });
     }
 }

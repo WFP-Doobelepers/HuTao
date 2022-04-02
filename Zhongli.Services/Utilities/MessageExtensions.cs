@@ -1,62 +1,59 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
+using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Logging;
+using Zhongli.Services.Quote;
 
 namespace Zhongli.Services.Utilities;
 
 public static class MessageExtensions
 {
-    public static bool TryGetJumpUrl(Match match, out ulong guildId, out ulong channelId, out ulong messageId) =>
-        ulong.TryParse(match.Groups["GuildId"].Value, out guildId)
-        & ulong.TryParse(match.Groups["ChannelId"].Value, out channelId)
-        & ulong.TryParse(match.Groups["MessageId"].Value, out messageId);
+    public static bool IsJumpUrls(string text) => string.IsNullOrWhiteSpace(CleanJumpUrls(text));
+
+    public static IEnumerable<JumpMessage> GetJumpMessages(string text)
+        => RegexUtilities.JumpUrl.Matches(text).Select(ToJumpMessage).OfType<JumpMessage>();
+
+    public static JumpMessage? GetJumpMessage(string text)
+        => ToJumpMessage(RegexUtilities.JumpUrl.Match(text));
+
+    public static string GetJumpUrl(this MessageLog message)
+        => $"https://discord.com/channels/{message.GuildId}/{message.ChannelId}/{message.MessageId}";
 
     public static string GetJumpUrlForEmbed(this IMessage message)
-        => Format.Url($"#{message.Channel.Name} (click here)", message.GetJumpUrl());
+        => Format.Url($"#{message.Channel.Name} (Jump)", message.GetJumpUrl());
 
-    public static async Task<IMessage?> GetMessageAsync(this BaseSocketClient client, ulong channelId,
-        ulong messageId, bool allowNsfw = false)
+    public static string GetJumpUrlForEmbed(this MessageLog message)
+        => Format.Url($"{message.MentionChannel()} (Jump)", message.GetJumpUrl());
+
+    public static async Task<IMessage?> GetMessageAsync(
+        this JumpMessage jump, Context context,
+        bool allowHidden = false, bool? allowNsfw = null)
     {
-        if (client.GetChannel(channelId) is not ITextChannel channel)
-            return null;
-
-        return await GetMessageAsync(channel, messageId);
-    }
-
-    public static async Task<IMessage?> GetMessageAsync(this ICommandContext context,
-        ulong messageId, bool allowNsfw = false)
-    {
-        if (context.Channel is not ITextChannel textChannel)
-            return null;
-
-        if (textChannel.IsNsfw && !allowNsfw)
-            return null;
-
-        return await GetMessageAsync(textChannel, messageId);
-    }
-
-    public static async Task<IMessage?> GetMessageFromUrlAsync(this ICommandContext context, string jumpUrl,
-        bool allowNsfw = false)
-    {
-        if (!TryGetJumpUrl(RegexUtilities.JumpUrl.Match(jumpUrl), out _, out var channelId, out var messageId))
-            return null;
+        var (guildId, channelId, messageId, ignored) = jump;
+        if (ignored || context.Guild.Id != guildId) return null;
 
         var channel = await context.Guild.GetTextChannelAsync(channelId);
-        return await GetMessageAsync(channel, messageId);
+        if (channel is null) return null;
+
+        return await GetMessageAsync(channel, messageId, allowHidden, allowNsfw ?? channel.IsNsfw);
     }
 
-    public static async Task<IMessage?> GetMessageFromUrlAsync(this BaseSocketClient client, string jumpUrl,
-        bool allowNsfw = false)
-    {
-        if (!TryGetJumpUrl(RegexUtilities.JumpUrl.Match(jumpUrl), out _, out var channelId, out var messageId))
-            return null;
+    private static JumpMessage? ToJumpMessage(Match match)
+        => ulong.TryParse(match.Groups["GuildId"].Value, out var guildId)
+            && ulong.TryParse(match.Groups["ChannelId"].Value, out var channelId)
+            && ulong.TryParse(match.Groups["MessageId"].Value, out var messageId)
+                ? new JumpMessage(guildId, channelId, messageId,
+                    match.Groups["OpenBrace"].Success && match.Groups["CloseBrace"].Success)
+                : null;
 
-        return await client.GetMessageAsync(channelId, messageId, allowNsfw);
-    }
+    private static string CleanJumpUrls(string text) => RegexUtilities.JumpUrl.Replace(text, m
+        => m.Groups["OpenBrace"].Success && m.Groups["CloseBrace"].Success ? m.Value : string.Empty);
 
-    private static async Task<IMessage?> GetMessageAsync(this ITextChannel channel, ulong messageId,
+    private static async Task<IMessage?> GetMessageAsync(
+        this ITextChannel channel, ulong messageId,
         bool allowHidden = false, bool allowNsfw = false)
     {
         if (channel.IsNsfw && !allowNsfw)

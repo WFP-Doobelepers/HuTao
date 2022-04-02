@@ -22,13 +22,17 @@ using Zhongli.Data.Models.Moderation.Infractions;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Messages;
 using Zhongli.Services.Moderation;
-using Zhongli.Services.Quote;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Logging;
 
 public class LoggingService
 {
+    private const EmbedBuilderOptions LogEmbedOptions =
+        EmbedBuilderOptions.UseProxy |
+        EmbedBuilderOptions.EnlargeThumbnails |
+        EmbedBuilderOptions.ReplaceAnimations;
+
     private readonly DiscordSocketClient _client;
     private readonly IMemoryCache _memoryCache;
     private readonly ZhongliContext _db;
@@ -122,6 +126,15 @@ public class LoggingService
         var log = await LogDeletionAsync(messages, channel, details, cancellationToken);
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
     }
+
+    public ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken = default)
+        => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
+
+    public async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
+        CancellationToken cancellationToken) where T : class, ILog
+        => await _db.Set<T>().AsQueryable()
+            .OrderByDescending(l => l.LogDate)
+            .FirstOrDefaultAsync(filter, cancellationToken);
 
     private static EmbedLog AddDetails(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
     {
@@ -246,14 +259,11 @@ public class LoggingService
             .AddField("Message", log.JumpUrlMarkdown(), true);
 
         var attachments = log.Attachments.Chunk(4)
-            .SelectMany(attachments => attachments.ToBuilder());
+            .SelectMany(attachments => attachments.ToEmbedBuilders(LogEmbedOptions));
 
         var embeds = log.Embeds
             .Where(e => e.IsViewable())
-            .Select(e => e.ToBuilder(
-                EmbedBuilderOptions.UseProxy | 
-                EmbedBuilderOptions.EnlargeThumbnails | 
-                EmbedBuilderOptions.ReplaceAnimations));
+            .Select(e => e.ToBuilder(LogEmbedOptions));
 
         return new EmbedLog(embed, attachments.Concat(embeds));
     }
@@ -442,15 +452,6 @@ public class LoggingService
             cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();
         });
-
-    private ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken)
-        => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
-
-    private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
-        CancellationToken cancellationToken) where T : class, ILog
-        => await _db.Set<T>().AsQueryable()
-            .OrderByDescending(l => l.LogDate)
-            .FirstOrDefaultAsync(filter, cancellationToken);
 
     private record DeleteDetails(DeleteLog Deleted, IGuild Guild);
 

@@ -1,73 +1,101 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Zhongli.Services.AutoRemoveMessage;
+using Discord.WebSocket;
+using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
+using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
+using Zhongli.Data.Models.Logging;
+using Zhongli.Services.Logging;
 using Zhongli.Services.Utilities;
 
 namespace Zhongli.Services.Quote;
 
+public record JumpMessage(ulong GuildId, ulong ChannelId, ulong MessageId, bool Suppressed);
+
 public interface IQuoteService
 {
-    /// <summary>
-    ///     Build an embed quote for the given message. Returns null if the message could not be quoted.
-    /// </summary>
-    /// <param name="message">The message to quote</param>
-    /// <param name="executingUser">The user that is doing the quoting</param>
-    EmbedBuilder? BuildQuoteEmbed(IMessage message, IUser executingUser);
-
-    Task BuildRemovableEmbed(IMessage message, IUser executingUser,
-        Func<EmbedBuilder, Task<IUserMessage>>? callback);
+    Task<Paginator> GetPaginatorAsync(Context context,
+        IEnumerable<JumpMessage> jumpUrls);
 }
 
 public class QuoteService : IQuoteService
 {
-    private readonly IAutoRemoveMessageService _autoRemoveMessageService;
+    private const EmbedBuilderOptions QuoteOptions =
+        EmbedBuilderOptions.EnlargeThumbnails |
+        EmbedBuilderOptions.ReplaceAnimations;
 
-    public QuoteService(IAutoRemoveMessageService autoRemoveMessageService)
+    private readonly DiscordSocketClient _client;
+    private readonly LoggingService _logging;
+    private readonly ZhongliContext _db;
+
+    public QuoteService(DiscordSocketClient client, LoggingService logging, ZhongliContext db)
     {
-        _autoRemoveMessageService = autoRemoveMessageService;
+        _client  = client;
+        _logging = logging;
+        _db      = db;
     }
 
-    /// <inheritdoc />
-    public EmbedBuilder? BuildQuoteEmbed(IMessage message, IUser executingUser)
+    public async Task<Paginator> GetPaginatorAsync(Context context, IEnumerable<JumpMessage> jumpUrls)
     {
-        if (IsQuote(message)) return null;
+        var builder = new StaticPaginatorBuilder()
+            .WithInputType(InputType.Buttons)
+            .WithActionOnTimeout(ActionOnStop.DisableInput)
+            .WithActionOnCancellation(ActionOnStop.DeleteMessage);
 
-        var embed = message.GetRichEmbed() ?? new EmbedBuilder();
-
-        if (!embed.TryAddImageAttachment(message))
+        foreach (var jump in jumpUrls.Where(jump => !jump.Suppressed))
         {
-            if (!embed.TryAddImageEmbed(message))
+            var message = await jump.GetMessageAsync(context);
+            if (message is not null)
             {
-                if (!embed.TryAddThumbnailEmbed(message))
-                    embed.TryAddOtherAttachment(message);
+                builder.AddPage(new MultiEmbedPageBuilder().WithBuilders(
+                    BuildQuoteEmbeds(message, context.User)));
+            }
+            else
+            {
+                if (context.User is not IGuildUser guildUser) continue;
+
+                var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+                var logging = guild.LoggingRules.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
+                if (logging is null) continue;
+
+                var channel = await context.Guild.GetTextChannelAsync(logging.ChannelId);
+                var permissions = guildUser.GetPermissions(channel);
+                if (!permissions.ViewChannel) continue;
+
+                var log = await _logging.GetLatestMessage(jump.MessageId);
+                if (log is null || log.Guild.Id != context.Guild.Id) continue;
+
+                builder.AddPage(new MultiEmbedPageBuilder().WithBuilders(
+                    await BuildQuoteEmbeds(log, context.User)));
             }
         }
 
-        embed.WithColor(new Color(95, 186, 125))
-            .AddContent(message)
-            .AddOtherEmbed(message)
-            .AddActivity(message)
-            .AddMeta(message, AuthorOptions.IncludeId)
-            .AddJumpLink(message, executingUser);
-
-        return embed;
+        return builder.Build();
     }
 
-    public async Task BuildRemovableEmbed(IMessage message, IUser executingUser,
-        Func<EmbedBuilder, Task<IUserMessage>>? callback)
-    {
-        var embed = BuildQuoteEmbed(message, executingUser);
+    private static IEnumerable<EmbedBuilder> BuildQuoteEmbeds(IMessage message, IMentionable executingUser)
+        => new List<EmbedBuilder>
+        {
+            new EmbedBuilder()
+                .WithColor(new Color(95, 186, 125))
+                .AddContent(message)
+                .AddActivity(message)
+                .WithUserAsAuthor(message.Author, AuthorOptions.IncludeId)
+                .WithTimestamp(message.Timestamp)
+                .AddJumpLink(message, executingUser)
+        }.Concat(message.ToEmbedBuilders(QuoteOptions));
 
-        if (callback is null || embed is null) return;
-
-        await _autoRemoveMessageService.RegisterRemovableMessageAsync(executingUser, embed,
-            async e => await callback.Invoke(e));
-    }
-
-    private static bool IsQuote(IMessage message) => message
-        .Embeds?
-        .SelectMany(d => d.Fields)
-        .Any(d => d.Name == "Quoted by") == true;
+    private async Task<IEnumerable<EmbedBuilder>> BuildQuoteEmbeds(MessageLog message, IMentionable executingUser)
+        => new List<EmbedBuilder>
+        {
+            new EmbedBuilder()
+                .WithColor(new Color(95, 186, 125))
+                .AddContent(message.Content)
+                .WithUserAsAuthor(await message.GetUserAsync(_client), AuthorOptions.IncludeId)
+                .WithTimestamp(message.Timestamp)
+                .AddJumpLink(message, executingUser)
+        }.Concat(message.ToEmbedBuilders(QuoteOptions | EmbedBuilderOptions.UseProxy));
 }

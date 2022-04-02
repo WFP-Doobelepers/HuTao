@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Discord;
-using Humanizer;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Embeds;
@@ -15,21 +14,6 @@ namespace Zhongli.Services.Logging;
 
 public static class LoggingExtensions
 {
-    public static IEnumerable<EmbedBuilder> ToBuilder(this IEnumerable<Attachment> attachments)
-    {
-        var images = attachments.ToList();
-        var description = string.Join(Environment.NewLine, images.Select(Attachment));
-        var footer = string.Join(Environment.NewLine, images.Select(Footer));
-        var url = images.First().ProxyUrl;
-
-        return images.Select(a => new EmbedBuilder()
-            .WithUrl(url).WithFooter(footer)
-            .WithDescription(description)
-            .WithImageUrl(a.ProxyUrl));
-
-        static string Footer(IAttachment i) => $"{i.Filename} {i.Width}x{i.Height}px {i.Size.Bytes().Humanize()}";
-    }
-
     public static string ChannelMentionMarkdown(this IChannelEntity channel)
         => $"{channel.MentionChannel()} ({channel.ChannelId})";
 
@@ -76,10 +60,6 @@ public static class LoggingExtensions
         return attachments.Concat(thumbnails);
     }
 
-    private static string Attachment(this Attachment a) => $"{Image(a)} {a.Size.Bytes().Humanize()}";
-
-    private static string Image(IImage a) => $"**[{a.Width}x{a.Height}px]({a.Url})** ([Proxy]({a.ProxyUrl}))";
-
     private static StringBuilder AppendImageUrls(this StringBuilder builder, IReadOnlyCollection<IImage> images)
     {
         if (!images.Any()) return builder;
@@ -88,8 +68,8 @@ public static class LoggingExtensions
         {
             builder.AppendLine(image switch
             {
-                Attachment a => Attachment(a),
-                _            => Image(image)
+                Attachment a => ((IAttachment) a).GetDetails(),
+                _            => image.GetDetails()
             });
         }
 

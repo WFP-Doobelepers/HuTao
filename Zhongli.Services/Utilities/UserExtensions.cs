@@ -1,6 +1,8 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Zhongli.Data.Models.Discord;
 
 namespace Zhongli.Services.Utilities;
 
@@ -23,4 +25,13 @@ public static class UserExtensions
 
     public static string GetFullUsername(this IUser user)
         => $"{user.Username}#{user.Discriminator}";
+
+    public static Task<IGuildUser> GetUserAsync(this IGuildUserEntity entity, IGuild guild)
+        => guild.GetUserAsync(entity.UserId);
+
+    public static Task<IGuildUser> GetUserAsync(this IGuildUserEntity entity, Context context)
+        => entity.GetUserAsync(context.Guild);
+
+    public static Task<IUser> GetUserAsync(this IGuildUserEntity entity, IDiscordClient client)
+        => client.GetUserAsync(entity.UserId);
 }

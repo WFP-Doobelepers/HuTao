@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
+using Humanizer;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Embeds;
+using Zhongli.Data.Models.Logging;
 using static Zhongli.Services.Utilities.EmbedBuilderOptions;
 using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
 
@@ -33,7 +35,7 @@ public enum EmbedBuilderOptions
 
 public static class EmbedBuilderExtensions
 {
-    private static readonly Regex Tenor = new(@"tenor\.com/(?<id>\w+)AAA(\w+)/(?<n>[\w-]+)",
+    private static readonly Regex Tenor = new(@"tenor\.com/(?<id>\w+?)A+(\w+)/(?<n>[\w-]+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     private static readonly Regex Giphy = new(@"giphy\.com/media/(?<id>\w+)",
@@ -53,6 +55,12 @@ public static class EmbedBuilderExtensions
 
         return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
     }
+
+    public static EmbedBuilder AddContent(this EmbedBuilder embed, IMessage message)
+        => embed.AddContent(message.Content);
+
+    public static EmbedBuilder AddContent(this EmbedBuilder embed, string? content)
+        => string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
 
     public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
         IEnumerable<T> items, Func<T, string> selector, string? separator = null) =>
@@ -105,6 +113,34 @@ public static class EmbedBuilderExtensions
         return embed.WithEntityAsAuthor(user, username, user?.GetDefiniteAvatarUrl(size), authorOptions);
     }
 
+    public static IEnumerable<EmbedBuilder> ToEmbedBuilders(
+        this IReadOnlyCollection<IAttachment> attachments,
+        EmbedBuilderOptions options)
+    {
+        if (!attachments.Any()) return Enumerable.Empty<EmbedBuilder>();
+
+        var description = string.Join(Environment.NewLine, attachments.Select(GetDetails));
+        var footer = string.Join(Environment.NewLine, attachments.Select(Footer));
+        var url = attachments.First().ProxyUrl;
+
+        return attachments.Select(a => new EmbedBuilder()
+            .WithUrl(url).WithFooter(footer)
+            .WithDescription(description)
+            .WithImageUrl(options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url));
+
+        static string Footer(IAttachment i) => $"{i.Filename} {i.Width}x{i.Height}px {i.Size.Bytes().Humanize()}";
+    }
+
+    public static IEnumerable<EmbedBuilder> ToEmbedBuilders(this MessageLog message, EmbedBuilderOptions options)
+        => message.Embeds
+            .Select(e => e.ToBuilder(options))
+            .Concat(message.Attachments.ToList().ToEmbedBuilders(options));
+
+    public static IEnumerable<EmbedBuilder> ToEmbedBuilders(this IMessage message, EmbedBuilderOptions options)
+        => message.Embeds
+            .Select(e => new Embed(e).ToBuilder(options))
+            .Concat(message.Attachments.ToEmbedBuilders(options));
+
     public static int Length(this Embed embed)
     {
         return
@@ -119,10 +155,16 @@ public static class EmbedBuilderExtensions
         int L(string? s) => s?.Length ?? 0;
     }
 
+    public static string GetDetails(this IAttachment a)
+        => $"**[{a.Width}x{a.Height}px]({a.Url})** ([Proxy]({a.ProxyUrl})) {a.Size.Bytes().Humanize()}";
+
+    public static string GetDetails(this IImage a)
+        => $"**[{a.Width}x{a.Height}px]({a.Url})** ([Proxy]({a.ProxyUrl}))";
+
     private static bool TryGiphy(string url, out string gif)
     {
         var match = Giphy.Match(url);
-        gif = @$"https://media.giphy.com/{match.Groups["id"]}/giphy.gif";
+        gif = @$"https://media.giphy.com/media/{match.Groups["id"]}/giphy.gif";
 
         return match.Success;
     }
@@ -200,7 +242,7 @@ public static class EmbedBuilderExtensions
         if (options.HasFlag(EnlargeThumbnails))
         {
             image     = embed.Image.GetUrl(options) ?? embed.Thumbnail.GetUrl(options);
-            thumbnail = image is null ? null : embed.Thumbnail.GetUrl(options);
+            thumbnail = image is null ? embed.Thumbnail.GetUrl(options) : null;
         }
         else
         {

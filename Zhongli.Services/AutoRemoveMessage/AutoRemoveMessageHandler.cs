@@ -16,15 +16,15 @@ public class AutoRemoveMessageHandler :
     private static readonly MemoryCacheEntryOptions MessageCacheOptions =
         new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(60));
 
-    private readonly IAutoRemoveMessageService _autoRemove;
     private readonly IMemoryCache _cache;
+    private readonly IRemovableMessageService _removable;
 
     public AutoRemoveMessageHandler(
-        IAutoRemoveMessageService autoRemove,
+        IRemovableMessageService removable,
         IMemoryCache cache)
     {
-        _autoRemove = autoRemove;
-        _cache      = cache;
+        _removable = removable;
+        _cache     = cache;
     }
 
     public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ public class AutoRemoveMessageHandler :
 
         await cachedMessage.Message.DeleteAsync();
 
-        _autoRemove.UnregisterRemovableMessage(cachedMessage.Message);
+        _removable.UnregisterRemovableMessage(cachedMessage.Message);
     }
 
     public Task Handle(RemovableMessageRemovedNotification notification, CancellationToken cancellationToken)
