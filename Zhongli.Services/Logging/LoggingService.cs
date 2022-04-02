@@ -250,7 +250,10 @@ public class LoggingService
 
         var embeds = log.Embeds
             .Where(e => e.IsViewable())
-            .Select(e => e.ToBuilder(EmbedBuilderOptions.UseProxy));
+            .Select(e => e.ToBuilder(
+                EmbedBuilderOptions.UseProxy | 
+                EmbedBuilderOptions.EnlargeThumbnails | 
+                EmbedBuilderOptions.ReplaceAnimations));
 
         return new EmbedLog(embed, attachments.Concat(embeds));
     }

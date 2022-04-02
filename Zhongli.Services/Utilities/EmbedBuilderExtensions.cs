@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
+using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Embeds;
 using static Zhongli.Services.Utilities.EmbedBuilderOptions;
 using Embed = Zhongli.Data.Models.Discord.Message.Embeds.Embed;
@@ -24,11 +26,19 @@ public enum EmbedBuilderOptions
 {
     None = 0,
     UseProxy = 1 << 0,
-    ReplaceTimestamps = 1 << 1
+    ReplaceTimestamps = 1 << 1,
+    ReplaceAnimations = 1 << 2,
+    EnlargeThumbnails = 1 << 3
 }
 
 public static class EmbedBuilderExtensions
 {
+    private static readonly Regex Tenor = new(@"tenor\.com/(?<id>\w+)AAA(\w+)/(?<n>[\w-]+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
+    private static readonly Regex Giphy = new(@"giphy\.com/media/(?<id>\w+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
     public static bool IsViewable(this Embed embed)
         => embed.Length() > 0
             || embed.Image is not null
@@ -69,8 +79,8 @@ public static class EmbedBuilderExtensions
         Timestamp    = options.HasFlag(ReplaceTimestamps) ? DateTimeOffset.UtcNow : embed.Timestamp,
         Title        = embed.Title,
         Url          = embed.Url,
-        ImageUrl     = options.HasFlag(UseProxy) ? embed.Image?.ProxyUrl : embed.Image?.Url,
-        ThumbnailUrl = options.HasFlag(UseProxy) ? embed.Thumbnail?.ProxyUrl : embed.Thumbnail?.Url
+        ImageUrl     = embed.GetImages(options).Image,
+        ThumbnailUrl = embed.GetImages(options).Thumbnail
     };
 
     public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
@@ -107,6 +117,22 @@ public static class EmbedBuilderExtensions
                 L(f.Value));
 
         int L(string? s) => s?.Length ?? 0;
+    }
+
+    private static bool TryGiphy(string url, out string gif)
+    {
+        var match = Giphy.Match(url);
+        gif = @$"https://media.giphy.com/{match.Groups["id"]}/giphy.gif";
+
+        return match.Success;
+    }
+
+    private static bool TryTenor(string url, out string gif)
+    {
+        var match = Tenor.Match(url);
+        gif = @$"https://media.tenor.com/{match.Groups["id"]}AAAAC/{match.Groups["n"]}.gif";
+
+        return match.Success;
     }
 
     private static EmbedAuthorBuilder ToBuilder(this Author author, EmbedBuilderOptions options) => new()
@@ -166,6 +192,31 @@ public static class EmbedBuilderExtensions
         IconUrl = options.HasFlag(UseProxy) ? footer.ProxyUrl : footer.IconUrl
     };
 
+    private static EmbedImages GetImages(this Embed embed, EmbedBuilderOptions options)
+    {
+        string? image;
+        string? thumbnail;
+
+        if (options.HasFlag(EnlargeThumbnails))
+        {
+            image     = embed.Image.GetUrl(options) ?? embed.Thumbnail.GetUrl(options);
+            thumbnail = image is null ? null : embed.Thumbnail.GetUrl(options);
+        }
+        else
+        {
+            image     = embed.Image.GetUrl(options);
+            thumbnail = embed.Thumbnail.GetUrl(options);
+        }
+
+        if (options.HasFlag(ReplaceAnimations))
+        {
+            image     = ReplaceAnimation(image);
+            thumbnail = ReplaceAnimation(thumbnail);
+        }
+
+        return new EmbedImages(image, thumbnail);
+    }
+
     private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
         int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
     {
@@ -192,4 +243,15 @@ public static class EmbedBuilderExtensions
             .Where(s => s.Length > 0)
             .Select(s => s.ToString());
     }
+
+    private static string? GetUrl(this IImage? image, EmbedBuilderOptions options)
+        => options.HasFlag(UseProxy) ? image?.ProxyUrl : image?.Url;
+
+    private static string? ReplaceAnimation(string? url)
+        => string.IsNullOrEmpty(url)     ? null :
+            TryTenor(url, out var tenor) ? tenor :
+            TryGiphy(url, out var giphy) ? giphy :
+                                           url;
+
+    private record EmbedImages(string? Image, string? Thumbnail);
 }
