@@ -145,8 +145,6 @@ public class GenshinTimeTrackingService
                     tracking.ChannelId,
                     region),
             "*/5 * * * *");
-
-        RecurringJob.Trigger(id);
     }
 
     private static void AddRegion(EmbedBuilder builder, ServerRegion region, string language)
