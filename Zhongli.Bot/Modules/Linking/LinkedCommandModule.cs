@@ -12,6 +12,7 @@ using Zhongli.Data.Models.Criteria;
 using Zhongli.Data.Models.Discord.Message.Linking;
 using Zhongli.Services.CommandHelp;
 using Zhongli.Services.Core.Listeners;
+using Zhongli.Services.Core.Preconditions.Commands;
 using Zhongli.Services.Interactive;
 using Zhongli.Services.Linking;
 using Zhongli.Services.Utilities;
@@ -24,6 +25,7 @@ namespace Zhongli.Bot.Modules.Linking;
 [Alias("custom", "commands")]
 [Name("Custom Commands")]
 [Summary("Create custom commands")]
+[RequireAuthorization(AuthorizationScope.Configuration)]
 public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
 {
     private readonly CommandService _commands;
