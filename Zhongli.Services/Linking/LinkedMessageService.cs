@@ -214,6 +214,7 @@ public class LinkingService
         if (template?.IsLive ?? false)
             await _db.UpdateAsync(template, context.Guild);
 
+        var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
         var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
         var embeds = new List<EmbedBuilder>()
             .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
@@ -222,16 +223,15 @@ public class LinkingService
         if (dmUser)
         {
             var dm = await context.User.CreateDMChannelAsync();
-            await dm.SendMessageAsync(template?.Content,
+            await dm.SendMessageAsync(template?.Content, flags: flags,
                 embeds: embeds.Select(e => e.Build()).ToArray(),
                 components: template?.Components.ToBuilder().Build());
         }
         else
         {
-            await context.ReplyAsync(template?.Content,
-                embeds: embeds.Select(e => e.Build()).ToArray(),
+            await context.ReplyAsync(template?.Content, flags: flags,
                 components: template?.Components.ToBuilder().Build(),
-                ephemeral: isEphemeral);
+                embeds: embeds.Select(e => e.Build()).ToArray(), ephemeral: isEphemeral);
         }
     }
 

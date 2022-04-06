@@ -47,7 +47,7 @@ public class UserService
             .WithColor(await _image.GetAvatarColor(user))
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await context.ReplyAsync(embed: embed.Build(), ephemeral: true, components: components);
+        await context.ReplyAsync(embed: embed.Build(), components: components, ephemeral: true);
     }
 
     public async Task ReplyHistoryAsync(Context context, LogReprimandType type, IUser user, bool update)
@@ -125,7 +125,7 @@ public class UserService
         var builders = await GetUserAsync(context, user);
         var embeds = builders.Select(e => e.Build()).ToArray();
 
-        await context.ReplyAsync(embeds: embeds, ephemeral: true, components: components);
+        await context.ReplyAsync(components: components, embeds: embeds, ephemeral: true);
     }
 
     private static EmbedBuilder GetReprimands(GuildUserEntity user) => new EmbedBuilder()

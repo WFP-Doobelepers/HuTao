@@ -189,6 +189,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         var embeds = template?.GetEmbedBuilders().ToList() ?? new List<EmbedBuilder>();
         var roleTemplates = command.Roles.ToArray();
 
+        var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
         if (command.UserOptions.HasFlag(UserTargetOptions.DmUser))
         {
             foreach (var user in users)
@@ -199,7 +200,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
                 try
                 {
                     await dm.SendMessageAsync($"This message was sent from {context.Guild.Name}.");
-                    await dm.SendMessageAsync(template?.Content,
+                    await dm.SendMessageAsync(template?.Content, flags: flags,
                         components: template?.Components.ToBuilder().Build(),
                         embeds: embeds.Concat(roles).Select(e => e.Build()).ToArray());
                 }
@@ -218,7 +219,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         await context.ReplyAsync(template?.Content,
             components: template?.Components.ToBuilder().Build(),
             embeds: embeds.Select(e => e.Build()).ToArray(),
-            ephemeral: command.Ephemeral);
+            flags: flags, ephemeral: command.Ephemeral);
     }
 
     private async Task RemoveModuleAsync(GuildEntity guild)

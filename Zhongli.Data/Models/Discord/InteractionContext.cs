@@ -96,7 +96,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
         string? message = null, bool isTTS = false, Embed? embed = null, RequestOptions? options = null,
         AllowedMentions? allowedMentions = null, MessageReference? messageReference = null,
         MessageComponent? components = null, ISticker[]? stickers = null, Embed[]? embeds = null,
-        bool ephemeral = false)
+        MessageFlags flags = MessageFlags.None, bool ephemeral = false)
         => HasResponded
             ? FollowupAsync(
                 message, embeds, isTTS, ephemeral,

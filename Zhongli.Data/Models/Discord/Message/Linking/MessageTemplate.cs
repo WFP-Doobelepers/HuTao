@@ -18,6 +18,7 @@ public class MessageTemplate
         AllowMentions     = options?.AllowMentions ?? false;
         IsLive            = options?.IsLive ?? false;
         ReplaceTimestamps = options?.ReplaceTimestamps ?? false;
+        SuppressEmbeds    = options?.SuppressEmbeds ?? false;
 
         UpdateTemplate(message);
     }
@@ -29,6 +30,8 @@ public class MessageTemplate
     public bool IsLive { get; set; }
 
     public bool ReplaceTimestamps { get; set; }
+
+    public bool SuppressEmbeds { get; set; }
 
     /// <inheritdoc cref="IMessage.Components" />
     public virtual ICollection<ActionRow> Components { get; set; }

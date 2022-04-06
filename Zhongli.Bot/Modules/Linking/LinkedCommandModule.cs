@@ -178,6 +178,9 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
         public bool ReplaceTimestamps { get; set; }
 
+        [HelpSummary("True if you want embeds to be suppressed, False if not.")]
+        public bool SuppressEmbeds { get; set; }
+
         [HelpSummary("The roles that will be added to the user.")]
         public IEnumerable<IRole>? AddRoles { get; set; }
 

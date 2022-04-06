@@ -85,6 +85,7 @@ public class StickyService
                 : AllowedMentions.None,
             embeds: embeds.Select(e => e.Build()).ToArray(),
             components: components.Build(),
+            flags: template.SuppressEmbeds ? MessageFlags.SuppressEmbeds : MessageFlags.None,
             options: new RequestOptions { CancelToken = details.Token.Token }));
     }
 

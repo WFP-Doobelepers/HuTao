@@ -7,4 +7,6 @@ public interface IMessageTemplateOptions
     public bool IsLive { get; }
 
     public bool ReplaceTimestamps { get; }
+
+    public bool SuppressEmbeds { get; }
 }

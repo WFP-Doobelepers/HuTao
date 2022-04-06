@@ -55,19 +55,23 @@ public abstract class Context
     /// <param name="components">The message components to be included with this message. Used for interactions.</param>
     /// <param name="stickers">A collection of stickers to send with the file.</param>
     /// <param name="embeds">A array of <see cref="T:Discord.Embed" />s to send with this response. Max 10.</param>
+    /// <param name="flags">
+    ///     A message flag to be applied to the sent message, only
+    ///     <see cref="F:Discord.MessageFlags.SuppressEmbeds" /> is permitted.
+    /// </param>
     /// <param name="ephemeral">
     ///     <see langword="true" /> if the response should be hidden to everyone besides the invoker of the
     ///     command, otherwise <see langword="false" />.
     /// </param>
-    public virtual async Task ReplyAsync(
-        string? message = null, bool isTTS = false, Embed? embed = null, RequestOptions? options = null,
+    public virtual async Task ReplyAsync(string? message = null, bool isTTS = false, Embed? embed = null,
+        RequestOptions? options = null,
         AllowedMentions? allowedMentions = null, MessageReference? messageReference = null,
         MessageComponent? components = null, ISticker[]? stickers = null, Embed[]? embeds = null,
-        bool ephemeral = false)
+        MessageFlags flags = MessageFlags.None, bool ephemeral = false)
         => await Channel.SendMessageAsync(
                 message, isTTS, embed, options,
                 allowedMentions, messageReference,
-                components, stickers, embeds)
+                components, stickers, embeds, flags)
             .ConfigureAwait(false);
 
     public static implicit operator Context(SocketCommandContext context) => new CommandContext(context);

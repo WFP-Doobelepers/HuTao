@@ -120,6 +120,9 @@ public class StickyModule : InteractiveEntity<StickyMessage>
         [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
         public bool ReplaceTimestamps { get; set; }
 
+        [HelpSummary("True if you want embeds to be suppressed, False if not.")]
+        public bool SuppressEmbeds { get; set; }
+
         [HelpSummary("False if you don't want this sticky to replace the current active one. Defaults to True.")]
         public bool IsActive { get; set; } = true;
 
