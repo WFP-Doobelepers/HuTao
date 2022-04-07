@@ -16,6 +16,8 @@ public class VoiceChatRules
 
     public virtual ICollection<VoiceChatLink> VoiceChats { get; set; } = new List<VoiceChatLink>();
 
+    public TimeSpan DeletionDelay { get; set; } = TimeSpan.Zero;
+
     public ulong GuildId { get; set; }
 
     public ulong HubVoiceChannelId { get; set; }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -129,7 +128,9 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                         var tokenSource = new CancellationTokenSource();
                         _ = Task.Run(async () =>
                         {
-                            await Task.Delay(TimeSpan.FromMinutes(1), tokenSource.Token);
+                            await Task.Delay(rules.DeletionDelay, tokenSource.Token);
+                            if (voiceChannel.Users.Any()) return;
+
                             await voiceChannel.DeleteAsync();
                             await textChannel.DeleteAsync();
 

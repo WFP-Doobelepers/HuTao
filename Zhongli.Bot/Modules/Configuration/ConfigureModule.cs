@@ -124,6 +124,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             HubVoiceChannelId      = hubVoiceChannel.Id,
             VoiceChannelCategoryId = options?.VoiceChannelCategory?.Id ?? hubVoiceChannel.CategoryId.Value,
             VoiceChatCategoryId    = options?.VoiceChatCategory?.Id ?? hubVoiceChannel.CategoryId.Value,
+            DeletionDelay          = options?.DeleteDelay ?? TimeSpan.Zero,
             PurgeEmpty             = options?.PurgeEmpty ?? true,
             ShowJoinLeave          = options?.ShowJoinLeave ?? true
         };
@@ -147,7 +148,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [NamedArgumentType]
     public class VoiceChatOptions
     {
-        [HelpSummary("Purge empty channels after 1 minute automatically.")]
+        [HelpSummary("Purge empty channels after all members leave.")]
         public bool PurgeEmpty { get; init; } = true;
 
         [HelpSummary("Show join messages.")] public bool ShowJoinLeave { get; init; } = true;
@@ -157,5 +158,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
 
         [HelpSummary("The category where Voice Chat channels will be made.")]
         public ICategoryChannel? VoiceChatCategory { get; init; }
+
+        [HelpSummary("The time to wait before deleting an empty channel.")]
+        public TimeSpan? DeleteDelay { get; set; } = TimeSpan.Zero;
     }
 }
