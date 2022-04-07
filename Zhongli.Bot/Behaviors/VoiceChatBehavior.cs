@@ -60,8 +60,11 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
             }
             else
             {
-                var voiceChannelCategory = guild.GetCategoryChannel(rules.VoiceChannelCategoryId);
-                var voiceChatCategory = guild.GetCategoryChannel(rules.VoiceChatCategoryId);
+                var voiceCategory = rules.VoiceChannelCategoryId;
+                var chatCategory = rules.VoiceChatCategoryId;
+
+                var voiceChannelCategory = guild.GetCategoryChannel(voiceCategory);
+                var voiceChatCategory = guild.GetCategoryChannel(chatCategory);
 
                 var ruleNumbers = voiceChannelCategory.Channels.Concat(voiceChatCategory.Channels)
                     .Select(v => VcRegex.Match(v.Name))
@@ -78,20 +81,19 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                     .DefaultIfEmpty(ruleNumbers.Count)
                     .FirstOrDefault();
 
-                var voiceChannel = await guild.CreateVoiceChannelAsync($"VC {maxId}",
-                    c => c.CategoryId = rules.VoiceChannelCategoryId);
-                await voiceChannel.AddPermissionOverwriteAsync(user,
-                    new OverwritePermissions(manageChannel: PermValue.Allow));
+                var voice = await guild.CreateVoiceChannelAsync($"VC {maxId}", c => c.CategoryId = voiceCategory);
+                await voice.AddPermissionOverwriteAsync(user, new OverwritePermissions(
+                    manageChannel: PermValue.Allow,
+                    muteMembers: PermValue.Allow));
 
-                var textChannel = await guild.CreateTextChannelAsync($"vc-{maxId}",
-                    c => c.CategoryId = rules.VoiceChatCategoryId);
-                await textChannel.AddPermissionOverwriteAsync(guild.EveryoneRole,
-                    new OverwritePermissions(viewChannel: PermValue.Deny));
+                var chat = await guild.CreateTextChannelAsync($"vc-{maxId}", c => c.CategoryId = chatCategory);
+                await chat.AddPermissionOverwriteAsync(guild.EveryoneRole, new OverwritePermissions(
+                    viewChannel: PermValue.Deny));
 
                 if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                 {
                     var embed = await paginated.Build().GetOrLoadCurrentPageAsync();
-                    var message = await textChannel.SendMessageAsync(embeds: embed.GetEmbedArray());
+                    var message = await chat.SendMessageAsync(embeds: embed.GetEmbedArray());
 
                     await message.PinAsync();
                 }
@@ -100,8 +102,8 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                 {
                     UserId         = user.Id,
                     GuildId        = guild.Id,
-                    TextChannelId  = textChannel.Id,
-                    VoiceChannelId = voiceChannel.Id
+                    TextChannelId  = chat.Id,
+                    VoiceChannelId = voice.Id
                 };
 
                 rules.VoiceChats.Add(voiceChat);
@@ -109,7 +111,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                 _db.Update(rules);
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await user.ModifyAsync(u => u.Channel = voiceChannel);
+                await user.ModifyAsync(u => u.Channel = voice);
             }
         }
         else if (oldChannel is not null && newChannel is null)

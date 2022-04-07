@@ -189,14 +189,12 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
             return;
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-        var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
-        var overwrite = everyone?.Modify(connect: PermValue.Deny)
-            ?? new OverwritePermissions(connect: PermValue.Deny);
+        var overwrite = new OverwritePermissions(connect: PermValue.Deny);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
 
-        await ReplyAsync(
-            $"Voice chat locked successfully. Use {Format.Code(ZhongliConfig.Configuration.Prefix + "unlock")} to unlock.");
+        await ReplyAsync("Voice chat locked successfully. " +
+            $"Use {Format.Code(ZhongliConfig.Configuration.Prefix + "voice unlock")} to unlock.");
     }
 
     [Command("owner")]
@@ -224,9 +222,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
             return;
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-        var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
-        var overwrite = everyone?.Modify(viewChannel: PermValue.Inherit)
-            ?? new OverwritePermissions(viewChannel: PermValue.Inherit);
+        var overwrite = new OverwritePermissions(viewChannel: PermValue.Inherit);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
         await ReplyAsync("Voice chat revealed.");
@@ -234,31 +230,41 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
 
     [Command("transfer")]
     [Summary("Transfer ownership to someone else.")]
-    public async Task TransferAsync(IGuildUser user)
+    public async Task TransferAsync(IGuildUser user, IVoiceChannel? channel)
     {
         var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
-            .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
+            .FirstOrDefaultAsync(vc => channel != null
+                ? vc.VoiceChannelId == channel.Id
+                : vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || user.IsBot || user.IsWebhook)
             return;
 
-        if (voiceChat.UserId == user.Id)
+        var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
+        var canManage = Context.User is IGuildUser current && current.GetPermissions(voiceChannel).ManageChannel;
+        if (voiceChat.Owner.Id != Context.User.Id && !canManage)
+        {
+            await ReplyAsync("You are not the owner of the VC.");
+            return;
+        }
+
+        if (voiceChat.Owner.Id == user.Id)
         {
             await ReplyAsync("You already are the owner of the VC.");
             return;
         }
 
-        var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-
         await voiceChannel.RemovePermissionOverwriteAsync(Context.User);
-        await voiceChannel.AddPermissionOverwriteAsync(user,
-            new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
+        await voiceChannel.AddPermissionOverwriteAsync(user, new OverwritePermissions(
+            manageChannel: PermValue.Allow,
+            muteMembers: PermValue.Allow));
 
         voiceChat.UserId = user.Id;
         await _db.SaveChangesAsync();
 
         await ReplyAsync(
-            $"Voice chat ownership successfully transferred to {Format.Bold(user.GetFullUsername())}.");
+            "Voice chat ownership successfully transferred " +
+            $"to {Format.Bold(user.GetFullUsername())}.");
     }
 
     [Command("unban")]
