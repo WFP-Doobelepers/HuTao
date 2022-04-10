@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
@@ -26,7 +25,6 @@ public class MessageLinkBehavior :
     private readonly DiscordSocketClient _discordClient;
     private readonly InteractiveService _interactive;
     private readonly IQuoteService _quoteService;
-    private readonly IRemovableMessageService _remove;
 
     public MessageLinkBehavior(
         AuthorizationService auth, CommandErrorHandler error,
@@ -38,7 +36,6 @@ public class MessageLinkBehavior :
         _discordClient = discordClient;
         _interactive   = interactive;
         _quoteService  = quoteService;
-        _remove        = remove;
     }
 
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -70,24 +67,10 @@ public class MessageLinkBehavior :
         var urls = MessageExtensions.GetJumpMessages(source.Content).Distinct().ToList();
         if (!urls.Any()) return;
 
-        var paginator = await _quoteService.GetPaginatorAsync(context, urls);
+        var paginator = await _quoteService.GetPaginatorAsync(context, source, urls);
         if (MessageExtensions.IsJumpUrls(source.Content))
             _ = source.DeleteAsync();
 
-        if (paginator.MaxPageIndex > 0)
-        {
-            await _interactive.SendPaginatorAsync(paginator, source.Channel, cancellationToken: cancellationToken);
-            return;
-        }
-
-        var page = await paginator.GetOrLoadCurrentPageAsync();
-        var builders = page.Embeds.Select(e => e.ToEmbedBuilder()).ToList();
-        await _remove.RegisterRemovableMessageAsync(context.User, builders, async embeds =>
-        {
-            return await source.Channel.SendMessageAsync(page.Text,
-                embeds: embeds.Select(e => e.Build()).ToArray(),
-                messageReference: source.Reference,
-                allowedMentions: AllowedMentions.None);
-        });
+        await _interactive.SendPaginatorAsync(paginator, source.Channel, cancellationToken: cancellationToken);
     }
 }

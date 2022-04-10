@@ -18,6 +18,7 @@ public record JumpMessage(ulong GuildId, ulong ChannelId, ulong MessageId, bool 
 public interface IQuoteService
 {
     Task<Paginator> GetPaginatorAsync(Context context,
+        SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls);
 }
 
@@ -38,8 +39,10 @@ public class QuoteService : IQuoteService
         _db      = db;
     }
 
-    public async Task<Paginator> GetPaginatorAsync(Context context, IEnumerable<JumpMessage> jumpUrls)
+    public async Task<Paginator> GetPaginatorAsync(Context context, SocketMessage source,
+        IEnumerable<JumpMessage> jumpUrls)
     {
+        var mention = source.MentionedUsers.Any() ? AllowedMentions.All : AllowedMentions.None;
         var builder = new StaticPaginatorBuilder()
             .WithInputType(InputType.Buttons)
             .WithActionOnTimeout(ActionOnStop.DisableInput)
@@ -50,8 +53,10 @@ public class QuoteService : IQuoteService
             var message = await jump.GetMessageAsync(context);
             if (message is not null)
             {
-                builder.AddPage(new MultiEmbedPageBuilder().WithBuilders(
-                    BuildQuoteEmbeds(message, context.User)));
+                builder.AddPage(new MultiEmbedPageBuilder()
+                    .WithAllowedMentions(mention)
+                    .WithMessageReference(source.Reference)
+                    .WithBuilders(BuildQuoteEmbeds(message, context.User)));
             }
             else
             {
@@ -68,8 +73,10 @@ public class QuoteService : IQuoteService
                 var log = await _logging.GetLatestMessage(jump.MessageId);
                 if (log is null || log.Guild.Id != context.Guild.Id) continue;
 
-                builder.AddPage(new MultiEmbedPageBuilder().WithBuilders(
-                    await BuildQuoteEmbeds(log, context.User)));
+                builder.AddPage(new MultiEmbedPageBuilder()
+                    .WithAllowedMentions(mention)
+                    .WithMessageReference(source.Reference)
+                    .WithBuilders(await BuildQuoteEmbeds(log, context.User)));
             }
         }
 
