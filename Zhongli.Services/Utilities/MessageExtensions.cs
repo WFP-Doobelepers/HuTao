@@ -38,7 +38,8 @@ public static class MessageExtensions
         var channel = await context.Guild.GetTextChannelAsync(channelId);
         if (channel is null) return null;
 
-        return await GetMessageAsync(channel, messageId, allowHidden, allowNsfw ?? channel.IsNsfw);
+        allowNsfw ??= (context.Channel as ITextChannel)?.IsNsfw;
+        return await GetMessageAsync(channel, messageId, allowHidden, allowNsfw ?? false);
     }
 
     private static JumpMessage? ToJumpMessage(Match match)
