@@ -51,17 +51,8 @@ public static class DbSetExtensions
     public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
         CancellationToken cancellationToken = default)
     {
-        var userEntity = await set
-            .FindAsync(new object[] { user.Id, user.Guild.Id }, cancellationToken);
-
-        if (userEntity is null)
-            userEntity = set.Add(new GuildUserEntity(user)).Entity;
-        else
-        {
-            userEntity.Username           = user.Username;
-            userEntity.Nickname           = user.Nickname;
-            userEntity.DiscriminatorValue = user.DiscriminatorValue;
-        }
+        var userEntity = await set.FindAsync(new object[] { user.Id, user.Guild.Id }, cancellationToken)
+            ?? set.Add(new GuildUserEntity(user)).Entity;
 
         return userEntity;
     }

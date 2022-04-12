@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
@@ -36,7 +37,7 @@ public static class LoggingExtensions
     public static string JumpUrlMarkdown(this IMessageEntity message)
         => $"[Jump]({message.JumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
 
-    public static StringBuilder GetDetails(this IEnumerable<MessageLog> logs)
+    public static async Task<StringBuilder> GetDetailsAsync(this IEnumerable<MessageLog> logs, IDiscordClient client)
     {
         var builder = new StringBuilder();
 
@@ -44,7 +45,7 @@ public static class LoggingExtensions
         {
             builder
                 .AppendLine($"## Message {index}")
-                .Append(message.GetDetails());
+                .Append(message.GetDetails(await client.GetUserAsync(message.UserId)));
         }
 
         return builder;
@@ -76,11 +77,11 @@ public static class LoggingExtensions
         return builder;
     }
 
-    private static StringBuilder GetDetails(this MessageLog log)
+    private static StringBuilder GetDetails(this MessageLog log, IUser user)
     {
         var builder = new StringBuilder()
             .AppendLine("### Details")
-            .AppendLine($"- User: {log.User.Username} {log.MentionUser()}")
+            .AppendLine($"- User: {user} {log.MentionUser()}")
             .AppendLine($"- ID: [{log.Id}]({log.JumpUrl()})")
             .AppendLine($"- Channel: [{log.MentionChannel()}]")
             .AppendLine($"- Date: {log.LogDate}");

@@ -136,16 +136,6 @@ public class LoggingService
             .OrderByDescending(l => l.LogDate)
             .FirstOrDefaultAsync(filter, cancellationToken);
 
-    private static EmbedLog AddDetails(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
-    {
-        embed
-            .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
-            .AddField("Message Count", logs.Count, true);
-
-        var content = logs.GetDetails();
-        return new EmbedLog(embed, content.ToString());
-    }
-
     private IEnumerable<MessageLog> GetLatestMessages(IGuildChannel channel, IEnumerable<ulong> messageIds)
         => _db.Set<MessageLog>()
             .Where(m => m.GuildId == channel.Guild.Id)
@@ -237,6 +227,16 @@ public class LoggingService
         return message.Content == log.Content && embedsChanged;
     }
 
+    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
+    {
+        embed
+            .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
+            .AddField("Message Count", logs.Count, true);
+
+        var content = await logs.GetDetailsAsync(_client);
+        return new EmbedLog(embed, content.ToString());
+    }
+
     private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessageLog log)
     {
         var user = await GetUserAsync(log);
@@ -304,7 +304,7 @@ public class LoggingService
 
         return details switch
         {
-            MessagesDeleteDetails messages => AddDetails(embed, messages.Log, messages.Messages),
+            MessagesDeleteDetails messages => await AddDetailsAsync(embed, messages.Log, messages.Messages),
             MessageDeleteDetails message => await AddDetailsAsync(embed, message.Message),
             ReactionDeleteDetails reaction => await AddDetailsAsync(embed, reaction.Log),
             _ => throw new ArgumentOutOfRangeException(nameof(log), log, "Invalid log type.")
