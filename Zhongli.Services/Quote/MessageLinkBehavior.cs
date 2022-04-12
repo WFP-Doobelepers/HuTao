@@ -1,15 +1,16 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.Net;
+using Discord.Rest;
 using Discord.WebSocket;
 using Fergun.Interactive;
 using MediatR;
 using Zhongli.Data.Config;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Discord;
-using Zhongli.Services.AutoRemoveMessage;
 using Zhongli.Services.Core;
 using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Core.Messages;
@@ -29,7 +30,7 @@ public class MessageLinkBehavior :
     public MessageLinkBehavior(
         AuthorizationService auth, CommandErrorHandler error,
         DiscordSocketClient discordClient, InteractiveService interactive,
-        IQuoteService quoteService, IRemovableMessageService remove)
+        IQuoteService quoteService)
     {
         _auth          = auth;
         _error         = error;
@@ -64,13 +65,29 @@ public class MessageLinkBehavior :
         Context context, SocketMessage source,
         CancellationToken cancellationToken)
     {
-        var urls = MessageExtensions.GetJumpMessages(source.Content).Distinct().ToList();
+        var urls = MessageExtensions.GetJumpMessages(source.Content).ToList();
         if (!urls.Any()) return;
 
         var paginator = await _quoteService.GetPaginatorAsync(context, source, urls);
         if (MessageExtensions.IsJumpUrls(source.Content))
             _ = source.DeleteAsync();
 
-        await _interactive.SendPaginatorAsync(paginator, source.Channel, cancellationToken: cancellationToken);
+        var page = await paginator.GetOrLoadCurrentPageAsync() as QuotedPage;
+        await _interactive.SendPaginatorAsync(paginator, source.Channel,
+            cancellationToken: cancellationToken,
+            messageAction: m => MessageAction(m, page?.Quote));
+    }
+
+    private static void MessageAction(IUserMessage message, QuotedMessage? quoted)
+    {
+        if (message.Components.Any() || quoted is null) return;
+        var components = new ComponentBuilder().WithQuotedMessage(quoted).Build();
+
+        _ = message switch
+        {
+            RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components),
+            RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components),
+            _                        => message.ModifyAsync(r => r.Components = components)
+        };
     }
 }

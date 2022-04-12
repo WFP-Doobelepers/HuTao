@@ -15,6 +15,9 @@ namespace Zhongli.Services.Quote;
 
 public record JumpMessage(ulong GuildId, ulong ChannelId, ulong MessageId, bool Suppressed);
 
+public record QuotedMessage(Context Context, ulong ChannelId, ulong MessageId, ulong UserId)
+    : JumpMessage(Context.Guild.Id, ChannelId, MessageId, false);
+
 public interface IQuoteService
 {
     Task<Paginator> GetPaginatorAsync(Context context,
@@ -43,20 +46,27 @@ public class QuoteService : IQuoteService
         IEnumerable<JumpMessage> jumpUrls)
     {
         var mention = source.MentionedUsers.Any() ? AllowedMentions.All : AllowedMentions.None;
-        var builder = new StaticPaginatorBuilder()
+        var builder = new QuotePaginatorBuilder()
+            .WithDefaultEmotes()
             .WithInputType(InputType.Buttons)
             .WithActionOnTimeout(ActionOnStop.DisableInput)
             .WithActionOnCancellation(ActionOnStop.DeleteMessage);
 
-        foreach (var jump in jumpUrls.Where(jump => !jump.Suppressed))
+        var jumpMessages = jumpUrls
+            .Where(jump => !jump.Suppressed)
+            .DistinctBy(j => j.MessageId);
+
+        foreach (var jump in jumpMessages)
         {
             var message = await jump.GetMessageAsync(context);
             if (message is not null)
             {
-                builder.AddPage(new MultiEmbedPageBuilder()
-                    .WithAllowedMentions(mention)
-                    .WithMessageReference(source.Reference)
-                    .WithBuilders(BuildQuoteEmbeds(message, context.User)));
+                builder.AddPage(new QuotedPage(
+                    new QuotedMessage(context, message.Channel.Id, message.Id, message.Author.Id),
+                    new MultiEmbedPageBuilder()
+                        .WithAllowedMentions(mention)
+                        .WithMessageReference(source.Reference)
+                        .WithBuilders(BuildQuoteEmbeds(message, context.User))));
             }
             else
             {
@@ -73,10 +83,12 @@ public class QuoteService : IQuoteService
                 var log = await _logging.GetLatestMessage(jump.MessageId);
                 if (log is null || log.Guild.Id != context.Guild.Id) continue;
 
-                builder.AddPage(new MultiEmbedPageBuilder()
-                    .WithAllowedMentions(mention)
-                    .WithMessageReference(source.Reference)
-                    .WithBuilders(await BuildQuoteEmbeds(log, context.User)));
+                builder.AddPage(new QuotedPage(
+                    new QuotedMessage(context, log.ChannelId, log.MessageId, log.User.Id),
+                    new MultiEmbedPageBuilder()
+                        .WithAllowedMentions(mention)
+                        .WithMessageReference(source.Reference)
+                        .WithBuilders(await BuildQuoteEmbeds(log, context.User))));
             }
         }
 
@@ -87,7 +99,7 @@ public class QuoteService : IQuoteService
         => new List<EmbedBuilder>
         {
             new EmbedBuilder()
-                .WithColor(new Color(95, 186, 125))
+                .WithColor(Color.Green)
                 .AddContent(message)
                 .AddActivity(message)
                 .WithUserAsAuthor(message.Author, AuthorOptions.IncludeId)
@@ -99,7 +111,7 @@ public class QuoteService : IQuoteService
         => new List<EmbedBuilder>
         {
             new EmbedBuilder()
-                .WithColor(new Color(95, 186, 125))
+                .WithColor(Color.Red)
                 .AddContent(message.Content)
                 .WithUserAsAuthor(await message.GetUserAsync(_client), AuthorOptions.IncludeId)
                 .WithTimestamp(message.Timestamp)

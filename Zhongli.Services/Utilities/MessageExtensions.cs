@@ -28,6 +28,11 @@ public static class MessageExtensions
     public static string GetJumpUrlForEmbed(this MessageLog message)
         => Format.Url($"{message.MentionChannel()} (Jump)", message.GetJumpUrl());
 
+    public static Task<IMessage?> GetMessageAsync(
+        this QuotedMessage jump,
+        bool allowHidden = false, bool? allowNsfw = null)
+        => jump.GetMessageAsync(jump.Context, allowHidden, allowNsfw);
+
     public static async Task<IMessage?> GetMessageAsync(
         this JumpMessage jump, Context context,
         bool allowHidden = false, bool? allowNsfw = null)

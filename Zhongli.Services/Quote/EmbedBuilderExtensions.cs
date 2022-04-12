@@ -1,4 +1,5 @@
 using Discord;
+using Discord.WebSocket;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Utilities;
@@ -25,4 +26,20 @@ public static class EmbedBuilderExtensions
         => embed
             .AddField("Quoted by", quotingUser.Mention, true)
             .AddField("Author", $"{message.MentionUser()} from {Format.Bold(message.GetJumpUrlForEmbed())}", true);
+
+    internal static ComponentBuilder WithQuotedMessage(this ComponentBuilder builder, QuotedMessage? quote)
+    {
+        if (quote?.Context.User is IGuildUser user
+            && quote.Context.Guild is SocketGuild guild
+            && guild.GetTextChannel(quote.ChannelId) is IGuildChannel channel
+            && user.GetPermissions(channel).ManageMessages)
+        {
+            return builder
+                .WithButton("Delete Message", $"delete:{quote.ChannelId}:{quote.MessageId}", ButtonStyle.Danger)
+                .WithButton("View User", $"user:{quote.UserId}", ButtonStyle.Secondary)
+                .WithButton("View Reprimands", $"history:{quote.UserId}", ButtonStyle.Secondary);
+        }
+
+        return builder;
+    }
 }

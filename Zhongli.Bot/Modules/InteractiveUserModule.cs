@@ -31,11 +31,13 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         => await _user.ReplyHistoryAsync(Context, type, user, false);
 
     [UserCommand("User Information")]
+    [ComponentInteraction("user:*")]
     [SlashCommand("user", "Views the information of a user")]
     public async Task UserAsync([Summary(description: "The user to show")] IUser user)
         => await _user.ReplyUserAsync(Context, user);
 
     [UserCommand("Reprimand History")]
+    [ComponentInteraction("history:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
     public Task UserHistoryAsync(IUser user) => HistoryAsync(user);
 
