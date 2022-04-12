@@ -37,6 +37,9 @@ public static class LoggingExtensions
     public static string JumpUrlMarkdown(this IMessageEntity message)
         => $"[Jump]({message.JumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
 
+    public static string ReferencedJumpMarkdown(this MessageLog message)
+        => $"[Jump]({message.ReferencedJumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
+
     public static async Task<StringBuilder> GetDetailsAsync(this IEnumerable<MessageLog> logs, IDiscordClient client)
     {
         var builder = new StringBuilder();
@@ -60,6 +63,9 @@ public static class LoggingExtensions
 
         return attachments.Concat(thumbnails);
     }
+
+    private static string ReferencedJumpUrl(this MessageLog entity)
+        => $"https://discord.com/channels/{entity.GuildId}/{entity.ChannelId}/{entity.ReferencedMessageId}";
 
     private static StringBuilder AppendImageUrls(this StringBuilder builder, IReadOnlyCollection<IImage> images)
     {
@@ -88,6 +94,9 @@ public static class LoggingExtensions
 
         if (log.EditedTimestamp is not null)
             builder.AppendLine($"- Edited: {log.EditedTimestamp}");
+
+        if (log.ReferencedMessageId is not null)
+            builder.AppendLine($"- Reply to: [{log.ReferencedMessageId}]({log.ReferencedJumpUrl()})");
 
         if (!string.IsNullOrWhiteSpace(log.Content))
         {

@@ -258,6 +258,20 @@ public class LoggingService
             .AddField("Created", log.Timestamp.ToUniversalTimestamp(), true)
             .AddField("Message", log.JumpUrlMarkdown(), true);
 
+        if (log.ReferencedMessageId is not null)
+        {
+            var reply = await GetLatestMessage(log.ReferencedMessageId.Value);
+            if (reply is null)
+                embed.AddField("Referenced Message", log.ReferencedJumpMarkdown(), true);
+            else
+            {
+                var replyUser = await GetUserAsync(reply);
+                embed.AddField($"Reply to {replyUser}", new StringBuilder()
+                    .AppendLine($"{log.ReferencedJumpMarkdown()} by {reply.MentionUser()}")
+                    .AppendLine(reply.Content.Truncate(512)), true);
+            }
+        }
+
         var attachments = log.Attachments.Chunk(4)
             .SelectMany(attachments => attachments.ToEmbedBuilders(LogEmbedOptions));
 
@@ -382,8 +396,8 @@ public class LoggingService
         return await guild.GetTextChannelAsync(channel.ChannelId);
     }
 
-    private async Task<IUser> GetUserAsync<T>(T log) where T : IMessageEntity
-        => (IUser) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
+    private async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
+        => log is null ? null : (IUser?) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
 
     private async Task<MessageDeleteLog> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
         CancellationToken cancellationToken)
