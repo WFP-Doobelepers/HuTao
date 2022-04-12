@@ -67,7 +67,7 @@ public class TimeTrackingModule : ModuleBase<SocketCommandContext>
         };
 
         await _db.SaveChangesAsync();
-        _time.TrackGenshinTime(guild.GenshinRules);
+        await _time.TrackGenshinTime(guild);
 
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }

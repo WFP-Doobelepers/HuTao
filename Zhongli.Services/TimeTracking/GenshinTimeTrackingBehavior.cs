@@ -1,7 +1,7 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Zhongli.Data;
 using Zhongli.Services.Core.Messages;
 
@@ -20,10 +20,10 @@ public class GenshinTimeTrackingBehavior : INotificationHandler<ReadyNotificatio
 
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
     {
-        var guilds = await _db.Guilds.ToAsyncEnumerable().ToListAsync(cancellationToken);
-        foreach (var rules in guilds.Select(guild => guild.GenshinRules).Where(rules => rules is not null))
+        var guilds = await _db.Guilds.ToListAsync(cancellationToken);
+        foreach (var guild in guilds)
         {
-            _tracking.TrackGenshinTime(rules!);
+            await _tracking.TrackGenshinTime(guild);
         }
     }
 }

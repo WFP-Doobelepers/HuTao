@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Threading.Tasks;
 using Cronos;
 using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using Hangfire;
 using Humanizer;
 using Humanizer.Localisation;
-using Mapster;
+using Zhongli.Data;
+using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.TimeTracking;
 using Zhongli.Services.Utilities;
 
@@ -25,8 +28,13 @@ public class GenshinTimeTrackingService
     }
 
     private readonly DiscordSocketClient _client;
+    private readonly ZhongliContext _db;
 
-    public GenshinTimeTrackingService(DiscordSocketClient client) { _client = client; }
+    public GenshinTimeTrackingService(DiscordSocketClient client, ZhongliContext db)
+    {
+        _client = client;
+        _db     = db;
+    }
 
     private static Dictionary<ServerRegion, (string Name, int Offset)> ServerOffsets { get; } = new()
     {
@@ -36,14 +44,41 @@ public class GenshinTimeTrackingService
         [ServerRegion.SAR]     = ("SAR", 8)
     };
 
-    [AutomaticRetry(Attempts = 0)]
+    public async Task TrackGenshinTime(GuildEntity guild)
+    {
+        var rules = guild.GenshinRules;
+        if (rules is null) return;
+
+        if (rules.ServerStatus is not null)
+        {
+            var id = rules.ServerStatus.Id.ToString();
+            var message = await TryGetMessageAsync(
+                rules.ServerStatus.GuildId,
+                rules.ServerStatus.ChannelId,
+                rules.ServerStatus.MessageId);
+
+            if (message is not null)
+            {
+                RecurringJob.AddOrUpdate(id, ()
+                        => UpdateMessageAsync(
+                            rules.ServerStatus.GuildId,
+                            rules.ServerStatus.ChannelId,
+                            rules.ServerStatus.MessageId),
+                    Cron.Minutely);
+            }
+        }
+
+        AddJob(rules.AmericaChannel, ServerRegion.America);
+        AddJob(rules.EuropeChannel, ServerRegion.America);
+        AddJob(rules.AsiaChannel, ServerRegion.America);
+        AddJob(rules.SARChannel, ServerRegion.America);
+    }
+
+    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
     {
-        var guild = await GetGuildAsync(guildId);
-        if (guild is null) return;
-
-        var channel = await guild.GetTextChannelAsync(channelId);
+        var channel = await TryGetChannelAsync(guildId, channelId, region);
         if (channel is null) return;
 
         await TrackRegionAsync(channel, region);
@@ -53,18 +88,13 @@ public class GenshinTimeTrackingService
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
     {
-        var guild = await GetGuildAsync(guildId);
-        if (guild is null) return;
+        var message = await TryGetMessageAsync(guildId, channelId, messageId);
 
-        var channel = await guild.GetTextChannelAsync(channelId);
-        if (channel is null) return;
-
-        if (await channel.GetMessageAsync(messageId) is not IUserMessage message)
-            return;
+        if (message?.Channel is not IGuildChannel channel) return;
 
         var embed = new EmbedBuilder()
             .WithTitle("Server Status")
-            .WithGuildAsAuthor(guild, AuthorOptions.UseFooter)
+            .WithGuildAsAuthor(channel.Guild, AuthorOptions.UseFooter)
             .WithCurrentTimestamp();
 
         AddRegion(embed, ServerRegion.America, "md");
@@ -77,28 +107,6 @@ public class GenshinTimeTrackingService
             m.Content = string.Empty;
             m.Embed   = embed.Build();
         });
-    }
-
-    public void TrackGenshinTime(GenshinTimeTrackingRules rules)
-    {
-        var serverStatus = rules.ServerStatus?.Adapt<MessageTimeTracking>();
-        if (serverStatus is not null)
-        {
-            var id = serverStatus.Id.ToString();
-            RecurringJob.AddOrUpdate(id, ()
-                    => UpdateMessageAsync(
-                        serverStatus.GuildId,
-                        serverStatus.ChannelId,
-                        serverStatus.MessageId),
-                Cron.Minutely);
-
-            RecurringJob.Trigger(id);
-        }
-
-        AddJob(rules.AmericaChannel, ServerRegion.America);
-        AddJob(rules.EuropeChannel, ServerRegion.America);
-        AddJob(rules.AsiaChannel, ServerRegion.America);
-        AddJob(rules.SARChannel, ServerRegion.America);
     }
 
     private static DateTimeOffset GetDailyReset(int offset)
@@ -124,15 +132,105 @@ public class GenshinTimeTrackingService
         return next!.Value;
     }
 
-    private static Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
+    private async Task RemoveTrackingAsync(ulong guildId)
     {
-        var (name, offset) = ServerOffsets[region];
-        return channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
+        var guild = await _db.Guilds.FindByIdAsync(guildId);
+        if (guild?.GenshinRules?.ServerStatus is null) return;
+
+        RecurringJob.RemoveIfExists(guild.GenshinRules.ServerStatus.Id.ToString());
+
+        guild.GenshinRules.ServerStatus = null;
+        await _db.SaveChangesAsync();
     }
 
-    private async Task<IGuild?> GetGuildAsync(ulong guildId) =>
-        _client.GetGuild(guildId) as IGuild
-        ?? await _client.Rest.GetGuildAsync(guildId);
+    private async Task RemoveTrackingAsync(ulong guildId, ServerRegion region)
+    {
+        var guild = await _db.Guilds.FindByIdAsync(guildId);
+        var rules = guild?.GenshinRules;
+        if (rules is null) return;
+
+        var tracking = region switch
+        {
+            ServerRegion.America => rules.AmericaChannel,
+            ServerRegion.Europe  => rules.EuropeChannel,
+            ServerRegion.Asia    => rules.AsiaChannel,
+            ServerRegion.SAR     => rules.SARChannel,
+            _                    => throw new ArgumentOutOfRangeException(nameof(region), region, null)
+        };
+
+        if (tracking is null) return;
+        RecurringJob.RemoveIfExists(tracking.Id.ToString());
+
+        _db.Remove(tracking);
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
+    {
+        try
+        {
+            var (name, offset) = ServerOffsets[region];
+            await channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
+        }
+        catch (HttpException ex) when (ex.HttpCode == HttpStatusCode.Forbidden)
+        {
+            await RemoveTrackingAsync(channel.Guild.Id, region);
+        }
+    }
+
+    private async Task<IGuild?> GetGuildAsync(ulong guildId)
+    {
+        try
+        {
+            return _client.GetGuild(guildId) as IGuild ?? await _client.Rest.GetGuildAsync(guildId);
+        }
+        catch (HttpException e) when (e.DiscordCode is DiscordErrorCode.MissingPermissions)
+        {
+            await RemoveTrackingAsync(guildId);
+            await RemoveTrackingAsync(guildId, ServerRegion.America);
+            await RemoveTrackingAsync(guildId, ServerRegion.Europe);
+            await RemoveTrackingAsync(guildId, ServerRegion.Asia);
+            await RemoveTrackingAsync(guildId, ServerRegion.SAR);
+
+            return null;
+        }
+    }
+
+    private async Task<IGuildChannel?> TryGetChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
+    {
+        var guild = await GetGuildAsync(guildId);
+        if (guild is null) return null;
+
+        var channel = await guild.GetTextChannelAsync(channelId);
+        if (channel is null)
+        {
+            await RemoveTrackingAsync(guildId, region);
+            return null;
+        }
+
+        return channel;
+    }
+
+    private async Task<IUserMessage?> TryGetMessageAsync(ulong guildId, ulong channelId, ulong messageId)
+    {
+        var guild = await GetGuildAsync(guildId);
+        if (guild is null) return null;
+
+        var channel = await guild.GetTextChannelAsync(channelId);
+        if (channel is null)
+        {
+            await RemoveTrackingAsync(guildId);
+            return null;
+        }
+
+        if (await channel.GetMessageAsync(messageId) is not IUserMessage message)
+        {
+            await RemoveTrackingAsync(guildId);
+            return null;
+        }
+
+        return message;
+    }
 
     private void AddJob(ChannelTimeTracking? tracking, ServerRegion region)
     {
