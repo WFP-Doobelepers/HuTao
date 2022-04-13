@@ -290,6 +290,7 @@ public class LoggingService
             .AddContent(new StringBuilder()
                 .AppendLine($"{Format.Bold("`Mention:`")} <@{user.Id}>")
                 .AppendLine($"{Format.Bold("`GuildId:`")} {log.GuildId}")
+                .AppendLine($"{Format.Bold("`IsBot: `")} {user.IsBot}")
                 .ToString())
             .AddField("AccountCreationDate", user.CreatedAt.ToUniversalTimestamp(), true)
             .AddField("JoinDate", log.JoinDate?.ToUniversalTimestamp(), true)
