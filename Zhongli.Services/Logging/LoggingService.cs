@@ -128,7 +128,7 @@ public class LoggingService
 
         var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
 
-        await PublishLogAsync(new UserJoinLog(userEntity, user.JoinedAt.Value),
+        await PublishLogAsync(new UserJoinLog(userEntity, user.JoinedAt),
             LogType.GuildUserJoined, user.Guild, cancellationToken);
     }
 
@@ -292,8 +292,8 @@ public class LoggingService
                 .AppendLine($"{Format.Bold("`GuildId:`")} {log.GuildId}")
                 .ToString())
             .AddField("AccountCreationDate", user.CreatedAt.ToUniversalTimestamp(), true)
-            .AddField("JoinDate", log.JoinDate.ToUniversalTimestamp(), true)
-            .AddField("FirstJoinDate", log.FirstJoinDate.ToUniversalTimestamp(), true)
+            .AddField("JoinDate", log.JoinDate?.ToUniversalTimestamp(), true)
+            .AddField("FirstJoinDate", log.FirstJoinDate?.ToUniversalTimestamp(), true)
             .WithUserAsAuthor(user, AuthorOptions.IncludeId);
 
         return new EmbedLog(embed);
