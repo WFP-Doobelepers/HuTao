@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using Humanizer;
 using Microsoft.Extensions.Caching.Memory;
 using Zhongli.Data;
 using Zhongli.Data.Models.Discord;
@@ -198,7 +199,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             await _db.SaveChangesAsync(cancellationToken);
 
             var result = await PublishReprimandAsync(ban, details, cancellationToken);
-            await details.Guild.AddBanAsync(user, (int) days, details.Reason);
+            await details.Guild.AddBanAsync(user, (int) days, $"By {details.Moderator}: {details.Reason}".Truncate(512));
 
             return result;
         }
@@ -439,8 +440,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             .Where(t => t.IsActive)
             .Where(t => t.Source == source)
             .Where(t => t.IsTriggered(count))
-            .OrderByDescending(t => t.Amount)
-            .FirstOrDefault();
+            .MaxBy(t => t.Amount);
     }
 
     private async Task<ReprimandTrigger?> TryGetTriggerAsync(Reprimand reprimand, CancellationToken cancellationToken)
