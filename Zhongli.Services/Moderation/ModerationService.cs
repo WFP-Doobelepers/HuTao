@@ -199,7 +199,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             await _db.SaveChangesAsync(cancellationToken);
 
             var result = await PublishReprimandAsync(ban, details, cancellationToken);
-            await details.Guild.AddBanAsync(user, (int) days, $"By {details.Moderator}: {details.Reason}".Truncate(512));
+            await details.Guild.AddBanAsync(user, (int) days,
+                $"By {details.Moderator}: {details.Reason}".Truncate(512));
 
             return result;
         }
@@ -415,11 +416,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var reprimand = result.Last;
         var count = await reprimand.GetTotalAsync(_db, false, cancellationToken);
-        var currentUser = await details.Moderator.Guild.GetCurrentUserAsync();
 
         var secondary = await ReprimandAsync(trigger.Reprimand, details with
         {
-            Moderator = currentUser,
             Reason = $"[Reprimand Count Triggered] at {count}",
             Trigger = trigger
         }, cancellationToken);
