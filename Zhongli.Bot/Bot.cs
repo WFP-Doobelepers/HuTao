@@ -50,7 +50,7 @@ public class Bot
             {
                 AlwaysDownloadUsers = ZhongliConfig.Configuration.AlwaysDownloadUsers,
                 MessageCacheSize    = ZhongliConfig.Configuration.MessageCacheSize,
-                GatewayIntents      = GatewayIntents.All
+                GatewayIntents      = ZhongliConfig.Configuration.GatewayIntents
             }))
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()

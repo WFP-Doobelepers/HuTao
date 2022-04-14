@@ -1,8 +1,12 @@
-﻿namespace Zhongli.Data.Config;
+﻿using Discord;
+
+namespace Zhongli.Data.Config;
 
 public class BotConfig
 {
     public bool AlwaysDownloadUsers { get; set; }
+
+    public GatewayIntents GatewayIntents { get; init; } = GatewayIntents.AllUnprivileged;
 
     public int MessageCacheSize { get; set; }
 
