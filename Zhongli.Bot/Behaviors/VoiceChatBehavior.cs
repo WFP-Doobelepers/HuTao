@@ -70,7 +70,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                     .Select(v => VcRegex.Match(v.Name))
                     .Where(m => m.Success && uint.TryParse(m.Groups["i"].Value, out _))
                     .Select(m => uint.Parse(m.Groups["i"].Value))
-                    .ToList();
+                    .Distinct().ToList();
 
                 // To get the next available number, sort the list and then
                 // get the index of the first element that does not match its index.
@@ -114,38 +114,8 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                 await user.ModifyAsync(u => u.Channel = voice);
             }
         }
-        else if (oldChannel is not null && newChannel is null)
-        {
-            if (rules.PurgeEmpty && !PurgeTasks.ContainsKey(oldChannel.Id))
-            {
-                var users = oldChannel.Users.Where(u => !u.IsBot);
-                if (!users.Any())
-                {
-                    var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == oldChannel.Id);
-                    if (voiceChat is not null)
-                    {
-                        var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-                        var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
 
-                        var tokenSource = new CancellationTokenSource();
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(rules.DeletionDelay, tokenSource.Token);
-                            if (voiceChannel.Users.Any()) return;
-
-                            await voiceChannel.DeleteAsync();
-                            await textChannel.DeleteAsync();
-
-                            _db.Remove(voiceChat);
-                            await _db.SaveChangesAsync(cancellationToken);
-                        }, tokenSource.Token);
-
-                        PurgeTasks.TryAdd(oldChannel.Id, tokenSource);
-                    }
-                }
-            }
-        }
-        else if (newChannel is not null && oldChannel?.Id != newChannel.Id)
+        if (newChannel is not null && newChannel.Id != oldChannel?.Id)
         {
             if (PurgeTasks.TryRemove(newChannel.Id, out var token))
                 token.Cancel();
@@ -159,6 +129,39 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
                 if (rules.ShowJoinLeave)
                     await textChannel.SendMessageAsync($"{user.Mention} has joined the VC. You can chat in here.");
+            }
+        }
+
+        if (oldChannel is not null && oldChannel.Id != newChannel?.Id)
+        {
+            var users = oldChannel.Users.Where(u => !u.IsBot);
+            var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == oldChannel.Id);
+
+            if (voiceChat is not null)
+            {
+                var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
+                _ = textChannel?.RemovePermissionOverwriteAsync(user);
+
+                if (rules.PurgeEmpty && !users.Any() && !PurgeTasks.ContainsKey(oldChannel.Id))
+                {
+                    var tokenSource = new CancellationTokenSource();
+
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(rules.DeletionDelay, tokenSource.Token);
+
+                        var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
+                        if (voiceChannel?.Users.Any() ?? false) return;
+
+                        _ = voiceChannel?.DeleteAsync();
+                        _ = textChannel?.DeleteAsync();
+
+                        _db.Remove(voiceChat);
+                        await _db.SaveChangesAsync(cancellationToken);
+                    }, tokenSource.Token);
+
+                    PurgeTasks.TryAdd(oldChannel.Id, tokenSource);
+                }
             }
         }
     }
