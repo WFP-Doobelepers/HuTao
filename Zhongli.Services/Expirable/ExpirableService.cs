@@ -25,17 +25,25 @@ public abstract class ExpirableService<T> where T : class, IExpirable
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task ExpireEntityAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var expirable = _db.Set<T>().FirstOrDefault(e => e.Id == id);
+        var job = _cache.GetOrCreate(id, _ => new SemaphoreSlim(1, 1));
+        await job.WaitAsync(cancellationToken);
 
-        if (expirable?.IsActive() is true)
+        try
         {
-            expirable.EndedAt = DateTimeOffset.UtcNow;
-            await _db.SaveChangesAsync(cancellationToken);
+            var expirable = _db.Set<T>().FirstOrDefault(e => e.Id == id);
+            if (expirable?.IsActive() is true)
+            {
+                expirable.EndedAt = DateTimeOffset.UtcNow;
 
-            await OnExpiredEntity(expirable, cancellationToken);
+                await _db.SaveChangesAsync(cancellationToken);
+                await OnExpiredEntity(expirable, cancellationToken);
+            }
         }
-
-        _cache.Remove(id);
+        finally
+        {
+            job.Release();
+            _cache.Remove(id);
+        }
     }
 
     public void EnqueueExpirableEntity(T expire, CancellationToken cancellationToken = default)
@@ -46,8 +54,8 @@ public abstract class ExpirableService<T> where T : class, IExpirable
         if (expire.ExpireAt is null) return;
         var expireAt = expire.ExpireAt.Value;
 
-        var job = BackgroundJob.Schedule(() => ExpireEntityAsync(expire.Id, cancellationToken), expireAt);
-        _cache.Set(expire.Id, job, expireAt);
+        BackgroundJob.Schedule(() => ExpireEntityAsync(expire.Id, cancellationToken), expireAt);
+        _cache.Set(expire.Id, new SemaphoreSlim(1, 1));
     }
 
     protected abstract Task OnExpiredEntity(T expired, CancellationToken cancellationToken);
