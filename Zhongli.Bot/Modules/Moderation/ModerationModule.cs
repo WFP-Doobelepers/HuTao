@@ -106,7 +106,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Command("mute list")]
+    [Command("mutes")]
+    [Alias("mute list", "mutelist")]
     [Summary("View active mutes on the current guild.")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task MuteListAsync()
