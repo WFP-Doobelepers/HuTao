@@ -67,7 +67,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             {
                 await user.AddRolesAsync(roles);
             }
-            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
                 // Ignored
             }
@@ -177,7 +177,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 {
                     await member.RemoveRoleAsync(role);
                 }
-                catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+                catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
                 {
                     // Ignored
                 }

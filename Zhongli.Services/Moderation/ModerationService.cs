@@ -204,7 +204,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
             return result;
         }
-        catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
         {
             return null;
         }
@@ -226,7 +226,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
             return result;
         }
-        catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
         {
             return null;
         }
@@ -263,7 +263,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
             return await PublishReprimandAsync(mute, details, cancellationToken);
         }
-        catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
         {
             return null;
         }

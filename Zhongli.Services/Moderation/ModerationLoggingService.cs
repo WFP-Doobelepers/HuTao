@@ -82,7 +82,7 @@ public class ModerationLoggingService
             {
                 await PublishToChannelAsync(config, await user.CreateDMChannelAsync());
             }
-            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+            catch (HttpException e) when (e.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
             {
                 if (details.Context is not CommandContext context) return;
                 var message = new StringBuilder()

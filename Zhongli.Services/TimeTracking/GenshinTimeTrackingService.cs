@@ -172,7 +172,7 @@ public class GenshinTimeTrackingService
             var (name, offset) = ServerOffsets[region];
             await channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
         }
-        catch (HttpException ex) when (ex.HttpCode == HttpStatusCode.Forbidden)
+        catch (HttpException ex) when (ex.HttpCode is HttpStatusCode.Forbidden)
         {
             await RemoveTrackingAsync(channel.Guild.Id, region);
         }

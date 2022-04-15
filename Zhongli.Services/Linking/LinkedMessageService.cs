@@ -131,7 +131,7 @@ public class LinkingService
                     added.Add(new RoleMetadata(toggle, user));
                 }
             }
-            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
                 // Ignored
             }
