@@ -13,6 +13,7 @@ public class GuildConfigureBehavior :
     INotificationHandler<GuildAvailableNotification>,
     INotificationHandler<JoinedGuildNotification>
 {
+    private static readonly SemaphoreSlim Semaphore = new(1, 1);
     private readonly AuthorizationService _auth;
     private readonly ZhongliContext _db;
 
@@ -30,9 +31,18 @@ public class GuildConfigureBehavior :
 
     private async Task ConfigureGuildAsync(IGuild guild, CancellationToken cancellationToken)
     {
-        await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await Semaphore.WaitAsync(cancellationToken);
 
-        await _auth.AutoConfigureGuild(guild, cancellationToken);
+            await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await _auth.AutoConfigureGuild(guild, cancellationToken);
+        }
+        finally
+        {
+            Semaphore.Release();
+        }
     }
 }
