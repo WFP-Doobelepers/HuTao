@@ -27,6 +27,7 @@ public class GenshinTimeTrackingService
         SAR
     }
 
+    private static readonly RequestOptions RequestOptions = new() { Timeout = 15 };
     private readonly DiscordSocketClient _client;
     private readonly ZhongliContext _db;
 
@@ -74,7 +75,7 @@ public class GenshinTimeTrackingService
         AddJob(rules.SARChannel, ServerRegion.America);
     }
 
-    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+    [AutomaticRetry(Attempts = 0)]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateChannelAsync(ulong guildId, ulong channelId, ServerRegion region)
     {
@@ -84,7 +85,7 @@ public class GenshinTimeTrackingService
         await TrackRegionAsync(channel, region);
     }
 
-    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+    [AutomaticRetry(Attempts = 0)]
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task UpdateMessageAsync(ulong guildId, ulong channelId, ulong messageId)
     {
@@ -106,7 +107,7 @@ public class GenshinTimeTrackingService
         {
             m.Content = string.Empty;
             m.Embed   = embed.Build();
-        });
+        }, RequestOptions);
     }
 
     private static DateTimeOffset GetDailyReset(int offset)
@@ -170,7 +171,7 @@ public class GenshinTimeTrackingService
         try
         {
             var (name, offset) = ServerOffsets[region];
-            await channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}");
+            await channel.ModifyAsync(c => c.Name = $"{name}: {GetTime(offset)}", RequestOptions);
         }
         catch (HttpException ex) when (ex.HttpCode is HttpStatusCode.Forbidden)
         {
