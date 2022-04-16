@@ -56,13 +56,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
                 };
 
                 await ReprimandAsync(censor.Reprimand, censorDetails, cancellationToken);
+                return;
             }
         }
-        else
-        {
-            _ = message.DeleteAsync();
-            await PublishReprimandAsync(censored, details, cancellationToken);
-        }
+        else _ = message.DeleteAsync();
+        await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
     public async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
