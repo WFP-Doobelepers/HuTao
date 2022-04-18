@@ -37,9 +37,9 @@ public class UserService
         _db          = db;
     }
 
-    public async Task ReplyAvatarAsync(Context context, IUser user)
+    public async Task ReplyAvatarAsync(Context context, IUser user, bool ephemeral = false)
     {
-        await context.DeferAsync(true);
+        await context.DeferAsync(ephemeral);
         var components = await ComponentsAsync(context, user);
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(user, AuthorOptions.IncludeId)
@@ -47,12 +47,14 @@ public class UserService
             .WithColor(await _image.GetAvatarColor(user))
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await context.ReplyAsync(embed: embed.Build(), components: components, ephemeral: true);
+        await context.ReplyAsync(embed: embed.Build(), components: components, ephemeral: ephemeral);
     }
 
-    public async Task ReplyHistoryAsync(Context context, LogReprimandType type, IUser user, bool update)
+    public async Task ReplyHistoryAsync(
+        Context context, LogReprimandType type, IUser user,
+        bool update, bool ephemeral = false)
     {
-        await context.DeferAsync(true);
+        await context.DeferAsync(ephemeral);
 
         var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == context.Guild.Id);
         if (userEntity is null) return;
@@ -87,7 +89,7 @@ public class UserService
 
             InteractionContext { Interaction: SocketInteraction interaction }
                 => _interactive.SendPaginatorAsync(paginator, interaction,
-                    ephemeral: true,
+                    ephemeral: ephemeral,
                     responseType: update ? DeferredUpdateMessage : DeferredChannelMessageWithSource,
                     messageAction: Components),
 
@@ -117,7 +119,7 @@ public class UserService
         }
     }
 
-    public async Task ReplyUserAsync(Context context, IUser user)
+    public async Task ReplyUserAsync(Context context, IUser user, bool ephemeral = false)
     {
         await context.DeferAsync(true);
 
@@ -125,7 +127,7 @@ public class UserService
         var builders = await GetUserAsync(context, user);
         var embeds = builders.Select(e => e.Build()).ToArray();
 
-        await context.ReplyAsync(components: components, embeds: embeds, ephemeral: true);
+        await context.ReplyAsync(components: components, embeds: embeds, ephemeral: ephemeral);
     }
 
     private static EmbedBuilder GetReprimands(GuildUserEntity user) => new EmbedBuilder()
@@ -217,9 +219,7 @@ public class UserService
 
         embed.WithColor(Color.Red);
 
-        var banDetails = userEntity?.Reprimands<Ban>()
-            .OrderByDescending(b => b.Action?.Date)
-            .FirstOrDefault();
+        var banDetails = userEntity?.Reprimands<Ban>().MaxBy(b => b.Action?.Date);
 
         if (banDetails is not null)
             embeds.Add(banDetails.ToEmbedBuilder(true));
