@@ -127,14 +127,11 @@ public class LoggingService
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
     }
 
+    public async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
+        => log is null ? null : (IUser?) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
+
     public ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken = default)
         => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
-
-    public async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
-        CancellationToken cancellationToken) where T : class, ILog
-        => await _db.Set<T>().AsQueryable()
-            .OrderByDescending(l => l.LogDate)
-            .FirstOrDefaultAsync(filter, cancellationToken);
 
     private IEnumerable<MessageLog> GetLatestMessages(IGuildChannel channel, IEnumerable<ulong> messageIds)
         => _db.Set<MessageLog>()
@@ -261,15 +258,9 @@ public class LoggingService
         if (log.ReferencedMessageId is not null)
         {
             var reply = await GetLatestMessage(log.ReferencedMessageId.Value);
-            if (reply is null)
-                embed.AddField("Referenced Message", log.ReferencedJumpMarkdown(), true);
-            else
-            {
-                var replyUser = await GetUserAsync(reply);
-                embed.AddField($"Reply to {replyUser}", new StringBuilder()
-                    .AppendLine($"{log.ReferencedJumpMarkdown()} by {reply.MentionUser()}")
-                    .AppendLine(reply.Content.Truncate(512)), true);
-            }
+            var replyUser = await GetUserAsync(reply);
+
+            embed.WithMessageReference(log, reply, replyUser);
         }
 
         var attachments = log.Attachments.Chunk(4)
@@ -396,9 +387,6 @@ public class LoggingService
         return await guild.GetTextChannelAsync(channel.ChannelId);
     }
 
-    private async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
-        => log is null ? null : (IUser?) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
-
     private async Task<MessageDeleteLog> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
         CancellationToken cancellationToken)
     {
@@ -466,6 +454,12 @@ public class LoggingService
             cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();
         });
+
+    private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
+        CancellationToken cancellationToken) where T : class, ILog
+        => await _db.Set<T>().AsQueryable()
+            .OrderByDescending(l => l.LogDate)
+            .FirstOrDefaultAsync(filter, cancellationToken);
 
     private record DeleteDetails(DeleteLog Deleted, IGuild Guild);
 

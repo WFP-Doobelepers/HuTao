@@ -1,5 +1,8 @@
+using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Humanizer;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Logging;
 using Zhongli.Services.Utilities;
@@ -42,4 +45,28 @@ public static class EmbedBuilderExtensions
 
         return builder;
     }
+
+    internal static async Task<EmbedBuilder> WithMessageReference(this EmbedBuilder embed, IMessage message)
+    {
+        if (message.Reference is null) return embed;
+        var reply = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
+
+        return reply is null
+            ? embed.AddField("Referenced Message", message.ReferencedJumpMarkdown(), true)
+            : embed.AddField($"Reply to {reply.Author}", new StringBuilder()
+                .AppendLine($"{message.ReferencedJumpMarkdown()} by {reply.Author.Mention}")
+                .AppendLine(reply.Content.Truncate(512)));
+    }
+
+    private static string CombinedReference(this MessageReference reference)
+        => $"{reference.GuildId}/{reference.ChannelId}/{reference.MessageId}";
+
+    private static string ReferencedJumpMarkdown(this IMessage message)
+        => $"[{message.Id}]({message.ReferencedJumpUrl()}) in {MentionUtils.MentionChannel(message.Channel.Id)}";
+
+    private static string ReferencedJumpUrl(this MessageReference reference)
+        => $"https://discordapp.com/channels/{reference.CombinedReference()}";
+
+    private static string ReferencedJumpUrl(this IMessage message)
+        => message.Reference.ReferencedJumpUrl();
 }

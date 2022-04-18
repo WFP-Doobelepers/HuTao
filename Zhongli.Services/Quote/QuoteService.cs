@@ -66,7 +66,7 @@ public class QuoteService : IQuoteService
                     new MultiEmbedPageBuilder()
                         .WithAllowedMentions(mention)
                         .WithMessageReference(source.Reference)
-                        .WithBuilders(BuildQuoteEmbeds(message, context.User))));
+                        .WithBuilders(await BuildEmbedAsync(message, context.User))));
             }
             else
             {
@@ -88,33 +88,44 @@ public class QuoteService : IQuoteService
                     new MultiEmbedPageBuilder()
                         .WithAllowedMentions(mention)
                         .WithMessageReference(source.Reference)
-                        .WithBuilders(await BuildQuoteEmbeds(log, context.User))));
+                        .WithBuilders(await BuildEmbedAsync(log, context.User))));
             }
         }
 
         return builder.Build();
     }
 
-    private static IEnumerable<EmbedBuilder> BuildQuoteEmbeds(IMessage message, IMentionable executingUser)
-        => new List<EmbedBuilder>
-        {
-            new EmbedBuilder()
-                .WithColor(Color.Green)
-                .AddContent(message)
-                .AddActivity(message)
-                .WithUserAsAuthor(message.Author, AuthorOptions.IncludeId)
-                .WithTimestamp(message.Timestamp)
-                .AddJumpLink(message, executingUser)
-        }.Concat(message.ToEmbedBuilders(QuoteOptions));
+    private static async Task<IEnumerable<EmbedBuilder>> BuildEmbedAsync(IMessage message, IMentionable executingUser)
+    {
+        var embed = new EmbedBuilder()
+            .WithColor(Color.Green)
+            .AddContent(message)
+            .AddActivity(message)
+            .WithUserAsAuthor(message.Author, AuthorOptions.IncludeId)
+            .WithTimestamp(message.Timestamp)
+            .AddJumpLink(message, executingUser);
 
-    private async Task<IEnumerable<EmbedBuilder>> BuildQuoteEmbeds(MessageLog message, IMentionable executingUser)
-        => new List<EmbedBuilder>
+        await embed.WithMessageReference(message);
+        return new[] { embed }.Concat(message.ToEmbedBuilders(QuoteOptions));
+    }
+
+    private async Task<IEnumerable<EmbedBuilder>> BuildEmbedAsync(MessageLog message, IMentionable executingUser)
+    {
+        var embed = new EmbedBuilder()
+            .WithColor(Color.Red)
+            .AddContent(message.Content)
+            .WithUserAsAuthor(await message.GetUserAsync(_client), AuthorOptions.IncludeId)
+            .WithTimestamp(message.Timestamp)
+            .AddJumpLink(message, executingUser);
+
+        if (message.ReferencedMessageId is not null)
         {
-            new EmbedBuilder()
-                .WithColor(Color.Red)
-                .AddContent(message.Content)
-                .WithUserAsAuthor(await message.GetUserAsync(_client), AuthorOptions.IncludeId)
-                .WithTimestamp(message.Timestamp)
-                .AddJumpLink(message, executingUser)
-        }.Concat(message.ToEmbedBuilders(QuoteOptions | EmbedBuilderOptions.UseProxy));
+            var reply = await _logging.GetLatestMessage(message.ReferencedMessageId.Value);
+            var replyUser = await _logging.GetUserAsync(reply);
+
+            embed.WithMessageReference(message, reply, replyUser);
+        }
+
+        return new[] { embed }.Concat(message.ToEmbedBuilders(QuoteOptions | EmbedBuilderOptions.UseProxy));
+    }
 }

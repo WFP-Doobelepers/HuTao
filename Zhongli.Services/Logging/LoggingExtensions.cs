@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Humanizer;
 using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Discord.Message;
 using Zhongli.Data.Models.Discord.Message.Embeds;
@@ -35,10 +36,7 @@ public static class LoggingExtensions
     }
 
     public static string JumpUrlMarkdown(this IMessageEntity message)
-        => $"[Jump]({message.JumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
-
-    public static string ReferencedJumpMarkdown(this MessageLog message)
-        => $"[Jump]({message.ReferencedJumpUrl()}) ({message.MessageId}) from {message.MentionChannel()}";
+        => $"[{message.MessageId}]({message.JumpUrl()}) in {message.MentionChannel()}";
 
     public static async Task<StringBuilder> GetDetailsAsync(this IEnumerable<MessageLog> logs, IDiscordClient client)
     {
@@ -54,6 +52,14 @@ public static class LoggingExtensions
         return builder;
     }
 
+    internal static EmbedBuilder WithMessageReference(
+        this EmbedBuilder embed, MessageLog log,
+        MessageLog? reply, IUser? replyUser) => reply is null
+        ? embed.AddField("Referenced Message", log.ReferencedJumpMarkdown(), true)
+        : embed.AddField($"Reply to {replyUser}", new StringBuilder()
+            .AppendLine($"{log.ReferencedJumpMarkdown()} by {reply.MentionUser()}")
+            .AppendLine(reply.Content.Truncate(512)));
+
     private static IEnumerable<IImage> GetImages(this MessageLog log)
     {
         var attachments = log.Attachments.Cast<IImage>();
@@ -63,6 +69,9 @@ public static class LoggingExtensions
 
         return attachments.Concat(thumbnails);
     }
+
+    private static string ReferencedJumpMarkdown(this MessageLog message)
+        => $"[{message.MessageId}]({message.ReferencedJumpUrl()}) in {message.MentionChannel()}";
 
     private static string ReferencedJumpUrl(this MessageLog entity)
         => $"https://discord.com/channels/{entity.GuildId}/{entity.ChannelId}/{entity.ReferencedMessageId}";

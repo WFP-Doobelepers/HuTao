@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using Discord;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Zhongli.Data.Models.Discord.Message;
 
@@ -11,13 +12,13 @@ public static class EntityExtensions
         => $"https://discord.com/channels/{entity.GuildId}/{entity.ChannelId}/{entity.MessageId}";
 
     public static string MentionChannel(this IChannelEntity entity)
-        => $"<#{entity.ChannelId}>";
+        => MentionUtils.MentionChannel(entity.ChannelId);
 
     public static string MentionRole(this IRoleEntity entity)
-        => $"<@&{entity.RoleId}>";
+        => MentionUtils.MentionRole(entity.RoleId);
 
     public static string MentionUser(this IUserEntity entity)
-        => $"<@{entity.UserId}>";
+        => MentionUtils.MentionUser(entity.UserId);
 
     public static void AddUserNavigation<T>(
         this EntityTypeBuilder<T> builder,
