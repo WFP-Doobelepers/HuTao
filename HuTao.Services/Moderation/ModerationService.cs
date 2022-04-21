@@ -82,9 +82,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             speak: PermValue.Deny,
             stream: PermValue.Deny);
 
-        foreach (var channel in await guild.GetChannelsAsync())
+        var channels = await guild.GetChannelsAsync();
+        foreach (var channel in channels.Where(channel => channel is not IThreadChannel))
         {
-            if (channel is IThreadChannel) continue;
             await channel.AddPermissionOverwriteAsync(role, permissions);
         }
     }
@@ -140,6 +140,20 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
         });
+
+    public static async Task SendMessageAsync(Context context, ITextChannel? channel, string message)
+    {
+        channel ??= (ITextChannel) context.Channel;
+        if (context.User is not IGuildUser user)
+            await context.ReplyAsync("You must be a guild user to use this command.");
+        else if (!user.GetPermissions(channel).SendMessages)
+            await context.ReplyAsync("You do not have permission to send messages in this channel.");
+        else
+        {
+            await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
+            await context.ReplyAsync($"Message sent to {channel.Mention}");
+        }
+    }
 
     public static async Task ShowSlowmodeChannelsAsync(Context context)
     {

@@ -16,6 +16,7 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Moderation;
 
+[RequireContext(ContextType.Guild)]
 public class InteractiveModerationModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly AuthorizationService _auth;
@@ -135,12 +136,8 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
 
     [SlashCommand("say", "Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Helper)]
-    public async Task SayAsync(string message, ITextChannel? channel = null)
-    {
-        channel ??= (ITextChannel) Context.Channel;
-        await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
-        await FollowupAsync("Message sent.", ephemeral: channel.Id == Context.Channel.Id);
-    }
+    public Task SayAsync(string message, ITextChannel? channel = null)
+        => ModerationService.SendMessageAsync(Context, channel, message);
 
     [SlashCommand("slowmode", "Set a slowmode in the channel.")]
     [RequireAuthorization(AuthorizationScope.Helper)]

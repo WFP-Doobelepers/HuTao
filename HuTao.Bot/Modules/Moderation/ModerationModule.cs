@@ -19,6 +19,7 @@ namespace HuTao.Bot.Modules.Moderation;
 
 [Name("Moderation")]
 [Summary("Guild moderation commands.")]
+[RequireContext(ContextType.Guild)]
 public class ModerationModule : ModuleBase<SocketCommandContext>
 {
     private readonly AuthorizationService _auth;
@@ -157,12 +158,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("say")]
     [Summary("Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Helper)]
-    public async Task SayAsync(ITextChannel? channel, [Remainder] string message)
-    {
-        channel ??= (ITextChannel) Context.Channel;
-        await Context.Message.DeleteAsync();
-        await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
-    }
+    public Task SayAsync(ITextChannel? channel, [Remainder] string message)
+        => ModerationService.SendMessageAsync(Context, channel, message);
 
     [Command("say")]
     [HiddenFromHelp]
