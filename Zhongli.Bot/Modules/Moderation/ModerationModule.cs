@@ -126,10 +126,9 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         var pages = history
             .OrderByDescending(r => r.Action?.Date)
             .Select(CreateEmbed)
-            .ToPageBuilder(embed);
+            .ToPageBuilders(EmbedBuilder.MaxFieldCount, embed);
 
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
-
         await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), Context.Channel);
     }
 
