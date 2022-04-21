@@ -8,12 +8,14 @@ using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
 using HuTao.Data;
+using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
+using HuTao.Services.Core;
 using HuTao.Services.Expirable;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.Caching.Memory;
@@ -23,16 +25,20 @@ namespace HuTao.Services.Moderation;
 
 public class ModerationService : ExpirableService<ExpirableReprimand>
 {
+    private readonly AuthorizationService _auth;
     private readonly DiscordSocketClient _client;
     private readonly HuTaoContext _db;
     private readonly ModerationLoggingService _logging;
 
-    public ModerationService(IMemoryCache cache, HuTaoContext db, DiscordSocketClient client,
+    public ModerationService(
+        IMemoryCache cache, HuTaoContext db,
+        AuthorizationService auth, DiscordSocketClient client,
         ModerationLoggingService logging) : base(cache, db)
     {
+        _auth    = auth;
         _client  = client;
-        _logging = logging;
         _db      = db;
+        _logging = logging;
     }
 
     public async Task CensorAsync(SocketMessage message, TimeSpan? length, ReprimandDetails details,
@@ -141,8 +147,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
         });
 
-    public static async Task SendMessageAsync(Context context, ITextChannel? channel, string message)
+    public async Task SendMessageAsync(Context context, ITextChannel? channel, string message)
     {
+        var ephemeral = await _auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Ephemeral);
         channel ??= (ITextChannel) context.Channel;
         if (context.User is not IGuildUser user)
             await context.ReplyAsync("You must be a guild user to use this command.");
@@ -151,7 +158,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         else
         {
             await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
-            await context.ReplyAsync($"Message sent to {channel.Mention}");
+            await context.ReplyAsync($"Message sent to {channel.Mention}",
+                ephemeral: ephemeral && channel.Id == context.Channel.Id);
         }
     }
 

@@ -34,6 +34,9 @@ public enum AuthorizationScope
     [Description("Allows managing of channels.")]
     Channels = 1 << 11,
 
+    [Description("Allows using ephemeral messages.")]
+    Ephemeral = 1 << 12,
+
     [Description("Allows warning, mute, kick, notes, and ban.")]
     Moderator = Warning | Mute | Kick | Ban | Note,
 

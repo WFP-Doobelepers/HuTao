@@ -159,7 +159,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Summary("Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Helper)]
     public Task SayAsync(ITextChannel? channel, [Remainder] string message)
-        => ModerationService.SendMessageAsync(Context, channel, message);
+        => _moderation.SendMessageAsync(Context, channel, message);
 
     [Command("say")]
     [HiddenFromHelp]
