@@ -1,5 +1,5 @@
-# Zhongli Bot
-Zhongli is a Discord Bot for the purpose of moderating Genshin Impact servers. It has features such as message logging, moderation tools such as warning, muting, and banning, and a variety of other features.
+# Hu Tao Bot
+Hu Tao is a Discord Bot for the purpose of moderating Genshin Impact servers. It has features such as message logging, moderation tools such as warning, muting, and banning, and a variety of other features.
 
 ## Contributing
 Pull requests and feedbacks are welcome. Please open an issue first for any major changes.
