@@ -29,8 +29,10 @@ public class GuildConfigureBehavior :
     public Task Handle(JoinedGuildNotification notification, CancellationToken cancellationToken)
         => ConfigureGuildAsync(notification.Guild, cancellationToken);
 
-    private async Task ConfigureGuildAsync(IGuild guild, CancellationToken cancellationToken)
+    private async Task ConfigureGuildAsync(IGuild? guild, CancellationToken cancellationToken)
     {
+        if (guild is null) return;
+
         try
         {
             await Semaphore.WaitAsync(cancellationToken);

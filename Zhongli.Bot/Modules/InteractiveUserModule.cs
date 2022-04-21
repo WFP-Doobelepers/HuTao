@@ -22,7 +22,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         [Summary(description: "The user to show")]
         IUser user,
         [Summary(description: "False to let other users see the message")]
-        bool ephemeral = true)
+        bool ephemeral = false)
         => await _user.ReplyAvatarAsync(Context, user, ephemeral);
 
     [SlashCommand("history", "View a history of a user's infractions")]
@@ -33,7 +33,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         [Summary(description: "Leave empty to show warnings and notices")]
         LogReprimandType type = Warning | Notice,
         [Summary(description: "False to let other users see the message")]
-        bool ephemeral = true)
+        bool ephemeral = false)
         => await _user.ReplyHistoryAsync(Context, type, user, false, ephemeral);
 
     [SlashCommand("user", "Views the information of a user")]
@@ -41,7 +41,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         [Summary(description: "The user to show")]
         IUser user,
         [Summary(description: "False to let other users see the message")]
-        bool ephemeral = true)
+        bool ephemeral = false)
         => await _user.ReplyUserAsync(Context, user, ephemeral);
 
     [UserCommand("Show Avatar")]
@@ -56,10 +56,10 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
 
     [ComponentInteraction("history:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
-    public Task ComponentHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: false);
+    public Task ComponentHistoryAsync(IUser user) => SlashHistoryAsync(user);
 
     [ComponentInteraction("user:*")]
-    public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user, false);
+    public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
     [ComponentInteraction("r:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]

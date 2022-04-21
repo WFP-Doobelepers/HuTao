@@ -11,7 +11,6 @@ using Zhongli.Data.Models.Discord;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
 using Zhongli.Data.Models.Moderation.Infractions.Triggers;
 using Zhongli.Data.Models.Moderation.Logging;
-using Zhongli.Services.Core.Listeners;
 using Zhongli.Services.Utilities;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig;
 using static Zhongli.Data.Models.Moderation.Logging.ModerationLogConfig.ModerationLogOptions;
@@ -20,14 +19,9 @@ namespace Zhongli.Services.Moderation;
 
 public class ModerationLoggingService
 {
-    private readonly CommandErrorHandler _error;
     private readonly ZhongliContext _db;
 
-    public ModerationLoggingService(CommandErrorHandler error, ZhongliContext db)
-    {
-        _error = error;
-        _db    = db;
-    }
+    public ModerationLoggingService(ZhongliContext db) { _db = db; }
 
     public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
@@ -40,12 +34,7 @@ public class ModerationLoggingService
         await PublishAsync(options.PublicLog);
 
         if (reprimand.IsIncluded(options.CommandLog) && details.Context is not null)
-        {
-            if (details.Context is InteractionContext interaction)
-                await PublishToInteractionAsync(options.CommandLog, interaction);
-            else
-                await PublishToChannelAsync(options.CommandLog, details.Context.Channel);
-        }
+            await PublishToContextAsync(options.CommandLog, details.Context);
 
         if (reprimand.IsIncluded(options.UserLog))
             await PublishToUserAsync(options.UserLog, details.User);
@@ -58,21 +47,19 @@ public class ModerationLoggingService
             await PublishToChannelAsync(config, channel);
         }
 
-        async Task PublishToInteractionAsync(ModerationLogConfig config, InteractionContext context)
+        async Task PublishToContextAsync(ModerationLogConfig config, Context context)
         {
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
-                await context.RespondAsync(embed: embed.Build(), ephemeral: true);
+                await context.ReplyAsync(embed: embed.Build());
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
                 if (details.Context is null) return;
-                var message = new StringBuilder()
+                await context.ReplyAsync(new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {context.User}.")
-                    .AppendLine(e.Message);
-
-                await context.RespondAsync(message.ToString(), ephemeral: true);
+                    .AppendLine(e.Message).ToString(), ephemeral: true);
             }
         }
 
@@ -82,33 +69,31 @@ public class ModerationLoggingService
             {
                 await PublishToChannelAsync(config, await user.CreateDMChannelAsync());
             }
-            catch (HttpException e) when (e.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
+            catch (HttpException e) when (
+                e.HttpCode is HttpStatusCode.Forbidden ||
+                e.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
             {
-                if (details.Context is not CommandContext context) return;
-                var message = new StringBuilder()
+                if (details.Context is null) return;
+                await details.Context.ReplyAsync(new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {user}.")
-                    .AppendLine(e.Message);
-
-                await _error.AssociateError(context.Message, message.ToString());
+                    .AppendLine(e.Message).ToString(), ephemeral: true);
             }
         }
 
         async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
         {
-            if (channel is null) return;
             try
             {
+                if (channel is null) return;
                 var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
                 await channel.SendMessageAsync(embed: embed.Build());
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
-                if (details.Context is not CommandContext context) return;
-                var message = new StringBuilder()
+                if (details.Context is null) return;
+                await details.Context.ReplyAsync(new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {channel}.")
-                    .AppendLine(e.Message);
-
-                await _error.AssociateError(context.Message, message.ToString());
+                    .AppendLine(e.Message).ToString(), ephemeral: true);
             }
         }
 

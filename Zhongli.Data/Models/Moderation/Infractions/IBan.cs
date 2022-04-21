@@ -9,4 +9,7 @@ public interface IBan : IAction, ILength
 
     string IAction.Action
         => $"Ban {Format.Bold(Length?.Humanize() ?? "indefinitely")} and delete {Format.Bold(DeleteDays + " days")} of messages";
+
+    string IAction.CleanAction
+        => $"Ban {Length?.Humanize() ?? "indefinitely"} and delete {DeleteDays + " days"} of messages";
 }

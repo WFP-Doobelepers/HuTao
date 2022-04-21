@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Fergun.Interactive;
-using Humanizer;
 using Zhongli.Data;
 using Zhongli.Data.Models.Authorization;
 using Zhongli.Data.Models.Moderation.Infractions.Reprimands;
@@ -43,8 +42,9 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("ban")]
     [Summary("Ban a user from the current guild.")]
     [RequireAuthorization(AuthorizationScope.Ban)]
-    public async Task BanAsync([RequireHigherRole] IUser user, uint deleteDays = 0,
-        TimeSpan? length = null,
+    public async Task BanAsync(
+        [RequireHigherRole] IUser user,
+        uint deleteDays = 0, TimeSpan? length = null,
         [Remainder] string? reason = null)
     {
         if (deleteDays > 7)
@@ -175,49 +175,13 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Summary("Set a slowmode in the channel.")]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
     [RequireAuthorization(AuthorizationScope.Helper)]
-    public async Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
-    {
-        if (length is null && channel is null)
-        {
-            var channels = Context.Guild.Channels.OfType<ITextChannel>()
-                .Where(c => c is not INewsChannel)
-                .Where(c => c.SlowModeInterval is not 0)
-                .OrderBy(c => c.Position);
+    public Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
+        => length is null && channel is null
+            ? ModerationService.ShowSlowmodeChannelsAsync(Context)
+            : ModerationService.SlowmodeChannelAsync(Context, length, channel);
 
-            var embed = new EmbedBuilder()
-                .WithTitle("List of channels with slowmode active")
-                .AddItemsIntoFields("Channels", channels,
-                    c => $"{c.Mention} => {c.SlowModeInterval.Seconds().Humanize()}")
-                .WithColor(Color.Green)
-                .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-            await ReplyAsync(embed: embed.Build());
-        }
-        else
-        {
-            length  ??= TimeSpan.Zero;
-            channel ??= (ITextChannel) Context.Channel;
-            var seconds = (int) length.Value.TotalSeconds;
-            await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
-
-            if (seconds is 0)
-                await ReplyAsync($"Slowmode disabled for {channel.Mention}");
-            else
-            {
-                var embed = new EmbedBuilder()
-                    .WithTitle("Slowmode enabled")
-                    .AddField("Channel", channel.Mention, true)
-                    .AddField("Delay", length.Value.Humanize(3), true)
-                    .WithColor(Color.Green)
-                    .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-                await ReplyAsync(embed: embed.Build());
-            }
-        }
-    }
-
-    [Command("slowmode")]
     [HiddenFromHelp]
+    [Command("slowmode")]
     [Summary("Set a slowmode in the channel.")]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
     [RequireAuthorization(AuthorizationScope.Helper)]

@@ -141,6 +141,46 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
         });
 
+    public static async Task ShowSlowmodeChannelsAsync(Context context)
+    {
+        var textChannels = await context.Guild.GetTextChannelsAsync();
+        var channels = textChannels
+            .Where(c => c is not INewsChannel)
+            .Where(c => c.SlowModeInterval is not 0)
+            .OrderBy(c => c.Position);
+
+        var embed = new EmbedBuilder()
+            .WithTitle("List of channels with slowmode active")
+            .AddItemsIntoFields("Channels", channels,
+                c => $"{c.Mention} => {c.SlowModeInterval.Seconds().Humanize()}")
+            .WithColor(Color.Green)
+            .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+        await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+    }
+
+    public static async Task SlowmodeChannelAsync(Context context, TimeSpan? length, ITextChannel? channel)
+    {
+        length  ??= TimeSpan.Zero;
+        channel ??= (ITextChannel) context.Channel;
+        var seconds = (int) length.Value.TotalSeconds;
+        await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
+
+        if (seconds is 0)
+            await context.ReplyAsync($"Slowmode disabled for {channel.Mention}", ephemeral: true);
+        else
+        {
+            var embed = new EmbedBuilder()
+                .WithTitle("Slowmode enabled")
+                .AddField("Channel", channel.Mention, true)
+                .AddField("Delay", length.Value.Humanize(3), true)
+                .WithColor(Color.Green)
+                .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+            await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+        }
+    }
+
     public async Task ToggleTriggerAsync(Trigger trigger, IGuildUser moderator, bool? state)
     {
         trigger.IsActive = state ?? !trigger.IsActive;
