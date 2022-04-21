@@ -63,16 +63,11 @@ public abstract class Context
     ///     <see langword="true" /> if the response should be hidden to everyone besides the invoker of the
     ///     command, otherwise <see langword="false" />.
     /// </param>
-    public virtual async Task ReplyAsync(string? message = null, bool isTTS = false, Embed? embed = null,
-        RequestOptions? options = null,
+    public abstract Task ReplyAsync(
+        string? message = null, bool isTTS = false, Embed? embed = null, RequestOptions? options = null,
         AllowedMentions? allowedMentions = null, MessageReference? messageReference = null,
         MessageComponent? components = null, ISticker[]? stickers = null, Embed[]? embeds = null,
-        MessageFlags flags = MessageFlags.None, bool ephemeral = false)
-        => await Channel.SendMessageAsync(
-                message, isTTS, embed, options,
-                allowedMentions, messageReference,
-                components, stickers, embeds, flags)
-            .ConfigureAwait(false);
+        MessageFlags flags = MessageFlags.None, bool ephemeral = false);
 
     public static implicit operator Context(SocketCommandContext context) => new CommandContext(context);
 
