@@ -124,11 +124,12 @@ public static class EmbedBuilderExtensions
         var url = attachments.First().ProxyUrl;
 
         return attachments.Select(a => new EmbedBuilder()
-            .WithUrl(url).WithFooter(footer)
-            .WithDescription(description)
+            .WithUrl(url).WithDescription(description)
+            .WithFooter(footer.Truncate(EmbedBuilder.MaxDescriptionLength))
             .WithImageUrl(options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url));
 
-        static string Footer(IAttachment i) => $"{i.Filename} {i.Width}x{i.Height}px {i.Size.Bytes().Humanize()}";
+        static string Footer(IAttachment i)
+            => $"{i.Filename.Truncate(EmbedBuilder.MaxTitleLength)} {i.Width}x{i.Height}px {i.Size.Bytes().Humanize()}";
     }
 
     public static IEnumerable<EmbedBuilder> ToEmbedBuilders(this MessageLog message, EmbedBuilderOptions options)
