@@ -9,7 +9,6 @@ using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
 using HuTao.Data;
-using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
@@ -20,6 +19,7 @@ using HuTao.Services.Utilities;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using static HuTao.Data.Models.Authorization.AuthorizationScope;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
 namespace HuTao.Services.Linking;
@@ -156,8 +156,8 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
             return;
 
         var included = !command.Inclusions.Any() || command.Inclusions.Any(c => c.Judge(context));
-        var authorized = await _auth.IsAuthorizedAsync(context, command.Scope | AuthorizationScope.All);
-        if (!included && !authorized)
+        var authorized = command.Scope is None || await _auth.IsAuthorizedAsync(context, command.Scope | All);
+        if (!included || !authorized)
         {
             await context.ReplyAsync("You are not allowed to use this command.");
             return;

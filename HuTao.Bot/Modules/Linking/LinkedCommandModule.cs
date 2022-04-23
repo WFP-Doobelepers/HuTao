@@ -68,6 +68,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
     protected override EmbedBuilder EntityViewer(LinkedCommand entity)
     {
         var inclusions = entity.Inclusions.Humanize().DefaultIfNullOrWhiteSpace("Everyone");
+        var scope = entity.Scope.Humanize();
         var roles = entity.Roles.Humanize().DefaultIfNullOrWhiteSpace("None");
         var description = entity.Description
             .Truncate(EmbedFieldBuilder.MaxFieldValueLength)
@@ -79,6 +80,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
             .AddField("Silent", entity.Silent, true)
             .AddField("Cooldown", entity.Cooldown?.Humanize() ?? "None", true)
             .AddField("Allowed", inclusions, true)
+            .AddField("Scope", scope, true)
             .AddField("Roles", roles, true);
 
         if (entity.Message is not null)
