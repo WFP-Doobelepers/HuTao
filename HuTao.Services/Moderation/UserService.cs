@@ -121,7 +121,7 @@ public class UserService
 
     public async Task ReplyUserAsync(Context context, IUser user, bool ephemeral = false)
     {
-        await context.DeferAsync(true);
+        await context.DeferAsync(ephemeral);
 
         var components = await ComponentsAsync(context, user);
         var builders = await GetUserAsync(context, user);

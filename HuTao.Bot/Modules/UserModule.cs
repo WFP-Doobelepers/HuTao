@@ -5,6 +5,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
+using static HuTao.Data.Models.Moderation.Logging.LogReprimandType;
 
 namespace HuTao.Bot.Modules;
 
@@ -35,7 +36,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
         [Summary("The user to show the infractions of.")]
         IUser? user = null,
         [Summary("Leave empty to show warnings.")]
-        LogReprimandType type = LogReprimandType.Warning)
+        LogReprimandType type = Warning | Notice)
     {
         user ??= Context.User;
         await _user.ReplyHistoryAsync(Context, type, user, false);

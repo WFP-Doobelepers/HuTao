@@ -44,15 +44,23 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         bool ephemeral = false)
         => await _user.ReplyUserAsync(Context, user, ephemeral);
 
+    [SlashCommand("whois", "Views the information of a user")]
+    public async Task SlashWhoIsAsync(
+        [Summary(description: "The user to show")]
+        IUser user,
+        [Summary(description: "False to let other users see the message")]
+        bool ephemeral = false)
+        => await _user.ReplyUserAsync(Context, user, ephemeral);
+
     [UserCommand("Show Avatar")]
-    public Task UserAvatarAsync(IUser user) => SlashAvatarAsync(user);
+    public Task UserAvatarAsync(IUser user) => SlashAvatarAsync(user, true);
 
     [UserCommand("Reprimand History")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
-    public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user);
+    public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: true);
 
     [UserCommand("User Information")]
-    public Task UserInformationAsync(IUser user) => SlashInformationAsync(user);
+    public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
 
     [ComponentInteraction("history:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
