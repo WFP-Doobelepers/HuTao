@@ -82,13 +82,12 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                     .FirstOrDefault();
 
                 var voice = await guild.CreateVoiceChannelAsync($"VC {maxId}", c => c.CategoryId = voiceCategory);
-                await voice.AddPermissionOverwriteAsync(user, new OverwritePermissions(
-                    manageChannel: PermValue.Allow,
-                    muteMembers: PermValue.Allow));
+                var allow = new OverwritePermissions(manageChannel: PermValue.Allow);
+                await voice.AddPermissionOverwriteAsync(user, allow);
 
                 var chat = await guild.CreateTextChannelAsync($"vc-{maxId}", c => c.CategoryId = chatCategory);
-                await chat.AddPermissionOverwriteAsync(guild.EveryoneRole, new OverwritePermissions(
-                    viewChannel: PermValue.Deny));
+                var deny = new OverwritePermissions(viewChannel: PermValue.Deny);
+                await chat.AddPermissionOverwriteAsync(guild.EveryoneRole, deny);
 
                 if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                 {
