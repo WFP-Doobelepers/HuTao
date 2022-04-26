@@ -42,11 +42,12 @@ public static class LoggingExtensions
     {
         var builder = new StringBuilder();
 
-        foreach (var (message, index) in logs.AsIndexable())
+        foreach (var (message, index) in logs.OrderBy(l => l.Timestamp).AsIndexable())
         {
             builder
                 .AppendLine($"## Message {index}")
-                .Append(message.GetDetails(await client.GetUserAsync(message.UserId)));
+                .Append(message.GetDetails(await client.GetUserAsync(message.UserId)))
+                .AppendLine().AppendLine();
         }
 
         return builder;
@@ -98,18 +99,18 @@ public static class LoggingExtensions
             .AppendLine("### Details")
             .AppendLine($"- User: {user} {log.MentionUser()}")
             .AppendLine($"- ID: [{log.Id}]({log.JumpUrl()})")
-            .AppendLine($"- Channel: [{log.MentionChannel()}]")
-            .AppendLine($"- Date: {log.LogDate}");
+            .AppendLine($"- Channel: {log.MentionChannel()}")
+            .AppendLine($"- Date: {log.LogDate} {log.LogDate.Humanize()}");
 
         if (log.EditedTimestamp is not null)
-            builder.AppendLine($"- Edited: {log.EditedTimestamp}");
+            builder.AppendLine($"- Edited: {log.EditedTimestamp} {log.EditedTimestamp.Humanize()}");
 
         if (log.ReferencedMessageId is not null)
             builder.AppendLine($"- Reply to: [{log.ReferencedMessageId}]({log.ReferencedJumpUrl()})");
 
         if (!string.IsNullOrWhiteSpace(log.Content))
         {
-            builder.AppendLine("### Content");
+            builder.AppendLine().AppendLine("### Content");
             foreach (var line in log.Content.Split(Environment.NewLine))
             {
                 builder.AppendLine($"> {line}");
@@ -120,6 +121,7 @@ public static class LoggingExtensions
         if (images.Any())
         {
             builder
+                .AppendLine()
                 .AppendLine("### Images")
                 .AppendImageUrls(images);
         }

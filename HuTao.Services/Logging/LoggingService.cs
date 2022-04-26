@@ -230,7 +230,11 @@ public class LoggingService
             .AddField("Created", log.LogDate.ToUniversalTimestamp(), true)
             .AddField("Message Count", logs.Count, true);
 
-        var content = await logs.GetDetailsAsync(_client);
+        var content = new StringBuilder()
+            .AppendLine("# Message Bulk Deleted")
+            .AppendLine($"- Created: {log.LogDate} {log.LogDate.Humanize()}")
+            .AppendLine($"- Message Count: {logs.Count}")
+            .Append(await logs.GetDetailsAsync(_client));
         return new EmbedLog(embed, content.ToString());
     }
 
