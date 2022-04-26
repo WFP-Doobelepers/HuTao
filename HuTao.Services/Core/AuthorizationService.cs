@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,20 @@ public class AuthorizationService
     private readonly HuTaoContext _db;
 
     public AuthorizationService(HuTaoContext db) { _db = db; }
+
+    public static bool IsAuthorized(Context context, IEnumerable<AuthorizationGroup> groups, bool seed = false)
+    {
+        if (context.User.Id == HuTaoConfig.Configuration.Owner)
+            return true;
+
+        return groups
+            .OrderBy(r => r.Action?.Date)
+            .Aggregate(seed, (current, rule) =>
+            {
+                var passed = rule.Judge(context);
+                return passed ? rule.Access == AccessType.Allow : current;
+            });
+    }
 
     public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
         CancellationToken cancellationToken = default)
@@ -48,17 +63,8 @@ public class AuthorizationService
     public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
     {
-        if (context.User.Id == HuTaoConfig.Configuration.Owner)
-            return true;
-
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
-        return rules.AuthorizationGroups.Scoped(scope)
-            .OrderBy(r => r.Action?.Date)
-            .Aggregate(false, (current, rule) =>
-            {
-                var passed = rule.Judge(context);
-                return passed ? rule.Access == AccessType.Allow : current;
-            });
+        return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope));
     }
 
     private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)

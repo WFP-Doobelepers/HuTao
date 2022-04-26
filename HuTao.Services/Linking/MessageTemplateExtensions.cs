@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Humanizer;
+using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Components;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.Utilities;
@@ -48,6 +49,16 @@ public static class MessageTemplateExtensions
 
         template.UpdateTemplate(message);
         await db.SaveChangesAsync();
+    }
+
+    internal static void TryRemove(this DbContext db, ICollection<AuthorizationGroup> groups)
+    {
+        db.RemoveRange(groups);
+        foreach (var group in groups)
+        {
+            db.RemoveRange(group.Collection);
+            db.TryRemove(group.Action);
+        }
     }
 
     internal static void TryRemove(this DbContext db, MessageTemplate? template)

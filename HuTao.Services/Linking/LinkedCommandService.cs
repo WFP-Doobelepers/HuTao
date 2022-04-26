@@ -19,14 +19,12 @@ using HuTao.Services.Utilities;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using static HuTao.Data.Models.Authorization.AuthorizationScope;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
 namespace HuTao.Services.Linking;
 
 public class LinkedCommandService : INotificationHandler<ReadyNotification>
 {
-    private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
     private readonly CommandService _commands;
     private readonly DiscordSocketClient _client;
@@ -34,10 +32,9 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
     private readonly IMemoryCache _cache;
 
     public LinkedCommandService(
-        AuthorizationService auth, CommandErrorHandler error, CommandService commands,
+        CommandErrorHandler error, CommandService commands,
         DiscordSocketClient client, IMemoryCache cache, HuTaoContext db)
     {
-        _auth     = auth;
         _error    = error;
         _commands = commands;
         _client   = client;
@@ -57,7 +54,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
     {
         _db.Remove(command);
         _db.TryRemove(command.Message);
-        _db.RemoveRange(command.Inclusions);
+        _db.TryRemove(command.Authorization);
         _db.RemoveRange(command.Roles);
 
         await _db.SaveChangesAsync();
@@ -155,9 +152,8 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         if (command is null)
             return;
 
-        var included = !command.Inclusions.Any() || command.Inclusions.Any(c => c.Judge(context));
-        var authorized = command.Scope is None || await _auth.IsAuthorizedAsync(context, command.Scope | All);
-        if (!included || !authorized)
+        var authorized = AuthorizationService.IsAuthorized(context, command.Authorization, true);
+        if (!authorized)
         {
             await context.ReplyAsync("You are not allowed to use this command.");
             return;

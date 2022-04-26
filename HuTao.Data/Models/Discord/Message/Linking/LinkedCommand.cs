@@ -14,28 +14,25 @@ public class LinkedCommand
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public LinkedCommand(string name, ILinkedCommandOptions options)
     {
-        Name        = name;
-        Scope       = options.Scope;
-        Ephemeral   = options.Ephemeral;
-        Silent      = options.Silent;
-        Roles       = options.RoleTemplates.ToList();
-        Inclusions  = options.ToCriteria();
-        Message     = options.Message is not null ? new MessageTemplate(options.Message, options) : null;
-        Description = options.Description;
-        Cooldown    = options.Cooldown;
-        UserOptions = options.UserOptions;
+        Name          = name;
+        Ephemeral     = options.Ephemeral;
+        Silent        = options.Silent;
+        Authorization = options.ToAuthorizationGroups().ToList();
+        Roles         = options.RoleTemplates.ToList();
+        Message       = options.Message is not null ? new MessageTemplate(options.Message, options) : null;
+        Description   = options.Description;
+        Cooldown      = options.Cooldown;
+        UserOptions   = options.UserOptions;
     }
 
     public Guid Id { get; set; }
-
-    public AuthorizationScope Scope { get; set; }
 
     public bool Ephemeral { get; set; }
 
     public bool Silent { get; set; }
 
-    public virtual ICollection<Criterion> Inclusions { get; set; }
-        = new List<Criterion>();
+    public virtual ICollection<AuthorizationGroup> Authorization { get; set; }
+        = new List<AuthorizationGroup>();
 
     public virtual ICollection<RoleTemplate> Roles { get; set; }
         = new List<RoleTemplate>();

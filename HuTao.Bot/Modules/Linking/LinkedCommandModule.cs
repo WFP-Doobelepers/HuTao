@@ -8,7 +8,6 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Listeners;
@@ -44,12 +43,11 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
     [Alias("add", "learn")]
     [Summary("Creates a new custom command.")]
     public async Task LinkAsync(
-        [Summary("The name of the custom command.")]
-        string name,
+        [Summary("The name of the custom command.")] string name,
         [Remainder] LinkedCommandOptions options)
     {
         var command = new LinkedCommand(name, options);
-        await AddCommandAsync(command, options);
+        await AddCommandAsync(command);
     }
 
     [Command("delete")]
@@ -67,8 +65,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
 
     protected override EmbedBuilder EntityViewer(LinkedCommand entity)
     {
-        var inclusions = entity.Inclusions.Humanize().DefaultIfNullOrWhiteSpace("Everyone");
-        var scope = entity.Scope.Humanize();
+        var permissions = entity.Authorization.Humanize().DefaultIfNullOrWhiteSpace("Anyone");
         var roles = entity.Roles.Humanize().DefaultIfNullOrWhiteSpace("None");
         var description = entity.Description
             .Truncate(EmbedFieldBuilder.MaxFieldValueLength)
@@ -79,8 +76,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
             .AddField("Ephemeral", entity.Ephemeral, true)
             .AddField("Silent", entity.Silent, true)
             .AddField("Cooldown", entity.Cooldown?.Humanize() ?? "None", true)
-            .AddField("Allowed", inclusions, true)
-            .AddField("Scope", scope, true)
+            .AddField("Allowed", permissions, true)
             .AddField("Roles", roles, true);
 
         if (entity.Message is not null)
@@ -113,7 +109,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         return guild.LinkedCommands;
     }
 
-    private async Task AddCommandAsync(LinkedCommand command, ICriteriaOptions options)
+    private async Task AddCommandAsync(LinkedCommand command)
     {
         if (_commands.Search(Context, command.Name).IsSuccess)
             throw new InvalidOperationException("A command with that name already exists.");
@@ -122,7 +118,6 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         var existing = commands.FirstOrDefault(t => t.Name.Equals(command.Name, StringComparison.OrdinalIgnoreCase));
         if (existing is not null) await RemoveEntityAsync(existing);
 
-        command.Inclusions = options.ToCriteria();
         commands.Add(command);
 
         await _db.SaveChangesAsync();
@@ -149,9 +144,6 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
 
         [HelpSummary("The roles that are allowed to use the command.")]
         public IEnumerable<IRole>? Roles { get; set; }
-
-        [HelpSummary("The scope that the user must have to use this command.")]
-        public AuthorizationScope Scope { get; set; }
 
         [HelpSummary("True to send the message as ephemeral and False to not.")]
         public bool Ephemeral { get; set; }
