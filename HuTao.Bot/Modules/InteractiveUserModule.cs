@@ -18,9 +18,9 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public InteractiveUserModule(UserService user) { _user = user; }
 
     [SlashCommand("avatar", "Get the avatar of the user.")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public async Task SlashAvatarAsync(
-        [Summary(description: "The user to show")]
-        IUser user,
+        [Summary(description: "The user to show")] IUser user,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
         => await _user.ReplyAvatarAsync(Context, user, ephemeral);
@@ -28,8 +28,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     [SlashCommand("history", "View a history of a user's infractions")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task SlashHistoryAsync(
-        [Summary(description: "The user to show history of")]
-        IUser user,
+        [Summary(description: "The user to show history of")] IUser user,
         [Summary(description: "Leave empty to show warnings and notices")]
         LogReprimandType type = Warning | Notice,
         [Summary(description: "False to let other users see the message")]
@@ -37,22 +36,23 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         => await _user.ReplyHistoryAsync(Context, type, user, false, ephemeral);
 
     [SlashCommand("user", "Views the information of a user")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public async Task SlashInformationAsync(
-        [Summary(description: "The user to show")]
-        IUser user,
+        [Summary(description: "The user to show")] IUser user,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
         => await _user.ReplyUserAsync(Context, user, ephemeral);
 
     [SlashCommand("whois", "Views the information of a user")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public async Task SlashWhoIsAsync(
-        [Summary(description: "The user to show")]
-        IUser user,
+        [Summary(description: "The user to show")] IUser user,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
         => await _user.ReplyUserAsync(Context, user, ephemeral);
 
     [UserCommand("Show Avatar")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public Task UserAvatarAsync(IUser user) => SlashAvatarAsync(user, true);
 
     [UserCommand("Reprimand History")]
@@ -60,6 +60,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: true);
 
     [UserCommand("User Information")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
 
     [ComponentInteraction("history:*")]
@@ -67,6 +68,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task ComponentHistoryAsync(IUser user) => SlashHistoryAsync(user);
 
     [ComponentInteraction("user:*")]
+    [RequireAuthorization(AuthorizationScope.User)]
     public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
     [ComponentInteraction("r:*")]
