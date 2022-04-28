@@ -90,32 +90,27 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     public async Task CleanAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-
         if (guild.VoiceChatRules is null)
             return;
 
         var voiceChats = guild.VoiceChatRules.VoiceChats.ToList();
-
         var empty = voiceChats.ToAsyncEnumerable()
-            .Select(v => new
+            .Select(rules => new
             {
-                VoiceChannel = Context.Guild.GetVoiceChannel(v.VoiceChannelId),
-                VoiceChat    = Context.Guild.GetTextChannel(v.TextChannelId)
+                VoiceChannel = Context.Guild.GetVoiceChannel(rules.VoiceChannelId),
+                VoiceChat    = Context.Guild.GetTextChannel(rules.TextChannelId),
+                Rules        = rules
             })
-            .Where(v => v.VoiceChannel.Users.All(u => u.IsBot || u.IsWebhook));
+            .Where(v => v.VoiceChannel?.Users.All(u => u.IsBot || u.IsWebhook) ?? true);
 
         await foreach (var link in empty)
         {
-            var voiceChat = voiceChats.FirstOrDefault(v => v.VoiceChannelId == link.VoiceChannel.Id);
-
-            _db.Remove(voiceChat!);
-
-            await link.VoiceChannel.DeleteAsync();
-            await link.VoiceChat.DeleteAsync();
+            _db.Remove(link.Rules);
+            _ = link.VoiceChannel?.DeleteAsync();
+            _ = link.VoiceChat?.DeleteAsync();
         }
 
         await _db.SaveChangesAsync();
-
         await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
     }
 
