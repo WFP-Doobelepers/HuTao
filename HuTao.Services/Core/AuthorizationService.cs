@@ -23,18 +23,20 @@ public class AuthorizationService
 
     public AuthorizationService(HuTaoContext db) { _db = db; }
 
-    public static bool IsAuthorized(Context context, IEnumerable<AuthorizationGroup> groups, bool seed = false)
+    public static bool IsAuthorized(Context context, ICollection<AuthorizationGroup> groups, bool seed = false)
     {
         if (context.User.Id == HuTaoConfig.Configuration.Owner)
             return true;
 
-        return groups
-            .OrderBy(r => r.Action?.Date)
-            .Aggregate(seed, (current, rule) =>
-            {
-                var passed = rule.Judge(context);
-                return passed ? rule.Access == AccessType.Allow : current;
-            });
+        return groups.Any()
+            ? groups
+                .OrderBy(r => r.Action?.Date)
+                .Aggregate(false, (current, rule) =>
+                {
+                    var passed = rule.Judge(context);
+                    return passed ? rule.Access == AccessType.Allow : current;
+                })
+            : seed;
     }
 
     public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
@@ -64,7 +66,7 @@ public class AuthorizationService
         CancellationToken cancellationToken = default)
     {
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
-        return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope));
+        return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope).ToList());
     }
 
     private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)

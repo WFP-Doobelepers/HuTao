@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 /// <summary>
 ///     A <see cref="TypeReader" /> for parsing objects implementing <see cref="IMessage" />.

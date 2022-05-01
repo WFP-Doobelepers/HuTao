@@ -5,9 +5,10 @@ namespace HuTao.Data.Models.Moderation.Infractions;
 
 public static class ModerationExtensions
 {
-    public static T WithModerator<T>(this T action, IGuildUser moderator) where T : IModerationAction
+    public static T WithModerator<T>(this T action, IGuildUser? moderator) where T : IModerationAction
     {
-        action.Action = new ModerationAction(moderator);
+        if (moderator is not null)
+            action.Action = new ModerationAction(moderator);
 
         return action;
     }

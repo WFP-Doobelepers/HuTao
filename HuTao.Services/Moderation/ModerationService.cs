@@ -41,7 +41,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _logging = logging;
     }
 
-    public async Task CensorAsync(SocketMessage message, TimeSpan? length, ReprimandDetails details,
+    public async Task CensorAsync(
+        SocketMessage message, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var censored = _db.Add(new Censored(message.Content, length, details)).Entity;
@@ -475,7 +476,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken)
     {
         var reprimand = result.Last;
-        var count = await reprimand.GetTotalAsync(_db, false, cancellationToken);
+        var count = await reprimand.CountUserReprimandsAsync(_db, false, cancellationToken);
 
         var secondary = await ReprimandAsync(trigger.Reprimand, details with
         {
@@ -498,6 +499,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             .OfType<ReprimandTrigger>()
             .Where(t => t.IsActive)
             .Where(t => t.Source == source)
+            .Where(t => t.Category?.Id == reprimand.Category?.Id)
             .Where(t => t.IsTriggered(count))
             .MaxBy(t => t.Amount);
     }
@@ -507,7 +509,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (!TryGetTriggerSource(reprimand, out var source))
             return null;
 
-        var count = await reprimand.GetTotalAsync(_db, false, cancellationToken);
+        var count = await reprimand.CountUserReprimandsAsync(_db, false, cancellationToken);
         var trigger = await GetCountTriggerAsync(reprimand, count, source!.Value, cancellationToken);
 
         return trigger;

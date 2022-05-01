@@ -6,7 +6,9 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using HuTao.Data.Config;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Core.Messages;
+using HuTao.Services.Core.TypeReaders.Interactions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -57,6 +59,9 @@ public class InteractionHandlingService :
         _commands.SlashCommandExecuted     += CommandExecutedAsync;
         _commands.ContextCommandExecuted   += CommandExecutedAsync;
         _commands.ComponentCommandExecuted += CommandExecutedAsync;
+
+        _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
+        _commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Services.Interactive.TryParse;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class TryParseTypeReader<T> : TypeReader
 {

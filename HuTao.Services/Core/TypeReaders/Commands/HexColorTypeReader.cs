@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Color = Discord.Color;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class HexColorTypeReader : TypeReader
 {

@@ -1,12 +1,14 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
+using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
-using static HuTao.Data.Models.Moderation.Logging.LogReprimandType;
 
 namespace HuTao.Bot.Modules;
 
@@ -26,14 +28,15 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         => await _user.ReplyAvatarAsync(Context, user, ephemeral);
 
     [SlashCommand("history", "View a history of a user's infractions")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task SlashHistoryAsync(
         [Summary(description: "The user to show history of")] IUser user,
         [Summary(description: "Leave empty to show warnings and notices")]
-        LogReprimandType type = Warning | Notice,
+        LogReprimandType type = LogReprimandType.Warning | LogReprimandType.Notice,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Moderator)]
+        ModerationCategory? category = null,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
-        => await _user.ReplyHistoryAsync(Context, type, user, false, ephemeral);
+        => await _user.ReplyHistoryAsync(Context, category, type, user, false, ephemeral);
 
     [SlashCommand("user", "Views the information of a user")]
     [RequireAuthorization(AuthorizationScope.User)]
@@ -71,11 +74,17 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     [RequireAuthorization(AuthorizationScope.User)]
     public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
-    [ComponentInteraction("r:*")]
+    [ComponentInteraction("reprimand:*:*")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
-    public async Task ComponentReprimandsAsync(string id, LogReprimandType[] types)
+    public Task ComponentReprimandsAsync(string id, ModerationCategory? category, LogReprimandType[] types)
+        => ComponentReprimandsAsync(id, InfractionTypeBitwise.Or(types), new[] { category });
+
+    [ComponentInteraction("category:*:*")]
+    [RequireAuthorization(AuthorizationScope.Moderator)]
+    public async Task ComponentReprimandsAsync(string id, LogReprimandType type, ModerationCategory?[] categories)
     {
+        var category = categories.FirstOrDefault();
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
-        await _user.ReplyHistoryAsync(Context, InfractionTypeBitwise.Or(types), user, true);
+        await _user.ReplyHistoryAsync(Context, category, type, user, true);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Discord;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation.Infractions;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Data.Models.Criteria;
@@ -28,8 +29,9 @@ public static class CriteriaExtensions
     public static ICollection<Criterion> ToCriteria(this ICriteriaOptions options)
         => new List<Criterion>().AddCriteria(options);
 
-    public static IEnumerable<AuthorizationGroup> ToAuthorizationGroups(this ICriteriaOptions options)
-        => options.ToCriteria().Select(c => new AuthorizationGroup(rules: c));
+    public static IEnumerable<AuthorizationGroup> ToAuthorizationGroups(this ICriteriaOptions options,
+        IGuildUser? moderator = null)
+        => options.ToCriteria().Select(c => new AuthorizationGroup(rules: c).WithModerator(moderator));
 
     private static ICollection<Criterion> AddCriteria<T>(this ICollection<Criterion> collection,
         IEnumerable<T>? source, Func<T, Criterion> func)

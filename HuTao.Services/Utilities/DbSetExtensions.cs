@@ -16,7 +16,8 @@ namespace HuTao.Services.Utilities;
 public static class DbSetExtensions
 {
     [SuppressMessage("ReSharper", "NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract")]
-    public static async Task<GuildEntity> TrackGuildAsync(this DbSet<GuildEntity> set, IGuild guild,
+    public static async Task<GuildEntity> TrackGuildAsync(
+        this DbSet<GuildEntity> set, IGuild guild,
         CancellationToken cancellationToken = default)
     {
         var guildEntity = await set.FindByIdAsync(guild.Id, cancellationToken)

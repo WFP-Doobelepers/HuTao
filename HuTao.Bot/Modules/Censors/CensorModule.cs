@@ -12,6 +12,7 @@ using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Listeners;
@@ -187,15 +188,14 @@ public class CensorModule : InteractiveTrigger<Censor>
         return guild.ModerationRules.Triggers.OfType<Censor>().ToList();
     }
 
-    private async Task AddCensor(Censor censor, ICriteriaOptions? exclusions)
+    private async Task AddCensor(Censor censor, ICriteriaOptions? options)
     {
-        if (exclusions is not null)
-            censor.Exclusions = exclusions.ToCriteria();
-
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        guild.ModerationRules.Triggers
-            .Add(censor.WithModerator(Context));
 
+        if (options is not null)
+            censor.Exclusions = options.ToCriteria();
+
+        guild.ModerationRules.Triggers.Add(censor.WithModerator(Context));
         await _db.SaveChangesAsync();
     }
 
@@ -225,6 +225,9 @@ public class CensorModule : InteractiveTrigger<Censor>
 
         [HelpSummary("The roles that are excluded.")]
         public IEnumerable<IRole>? Roles { get; set; }
+
+        [HelpSummary("The name of the category this will be added to.")]
+        public ModerationCategory? Category { get; set; }
 
         [HelpSummary("The behavior in which the reprimand of the censor triggers.")]
         public TriggerMode Mode { get; set; } = TriggerMode.Exact;

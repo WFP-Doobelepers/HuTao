@@ -5,7 +5,7 @@ using HuTao.Services.Utilities;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 using MessageExtensions = HuTao.Services.Utilities.MessageExtensions;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class JumpUrlTypeReader : TypeReader
 {

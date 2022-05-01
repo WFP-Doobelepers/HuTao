@@ -56,7 +56,7 @@ public class CensorBehavior :
             .Where(c => c.Exclusions.All(e => !e.Judge(channel, user)))
             .Where(c => c.Regex().IsMatch(message.Content)))
         {
-            var details = new ReprimandDetails(user, currentUser, "[Censor Triggered]", censor);
+            var details = new ReprimandDetails(user, currentUser, "[Censor Triggered]", censor, null, censor.Category);
             var length = guildEntity.ModerationRules.CensorTimeRange;
 
             await _moderation.CensorAsync(message, length, details, cancellationToken);

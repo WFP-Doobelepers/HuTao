@@ -11,6 +11,7 @@ using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
+using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
@@ -28,7 +29,9 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
 
-    public ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
+    public ReprimandTriggersModule(
+        CommandErrorHandler error, HuTaoContext db,
+        ModerationService moderation)
         : base(error, db, moderation)
     {
         _error = error;
@@ -36,57 +39,57 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     }
 
     [Command("ban")]
-    public async Task BanTriggerAsync(uint amount, TriggerSource source,
+    public async Task BanTriggerAsync(TriggerSource source,
         uint deleteDays = 0, TimeSpan? length = null,
-        TriggerMode mode = TriggerMode.Exact)
+        TriggerOptions? options = null)
     {
         var action = new BanAction(deleteDays, length);
-        await TryAddTriggerAsync(action, amount, source, mode);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("kick")]
-    public async Task KickTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
+    public async Task KickTriggerAsync(TriggerSource source, TriggerOptions? options = null)
     {
         var action = new KickAction();
-        await TryAddTriggerAsync(action, amount, source, mode);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("mute")]
-    public async Task MuteTriggerAsync(uint amount, TriggerSource source, TimeSpan? length = null,
-        TriggerMode mode = TriggerMode.Exact)
+    public async Task MuteTriggerAsync(TriggerSource source,
+        TimeSpan? length = null, TriggerOptions? options = null)
     {
         var action = new MuteAction(length);
-        await TryAddTriggerAsync(action, amount, source, mode);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("note")]
-    public async Task NoteTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
+    public async Task NoteTriggerAsync(TriggerSource source, TriggerOptions? options = null)
     {
         var action = new NoteAction();
-        await TryAddTriggerAsync(action, amount, source, mode);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("notice")]
-    public async Task NoticeTriggerAsync(uint amount, TriggerSource source, TriggerMode mode = TriggerMode.Exact)
+    public async Task NoticeTriggerAsync(TriggerSource source, TriggerOptions? options = null)
     {
         var action = new NoticeAction();
-        await TryAddTriggerAsync(action, amount, source, mode);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("warn")]
-    public async Task WarnTriggerAsync(uint amount, TriggerSource source,
-        uint count = 1, TriggerMode mode = TriggerMode.Exact)
+    public async Task WarnTriggerAsync(
+        TriggerSource source, uint warnCount = 1,
+        TriggerOptions? options = null)
     {
-        var action = new WarningAction(count);
-        await TryAddTriggerAsync(action, amount, source, mode);
+        var action = new WarningAction(warnCount);
+        await TryAddTriggerAsync(action, source, options);
     }
 
     [Command("reprimands")]
     [Alias("history")]
     [Summary("Shows associated reprimands of this trigger.")]
     protected async Task ViewAssociatedReprimandsAsync(string id,
-        [Summary("Leave empty to show everything.")]
-        LogReprimandType type = LogReprimandType.All)
+        [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {
         var trigger = await TryFindEntityAsync(id);
 
@@ -114,6 +117,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     protected override EmbedBuilder EntityViewer(ReprimandTrigger trigger) => new EmbedBuilder()
         .WithTitle($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}")
         .AddField("Action", $"{trigger.Reprimand}")
+        .AddField("Category", trigger.Category?.Name ?? "None")
         .AddField("Trigger", trigger.GetTriggerDetails())
         .AddField("Active", $"{trigger.IsActive}")
         .AddField("Modified by", trigger.GetModerator());
@@ -139,18 +143,20 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         return rules.Triggers.OfType<ReprimandTrigger>().ToArray();
     }
 
-    private async Task TryAddTriggerAsync(ReprimandAction action, uint amount, TriggerSource source,
-        TriggerMode mode)
+    private async Task TryAddTriggerAsync(
+        ReprimandAction action, TriggerSource source, ITrigger? options)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules;
+        // if (options?.Category is not null)
+        //     options.Category = await _db.Guilds.TrackCategoryAsync(Context.Guild, options.Category);
 
-        var options = new TriggerOptions(amount, source, mode);
-        var trigger = new ReprimandTrigger(options, options.Source, action);
-
-        var existing = rules.Triggers.OfType<ReprimandTrigger>()
-            .Where(t => t.IsActive)
-            .FirstOrDefault(t => t.Source == options.Source && t.Amount == trigger.Amount);
+        var trigger = new ReprimandTrigger(options, source, action);
+        var existing = rules.Triggers
+            .OfType<ReprimandTrigger>()
+            .FirstOrDefault(t => t.IsActive
+                && t.Source == source
+                && t.Amount == trigger.Amount);
 
         if (existing is not null) await RemoveEntityAsync(existing);
 
@@ -167,19 +173,16 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         await ReplyAsync(embed: embed.Build());
     }
 
-    private class TriggerOptions : ITrigger
+    [NamedArgumentType]
+    public class TriggerOptions : ITrigger
     {
-        public TriggerOptions(uint amount, TriggerSource source, TriggerMode mode)
-        {
-            Mode   = mode;
-            Amount = amount;
-            Source = source;
-        }
+        [HelpSummary("The name of the category this will be added to.")]
+        public ModerationCategory? Category { get; set; }
 
-        public TriggerSource Source { get; }
+        [HelpSummary("The behavior in which the reprimand triggers.")]
+        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
 
-        public TriggerMode Mode { get; set; }
-
-        public uint Amount { get; set; }
+        [HelpSummary("The amount of times the trigger should be triggered before reprimanding.")]
+        public uint Amount { get; set; } = 1;
     }
 }

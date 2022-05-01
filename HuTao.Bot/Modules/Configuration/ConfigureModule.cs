@@ -5,6 +5,7 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
@@ -13,8 +14,8 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Configuration;
 
-[Name("Configurations")]
 [Group("configure")]
+[Name("Configuration")]
 [Summary("Bot Configurations.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ConfigureModule : ModuleBase<SocketCommandContext>
@@ -31,8 +32,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Command("notice expiry")]
     [Summary("Set the time for when a notice is automatically hidden. This will not affect old cases.")]
     public async Task ConfigureAutoPardonNoticeAsync(
-        [Summary("Leave empty to disable auto pardon of notices.")]
-        TimeSpan? length = null)
+        [Summary("Leave empty to disable auto pardon of notices.")] TimeSpan? length = null,
+        ModerationCategory? category = null)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules.NoticeExpiryLength = length;
@@ -47,8 +48,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Command("warning expiry")]
     [Summary("Set the time for when a warning is automatically hidden. This will not affect old cases.")]
     public async Task ConfigureAutoPardonWarningAsync(
-        [Summary("Leave empty to disable auto pardon of warnings.")]
-        TimeSpan? length = null)
+        [Summary("Leave empty to disable auto pardon of warnings.")] TimeSpan? length = null)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules.WarningExpiryLength = length;
@@ -76,8 +76,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Command("censor range")]
     [Summary("Set the time for when a censor is considered.")]
     public async Task ConfigureCensorTimeRangeAsync(
-        [Summary("Leave empty to disable censor range.")]
-        TimeSpan? length = null)
+        [Summary("Leave empty to disable censor range.")] TimeSpan? length = null)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules.CensorTimeRange = length;

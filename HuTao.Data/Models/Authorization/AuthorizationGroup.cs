@@ -35,5 +35,5 @@ public class AuthorizationGroup : IModerationAction
 
     public virtual ModerationAction? Action { get; set; } = null!;
 
-    public override string ToString() => $"{Access} {Collection.Humanize()}";
+    public override string ToString() => $"{Access} {(Collection.Any() ? Collection.Humanize() : "Everyone")}";
 }

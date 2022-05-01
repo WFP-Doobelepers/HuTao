@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,10 +10,12 @@ public abstract class Trigger : ITrigger, IModerationAction
 {
     protected Trigger() { }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected Trigger(ITrigger? options)
     {
-        Mode   = options?.Mode ?? TriggerMode.Exact;
-        Amount = options?.Amount ?? 1;
+        Category = options?.Category;
+        Mode     = options?.Mode ?? TriggerMode.Exact;
+        Amount   = options?.Amount ?? 1;
     }
 
     public Guid Id { get; set; }
@@ -19,6 +23,8 @@ public abstract class Trigger : ITrigger, IModerationAction
     public bool IsActive { get; set; }
 
     public virtual ModerationAction? Action { get; set; } = null!;
+
+    public virtual ModerationCategory? Category { get; set; }
 
     public TriggerMode Mode { get; set; }
 

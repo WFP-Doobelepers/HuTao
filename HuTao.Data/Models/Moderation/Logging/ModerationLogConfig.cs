@@ -1,4 +1,5 @@
 using System;
+using Discord.Interactions;
 
 namespace HuTao.Data.Models.Moderation.Logging;
 
@@ -7,7 +8,7 @@ public class ModerationLogConfig
     [Flags]
     public enum ModerationLogOptions
     {
-        None = 0,
+        [Hide] None = 0,
         ShowReprimandId = 1 << 0,
         ShowDetails = 1 << 1,
         ShowReason = 1 << 2,
@@ -16,7 +17,11 @@ public class ModerationLogConfig
         ShowAvatarThumbnail = 1 << 5,
         ShowActive = 1 << 6,
         ShowTotal = 1 << 7,
-        ShowTrigger = 1 << 8
+        ShowTrigger = 1 << 8,
+        ShowCategory = 1 << 9,
+
+        All = ShowReprimandId | ShowDetails | ShowReason | ShowModerator | ShowUser
+            | ShowAvatarThumbnail | ShowActive | ShowTotal | ShowTrigger | ShowCategory
     }
 
     public Guid Id { get; set; }

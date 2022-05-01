@@ -85,6 +85,9 @@ public static class ReprimandExtensions
                     .ToString()));
         }
 
+        if (r.Category is not null)
+            embed.AddField("Category", r.Category.Name, true);
+
         if (r.Trigger is not null)
             embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
 
@@ -110,15 +113,16 @@ public static class ReprimandExtensions
             });
     }
 
-    public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, bool countHidden = true)
-        where T : Reprimand
+    public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user,
+        ModerationCategory? category, bool countHidden) where T : Reprimand
     {
         var reprimands = user.Guild.ReprimandHistory.OfType<T>()
+            .Where(r => category == ModerationCategory.All || r.Category?.Id == category?.Id)
             .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted);
 
         return countHidden
             ? reprimands
-            : reprimands.Where(IsCounted);
+            : reprimands.Where(reprimand => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated);
     }
 
     public static string GetAction(this Reprimand action)
@@ -206,16 +210,16 @@ public static class ReprimandExtensions
         CancellationToken cancellationToken = default) where T : Reprimand
     {
         var user = await reprimand.GetUserAsync(db, cancellationToken);
-        return (uint) user.Reprimands<T>(countHidden)
+        return (uint) user.Reprimands<T>(trigger.Category, countHidden)
             .LongCount(r => r.TriggerId == trigger.Id);
     }
 
-    public static uint HistoryCount<T>(this GuildUserEntity user, bool countHidden = true)
-        where T : Reprimand
-        => (uint) user.Reprimands<T>(countHidden).LongCount();
+    public static uint HistoryCount<T>(this GuildUserEntity user,
+        ModerationCategory? category, bool countHidden) where T : Reprimand
+        => (uint) user.Reprimands<T>(category, countHidden).LongCount();
 
-    public static uint WarningCount(this GuildUserEntity user, bool countHidden = true)
-        => (uint) user.Reprimands<Warning>(countHidden).Sum(w => w.Count);
+    public static uint WarningCount(this GuildUserEntity user, ModerationCategory? category, bool countHidden)
+        => (uint) user.Reprimands<Warning>(category, countHidden).Sum(w => w.Count);
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
@@ -240,28 +244,26 @@ public static class ReprimandExtensions
         return null;
     }
 
-    public static async ValueTask<uint> GetTotalAsync(this Reprimand reprimand, DbContext db, bool countHidden = true,
+    public static async ValueTask<uint> CountUserReprimandsAsync(
+        this Reprimand reprimand, DbContext db, bool hidden = true,
         CancellationToken cancellationToken = default)
     {
         var user = await reprimand.GetUserAsync(db, cancellationToken);
 
         return reprimand switch
         {
-            Ban      => user.HistoryCount<Ban>(countHidden),
-            Censored => user.HistoryCount<Censored>(countHidden),
-            Kick     => user.HistoryCount<Kick>(countHidden),
-            Mute     => user.HistoryCount<Mute>(countHidden),
-            Note     => user.HistoryCount<Note>(countHidden),
-            Notice   => user.HistoryCount<Notice>(countHidden),
-            Warning  => user.WarningCount(countHidden),
+            Ban      => user.HistoryCount<Ban>(reprimand.Category, hidden),
+            Censored => user.HistoryCount<Censored>(reprimand.Category, hidden),
+            Kick     => user.HistoryCount<Kick>(reprimand.Category, hidden),
+            Mute     => user.HistoryCount<Mute>(reprimand.Category, hidden),
+            Note     => user.HistoryCount<Note>(reprimand.Category, hidden),
+            Notice   => user.HistoryCount<Notice>(reprimand.Category, hidden),
+            Warning  => user.WarningCount(reprimand.Category, hidden),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
         };
     }
-
-    private static bool IsCounted(Reprimand reprimand)
-        => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
 
     private static bool IsIncluded(this Reprimand reprimand, LogReprimandStatus status)
     {

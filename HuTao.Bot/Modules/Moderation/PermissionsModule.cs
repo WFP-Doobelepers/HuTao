@@ -14,7 +14,7 @@ using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
-using HuTao.Services.Core.TypeReaders;
+using HuTao.Services.Core.TypeReaders.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
@@ -126,11 +126,11 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 
     protected override EmbedBuilder EntityViewer(AuthorizationGroup entity) => GetAuthorizationGroupDetails(entity);
 
-    protected override async Task RemoveEntityAsync(AuthorizationGroup censor)
+    protected override async Task RemoveEntityAsync(AuthorizationGroup entity)
     {
-        if (censor.Action is not null) _db.Remove(censor.Action);
-        _db.RemoveRange(censor.Collection);
-        _db.Remove(censor);
+        if (entity.Action is not null) _db.Remove(entity.Action);
+        _db.RemoveRange(entity.Collection);
+        _db.Remove(entity);
 
         await _db.SaveChangesAsync();
     }
@@ -171,8 +171,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
         public AccessType AccessType { get; set; } = AccessType.Allow;
 
-        [HelpSummary("The permissions that the user must have.")]
-        public GuildPermission Permission { get; set; }
+        [HelpSummary("The permissions that the user must have.")] public GuildPermission Permission { get; set; }
 
         [HelpSummary("The text or category channels this permission will work on.")]
         public IEnumerable<IGuildChannel>? Channels { get; set; }
@@ -180,8 +179,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         [HelpSummary("The users that are allowed to use the command.")]
         public IEnumerable<IGuildUser>? Users { get; set; }
 
-        [HelpSummary("The roles that the user must have.")]
-        public IEnumerable<IRole>? Roles { get; set; }
+        [HelpSummary("The roles that the user must have.")] public IEnumerable<IRole>? Roles { get; set; }
     }
 
     private enum ConfigureOptions

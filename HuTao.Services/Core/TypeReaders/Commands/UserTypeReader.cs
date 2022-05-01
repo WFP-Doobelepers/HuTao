@@ -8,7 +8,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 /// <summary>
 ///     A <see cref="TypeReader" /> for parsing objects implementing <see cref="IUser" />.

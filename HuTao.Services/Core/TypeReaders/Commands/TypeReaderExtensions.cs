@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Discord.Commands;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public static class TypeReaderExtensions
 {

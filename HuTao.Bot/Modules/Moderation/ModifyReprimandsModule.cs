@@ -60,8 +60,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Alias("warnlist all")]
     [Summary("Views the entire reprimand history of the server.")]
     protected async Task ViewEntityAsync(
-        [Summary("Leave empty to show everything.")]
-        LogReprimandType type = LogReprimandType.All)
+        [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {
         var collection = await GetCollectionAsync();
         await PagedViewAsync(collection.OfType(type));
@@ -83,7 +82,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     }
 
     private ReprimandDetails GetDetails(IUser user, string? reason)
-        => new(user, Context, reason);
+        => new(Context, user, reason);
 
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)

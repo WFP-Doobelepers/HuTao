@@ -2,10 +2,10 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
-using static HuTao.Data.Models.Moderation.Logging.LogReprimandType;
 
 namespace HuTao.Bot.Modules;
 
@@ -21,8 +21,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
     [RequireAuthorization(AuthorizationScope.User)]
     public async Task AvatarAsync(
-        [Summary("The mention, username or ID of the user.")]
-        IUser? user = null)
+        [Summary("The mention, username or ID of the user.")] IUser? user = null)
     {
         user ??= Context.User;
         await _user.ReplyAvatarAsync(Context, user);
@@ -33,13 +32,13 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Summary("View a specific history of a user's infractions.")]
     [RequireAuthorization(AuthorizationScope.Moderator)]
     public async Task InfractionsAsync(
-        [Summary("The user to show the infractions of.")]
-        IUser? user = null,
-        [Summary("Leave empty to show warnings.")]
-        LogReprimandType type = Warning | Notice)
+        [Summary("The user to show the infractions of.")] IUser? user = null,
+        [Summary("Leave empty to show warnings.")] LogReprimandType type
+            = LogReprimandType.Warning | LogReprimandType.Notice,
+        ModerationCategory? category = null)
     {
         user ??= Context.User;
-        await _user.ReplyHistoryAsync(Context, type, user, false);
+        await _user.ReplyHistoryAsync(Context, category, type, user, false);
     }
 
     [Command("user")]
@@ -47,8 +46,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Summary("Views the information of a user. Leave blank to view self.")]
     [RequireAuthorization(AuthorizationScope.User)]
     public async Task UserAsync(
-        [Summary("The mention, username or ID of the user.")]
-        IUser? user = null)
+        [Summary("The mention, username or ID of the user.")] IUser? user = null)
     {
         user ??= Context.User;
         await _user.ReplyUserAsync(Context, user);

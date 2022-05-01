@@ -38,9 +38,9 @@ public static class EmbedBuilderExtensions
             && user.GetPermissions(channel).ManageMessages)
         {
             return builder
-                .WithButton("Delete Message", $"delete:{quote.ChannelId}:{quote.MessageId}", ButtonStyle.Danger)
-                .WithButton("View User", $"user:{quote.UserId}", ButtonStyle.Secondary)
-                .WithButton("View Reprimands", $"history:{quote.UserId}", ButtonStyle.Secondary);
+                .WithButton("Delete", $"delete:{quote.ChannelId}:{quote.MessageId}", ButtonStyle.Danger)
+                .WithButton("User Info", $"user:{quote.UserId}", ButtonStyle.Secondary)
+                .WithButton("Reprimands", $"history:{quote.UserId}", ButtonStyle.Secondary);
         }
 
         return builder;

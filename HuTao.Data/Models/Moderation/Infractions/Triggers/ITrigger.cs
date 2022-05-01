@@ -1,8 +1,12 @@
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+
 namespace HuTao.Data.Models.Moderation.Infractions.Triggers;
 
 public interface ITrigger
 {
-    TriggerMode Mode { get; set; }
+    public ModerationCategory? Category { get; set; }
 
-    uint Amount { get; set; }
+    public TriggerMode Mode { get; set; }
+
+    public uint Amount { get; set; }
 }

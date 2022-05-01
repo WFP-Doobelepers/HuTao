@@ -1,6 +1,6 @@
 ﻿using System;
 using Discord.Commands;
-using HuTao.Services.Core.TypeReaders;
+using HuTao.Services.Core.TypeReaders.Commands;
 using HuTao.Services.Interactive.TryParse;
 
 namespace HuTao.Services.Interactive.TypeReaders;

@@ -19,8 +19,9 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
         UserId  = details.User.Id;
         GuildId = details.Guild.Id;
 
-        Action  = details;
-        Trigger = details.Trigger;
+        Category = details.Category;
+        Trigger  = details.Trigger;
+        Action   = details;
     }
 
     public Guid Id { get; set; }
@@ -32,6 +33,8 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
     public virtual GuildUserEntity? User { get; set; }
 
     public virtual ModerationAction? ModifiedAction { get; set; }
+
+    public virtual ModerationCategory? Category { get; set; }
 
     public ReprimandStatus Status { get; set; }
 

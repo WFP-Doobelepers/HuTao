@@ -35,10 +35,11 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("ban", "Ban a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Ban)]
     public async Task BanAsync(
         [RequireHigherRole] IUser user, uint deleteDays = 0,
         TimeSpan? length = null, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
@@ -48,7 +49,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             return;
         }
 
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
@@ -56,14 +57,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("kick", "Kick a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Kick)]
     public async Task KickAsync(
-        [RequireHigherRole] IGuildUser user,
-        string? reason = null,
+        [RequireHigherRole] IGuildUser user, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Kick)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryKickAsync(details);
 
         if (result is null)
@@ -71,14 +72,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("mute", "Mute a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Mute)]
     public async Task MuteAsync([RequireHigherRole] IGuildUser user,
-        TimeSpan? length = null,
-        string? reason = null,
+        TimeSpan? length = null, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryMuteAsync(length, details);
 
         if (result is null)
@@ -90,8 +91,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("mutelist", "View active mutes on the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
-    public async Task MuteListAsync([RequireEphemeralScope] bool ephemeral = false)
+    public async Task MuteListAsync(
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Moderator)]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
@@ -117,25 +120,26 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("note", "Add a note to a user. Notes are always silent.")]
-    [RequireAuthorization(AuthorizationScope.Note)]
     public async Task NoteAsync(
         [RequireHigherRole] IGuildUser user, string? note = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Note)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, note);
+        var details = await GetDetailsAsync(user, note, category);
         await _moderation.NoteAsync(details);
     }
 
     [SlashCommand("notice", "Add a notice to a user. This counts as a minor warning.")]
-    [RequireAuthorization(AuthorizationScope.Warning)]
     public async Task NoticeAsync(
-        [RequireHigherRole] IGuildUser user,
-        string? reason = null,
+        [RequireHigherRole] IGuildUser user, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         await _moderation.NoticeAsync(details);
     }
 
@@ -153,7 +157,8 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             : ModerationService.SlowmodeChannelAsync(Context, length, channel);
 
     [SlashCommand("template", "Run a configured moderation template")]
-    public async Task TemplateAsync([Autocomplete(typeof(ModerationAutocomplete))] string name,
+    public async Task TemplateAsync(
+        [Autocomplete(typeof(TemplateAutocomplete))] string name,
         [RequireHigherRole] IUser user,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -174,7 +179,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             return;
         }
 
-        var details = await GetDetailsAsync(user, template.Reason);
+        var details = await GetDetailsAsync(user, template.Reason, template.Category);
         var result = await _moderation.ReprimandAsync(template, details);
 
         if (result is null)
@@ -182,13 +187,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("unban", "Unban a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Ban)]
     public async Task UnbanAsync(
         IUser user, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnbanAsync(details);
 
         if (result is null)
@@ -196,13 +202,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("unmute", "Unmute a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Mute)]
     public async Task UnmuteAsync(
         IGuildUser user, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnmuteAsync(details);
 
         if (result is null)
@@ -210,14 +217,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("warn", "Warn a user from the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Warning)]
     public async Task WarnAsync(
-        [RequireHigherRole] IGuildUser user,
-        uint amount = 1, string? reason = null,
+        [RequireHigherRole] IGuildUser user, uint amount = 1, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason);
+        var details = await GetDetailsAsync(user, reason, category);
         await _moderation.WarnAsync(amount, details);
     }
 
@@ -225,9 +232,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         .WithName(r.GetTitle(true))
         .WithValue(r.GetReprimandExpiration());
 
-    private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
+    private async Task<ReprimandDetails> GetDetailsAsync(
+        IUser user, string? reason, ModerationCategory? category)
     {
-        var details = new ReprimandDetails(user, Context, reason);
+        var details = new ReprimandDetails(Context, user, reason, category: category);
 
         await _db.Users.TrackUserAsync(details);
         await _db.SaveChangesAsync();

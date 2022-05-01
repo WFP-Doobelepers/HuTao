@@ -38,6 +38,9 @@ public class GuildEntity
     public virtual ICollection<MessageLog> MessageLogs { get; set; }
         = new List<MessageLog>();
 
+    public virtual ICollection<ModerationCategory> ModerationCategories { get; set; }
+        = new List<ModerationCategory>();
+
     public virtual ICollection<ModerationTemplate> ModerationTemplates { get; set; }
         = new List<ModerationTemplate>();
 

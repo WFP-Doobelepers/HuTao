@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Services.Utilities;
 
-namespace HuTao.Services.Core.TypeReaders;
+namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class EnumFlagsTypeReader<T> : TypeReader where T : struct, Enum
 {

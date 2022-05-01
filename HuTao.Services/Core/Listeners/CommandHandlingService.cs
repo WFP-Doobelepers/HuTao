@@ -10,9 +10,10 @@ using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Logging;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Messages;
-using HuTao.Services.Core.TypeReaders;
+using HuTao.Services.Core.TypeReaders.Commands;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig;
@@ -64,12 +65,13 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _commands.CommandExecuted += CommandExecutedAsync;
 
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
-
-        _commands.AddTypeReader<IUser>(new TypeReaders.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
+        _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
+        _commands.AddTypeReader<IUser>(new TypeReaders.Commands.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
+        _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
         _commands.AddTypeReaders<IMessage>(
             new JumpUrlTypeReader(),
-            new TypeReaders.MessageTypeReader<IMessage>());
+            new TypeReaders.Commands.MessageTypeReader<IMessage>());
 
         _commands.AddTypeReaders<IEmote>(
             new TryParseTypeReader<Emote>(Emote.TryParse),
@@ -102,8 +104,6 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _commands.AddTypeReader<UserTargetOptions>(
             new EnumFlagsTypeReader<UserTargetOptions>(
                 splitOptions: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
-
-        _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }

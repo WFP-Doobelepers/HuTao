@@ -46,12 +46,17 @@ public class Bot
             .AddMediatR(c => c.Using<HuTaoMediator>(),
                 typeof(Bot), typeof(DiscordSocketListener))
             .AddLogging(l => l.AddSerilog())
-            .AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
+            .AddSingleton(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = HuTaoConfig.Configuration.AlwaysDownloadUsers,
                 MessageCacheSize    = HuTaoConfig.Configuration.MessageCacheSize,
                 GatewayIntents      = HuTaoConfig.Configuration.GatewayIntents
-            }))
+            })
+            .AddSingleton(new InteractionServiceConfig
+            {
+                AutoServiceScopes = false
+            })
+            .AddSingleton<DiscordSocketClient>()
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()

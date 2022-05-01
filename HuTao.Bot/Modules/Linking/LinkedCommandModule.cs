@@ -46,7 +46,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         [Summary("The name of the custom command.")] string name,
         [Remainder] LinkedCommandOptions options)
     {
-        var command = new LinkedCommand(name, options);
+        var command = new LinkedCommand(name, options, (IGuildUser) Context.User);
         await AddCommandAsync(command);
     }
 

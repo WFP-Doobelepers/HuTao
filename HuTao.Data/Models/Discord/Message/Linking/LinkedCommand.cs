@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Discord;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 
@@ -12,12 +13,12 @@ public class LinkedCommand
     protected LinkedCommand() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public LinkedCommand(string name, ILinkedCommandOptions options)
+    public LinkedCommand(string name, ILinkedCommandOptions options, IGuildUser? moderator)
     {
         Name          = name;
         Ephemeral     = options.Ephemeral;
         Silent        = options.Silent;
-        Authorization = options.ToAuthorizationGroups().ToList();
+        Authorization = options.ToAuthorizationGroups(moderator).ToList();
         Roles         = options.RoleTemplates.ToList();
         Message       = options.Message is not null ? new MessageTemplate(options.Message, options) : null;
         Description   = options.Description;

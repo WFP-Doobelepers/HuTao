@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
@@ -25,6 +26,8 @@ public class ModerationTemplate
     public Guid Id { get; set; }
 
     public AuthorizationScope Scope { get; set; }
+
+    public virtual ModerationCategory? Category { get; set; }
 
     public virtual ReprimandAction Action { get; set; } = null!;
 
