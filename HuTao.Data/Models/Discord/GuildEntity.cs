@@ -59,11 +59,11 @@ public class GuildEntity
     public virtual ICollection<TemporaryRoleMember> TemporaryRoleMembers { get; set; }
         = new List<TemporaryRoleMember>();
 
-    public virtual LoggingRules LoggingRules { get; set; } = null!;
+    public virtual LoggingRules? LoggingRules { get; set; }
 
-    public virtual ModerationLoggingRules ModerationLoggingRules { get; set; } = null!;
+    public virtual ModerationLoggingRules? ModerationLoggingRules { get; set; }
 
-    public virtual ModerationRules ModerationRules { get; set; } = null!;
+    public virtual ModerationRules? ModerationRules { get; set; }
 
     public virtual VoiceChatRules? VoiceChatRules { get; set; }
 }

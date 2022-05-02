@@ -7,6 +7,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
@@ -70,6 +71,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        guild.ModerationRules ??= new ModerationRules();
         return guild.ModerationRules.CensorExclusions;
     }
 

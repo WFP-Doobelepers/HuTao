@@ -1,13 +1,10 @@
 using System;
-using HuTao.Data.Models.Discord;
 
 namespace HuTao.Data.Models.Moderation.Logging;
 
 public class ModerationLoggingRules
 {
     public Guid Id { get; set; }
-
-    public virtual GuildEntity Guild { get; set; } = null!;
 
     public LogReprimandType SilentReprimands { get; set; } = LogReprimandType.None;
 
@@ -18,6 +15,4 @@ public class ModerationLoggingRules
     public virtual ModerationLogConfig CommandLog { get; set; } = new();
 
     public virtual ModerationLogConfig UserLog { get; set; } = new();
-
-    public ulong GuildId { get; set; }
 }

@@ -9,6 +9,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
@@ -153,6 +154,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     public async Task TestCensorAsync(string word)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        guild.ModerationRules ??= new ModerationRules();
         var matches = guild.ModerationRules.Triggers.OfType<Censor>()
             .Where(c => c.Regex().IsMatch(word)).ToList();
 
@@ -185,6 +187,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     protected override async Task<ICollection<Censor>> GetCollectionAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        guild.ModerationRules ??= new ModerationRules();
         return guild.ModerationRules.Triggers.OfType<Censor>().ToList();
     }
 
@@ -195,6 +198,7 @@ public class CensorModule : InteractiveTrigger<Censor>
         if (options is not null)
             censor.Exclusions = options.ToCriteria();
 
+        guild.ModerationRules ??= new ModerationRules();
         guild.ModerationRules.Triggers.Add(censor.WithModerator(Context));
         await _db.SaveChangesAsync();
     }

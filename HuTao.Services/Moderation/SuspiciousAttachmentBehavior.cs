@@ -48,7 +48,7 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
             return;
 
         var guildEntity = await _db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
-        if (cancellationToken.IsCancellationRequested)
+        if (cancellationToken.IsCancellationRequested || guildEntity.ModerationRules is null)
             return;
 
         if (guildEntity.ModerationRules.CensorExclusions.Any(e => e.Judge(channel, user)))

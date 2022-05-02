@@ -10,6 +10,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
@@ -70,10 +71,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
-    public async Task ConfigureMuteRoleAsync(IGuild guild, IRole? role)
+    public async Task ConfigureMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role)
     {
-        var guildEntity = await _db.Guilds.TrackGuildAsync(guild);
-        var rules = guildEntity.ModerationRules;
         var roleId = rules.MuteRoleId;
 
         role ??= guild.Roles.FirstOrDefault(r => r.Id == roleId);
@@ -302,13 +301,13 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
         var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
 
-        var muteRole = guildEntity.ModerationRules.MuteRoleId;
+        var muteRole = details.Category?.MuteRoleId ?? guildEntity.ModerationRules?.MuteRoleId;
         if (muteRole is null) return null;
 
         if (activeMute is not null)
         {
-            if (!guildEntity.ModerationRules.ReplaceMutes)
-                return null;
+            var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
+            if (!replace) return null;
 
             await ExpireReprimandAsync(activeMute, ReprimandStatus.Expired, cancellationToken, details);
         }
@@ -343,7 +342,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var guild = await details.GetGuildAsync(_db, cancellationToken);
-        var notice = new Notice(guild.ModerationRules.NoticeExpiryLength, details);
+        var expiry = details.Category?.NoticeExpiryLength ?? guild.ModerationRules?.NoticeExpiryLength;
+        var notice = new Notice(expiry, details);
 
         _db.Add(notice);
         await _db.SaveChangesAsync(cancellationToken);
@@ -355,7 +355,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken = default)
     {
         var guild = await details.GetGuildAsync(_db, cancellationToken);
-        var warning = new Warning(amount, guild.ModerationRules.WarningExpiryLength, details);
+        var expiry = details.Category?.WarningExpiryLength ?? guild.ModerationRules?.WarningExpiryLength;
+        var warning = new Warning(amount, expiry, details);
 
         _db.Add(warning);
         await _db.SaveChangesAsync(cancellationToken);
@@ -389,7 +390,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (user is null) return;
         var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild);
 
-        if (guildEntity.ModerationRules.MuteRoleId is not null)
+        if (guildEntity.ModerationRules?.MuteRoleId is not null)
             await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
 
         if (user.VoiceChannel is not null)
@@ -495,7 +496,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         var user = await reprimand.GetUserAsync(_db, cancellationToken);
         var rules = user.Guild.ModerationRules;
 
-        return rules.Triggers
+        return rules?.Triggers
             .OfType<ReprimandTrigger>()
             .Where(t => t.IsActive)
             .Where(t => t.Source == source)

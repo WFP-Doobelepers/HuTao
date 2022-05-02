@@ -73,7 +73,7 @@ public class QuoteService : IQuoteService
                 if (context.User is not IGuildUser guildUser) continue;
 
                 var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
-                var logging = guild.LoggingRules.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
+                var logging = guild.LoggingRules?.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
                 if (logging is null) continue;
 
                 var channel = await context.Guild.GetTextChannelAsync(logging.ChannelId);

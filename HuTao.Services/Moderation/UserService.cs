@@ -223,7 +223,7 @@ public class UserService
             {
                 if (guildUser.TimedOutUntil is not null)
                     embed.AddField("Timeout", guildUser.TimedOutUntil.Humanize());
-                else if (guild.ModerationRules.MuteRoleId is not null)
+                else if (guild.ModerationRules?.MuteRoleId is not null)
                 {
                     var mute = await _db.GetActive<Mute>(guildUser);
                     if (mute is not null) embed.AddField("Muted", mute.ExpireAt.Humanize(), true);

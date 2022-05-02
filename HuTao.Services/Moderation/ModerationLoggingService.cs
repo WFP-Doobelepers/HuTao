@@ -28,7 +28,8 @@ public class ModerationLoggingService
     {
         var reprimand = result.Last;
         var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
-        var options = guild.ModerationLoggingRules;
+        var options = details.Category?.LoggingRules ?? guild.ModerationLoggingRules;
+        if (options is null) return result;
 
         await PublishAsync(options.ModeratorLog);
         await PublishAsync(options.PublicLog);

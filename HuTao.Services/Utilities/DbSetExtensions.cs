@@ -5,10 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Reaction;
-using HuTao.Data.Models.Logging;
-using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
-using HuTao.Data.Models.Moderation.Logging;
 using Microsoft.EntityFrameworkCore;
 
 namespace HuTao.Services.Utilities;
@@ -19,16 +16,8 @@ public static class DbSetExtensions
     public static async Task<GuildEntity> TrackGuildAsync(
         this DbSet<GuildEntity> set, IGuild guild,
         CancellationToken cancellationToken = default)
-    {
-        var guildEntity = await set.FindByIdAsync(guild.Id, cancellationToken)
+        => await set.FindByIdAsync(guild.Id, cancellationToken)
             ?? set.Add(new GuildEntity(guild.Id)).Entity;
-
-        guildEntity.ModerationRules        ??= new ModerationRules();
-        guildEntity.ModerationLoggingRules ??= new ModerationLoggingRules();
-        guildEntity.LoggingRules           ??= new LoggingRules();
-
-        return guildEntity;
-    }
 
     public static async Task<ReactionEntity> TrackEmoteAsync(this DbContext db, IEmote reaction,
         CancellationToken cancellationToken = default)

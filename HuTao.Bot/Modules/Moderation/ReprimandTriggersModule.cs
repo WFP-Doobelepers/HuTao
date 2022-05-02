@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
@@ -138,7 +139,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     protected override async Task<ICollection<ReprimandTrigger>> GetCollectionAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        var rules = guild.ModerationRules;
+        var rules = guild.ModerationRules ??= new ModerationRules();
 
         return rules.Triggers.OfType<ReprimandTrigger>().ToArray();
     }
@@ -147,13 +148,12 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         ReprimandAction action, TriggerSource source, ITrigger? options)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        var rules = guild.ModerationRules;
-        // if (options?.Category is not null)
-        //     options.Category = await _db.Guilds.TrackCategoryAsync(Context.Guild, options.Category);
+        var rules = guild.ModerationRules ??= new ModerationRules();
 
         var trigger = new ReprimandTrigger(options, source, action);
         var existing = rules.Triggers
             .OfType<ReprimandTrigger>()
+            .Where(t => t.Category?.Id == options?.Category?.Id)
             .FirstOrDefault(t => t.IsActive
                 && t.Source == source
                 && t.Amount == trigger.Amount);

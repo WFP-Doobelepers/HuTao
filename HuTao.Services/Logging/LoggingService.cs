@@ -207,7 +207,7 @@ public class LoggingService
         var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
         if (guildEntity is null || cancellationToken.IsCancellationRequested) return false;
 
-        return guildEntity.LoggingRules.LoggingExclusions.Any(e => e.Judge(channel, user));
+        return guildEntity.LoggingRules?.LoggingExclusions.Any(e => e.Judge(channel, user)) ?? false;
     }
 
     private async Task<bool> LogEmbedsUpdated(MessageLog log, IMessage message, CancellationToken cancellationToken)
@@ -384,10 +384,9 @@ public class LoggingService
     {
         var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
 
-        var channel = guildEntity.LoggingRules.LoggingChannels
-            .FirstOrDefault(r => r.Type == type);
-
+        var channel = guildEntity.LoggingRules?.LoggingChannels.FirstOrDefault(r => r.Type == type);
         if (channel is null) return null;
+
         return await guild.GetTextChannelAsync(channel.ChannelId);
     }
 

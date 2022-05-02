@@ -5,10 +5,11 @@ using System.Linq;
 using Discord;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
+using HuTao.Data.Models.Moderation.Logging;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
-public class ModerationCategory
+public class ModerationCategory : IModerationRules
 {
     protected ModerationCategory() { }
 
@@ -21,10 +22,23 @@ public class ModerationCategory
 
     public Guid Id { get; set; }
 
-    public virtual ICollection<AuthorizationGroup> Authorization { get; set; }
-        = new List<AuthorizationGroup>();
+    public virtual ICollection<AuthorizationGroup> Authorization { get; set; } = new List<AuthorizationGroup>();
 
     public static ModerationCategory All { get; } = new("All", null, null);
 
+    public virtual ModerationLoggingRules? LoggingRules { get; set; }
+
     public string Name { get; set; } = null!;
+
+    public bool ReplaceMutes { get; set; }
+
+    public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
+
+    public TimeSpan? CensorTimeRange { get; set; }
+
+    public TimeSpan? NoticeExpiryLength { get; set; }
+
+    public TimeSpan? WarningExpiryLength { get; set; }
+
+    public ulong? MuteRoleId { get; set; }
 }

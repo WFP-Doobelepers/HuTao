@@ -5,6 +5,7 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
@@ -35,8 +36,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         [Summary("Leave empty to disable auto pardon of notices.")] TimeSpan? length = null,
         ModerationCategory? category = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        guild.ModerationRules.NoticeExpiryLength = length;
+        var rules = await GetRulesAsync(category);
+        rules.NoticeExpiryLength = length;
         await _db.SaveChangesAsync();
 
         if (length is null)
@@ -48,10 +49,11 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Command("warning expiry")]
     [Summary("Set the time for when a warning is automatically hidden. This will not affect old cases.")]
     public async Task ConfigureAutoPardonWarningAsync(
-        [Summary("Leave empty to disable auto pardon of warnings.")] TimeSpan? length = null)
+        [Summary("Leave empty to disable auto pardon of warnings.")] TimeSpan? length = null,
+        ModerationCategory? category = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        guild.ModerationRules.WarningExpiryLength = length;
+        var rules = await GetRulesAsync(category);
+        rules.WarningExpiryLength = length;
         await _db.SaveChangesAsync();
 
         if (length is null)
@@ -64,22 +66,24 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Alias("replace mute")]
     [Summary("Whether mutes should be replaced when there is an active one.")]
     public async Task ConfigureAutoPardonWarningAsync(
-        [Summary("Leave empty to toggle")] bool? shouldReplace = null)
+        [Summary("Leave empty to toggle")] bool? shouldReplace = null,
+        ModerationCategory? category = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        guild.ModerationRules.ReplaceMutes = shouldReplace ?? !guild.ModerationRules.ReplaceMutes;
+        var rules = await GetRulesAsync(category);
+        rules.ReplaceMutes = shouldReplace ?? !rules.ReplaceMutes;
         await _db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {guild.ModerationRules.ReplaceMutes}");
+        await ReplyAsync($"New value: {rules.ReplaceMutes}");
     }
 
     [Command("censor range")]
     [Summary("Set the time for when a censor is considered.")]
     public async Task ConfigureCensorTimeRangeAsync(
-        [Summary("Leave empty to disable censor range.")] TimeSpan? length = null)
+        [Summary("Leave empty to disable censor range.")] TimeSpan? length = null,
+        ModerationCategory? category = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        guild.ModerationRules.CensorTimeRange = length;
+        var rules = await GetRulesAsync(category);
+        rules.CensorTimeRange = length;
         await _db.SaveChangesAsync();
 
         if (length is null)
@@ -92,9 +96,11 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Summary("Configures the Mute role.")]
     public async Task ConfigureMuteAsync(
         [Summary("Optionally provide a mention, ID, or name of an existing role.")]
-        IRole? role = null)
+        IRole? role = null,
+        ModerationCategory? category = null)
     {
-        await _moderation.ConfigureMuteRoleAsync(Context.Guild, role);
+        var rules = await GetRulesAsync(category);
+        await _moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role);
 
         if (role is null)
             await ReplyAsync("Mute role has been configured.");
@@ -142,6 +148,13 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
+    }
+
+    private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
+    {
+        if (category is not null) return category;
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        return guild.ModerationRules ??= new ModerationRules();
     }
 
     [NamedArgumentType]

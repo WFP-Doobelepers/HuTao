@@ -42,7 +42,7 @@ public class CensorBehavior :
 
         var guild = channel.Guild;
         var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-        if (cancellationToken.IsCancellationRequested)
+        if (cancellationToken.IsCancellationRequested || guildEntity.ModerationRules is null)
             return;
 
         if (guildEntity.ModerationRules.CensorExclusions.Any(e => e.Judge(channel, user)))
@@ -54,10 +54,11 @@ public class CensorBehavior :
         foreach (var censor in guildEntity.ModerationRules.Triggers.OfType<Censor>()
             .Where(c => c.IsActive)
             .Where(c => c.Exclusions.All(e => !e.Judge(channel, user)))
+            .Where(c => c.Category?.CensorExclusions.All(e => !e.Judge(channel, user)) ?? true)
             .Where(c => c.Regex().IsMatch(message.Content)))
         {
             var details = new ReprimandDetails(user, currentUser, "[Censor Triggered]", censor, null, censor.Category);
-            var length = guildEntity.ModerationRules.CensorTimeRange;
+            var length = censor.Category?.CensorTimeRange ?? guildEntity.ModerationRules.CensorTimeRange;
 
             await _moderation.CensorAsync(message, length, details, cancellationToken);
         }
