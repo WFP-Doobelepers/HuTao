@@ -41,11 +41,18 @@ public class UserService
     {
         await context.DeferAsync(ephemeral);
         var components = await ComponentsAsync(context, user);
+        var avatar = user.GetDefiniteAvatarUrl(4096);
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-            .WithImageUrl(user.GetDefiniteAvatarUrl(2048))
+            .WithImageUrl(avatar)
             .WithColor(await _image.GetAvatarColor(user))
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
+
+        if (user is IGuildUser guild)
+        {
+            var guildAvatar = guild.GetGuildAvatarUrl(size: 4096);
+            if (guildAvatar is not null) embed.WithThumbnailUrl(avatar).WithImageUrl(guildAvatar);
+        }
 
         await context.ReplyAsync(embed: embed.Build(), components: components, ephemeral: ephemeral);
     }
@@ -62,7 +69,7 @@ public class UserService
 
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
         var categories = guild.ModerationCategories.Append(ModerationCategory.All);
-        
+
         var history = guild.ReprimandHistory.OfType(type).Where(r => r.UserId == user.Id);
         if (category != ModerationCategory.All)
             history = history.Where(r => r.Category?.Id == category?.Id);
