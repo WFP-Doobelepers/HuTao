@@ -10,6 +10,7 @@ using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Utilities;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
@@ -61,6 +62,9 @@ public class AuthorizationService
     public ValueTask<bool> IsAuthorizedAsync(SocketInteractionContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
         => IsAuthorizedAsync(new InteractionContext(context), scope, cancellationToken);
+
+    public static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
+        => IsAuthorized(context, category.Authorization.Scoped(scope).ToList(), true);
 
     public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)

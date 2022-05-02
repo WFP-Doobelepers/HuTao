@@ -22,7 +22,7 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
         var interaction = new CommandContext(context);
 
         return value is ModerationCategory category
-            ? AuthorizationService.IsAuthorized(interaction, category.Authorization, true)
+            ? AuthorizationService.IsAuthorized(interaction, _scope, category)
                 ? PreconditionResult.FromSuccess()
                 : PreconditionResult.FromError($"You are not authorized to use the `{category.Name}` category.")
             : await auth.IsAuthorizedAsync(interaction, _scope)
