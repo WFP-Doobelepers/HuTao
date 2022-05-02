@@ -71,7 +71,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
-    public async Task ConfigureMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role)
+    public async Task ConfigureMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role, bool skipPermissions)
     {
         var roleId = rules.MuteRoleId;
 
@@ -81,7 +81,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         rules.MuteRoleId = role.Id;
         await _db.SaveChangesAsync();
-
+        
+        if (skipPermissions) return;
         var permissions = new OverwritePermissions(
             addReactions: PermValue.Deny,
             sendMessages: PermValue.Deny,
