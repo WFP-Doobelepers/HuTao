@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Rest;
 using Discord.WebSocket;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
@@ -66,7 +67,15 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
-        _commands.AddTypeReader<IUser>(new TypeReaders.Commands.UserTypeReader<IUser>(CacheMode.AllowDownload, true));
+        
+        _commands.AddUserTypeReader<IUser>();
+        _commands.AddUserTypeReader<SocketUser>();
+        _commands.AddUserTypeReader<RestUser>();
+        
+        _commands.AddUserTypeReader<IGuildUser>();
+        _commands.AddUserTypeReader<SocketGuildUser>();
+        _commands.AddUserTypeReader<RestGuildUser>();
+        
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
         _commands.AddTypeReaders<IMessage>(

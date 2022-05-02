@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Discord;
 using Discord.Commands;
 
 namespace HuTao.Services.Core.TypeReaders.Commands;
@@ -26,4 +27,8 @@ public static class TypeReaderExtensions
 
     public static void AddTypeReaders<TResult>(this CommandService commands, IEnumerable<TypeReader> readers)
         => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
+
+    public static void AddUserTypeReader<TUser>(this CommandService commands,
+        CacheMode cacheMode = CacheMode.AllowDownload, bool useRest = true) where TUser : class, IUser
+        => commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode, useRest));
 }
