@@ -62,13 +62,12 @@ public class UserService
 
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
         var categories = guild.ModerationCategories.Append(ModerationCategory.All);
-        var reprimands = guild.ReprimandHistory.OfType(type)
-            .Where(r => r.UserId == user.Id)
-            .Where(r => category == ModerationCategory.All || r.Category?.Id == category?.Id)
-            .OrderByDescending(r => r.Action?.Date)
-            .Select(r => r.ToEmbedBuilder(true))
-            .ToList();
+        
+        var history = guild.ReprimandHistory.OfType(type).Where(r => r.UserId == user.Id);
+        if (category != ModerationCategory.All)
+            history = history.Where(r => r.Category?.Id == category?.Id);
 
+        var reprimands = history.OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true)).ToList();
         reprimands.Insert(0, GetReprimands(userEntity, category)
             .WithColor(await _image.GetAvatarColor(user))
             .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));

@@ -117,8 +117,10 @@ public static class ReprimandExtensions
         ModerationCategory? category, bool countHidden) where T : Reprimand
     {
         var reprimands = user.Guild.ReprimandHistory.OfType<T>()
-            .Where(r => category == ModerationCategory.All || r.Category?.Id == category?.Id)
             .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted);
+
+        if (category != ModerationCategory.All)
+            reprimands = reprimands.Where(r => r.Category?.Id == category?.Id);
 
         return countHidden
             ? reprimands
