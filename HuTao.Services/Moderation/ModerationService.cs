@@ -310,7 +310,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
             if (!replace) return null;
 
-            await ExpireReprimandAsync(activeMute, ReprimandStatus.Expired, cancellationToken, details);
+            await ExpireReprimandAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
         }
 
         try

@@ -217,8 +217,8 @@ public static class ReprimandExtensions
     }
 
     public static uint HistoryCount<T>(this GuildUserEntity user,
-        ModerationCategory? category, bool countHidden) where T : Reprimand
-        => (uint) user.Reprimands<T>(category, countHidden).LongCount();
+        ModerationCategory? category, bool countPardoned) where T : Reprimand
+        => (uint) user.Reprimands<T>(category, countPardoned).LongCount();
 
     public static uint WarningCount(this GuildUserEntity user, ModerationCategory? category, bool countHidden)
         => (uint) user.Reprimands<Warning>(category, countHidden).Sum(w => w.Count);
@@ -247,20 +247,20 @@ public static class ReprimandExtensions
     }
 
     public static async ValueTask<uint> CountUserReprimandsAsync(
-        this Reprimand reprimand, DbContext db, bool hidden = true,
+        this Reprimand reprimand, DbContext db, bool countPardoned = true,
         CancellationToken cancellationToken = default)
     {
         var user = await reprimand.GetUserAsync(db, cancellationToken);
 
         return reprimand switch
         {
-            Ban      => user.HistoryCount<Ban>(reprimand.Category, hidden),
-            Censored => user.HistoryCount<Censored>(reprimand.Category, hidden),
-            Kick     => user.HistoryCount<Kick>(reprimand.Category, hidden),
-            Mute     => user.HistoryCount<Mute>(reprimand.Category, hidden),
-            Note     => user.HistoryCount<Note>(reprimand.Category, hidden),
-            Notice   => user.HistoryCount<Notice>(reprimand.Category, hidden),
-            Warning  => user.WarningCount(reprimand.Category, hidden),
+            Ban      => user.HistoryCount<Ban>(reprimand.Category, countPardoned),
+            Censored => user.HistoryCount<Censored>(reprimand.Category, countPardoned),
+            Kick     => user.HistoryCount<Kick>(reprimand.Category, countPardoned),
+            Mute     => user.HistoryCount<Mute>(reprimand.Category, countPardoned),
+            Note     => user.HistoryCount<Note>(reprimand.Category, countPardoned),
+            Notice   => user.HistoryCount<Notice>(reprimand.Category, countPardoned),
+            Warning  => user.WarningCount(reprimand.Category, countPardoned),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
@@ -278,7 +278,7 @@ public static class ReprimandExtensions
             ReprimandStatus.Added    => status.HasFlag(LogReprimandStatus.Added),
             ReprimandStatus.Expired  => status.HasFlag(LogReprimandStatus.Expired),
             ReprimandStatus.Updated  => status.HasFlag(LogReprimandStatus.Updated),
-            ReprimandStatus.Pardoned => status.HasFlag(LogReprimandStatus.Hidden),
+            ReprimandStatus.Pardoned => status.HasFlag(LogReprimandStatus.Pardoned),
             ReprimandStatus.Deleted  => status.HasFlag(LogReprimandStatus.Deleted),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "This reprimand type cannot be logged.")

@@ -31,7 +31,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("notice expiry")]
-    [Summary("Set the time for when a notice is automatically hidden. This will not affect old cases.")]
+    [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
     public async Task ConfigureAutoPardonNoticeAsync(
         [Summary("Leave empty to disable auto pardon of notices.")] TimeSpan? length = null,
         ModerationCategory? category = null)
@@ -47,7 +47,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("warning expiry")]
-    [Summary("Set the time for when a warning is automatically hidden. This will not affect old cases.")]
+    [Summary("Set the time for when a warning is automatically pardoned. This will not affect old cases.")]
     public async Task ConfigureAutoPardonWarningAsync(
         [Summary("Leave empty to disable auto pardon of warnings.")] TimeSpan? length = null,
         ModerationCategory? category = null)
