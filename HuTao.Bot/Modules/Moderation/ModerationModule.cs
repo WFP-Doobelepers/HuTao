@@ -119,6 +119,14 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("mute")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => MuteAsync(user, length, null, reason);
+
+    [Priority(-2)]
+    [Command("mute")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Mute)]
     public Task MuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => MuteAsync(user, null, null, reason);
 
@@ -298,6 +306,13 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         => WarnAsync(user, category, amount, reason);
 
     [Priority(-2)]
+    [Command("warn")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Warning)]
+    public Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
+        => WarnAsync(user, null, amount, reason);
+
+    [Priority(-3)]
     [Command("warn")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Warning)]
