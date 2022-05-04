@@ -64,7 +64,7 @@ public class AuthorizationService
         => IsAuthorizedAsync(new InteractionContext(context), scope, cancellationToken);
 
     public static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
-        => IsAuthorized(context, category.Authorization.Scoped(scope).ToList(), true);
+        => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
 
     public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)

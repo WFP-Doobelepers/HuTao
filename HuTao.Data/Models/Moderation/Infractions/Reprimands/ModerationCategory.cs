@@ -16,8 +16,8 @@ public class ModerationCategory : IModerationRules
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public ModerationCategory(string name, ICriteriaOptions? options, IGuildUser? moderator)
     {
-        Name          = name;
-        Authorization = options?.ToAuthorizationGroups(AuthorizationScope.Moderator, moderator).ToList() 
+        Name = name;
+        Authorization = options?.ToAuthorizationGroups(AuthorizationScope.Moderator, moderator).ToList()
             ?? new List<AuthorizationGroup>();
     }
 
@@ -25,7 +25,7 @@ public class ModerationCategory : IModerationRules
 
     public virtual ICollection<AuthorizationGroup> Authorization { get; set; } = new List<AuthorizationGroup>();
 
-    public static ModerationCategory All { get; } = new("All", null, null);
+    public static ModerationCategory None { get; } = new("None", null, null);
 
     public virtual ModerationLoggingRules? LoggingRules { get; set; }
 

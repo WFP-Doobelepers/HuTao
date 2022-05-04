@@ -23,9 +23,9 @@ public class CategoryAutocomplete : AutocompleteHandler
 
         var input = interaction.Data.Current.Value.ToString();
         var templates = guild.ModerationCategories
-            .Append(ModerationCategory.All)
+            .Append(ModerationCategory.None)
             .Where(t => string.IsNullOrEmpty(input) || t.Name.StartsWith(input, StringComparison.OrdinalIgnoreCase))
-            .Where(t => AuthorizationService.IsAuthorized(new InteractionContext(context), t.Authorization, true))
+            .Where(t => AuthorizationService.IsAuthorized(new InteractionContext(context), t.Authorization))
             .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
 
         return AutocompletionResult.FromSuccess(templates);

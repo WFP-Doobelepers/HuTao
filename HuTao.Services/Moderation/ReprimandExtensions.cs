@@ -94,6 +94,14 @@ public static class ReprimandExtensions
         return embed;
     }
 
+    public static IEnumerable<Reprimand> OfCategory(this IEnumerable<Reprimand> reprimands,
+        ModerationCategory? category) => category switch
+    {
+        null                                    => reprimands,
+        var c when c == ModerationCategory.None => reprimands.Where(r => r.Category is null),
+        _                                       => reprimands.Where(r => r.Category?.Id == category.Id)
+    };
+
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)
     {
         if (types is LogReprimandType.All or LogReprimandType.None) return reprimands;
@@ -116,11 +124,9 @@ public static class ReprimandExtensions
     public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user,
         ModerationCategory? category, bool countHidden) where T : Reprimand
     {
-        var reprimands = user.Guild.ReprimandHistory.OfType<T>()
-            .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted);
-
-        if (category != ModerationCategory.All)
-            reprimands = reprimands.Where(r => r.Category?.Id == category?.Id);
+        var reprimands = user.Guild.ReprimandHistory
+            .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted)
+            .OfCategory(category).OfType<T>();
 
         return countHidden
             ? reprimands

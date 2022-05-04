@@ -16,11 +16,10 @@ public class CategoryTypeReader : TypeReader<ModerationCategory?>
     public override async Task<TypeConverterResult> ReadAsync(
         IInteractionContext context, string? option, IServiceProvider services)
     {
-        if (string.IsNullOrEmpty(option))
-            return TypeConverterResult.FromSuccess(null);
-
-        if (option.Equals("All", StringComparison.OrdinalIgnoreCase))
-            return TypeConverterResult.FromSuccess(ModerationCategory.All);
+        if (string.IsNullOrEmpty(option)
+            || option.Equals("null", StringComparison.OrdinalIgnoreCase)
+            || option.Equals("None", StringComparison.OrdinalIgnoreCase))
+            return TypeConverterResult.FromSuccess(ModerationCategory.None);
 
         if (context.Guild is null)
             return TypeConverterResult.FromError(UnmetPrecondition, "This command can only be used in a guild.");
