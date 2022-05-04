@@ -54,7 +54,8 @@ public class Bot
             })
             .AddSingleton(new InteractionServiceConfig
             {
-                AutoServiceScopes = false
+                AutoServiceScopes = false,
+                UseCompiledLambda = true
             })
             .AddSingleton<DiscordSocketClient>()
             .AddSingleton<CommandService>()

@@ -20,5 +20,7 @@ public class BotConfig
 
     public ulong Guild { get; init; }
 
+    public ulong Liben { get; init; }
+
     public ulong Owner { get; init; }
 }

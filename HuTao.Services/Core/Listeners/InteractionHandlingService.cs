@@ -1,10 +1,12 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using HuTao.Data;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Core.Messages;
@@ -48,10 +50,11 @@ public class InteractionHandlingService :
 #if DEBUG
         await _commands.RegisterCommandsToGuildAsync(HuTaoConfig.Configuration.Guild);
 #else
-        var guildCommands = Array.Empty<ApplicationCommandProperties>();
-        await _discord.Rest.BulkOverwriteGuildCommands(guildCommands, HuTaoConfig.Configuration.Guild);
         await _commands.RegisterCommandsGloballyAsync();
 #endif
+        var guild = _discord.GetGuild(HuTaoConfig.Configuration.Guild);
+        var modules = _commands.Modules.Where(m => m.DontAutoRegister).ToArray();
+        await _commands.AddModulesToGuildAsync(guild, false, modules);
     }
 
     public async Task InitializeAsync()
@@ -62,6 +65,7 @@ public class InteractionHandlingService :
 
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
         _commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
+        _commands.AddComponentTypeConverter<TimeSpan>(new TimeSpanTypeReader());
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }
