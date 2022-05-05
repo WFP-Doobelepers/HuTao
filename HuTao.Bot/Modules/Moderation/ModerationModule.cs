@@ -54,7 +54,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             return;
         }
 
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
@@ -83,7 +83,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Kick)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryKickAsync(details);
 
         if (result is null)
@@ -104,7 +104,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryMuteAsync(length, details);
 
         if (result is null)
@@ -116,6 +116,14 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
+    [Command("mute")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => MuteAsync(user, length, null, reason);
+
+    [Priority(-2)]
     [Command("mute")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Mute)]
@@ -155,10 +163,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Note)] ModerationCategory? category = null,
         [Remainder] string? note = null)
     {
-        var details = await GetDetailsAsync(user, note, null);
+        var details = await GetDetailsAsync(user, note, category);
         await _moderation.NoteAsync(details);
-
-        await Context.Message.DeleteAsync();
     }
 
     [Priority(-1)]
@@ -174,7 +180,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         await _moderation.NoticeAsync(details);
     }
 
@@ -247,7 +253,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnbanAsync(details);
 
         if (result is null)
@@ -266,7 +272,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
-        var details = await GetDetailsAsync(user, reason, null);
+        var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnmuteAsync(details);
 
         if (result is null)
@@ -298,6 +304,13 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         => WarnAsync(user, category, amount, reason);
 
     [Priority(-2)]
+    [Command("warn")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Warning)]
+    public Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
+        => WarnAsync(user, null, amount, reason);
+
+    [Priority(-3)]
     [Command("warn")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Warning)]
