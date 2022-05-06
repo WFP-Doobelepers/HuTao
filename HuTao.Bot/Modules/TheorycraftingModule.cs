@@ -6,6 +6,7 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules;
 
+[Group("tc", "Theorycrafting related commands")]
 public class TheorycraftingModule : InteractionModuleBase<SocketInteractionContext>
 {
     public enum Refinement
@@ -16,7 +17,6 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
         R4 = 4,
         R5 = 5
     }
-
 
     [SlashCommand("favonius", "Calculate Favonius proc chance")]
     public async Task FavoniusAsync(
