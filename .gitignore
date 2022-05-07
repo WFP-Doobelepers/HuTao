@@ -349,3 +349,11 @@ healthchecksdb
 MigrationBackup/
 
 .idea/
+
+Zhongli.Data/Migrations/20220415192513_m.CoopEuRoleId.cs
+
+Zhongli.Data/Migrations/ZhongliContextModelSnapshot.cs
+
+Zhongli.Data/Migrations/20220415192513_m.CoopEuRoleId.Designer.cs
+
+Zhongli.Bot/Modules/Test.cs
