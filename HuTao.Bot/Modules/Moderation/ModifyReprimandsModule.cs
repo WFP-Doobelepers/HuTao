@@ -8,6 +8,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
@@ -18,19 +19,21 @@ namespace HuTao.Bot.Modules.Moderation;
 
 [Name("Reprimand Modification")]
 [Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
-[RequireAuthorization(AuthorizationScope.Moderator)]
 public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 {
+    private const AuthorizationScope Scope = AuthorizationScope.Moderator | AuthorizationScope.All;
+    private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
+    private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
     private readonly ModerationService _moderation;
 
-    public ModifyReprimandsModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
-        : base(error, db)
+    public ModifyReprimandsModule(CommandErrorHandler error, HuTaoContext db,
+        AuthorizationService auth, ModerationService moderation) : base(error, db)
     {
-        _error = error;
-        _db    = db;
-
+        _auth       = auth;
+        _error      = error;
+        _db         = db;
         _moderation = moderation;
     }
 
@@ -59,6 +62,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Command("reprimand history")]
     [Alias("warnlist all")]
     [Summary("Views the entire reprimand history of the server.")]
+    [RequireAuthorization(AuthorizationScope.Moderator)]
     protected async Task ViewEntityAsync(
         [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {
@@ -73,7 +77,16 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         => entity.ToEmbedBuilder(true);
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
-        => await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
+    {
+        var authorized = entity.Category is null
+            ? await _auth.IsAuthorizedAsync(Context, Scope)
+            : AuthorizationService.IsAuthorized(Context, Scope, entity.Category);
+
+        if (!authorized)
+            await _error.AssociateError(Context.Message, NotAuthorizedMessage);
+        else
+            await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
+    }
 
     protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
     {
@@ -87,16 +100,21 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
-        {
+        var authorized = reprimand?.Category is null
+            ? await _auth.IsAuthorizedAsync(Context, Scope)
+            : AuthorizationService.IsAuthorized(Context, Scope, reprimand.Category);
+
+        if (!authorized)
+            await _error.AssociateError(Context.Message, NotAuthorizedMessage);
+        else if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
             await _error.AssociateError(Context.Message, EmptyMatchMessage);
-            return;
+        else
+        {
+            var user = Context.Client.GetUser(reprimand.UserId);
+            var details = GetDetails(user, reason);
+
+            await update(reprimand, details);
         }
-
-        var user = Context.Client.GetUser(reprimand.UserId);
-        var details = GetDetails(user, reason);
-
-        await update(reprimand, details);
     }
 
     private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ReprimandDetails details,
