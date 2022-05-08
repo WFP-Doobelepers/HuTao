@@ -84,6 +84,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
     protected override async Task RemoveEntityAsync(Authorization authorization)
     {
         _db.TryRemove(authorization.Group);
+        _db.RemoveRange(authorization.Group.Collection);
         await _db.SaveChangesAsync();
     }
 

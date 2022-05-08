@@ -8,7 +8,6 @@ using HuTao.Data;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.DependencyInjection;
-using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Services.Core.Autocomplete;
 
@@ -23,9 +22,8 @@ public class CategoryAutocomplete : AutocompleteHandler
 
         var input = interaction.Data.Current.Value.ToString();
         var templates = guild.ModerationCategories
-            .Append(ModerationCategory.All)
+            .Append(ModerationCategory.None)
             .Where(t => string.IsNullOrEmpty(input) || t.Name.StartsWith(input, StringComparison.OrdinalIgnoreCase))
-            .Where(t => AuthorizationService.IsAuthorized(new InteractionContext(context), t.Authorization, true))
             .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
 
         return AutocompletionResult.FromSuccess(templates);

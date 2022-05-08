@@ -68,11 +68,10 @@ public class UserService
         if (userEntity is null) return;
 
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
-        var categories = guild.ModerationCategories.Append(ModerationCategory.All);
 
-        var history = guild.ReprimandHistory.OfType(type).Where(r => r.UserId == user.Id);
-        if (category != ModerationCategory.All)
-            history = history.Where(r => r.Category?.Id == category?.Id);
+        var history = guild.ReprimandHistory
+            .Where(r => r.UserId == user.Id)
+            .OfType(type).OfCategory(category);
 
         var reprimands = history.OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true)).ToList();
         reprimands.Insert(0, GetReprimands(userEntity, category)
@@ -107,7 +106,7 @@ public class UserService
         {
             var components = GetMessageComponents(message)
                 .WithSelectMenu(InfractionMenu(user, category, type))
-                .WithSelectMenu(CategoryMenu(user, categories, category, type))
+                .WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type))
                 .Build();
 
             _ = message switch
@@ -168,8 +167,8 @@ public class UserService
             .WithPlaceholder("Select a category")
             .WithMinValues(0).WithMaxValues(1)
             .WithOptions(categories
-                .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name,
-                    isDefault: selected?.Name == c.Name))
+                .Append(ModerationCategory.None)
+                .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
     private static SelectMenuBuilder InfractionMenu(IUser user,
@@ -242,7 +241,7 @@ public class UserService
 
         embed.WithColor(Color.Red);
 
-        var banDetails = userEntity?.Reprimands<Ban>(ModerationCategory.All, false).MaxBy(b => b.Action?.Date);
+        var banDetails = userEntity?.Reprimands<Ban>(null, false).MaxBy(b => b.Action?.Date);
 
         if (banDetails is not null)
             embeds.Add(banDetails.ToEmbedBuilder(true));
