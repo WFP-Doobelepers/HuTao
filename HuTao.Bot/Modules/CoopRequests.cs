@@ -3,7 +3,7 @@ using Discord.Commands;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
-namespace Zhongli.Bot.Modules;
+namespace HuTao.Bot.Modules;
 
 [Name("CoopRequests")]
 [Summary("Deals with Coop requests.")]
@@ -17,7 +17,7 @@ public class CoopRequestsModule : ModuleBase<SocketCommandContext>
     public async Task RequestAsync([Remainder] string request)
     {
         await Context.Message.DeleteAsync();
-        
+
         var uid = Uid(request);
         var region = Region(uid);
 

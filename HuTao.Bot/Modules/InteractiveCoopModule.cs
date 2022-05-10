@@ -3,7 +3,7 @@ using System.Linq;
 using Discord.Interactions;
 using System.Threading.Tasks;
 
-namespace Zhongli.Bot.Modules;
+namespace HuTao.Bot.Modules;
 
 public class InteractiveCoopModule : InteractionModuleBase<SocketInteractionContext>
 {
