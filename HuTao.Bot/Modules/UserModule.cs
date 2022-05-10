@@ -30,7 +30,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Command("history")]
     [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
     [Summary("View a specific history of a user's infractions.")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public async Task InfractionsAsync(
         [Summary("The user to show the infractions of.")] IUser? user = null,
         [Summary("Leave empty to show warnings.")] LogReprimandType type

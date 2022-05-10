@@ -21,7 +21,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
 public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 {
-    private const AuthorizationScope Scope = AuthorizationScope.Moderator | AuthorizationScope.All;
+    private const AuthorizationScope Scope = AuthorizationScope.All | AuthorizationScope.History;
     private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
@@ -62,7 +62,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Command("reprimand history")]
     [Alias("warnlist all")]
     [Summary("Views the entire reprimand history of the server.")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     protected async Task ViewEntityAsync(
         [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {

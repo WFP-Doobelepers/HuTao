@@ -28,12 +28,12 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         => await _user.ReplyAvatarAsync(Context, user, ephemeral);
 
     [SlashCommand("history", "View a history of a user's infractions")]
+    [RequireAuthorization(AuthorizationScope.History)]
     public async Task SlashHistoryAsync(
         [Summary(description: "The user to show history of")] IUser user,
         [Summary(description: "Leave empty to show warnings and notices")]
         LogReprimandType type = LogReprimandType.Warning | LogReprimandType.Notice,
-        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Moderator)]
-        ModerationCategory? category = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
         => await _user.ReplyHistoryAsync(Context, category, type, user, false, ephemeral);
@@ -59,7 +59,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task UserAvatarAsync(IUser user) => SlashAvatarAsync(user, true);
 
     [UserCommand("Reprimand History")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: true);
 
     [UserCommand("User Information")]
@@ -67,7 +67,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
 
     [ComponentInteraction("history:*")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public Task ComponentHistoryAsync(IUser user) => SlashHistoryAsync(user);
 
     [ComponentInteraction("user:*")]
@@ -75,12 +75,12 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
     [ComponentInteraction("reprimand:*:*")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public Task ComponentReprimandsAsync(string id, ModerationCategory? category, LogReprimandType[] types)
         => ComponentReprimandsAsync(id, InfractionTypeBitwise.Or(types), new[] { category });
 
     [ComponentInteraction("category:*:*")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public async Task ComponentReprimandsAsync(string id, LogReprimandType type, ModerationCategory?[] categories)
     {
         var category = categories.FirstOrDefault();

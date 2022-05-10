@@ -91,9 +91,9 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("mutelist", "View active mutes on the current guild.")]
+    [RequireAuthorization(AuthorizationScope.History)]
     public async Task MuteListAsync(
-        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Moderator)]
-        ModerationCategory? category = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);

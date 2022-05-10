@@ -134,7 +134,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("mutes")]
     [Alias("mute list", "mutelist")]
     [Summary("View active mutes on the current guild.")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.History)]
     public async Task MuteListAsync()
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);

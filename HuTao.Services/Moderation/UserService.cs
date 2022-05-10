@@ -22,6 +22,7 @@ namespace HuTao.Services.Moderation;
 
 public class UserService
 {
+    private const AuthorizationScope Scope = AuthorizationScope.All | AuthorizationScope.History;
     private readonly AuthorizationService _auth;
     private readonly HuTaoContext _db;
     private readonly IImageService _image;
@@ -194,8 +195,7 @@ public class UserService
     private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(
         Context context, IUser user, ModerationCategory? category)
     {
-        var isAuthorized = await _auth
-            .IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Moderator);
+        var isAuthorized = await _auth.IsAuthorizedAsync(context, Scope);
         var userEntity = await _db.Users.FindAsync(user.Id, context.Guild.Id);
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
         var guildUser = user as SocketGuildUser;
@@ -256,7 +256,7 @@ public class UserService
 
     private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
     {
-        var authorized = await _auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Helper);
+        var authorized = await _auth.IsAuthorizedAsync(context, Scope);
         return authorized ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user, null)).Build() : null;
     }
 }

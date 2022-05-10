@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 
 namespace HuTao.Data.Models.Authorization;
@@ -36,6 +36,9 @@ public enum AuthorizationScope
 
     [Description("Allows using ephemeral messages.")]
     Ephemeral = 1 << 12,
+
+    [Description("Allows viewing of the moderation log.")]
+    History = 1 << 13,
 
     [Description("Allows warning, mute, kick, notes, and ban.")]
     Moderator = Warning | Mute | Kick | Ban | Note,
