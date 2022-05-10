@@ -74,10 +74,11 @@ public class UserService
             .Where(r => r.UserId == user.Id)
             .OfType(type).OfCategory(category);
 
-        var reprimands = history.OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true)).ToList();
-        reprimands.Insert(0, GetReprimands(userEntity, category)
-            .WithColor(await _image.GetAvatarColor(user))
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
+        var reprimands = history
+            .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
+            .Prepend(GetReprimands(userEntity, category)
+                .WithColor(await _image.GetAvatarColor(user))
+                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
 
         var pages = reprimands.Chunk(4)
             .Select(builders =>

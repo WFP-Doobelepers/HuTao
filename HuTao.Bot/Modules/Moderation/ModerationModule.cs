@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Fergun.Interactive;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
@@ -11,7 +10,6 @@ using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
-using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 
@@ -25,19 +23,16 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
-    private readonly InteractiveService _interactive;
     private readonly ModerationService _moderation;
 
     public ModerationModule(
         AuthorizationService auth, CommandErrorHandler error,
-        InteractiveService interactive, ModerationService moderation,
-        HuTaoContext db)
+        ModerationService moderation, HuTaoContext db)
     {
-        _auth        = auth;
-        _error       = error;
-        _interactive = interactive;
-        _moderation  = moderation;
-        _db          = db;
+        _auth       = auth;
+        _error      = error;
+        _moderation = moderation;
+        _db         = db;
     }
 
     [Command("ban")]
@@ -135,27 +130,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Alias("mute list", "mutelist")]
     [Summary("View active mutes on the current guild.")]
     [RequireAuthorization(AuthorizationScope.History)]
-    public async Task MuteListAsync()
-    {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        var history = guild.ReprimandHistory.OfType<Mute>()
-            .Where(r => r.IsActive())
-            .Where(r => r.Status
-                is not ReprimandStatus.Expired
-                or ReprimandStatus.Pardoned
-                or ReprimandStatus.Deleted);
-
-        var embed = new EmbedBuilder()
-            .WithTitle("Currently Active Mutes");
-
-        var pages = history
-            .OrderByDescending(r => r.Action?.Date)
-            .Select(CreateEmbed)
-            .ToPageBuilders(EmbedBuilder.MaxFieldCount, embed);
-
-        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
-        await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), Context.Channel);
-    }
+    public Task MuteListAsync(ModerationCategory? category = null)
+        => _moderation.SendMuteListAsync(Context, category, false);
 
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
@@ -316,10 +292,6 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [RequireAuthorization(AuthorizationScope.Warning)]
     public Task WarnAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => WarnAsync(user, null, 1, reason);
-
-    private static EmbedFieldBuilder CreateEmbed(Reprimand r) => new EmbedFieldBuilder()
-        .WithName(r.GetTitle(true))
-        .WithValue(r.GetReprimandExpiration());
 
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category)

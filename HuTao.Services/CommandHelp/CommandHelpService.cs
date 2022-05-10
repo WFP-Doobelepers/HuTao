@@ -163,10 +163,11 @@ internal class CommandHelpService : ICommandHelpService
     {
         var paginator = InteractiveExtensions.CreateDefaultPaginator();
 
-        var builders = module.Commands.Select(c => c.ToEmbedBuilder()).ToList();
-        builders.Insert(0, new EmbedBuilder()
-            .WithTitle($"Module: {module.Name}")
-            .WithDescription(module.Summary));
+        var builders = module.Commands
+            .Select(c => c.ToEmbedBuilder())
+            .Prepend(new EmbedBuilder()
+                .WithTitle($"Module: {module.Name}")
+                .WithDescription(module.Summary));
 
         var pages = new List<MultiEmbedPageBuilder>();
         var page = pages.Insert(new MultiEmbedPageBuilder());

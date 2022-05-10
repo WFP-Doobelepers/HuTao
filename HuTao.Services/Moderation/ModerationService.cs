@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
@@ -18,6 +19,7 @@ using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.Core;
 using HuTao.Services.Expirable;
+using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.Caching.Memory;
 using IBan = HuTao.Data.Models.Moderation.Infractions.IBan;
@@ -29,17 +31,19 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private readonly AuthorizationService _auth;
     private readonly DiscordSocketClient _client;
     private readonly HuTaoContext _db;
+    private readonly InteractiveService _interactive;
     private readonly ModerationLoggingService _logging;
 
     public ModerationService(
         IMemoryCache cache, HuTaoContext db,
         AuthorizationService auth, DiscordSocketClient client,
-        ModerationLoggingService logging) : base(cache, db)
+        InteractiveService interactive, ModerationLoggingService logging) : base(cache, db)
     {
-        _auth    = auth;
-        _client  = client;
-        _db      = db;
-        _logging = logging;
+        _auth        = auth;
+        _client      = client;
+        _db          = db;
+        _interactive = interactive;
+        _logging     = logging;
     }
 
     public async Task CensorAsync(
@@ -81,7 +85,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         rules.MuteRoleId = role.Id;
         await _db.SaveChangesAsync();
-        
+
         if (skipPermissions) return;
         var permissions = new OverwritePermissions(
             addReactions: PermValue.Deny,
@@ -164,6 +168,37 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         }
     }
 
+    public async Task SendMuteListAsync(Context context, ModerationCategory? category, bool ephemeral)
+    {
+        await context.DeferAsync(ephemeral);
+        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+        var history = guild.ReprimandHistory.OfType<Mute>()
+            .Where(r => r.IsActive())
+            .Where(r => r.Status
+                is not ReprimandStatus.Expired
+                or ReprimandStatus.Pardoned
+                or ReprimandStatus.Deleted)
+            .Where(r => category is null || r.Category?.Id == category.Id);
+
+        var builders = history
+            .OrderByDescending(r => r.Action?.Date)
+            .Select(r => new EmbedBuilder().WithExpirableDetails(r));
+
+        var pages = new MultiEmbedPageBuilder().WithBuilders(builders);
+        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
+
+        await (context switch
+        {
+            CommandContext command => _interactive.SendPaginatorAsync(paginator, command.Channel),
+
+            InteractionContext { Interaction: SocketInteraction interaction }
+                => _interactive.SendPaginatorAsync(paginator, interaction, ephemeral: ephemeral,
+                    responseType: InteractionResponseType.DeferredChannelMessageWithSource),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(context), context, "Invalid context.")
+        });
+    }
+
     public static async Task ShowSlowmodeChannelsAsync(Context context)
     {
         var textChannels = await context.Guild.GetTextChannelsAsync();
@@ -235,7 +270,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (activeMute is not null)
             await ExpireMuteAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
         else
-            await EndMuteAsync(await details.GetUserAsync());
+            await EndMuteAsync(await details.GetUserAsync(), details.Category);
 
         return activeMute;
     }
@@ -386,13 +421,15 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         return source is not null;
     }
 
-    private async Task EndMuteAsync(IGuildUser? user)
+    private async Task EndMuteAsync(IGuildUser? user, IModerationRules? rules)
     {
         if (user is null) return;
-        var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild);
 
-        if (guildEntity.ModerationRules?.MuteRoleId is not null)
-            await user.RemoveRoleAsync(guildEntity.ModerationRules.MuteRoleId.Value);
+        var guild = await _db.Guilds.TrackGuildAsync(user.Guild);
+        rules ??= guild.ModerationRules;
+
+        if (rules?.MuteRoleId is not null)
+            await user.RemoveRoleAsync(rules.MuteRoleId.Value);
 
         if (user.VoiceChannel is not null)
             await user.ModifyAsync(u => u.Mute = false);
@@ -413,7 +450,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         var guild = _client.GetGuild(mute.GuildId);
         var user = guild.GetUser(mute.UserId);
 
-        _ = EndMuteAsync(user);
+        _ = EndMuteAsync(user, mute.Category);
 
         await ExpireReprimandAsync(mute, status, cancellationToken, details);
     }
@@ -426,7 +463,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             var guild = _client.GetGuild(reprimand.GuildId);
             var user = await _client.Rest.GetUserAsync(reprimand.UserId);
 
-            details = new ReprimandDetails(user, guild.CurrentUser, $"[Reprimand {status}]");
+            details = new ReprimandDetails(
+                user, guild.CurrentUser, $"[Reprimand {status}]",
+                Category: reprimand.Category);
         }
 
         reprimand.EndedAt ??= DateTimeOffset.UtcNow;

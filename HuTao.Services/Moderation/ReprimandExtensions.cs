@@ -94,6 +94,13 @@ public static class ReprimandExtensions
         return embed;
     }
 
+    public static EmbedBuilder WithExpirableDetails(this EmbedBuilder builder, ExpirableReprimand reprimand) => builder
+        .WithTitle(reprimand.GetTitle(true))
+        .AddField("User", $"{reprimand.MentionUser()} ({reprimand.UserId})", true)
+        .AddField("Category", reprimand.Category?.Name ?? "None", true)
+        .AddField("Expiry", reprimand.GetExpirationTime(), true)
+        .WithColor(reprimand.Length is null ? Color.DarkOrange : Color.Orange);
+
     public static IEnumerable<Reprimand> OfCategory(this IEnumerable<Reprimand> reprimands,
         ModerationCategory? category) => category switch
     {
@@ -153,22 +160,6 @@ public static class ReprimandExtensions
         };
     }
 
-    public static string GetReprimandExpiration(this Reprimand reprimand)
-    {
-        var expiry = reprimand switch
-        {
-            Ban b  => $"Expires in: {b.GetExpirationTime()}.",
-            Mute m => $"Expires in: {m.GetExpirationTime()}.",
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(reprimand), reprimand, "This reprimand is not expirable.")
-        };
-
-        return new StringBuilder()
-            .AppendLine($"User: {reprimand.MentionUser()}")
-            .AppendLine(expiry)
-            .ToString();
-    }
-
     public static string GetTitle(this Reprimand action, bool showId)
     {
         var title = action switch
@@ -196,7 +187,8 @@ public static class ReprimandExtensions
         CancellationToken cancellationToken = default) where T : ExpirableReprimand
     {
         var entities = await db.Set<T>()
-            .Where(m => m.UserId == details.User.Id && m.GuildId == details.Guild.Id)
+            .Where(r => r.UserId == details.User.Id && r.GuildId == details.Guild.Id)
+            .Where(r => details.Category == null || (r.Category != null && r.Category.Id == details.Category.Id))
             .ToListAsync(cancellationToken);
 
         return entities.FirstOrDefault(m => m.IsActive());
@@ -292,14 +284,7 @@ public static class ReprimandExtensions
     }
 
     private static string GetExpirationTime(this IExpirable expirable)
-    {
-        if (expirable.ExpireAt is null || expirable.Length is null) return "Indefinitely";
-
-        var length = expirable.ExpireAt.Value - DateTimeOffset.UtcNow;
-        return expirable.ExpireAt > DateTimeOffset.UtcNow
-            ? length.Humanize(5, minUnit: TimeUnit.Second, maxUnit: TimeUnit.Year)
-            : "Expired";
-    }
+        => expirable.ExpireAt?.ToUniversalTimestamp() ?? "Indefinitely";
 
     private static string GetLength(this ILength mute)
         => mute.Length?.Humanize(5,
