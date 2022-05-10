@@ -33,7 +33,6 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
             .AddField("Chance of procing", $"{chance:P}");
 
         await RespondAsync(embed: embed.Build(), ephemeral: false);
-        return;
     }
 
     [SlashCommand("crit-compare", "Compare the damage between two crit ratios")]
@@ -43,8 +42,10 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
         [Summary(description: "Build 2 Crit Rate%")][MinValue(0)] double critRate2,
         [Summary(description: "Build 2 Crit Damage%")][MinValue(0)] double critDamage2)
     {
-        var build1 = critMod(critRate1 / 100, critDamage1 / 100);
-        var build2 = critMod(critRate2 / 100, critDamage2 / 100);
+        static double CritMod(double critRate, double critDamage) => 1 + Math.Min(critRate, 1) * critDamage;
+        
+        var build1 = CritMod(critRate1 / 100, critDamage1 / 100);
+        var build2 = CritMod(critRate2 / 100, critDamage2 / 100);
 
         var embed = new EmbedBuilder()
             .WithTitle("Crit Ratio Comparison")
@@ -52,22 +53,12 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
             .AddField($"{critRate2}:{critDamage2}", $"{build2:p} Damage", inline: true);
 
         if (build1 > build2)
-        {
             embed.AddContent($"{critRate1}:{critDamage1} is {(build1 / build2) - 1:p} stronger");
-        }
         else if (build2 > build1)
-        {
             embed.AddContent($"{critRate2}:{critDamage2} is {(build2 / build1) - 1:p} stronger");
-        }
         else
-        {
             embed.AddContent("They do the same damage");
-        }
 
         await RespondAsync(embed: embed.Build(), ephemeral: false);
-        return;
     }
-
-    private static double critMod(double critRate, double critDamage) => 1 + Math.Min(critRate, 1) * critDamage;
 }
-
