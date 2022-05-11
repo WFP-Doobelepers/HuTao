@@ -133,7 +133,7 @@ public class UserService
         await context.DeferAsync(ephemeral);
 
         var components = await ComponentsAsync(context, user);
-        var builders = await GetUserAsync(context, user, null);
+        var builders = await GetUserAsync(context, user);
         var embeds = builders.Select(e => e.Build()).ToArray();
 
         await context.ReplyAsync(components: components, embeds: embeds, ephemeral: ephemeral);
@@ -193,12 +193,13 @@ public class UserService
         return menu;
     }
 
-    private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(
-        Context context, IUser user, ModerationCategory? category)
+    private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(Context context, IUser user)
     {
-        var isAuthorized = await _auth.IsAuthorizedAsync(context, Scope);
+        var isAuthorized = 
+            await _auth.IsAuthorizedAsync(context, Scope) || 
+            await _auth.IsCategoryAuthorizedAsync(context, Scope);
+
         var userEntity = await _db.Users.FindAsync(user.Id, context.Guild.Id);
-        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
         var guildUser = user as SocketGuildUser;
 
         var embeds = new List<EmbedBuilder>();
@@ -229,11 +230,9 @@ public class UserService
             {
                 if (guildUser.TimedOutUntil is not null)
                     embed.AddField("Timeout", guildUser.TimedOutUntil.Humanize());
-                else if (guild.ModerationRules?.MuteRoleId is not null)
-                {
-                    var mute = await _db.GetActive<Mute>(guildUser);
-                    if (mute is not null) embed.AddField("Muted", mute.ExpireAt.Humanize(), true);
-                }
+
+                var mute = await _db.GetActive<Mute>(guildUser);
+                if (mute is not null) embed.AddField("Muted", mute.ExpireAt.Humanize(), true);
             }
         }
 
@@ -241,23 +240,19 @@ public class UserService
         if (!isAuthorized || ban is null) return embeds;
 
         embed.WithColor(Color.Red);
-
         var banDetails = userEntity?.Reprimands<Ban>(null, false).MaxBy(b => b.Action?.Date);
-
         if (banDetails is not null)
             embeds.Add(banDetails.ToEmbedBuilder(true));
         else
             embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
-
-        if (userEntity is not null)
-            embeds.Add(GetReprimands(userEntity, category));
 
         return embeds;
     }
 
     private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
     {
-        var authorized = await _auth.IsAuthorizedAsync(context, Scope);
-        return authorized ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user, null)).Build() : null;
+        var auth = await _auth.IsAuthorizedAsync(context, Scope);
+        var category = await _auth.IsCategoryAuthorizedAsync(context, Scope);
+        return auth || category ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user, null)).Build() : null;
     }
 }
