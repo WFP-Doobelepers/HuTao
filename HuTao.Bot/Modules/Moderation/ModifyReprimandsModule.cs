@@ -112,7 +112,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
             await _error.AssociateError(Context.Message, EmptyMatchMessage);
         else
         {
-            var user = Context.Client.GetUser(reprimand.UserId);
+            var user = await ((IDiscordClient) Context.Client).GetUserAsync(reprimand.UserId);
             var details = GetDetails(user, reason);
 
             await update(reprimand, details);

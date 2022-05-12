@@ -128,7 +128,7 @@ public class LoggingService
     }
 
     public async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
-        => log is null ? null : (IUser?) _client.GetUser(log.UserId) ?? await _client.Rest.GetUserAsync(log.UserId);
+        => log is null ? null : await ((IDiscordClient) _client).GetUserAsync(log.UserId);
 
     public ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken = default)
         => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);

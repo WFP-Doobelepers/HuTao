@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 
 namespace HuTao.Services.Core.TypeReaders.Commands;
 
@@ -17,13 +16,11 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 public class UserTypeReader<T> : TypeReader
     where T : class, IUser
 {
-    private readonly bool _useRest;
     private readonly CacheMode _cacheMode;
 
-    public UserTypeReader(CacheMode cacheMode = CacheMode.AllowDownload, bool useRest = false)
+    public UserTypeReader(CacheMode cacheMode = CacheMode.AllowDownload)
     {
         _cacheMode = cacheMode;
-        _useRest   = useRest;
     }
 
     /// <inheritdoc />
@@ -66,7 +63,7 @@ public class UserTypeReader<T> : TypeReader
                 var channelUser = await context.Channel.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, channelUser, id);
 
-                AddResult(results, user, 1.00f);
+                AddResult(results, user, 0.90f);
             }
         }
 
@@ -80,36 +77,36 @@ public class UserTypeReader<T> : TypeReader
                 if (ushort.TryParse(input[(index + 1)..], out var discriminator))
                 {
                     var users = await context.Guild
-                        .SearchUsersAsync($"{username}#{discriminator}", mode: _cacheMode)
+                        .SearchUsersAsync(username, mode: _cacheMode)
                         .ConfigureAwait(false);
 
-                    foreach (var user in users)
+                    foreach (var user in users
+                        .Where(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase))
+                        .Where(u => u.DiscriminatorValue == discriminator))
                     {
-                        AddResult(results, user as T, user.Username == username ? 0.85f : 0.75f);
-
-                        if (user.DiscriminatorValue == discriminator && string.Equals(username, user.Username,
-                            StringComparison.OrdinalIgnoreCase))
-                            AddResult(results, user as T, user.Username == username ? 0.80f : 0.70f);
+                        AddResult(results, user as T, user.Username == username ? 0.85f : 0.80f);
                     }
                 }
             }
-
-            var search = await context.Guild
-                .SearchUsersAsync(input, mode: _cacheMode)
-                .ConfigureAwait(false);
-
-            // By Username (0.5-0.6)
-            var usernames = search.Where(x => string.Equals(input, x.Username, StringComparison.OrdinalIgnoreCase));
-            foreach (var user in usernames)
+            else
             {
-                AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
-            }
-
-            // By Nickname (0.5-0.6)
-            var nicknames = search.Where(x => string.Equals(input, x.Nickname, StringComparison.OrdinalIgnoreCase));
-            foreach (var user in nicknames)
-            {
-                AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
+                var search = await context.Guild
+                    .SearchUsersAsync(input, mode: _cacheMode)
+                    .ConfigureAwait(false);
+    
+                // By Username (0.5-0.6)
+                var usernames = search.Where(u => string.Equals(input, u.Username, StringComparison.OrdinalIgnoreCase));
+                foreach (var user in usernames)
+                {
+                    AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
+                }
+    
+                // By Nickname (0.5-0.6)
+                var nicknames = search.Where(u => string.Equals(input, u.Nickname, StringComparison.OrdinalIgnoreCase));
+                foreach (var user in nicknames)
+                {
+                    AddResult(results, user as T, user.Nickname == input ? 0.65f : 0.55f);
+                }
             }
         }
 
@@ -120,12 +117,8 @@ public class UserTypeReader<T> : TypeReader
 
     private async Task<T?> GetUserAsync(IDiscordClient client, IUser? user, ulong id)
     {
-        var result = user as T;
-        if (user is not null || !_useRest)
-            return result;
-
-        if (client is not DiscordSocketClient socketClient) return null;
-        return socketClient.GetUser(id) as T ?? await socketClient.Rest.GetUserAsync(id).ConfigureAwait(false) as T;
+        if (user is T result) return result;
+        return await client.GetUserAsync(id, _cacheMode) as T;
     }
 
     private static void AddResult(IDictionary<ulong, TypeReaderValue> results, T? user, float score)

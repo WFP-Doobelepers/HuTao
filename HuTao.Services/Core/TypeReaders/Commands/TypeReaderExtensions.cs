@@ -30,5 +30,5 @@ public static class TypeReaderExtensions
 
     public static void AddUserTypeReader<TUser>(this CommandService commands,
         CacheMode cacheMode = CacheMode.AllowDownload, bool useRest = true) where TUser : class, IUser
-        => commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode, useRest));
+        => commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode));
 }

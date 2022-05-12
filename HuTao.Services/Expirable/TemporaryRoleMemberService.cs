@@ -39,9 +39,11 @@ public class TemporaryRoleMemberService : ExpirableService<TemporaryRoleMember>
     protected override async Task OnExpiredEntity(TemporaryRoleMember temporary,
         CancellationToken cancellationToken)
     {
-        var guild = _client.GetGuild(temporary.GuildId);
-        var role = guild?.GetRole(temporary.RoleId);
-        var user = guild?.GetUser(temporary.UserId);
+        IGuild guild = _client.GetGuild(temporary.GuildId);
+        if (guild is null) return;
+        
+        var role = guild.GetRole(temporary.RoleId);
+        var user = await guild.GetUserAsync(temporary.UserId);
 
         if (user is not null && role is not null)
             await user.RemoveRoleAsync(role);

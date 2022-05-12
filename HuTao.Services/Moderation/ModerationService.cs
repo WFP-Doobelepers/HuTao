@@ -447,8 +447,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private async Task ExpireMuteAsync(ExpirableReprimand mute, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        var guild = _client.GetGuild(mute.GuildId);
-        var user = guild.GetUser(mute.UserId);
+        var guild = (IGuild) _client.GetGuild(mute.GuildId);
+        var user = await guild.GetUserAsync(mute.UserId);
 
         _ = EndMuteAsync(user, mute.Category);
 
