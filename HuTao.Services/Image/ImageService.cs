@@ -77,6 +77,7 @@ public sealed class ImageService : IImageService
         }
 
         var dominant = colorTree.GetPalette()
+            .DefaultIfEmpty(default)
             .MaxBy(x => x.Weight * x.Color.GetSaturation());
 
         return (Color) dominant.Color;
