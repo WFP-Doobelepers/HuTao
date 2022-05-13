@@ -29,7 +29,7 @@ public static class ModerationActionExtensions
             : action.Reason ?? "No reason.");
 
     public static string GetReason(this IModerationAction action, int length = 256)
-        => action.Action?.GetReason(length) ?? "Unknown";
+        => action.Action?.GetReason(length) ?? "No reason.";
 
     private static EmbedBuilder WithTimestamp(this EmbedBuilder builder, ModerationAction? action,
         bool useFooter = true)

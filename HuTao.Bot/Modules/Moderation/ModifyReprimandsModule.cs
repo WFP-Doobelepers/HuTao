@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -62,16 +63,18 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Summary("Delete a reprimand, this completely removes the data.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-    [Command("reprimand history")]
-    [Alias("reprimand all")]
+    [Priority(1)]
+    [Command("history all")]
+    [Alias("reprimand all", "reprimands all")]
     [Summary("Views the entire reprimand history of the server.")]
     [RequireAuthorization(History, Group = nameof(History))]
     [RequireCategoryAuthorization(History, Group = nameof(History))]
-    protected async Task ViewEntityAsync(
+    public async Task ViewHistoryAsync(
+        ModerationCategory? category = null,
         [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {
         var collection = await GetCollectionAsync();
-        await PagedViewAsync(collection.OfType(type));
+        await PagedViewAsync(collection.OfType(type).OfCategory(category).OrderByDescending(h => h.Action?.Date));
     }
 
     protected override bool IsMatch(Reprimand entity, string id)
