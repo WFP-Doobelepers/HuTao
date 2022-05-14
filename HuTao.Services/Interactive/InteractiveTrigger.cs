@@ -35,8 +35,9 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
             return;
         }
 
+        var reply = await ReplyAsync($"Deleting trigger {trigger.Id}...");
         await _moderation.DeleteTriggerAsync(trigger, (IGuildUser) Context.User, silent);
-        await Context.Message.AddReactionAsync(new Emoji("✅"));
+        await reply.AddReactionAsync(new Emoji("✅"));
     }
 
     [Command("enable")]
@@ -51,8 +52,7 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
     [Summary("Toggles a trigger by ID. Associated reprimands will be kept.")]
     protected async Task ToggleEntityAsync(
         [Summary("The ID of the trigger.")] string id,
-        [Summary("Leave empty to toggle the state.")]
-        bool? state = null)
+        [Summary("Leave empty to toggle the state.")] bool? state = null)
     {
         var collection = await GetCollectionAsync();
         var entity = await TryFindEntityAsync(id, collection);

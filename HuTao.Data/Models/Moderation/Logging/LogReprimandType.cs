@@ -14,5 +14,6 @@ public enum LogReprimandType
     Note = 1 << 4,
     Notice = 1 << 5,
     Warning = 1 << 6,
-    All = Ban | Censored | Kick | Mute | Note | Notice | Warning
+    Role = 1 << 7,
+    All = Ban | Censored | Kick | Mute | Note | Notice | Warning | Role
 }

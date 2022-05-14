@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Net;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Components;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -27,13 +26,13 @@ public class LinkingService
         _db    = db;
     }
 
-    public static async IAsyncEnumerable<EmbedBuilder> ApplyRoleTemplatesAsync(IUser user,
-        IReadOnlyCollection<RoleTemplate> templates)
+    public static async IAsyncEnumerable<EmbedBuilder> ApplyRoleTemplatesAsync(
+        IUser user, ICollection<RoleTemplate> templates)
     {
         if (user is not IGuildUser guildUser)
             yield break;
 
-        var (added, removed) = await AddRolesAsync(guildUser, templates);
+        var (added, removed) = await guildUser.AddRolesAsync(templates);
 
         if (added.Any())
         {
@@ -82,62 +81,6 @@ public class LinkingService
             new InteractionContext(context),
             button.Message, button.Roles.ToArray(),
             button.Ephemeral, button.DmUser);
-    }
-
-    public static async Task<(IReadOnlyCollection<RoleMetadata> Added, IReadOnlyCollection<RoleMetadata> Removed)>
-        AddRolesAsync(IGuildUser user, IReadOnlyCollection<RoleTemplate> templates)
-    {
-        var added = new List<RoleMetadata>();
-        var removed = new List<RoleMetadata>();
-
-        foreach (var add in templates.Where(t => t.Behavior is RoleBehavior.Add))
-        {
-            try
-            {
-                await user.AddRoleAsync(add.RoleId);
-                added.Add(new RoleMetadata(add, user));
-            }
-            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        foreach (var remove in templates.Where(t => t.Behavior is RoleBehavior.Remove))
-        {
-            try
-            {
-                await user.RemoveRoleAsync(remove.RoleId);
-                removed.Add(new RoleMetadata(remove, user));
-            }
-            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        foreach (var toggle in templates.Where(t => t.Behavior is RoleBehavior.Toggle))
-        {
-            try
-            {
-                if (user.HasRole(toggle.RoleId))
-                {
-                    await user.RemoveRoleAsync(toggle.RoleId);
-                    removed.Add(new RoleMetadata(toggle, user));
-                }
-                else
-                {
-                    await user.AddRoleAsync(toggle.RoleId);
-                    added.Add(new RoleMetadata(toggle, user));
-                }
-            }
-            catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
-            {
-                // Ignored
-            }
-        }
-
-        return (added, removed);
     }
 
     public async Task<LinkedButton?> LinkMessageAsync(IUserMessage message, ILinkedButtonOptions options)
@@ -208,7 +151,7 @@ public class LinkingService
     }
 
     private async Task SendMessageAsync(Context context, MessageTemplate? template,
-        IReadOnlyCollection<RoleTemplate> templates, bool isEphemeral, bool dmUser)
+        ICollection<RoleTemplate> templates, bool isEphemeral, bool dmUser)
     {
         if (!dmUser) await context.DeferAsync();
         if (template?.IsLive ?? false)
@@ -233,10 +176,5 @@ public class LinkingService
                 components: template?.Components.ToBuilder().Build(),
                 embeds: embeds.Select(e => e.Build()).ToArray(), ephemeral: isEphemeral);
         }
-    }
-
-    public record RoleMetadata(RoleTemplate Template, IGuildUser User)
-    {
-        public IRole Role => User.Guild.GetRole(Template.RoleId);
     }
 }

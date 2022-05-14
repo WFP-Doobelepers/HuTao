@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
@@ -29,14 +30,15 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 {
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
+    private readonly ModerationService _moderation;
 
     public ReprimandTriggersModule(
         CommandErrorHandler error, HuTaoContext db,
-        ModerationService moderation)
-        : base(error, db, moderation)
+        ModerationService moderation) : base(error, db, moderation)
     {
-        _error = error;
-        _db    = db;
+        _error      = error;
+        _db         = db;
+        _moderation = moderation;
     }
 
     [Command("ban")]
@@ -74,6 +76,16 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     public async Task NoticeTriggerAsync(TriggerSource source, TriggerOptions? options = null)
     {
         var action = new NoticeAction();
+        await TryAddTriggerAsync(action, source, options);
+    }
+
+    [Command("role")]
+    public async Task RoleTriggerAsync(TriggerSource source, RoleReprimandOptions options)
+    {
+        if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
+            await _error.AssociateError(Context, "No roles specified.");
+
+        var action = new RoleAction(options.Length, options);
         await TryAddTriggerAsync(action, source, options);
     }
 
@@ -131,7 +143,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         if (triggerHasReprimand)
             entity.IsActive = false;
         else
-            _db.Remove(entity);
+            await _moderation.DeleteTriggerAsync(entity, (IGuildUser) Context.User, false);
 
         await _db.SaveChangesAsync();
     }
@@ -163,14 +175,26 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         rules.Triggers.Add(trigger.WithModerator(Context));
         await _db.SaveChangesAsync();
 
-        var embed = new EmbedBuilder()
-            .WithTitle("Trigger added")
-            .WithColor(Color.Green)
-            .AddField("Action", trigger.Reprimand?.ToString() ?? "None")
-            .AddField("Trigger", trigger.GetTriggerDetails())
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
+        var embed = EntityViewer(trigger).WithColor(Color.Green);
         await ReplyAsync(embed: embed.Build());
+    }
+
+    [NamedArgumentType]
+    public class RoleReprimandOptions : IRoleTemplateOptions, ITrigger
+    {
+        public TimeSpan? Length { get; set; }
+
+        public IEnumerable<IRole>? AddRoles { get; set; }
+
+        public IEnumerable<IRole>? RemoveRoles { get; set; }
+
+        public IEnumerable<IRole>? ToggleRoles { get; set; }
+
+        public ModerationCategory? Category { get; set; }
+
+        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
+
+        public uint Amount { get; set; } = 1;
     }
 
     [NamedArgumentType]

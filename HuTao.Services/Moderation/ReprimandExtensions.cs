@@ -5,10 +5,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using Humanizer;
 using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
@@ -30,13 +32,14 @@ public static class ReprimandExtensions
 
         return reprimand switch
         {
-            Ban      => log.HasFlag(LogReprimandType.Ban),
-            Censored => log.HasFlag(LogReprimandType.Censored),
-            Kick     => log.HasFlag(LogReprimandType.Kick),
-            Mute     => log.HasFlag(LogReprimandType.Mute),
-            Note     => log.HasFlag(LogReprimandType.Note),
-            Notice   => log.HasFlag(LogReprimandType.Notice),
-            Warning  => log.HasFlag(LogReprimandType.Warning),
+            Ban           => log.HasFlag(LogReprimandType.Ban),
+            Censored      => log.HasFlag(LogReprimandType.Censored),
+            Kick          => log.HasFlag(LogReprimandType.Kick),
+            Mute          => log.HasFlag(LogReprimandType.Mute),
+            Note          => log.HasFlag(LogReprimandType.Note),
+            Notice        => log.HasFlag(LogReprimandType.Notice),
+            RoleReprimand => log.HasFlag(LogReprimandType.Role),
+            Warning       => log.HasFlag(LogReprimandType.Warning),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "This reprimand type cannot be logged.")
         };
@@ -52,13 +55,14 @@ public static class ReprimandExtensions
 
         return reprimand switch
         {
-            Ban      => Color.Red,
-            Censored => Color.Blue,
-            Kick     => Color.Red,
-            Mute     => Color.Orange,
-            Note     => Color.Blue,
-            Notice   => Color.Gold,
-            Warning  => Color.Gold,
+            Ban           => Color.Red,
+            Censored      => Color.Blue,
+            Kick          => Color.Red,
+            Mute          => Color.Orange,
+            Note          => Color.Blue,
+            Notice        => Color.Gold,
+            RoleReprimand => Color.Orange,
+            Warning       => Color.Gold,
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
@@ -124,6 +128,7 @@ public static class ReprimandExtensions
                 LogReprimandType.Note     => reprimands.OfType<Note>(),
                 LogReprimandType.Notice   => reprimands.OfType<Notice>(),
                 LogReprimandType.Warning  => reprimands.OfType<Warning>(),
+                LogReprimandType.Role     => reprimands.OfType<RoleReprimand>(),
                 _                         => Enumerable.Empty<Reprimand>()
             });
     }
@@ -147,13 +152,14 @@ public static class ReprimandExtensions
 
         return action switch
         {
-            Ban b      => $"{status} ban to {mention} for {b.GetLength()}.",
-            Censored c => $"{status} censor to {mention}. Message: {c.CensoredMessage().Truncate(512)}",
-            Kick       => $"{status} kick to {mention}.",
-            Mute m     => $"{status} mute to {mention} for {m.GetLength()}.",
-            Note       => $"{status} note to {mention}.",
-            Notice     => $"{status} notice to {mention}.",
-            Warning w  => $"{status} warn to {mention} {w.Count} times.",
+            Ban b           => $"{status} ban to {mention} for {b.GetLength()}.",
+            Censored c      => $"{status} censor to {mention}: {c.CensoredMessage().Truncate(512)}",
+            Kick            => $"{status} kick to {mention}.",
+            Mute m          => $"{status} mute to {mention} for {m.GetLength()}.",
+            Note            => $"{status} note to {mention}.",
+            Notice          => $"{status} notice to {mention}.",
+            RoleReprimand r => $"{status} roles to {mention} for {r.GetLength()}: {((IRoleReprimand) r).Humanized}",
+            Warning w       => $"{status} warn to {mention} {w.Count} times.",
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(action), action, "An unknown reprimand was given.")
@@ -164,13 +170,14 @@ public static class ReprimandExtensions
     {
         var title = action switch
         {
-            Ban      => nameof(Ban),
-            Censored => nameof(Censored),
-            Kick     => nameof(Kick),
-            Mute     => nameof(Mute),
-            Note     => nameof(Note),
-            Notice   => nameof(Notice),
-            Warning  => nameof(Warning),
+            Ban           => nameof(Ban),
+            Censored      => nameof(Censored),
+            Kick          => nameof(Kick),
+            Mute          => nameof(Mute),
+            Note          => nameof(Note),
+            Notice        => nameof(Notice),
+            RoleReprimand => nameof(RoleReprimand),
+            Warning       => nameof(Warning),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(action), action, "An unknown reprimand was given.")
@@ -182,6 +189,64 @@ public static class ReprimandExtensions
     public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,
         CancellationToken cancellationToken)
         => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
+
+    public static async Task<RoleTemplateResult> AddRolesAsync(
+        this IGuildUser user, ICollection<RoleTemplate> templates,
+        CancellationToken cancellationToken = default)
+    {
+        var options = new RequestOptions { CancelToken = cancellationToken };
+        var added = new List<RoleMetadata>();
+        var removed = new List<RoleMetadata>();
+
+        foreach (var add in templates.Where(t => t.Behavior is RoleBehavior.Add))
+        {
+            try
+            {
+                await user.AddRoleAsync(add.RoleId, options);
+                added.Add(new RoleMetadata(add, user));
+            }
+            catch (HttpException)
+            {
+                // Ignored
+            }
+        }
+
+        foreach (var remove in templates.Where(t => t.Behavior is RoleBehavior.Remove))
+        {
+            try
+            {
+                await user.RemoveRoleAsync(remove.RoleId, options);
+                removed.Add(new RoleMetadata(remove, user));
+            }
+            catch (HttpException)
+            {
+                // Ignored
+            }
+        }
+
+        foreach (var toggle in templates.Where(t => t.Behavior is RoleBehavior.Toggle))
+        {
+            try
+            {
+                if (user.HasRole(toggle.RoleId))
+                {
+                    await user.RemoveRoleAsync(toggle.RoleId, options);
+                    removed.Add(new RoleMetadata(toggle, user));
+                }
+                else
+                {
+                    await user.AddRoleAsync(toggle.RoleId, options);
+                    added.Add(new RoleMetadata(toggle, user));
+                }
+            }
+            catch (HttpException)
+            {
+                // Ignored
+            }
+        }
+
+        return new RoleTemplateResult(added, removed);
+    }
 
     public static async Task<T?> GetActive<T>(this DbContext db, ReprimandDetails details,
         CancellationToken cancellationToken = default) where T : ExpirableReprimand
@@ -252,13 +317,14 @@ public static class ReprimandExtensions
 
         return reprimand switch
         {
-            Ban      => user.HistoryCount<Ban>(reprimand.Category, countPardoned),
-            Censored => user.HistoryCount<Censored>(reprimand.Category, countPardoned),
-            Kick     => user.HistoryCount<Kick>(reprimand.Category, countPardoned),
-            Mute     => user.HistoryCount<Mute>(reprimand.Category, countPardoned),
-            Note     => user.HistoryCount<Note>(reprimand.Category, countPardoned),
-            Notice   => user.HistoryCount<Notice>(reprimand.Category, countPardoned),
-            Warning  => user.WarningCount(reprimand.Category, countPardoned),
+            Ban           => user.HistoryCount<Ban>(reprimand.Category, countPardoned),
+            Censored      => user.HistoryCount<Censored>(reprimand.Category, countPardoned),
+            Kick          => user.HistoryCount<Kick>(reprimand.Category, countPardoned),
+            Mute          => user.HistoryCount<Mute>(reprimand.Category, countPardoned),
+            Note          => user.HistoryCount<Note>(reprimand.Category, countPardoned),
+            Notice        => user.HistoryCount<Notice>(reprimand.Category, countPardoned),
+            RoleReprimand => user.HistoryCount<RoleReprimand>(reprimand.Category, countPardoned),
+            Warning       => user.WarningCount(reprimand.Category, countPardoned),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
@@ -290,4 +356,11 @@ public static class ReprimandExtensions
         => mute.Length?.Humanize(5,
             minUnit: TimeUnit.Second,
             maxUnit: TimeUnit.Year) ?? "indefinitely";
+
+    public record RoleTemplateResult(
+        IReadOnlyCollection<RoleMetadata> Added,
+        IReadOnlyCollection<RoleMetadata> Removed)
+    {
+        public IEnumerable<RoleMetadata> All => Added.Concat(Removed);
+    }
 }

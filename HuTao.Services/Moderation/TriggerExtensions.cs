@@ -26,6 +26,7 @@ public static class TriggerExtensions
         MuteAction    => nameof(Mute),
         NoteAction    => nameof(Note),
         NoticeAction  => nameof(Notice),
+        RoleAction    => nameof(RoleReprimand),
         WarningAction => nameof(Warning),
         _ => throw new ArgumentOutOfRangeException(nameof(action), action,
             "Invalid ReprimandAction.")

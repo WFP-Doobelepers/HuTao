@@ -3,6 +3,11 @@ using Discord;
 
 namespace HuTao.Data.Models.Discord.Message.Linking;
 
+public record RoleMetadata(RoleTemplate Template, IGuildUser User)
+{
+    public IRole Role => User.Guild.GetRole(Template.RoleId);
+}
+
 public class RoleTemplate : IRoleEntity
 {
     protected RoleTemplate() { }

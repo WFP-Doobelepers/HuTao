@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
@@ -15,11 +14,10 @@ public interface IRoleTemplateOptions
 
     public IEnumerable<RoleTemplate> RoleTemplates
         => new List<RoleTemplate>()
-            .Concat(GetRoleTemplate(r => r.AddRoles, RoleBehavior.Add))
-            .Concat(GetRoleTemplate(r => r.RemoveRoles, RoleBehavior.Remove))
-            .Concat(GetRoleTemplate(r => r.ToggleRoles, RoleBehavior.Toggle));
+            .Concat(GetRoleTemplate(AddRoles, RoleBehavior.Add))
+            .Concat(GetRoleTemplate(RemoveRoles, RoleBehavior.Remove))
+            .Concat(GetRoleTemplate(ToggleRoles, RoleBehavior.Toggle));
 
-    private IEnumerable<RoleTemplate> GetRoleTemplate(
-        Func<IRoleTemplateOptions, IEnumerable<IRole>?> selector, RoleBehavior behavior)
-        => selector(this)?.Select(r => new RoleTemplate(r, behavior)) ?? Enumerable.Empty<RoleTemplate>();
+    private static IEnumerable<RoleTemplate> GetRoleTemplate(IEnumerable<IRole>? roles, RoleBehavior behavior)
+        => roles?.Select(r => new RoleTemplate(r, behavior)) ?? Enumerable.Empty<RoleTemplate>();
 }

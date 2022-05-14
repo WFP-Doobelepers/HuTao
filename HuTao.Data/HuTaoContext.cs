@@ -20,19 +20,19 @@ public class HuTaoContext : DbContext
 
     public DbSet<BanAction> BanActions { get; init; } = null!;
 
-    public DbSet<Button> Buttons { get; set; } = null!;
+    public DbSet<Button> Buttons { get; init; } = null!;
 
     public DbSet<Censor> Censors { get; init; } = null!;
 
-    public DbSet<Censored> CensoredHistory { get; set; } = null!;
+    public DbSet<Censored> CensoredHistory { get; init; } = null!;
 
     public DbSet<ChannelCriterion> ChannelCriteria { get; init; } = null!;
 
-    public DbSet<EmojiEntity> Emojis { get; set; } = null!;
+    public DbSet<EmojiEntity> Emojis { get; init; } = null!;
 
-    public DbSet<EmoteEntity> Emotes { get; set; } = null!;
+    public DbSet<EmoteEntity> Emotes { get; init; } = null!;
 
-    public DbSet<EnumChannel> EnumChannels { get; set; } = null!;
+    public DbSet<EnumChannel> EnumChannels { get; init; } = null!;
 
     public DbSet<GuildEntity> Guilds { get; init; } = null!;
 
@@ -42,7 +42,7 @@ public class HuTaoContext : DbContext
 
     public DbSet<KickAction> KickActions { get; init; } = null!;
 
-    public DbSet<MessageDeleteLog> MessageDeleteLogs { get; set; } = null!;
+    public DbSet<MessageDeleteLog> MessageDeleteLogs { get; init; } = null!;
 
     public DbSet<Mute> MuteHistory { get; init; } = null!;
 
@@ -58,13 +58,17 @@ public class HuTaoContext : DbContext
 
     public DbSet<PermissionCriterion> PermissionCriteria { get; init; } = null!;
 
-    public DbSet<ReactionDeleteLog> ReactionDeleteLogs { get; set; } = null!;
+    public DbSet<ReactionDeleteLog> ReactionDeleteLogs { get; init; } = null!;
 
     public DbSet<ReprimandTrigger> ReprimandTriggers { get; init; } = null!;
 
+    public DbSet<RoleAction> RoleActions { get; init; } = null!;
+
     public DbSet<RoleCriterion> RoleCriteria { get; init; } = null!;
 
-    public DbSet<SelectMenu> SelectMenus { get; set; } = null!;
+    public DbSet<RoleReprimand> RoleHistory { get; init; } = null!;
+
+    public DbSet<SelectMenu> SelectMenus { get; init; } = null!;
 
     public DbSet<TimeTracking> TimeTrackingRules { get; init; } = null!;
 

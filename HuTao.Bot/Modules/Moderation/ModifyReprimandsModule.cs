@@ -15,6 +15,7 @@ using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using static HuTao.Data.Models.Authorization.AuthorizationScope;
+using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus;
 
 namespace HuTao.Bot.Modules.Moderation;
 
@@ -44,7 +45,8 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     public async Task PardonReprimandAsync(string id, [Remainder] string? reason = null)
     {
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, _moderation.PardonReprimandAsync, reason);
+        await ModifyReprimandAsync(reprimand, (r, d, t)
+            => _moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
     [Command("update")]

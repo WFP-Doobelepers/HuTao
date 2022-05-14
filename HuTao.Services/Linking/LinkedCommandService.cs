@@ -15,6 +15,7 @@ using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Messages;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
@@ -78,9 +79,9 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
     }
 
     private static async IAsyncEnumerable<EmbedBuilder> AddRolesAsync(
-        IEnumerable<IGuildUser> users, IReadOnlyCollection<RoleTemplate> templates)
+        IEnumerable<IGuildUser> users, ICollection<RoleTemplate> templates)
     {
-        var task = users.Select(u => LinkingService.AddRolesAsync(u, templates));
+        var task = users.Select(u => u.AddRolesAsync(templates));
         var roles = await Task.WhenAll(task);
 
         var added = roles.SelectMany(r => r.Added).ToList();
