@@ -34,8 +34,7 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task InfractionsAsync(
         [Summary("The user to show the infractions of.")] IUser? user = null,
-        [Summary("Leave empty to show warnings.")] LogReprimandType type
-            = LogReprimandType.Warning | LogReprimandType.Notice,
+        [Summary("Leave empty to show warnings.")] LogReprimandType type = LogReprimandType.None,
         ModerationCategory? category = null)
     {
         user ??= Context.User;

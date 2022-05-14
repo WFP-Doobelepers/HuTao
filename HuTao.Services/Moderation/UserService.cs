@@ -70,9 +70,13 @@ public class UserService
 
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
 
+        var reprimand = type is LogReprimandType.None
+            ? category?.HistoryReprimands ?? guild.ModerationRules?.HistoryReprimands ?? LogReprimandType.None
+            : type;
+
         var history = guild.ReprimandHistory
             .Where(r => r.UserId == user.Id)
-            .OfType(type).OfCategory(category);
+            .OfType(reprimand).OfCategory(category);
 
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
@@ -106,9 +110,9 @@ public class UserService
 
         void Components(IUserMessage message)
         {
-            var components = GetMessageComponents(message).WithSelectMenu(InfractionMenu(user, category, type));
+            var components = GetMessageComponents(message).WithSelectMenu(InfractionMenu(user, category, reprimand));
             if (guild.ModerationCategories.Any())
-                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
+                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, reprimand));
 
             _ = message switch
             {
@@ -173,7 +177,7 @@ public class UserService
                 .ToList());
 
     private static SelectMenuBuilder InfractionMenu(IUser user,
-        ModerationCategory? category, LogReprimandType type = LogReprimandType.None)
+        ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
     {
         var types = Enum.GetValues<LogReprimandType>()[1..^1];
 
@@ -185,7 +189,7 @@ public class UserService
         foreach (var e in types)
         {
             var name = e.ToString();
-            var selected = type.HasFlag(e);
+            var selected = type.HasFlag(e) && type is not LogReprimandType.None;
             menu.AddOption(name, name, isDefault: selected);
         }
 
@@ -252,6 +256,6 @@ public class UserService
     {
         var auth = await _auth.IsAuthorizedAsync(context, Scope);
         var category = await _auth.IsCategoryAuthorizedAsync(context, Scope);
-        return auth || category ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user, null)).Build() : null;
+        return auth || category ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user)).Build() : null;
     }
 }

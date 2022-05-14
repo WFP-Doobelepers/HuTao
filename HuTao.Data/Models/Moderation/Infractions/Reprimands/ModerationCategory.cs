@@ -35,6 +35,8 @@ public class ModerationCategory : IModerationRules
 
     public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
 
+    public LogReprimandType? HistoryReprimands { get; set; }
+
     public TimeSpan? CensorTimeRange { get; set; }
 
     public TimeSpan? NoticeExpiryLength { get; set; }

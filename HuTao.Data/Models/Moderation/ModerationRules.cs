@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
+using HuTao.Data.Models.Moderation.Logging;
 
 namespace HuTao.Data.Models.Moderation;
 
@@ -10,6 +11,8 @@ public interface IModerationRules
     public bool ReplaceMutes { get; set; }
 
     public ICollection<Criterion> CensorExclusions { get; set; }
+
+    public LogReprimandType? HistoryReprimands { get; set; }
 
     public TimeSpan? CensorTimeRange { get; set; }
 
@@ -31,6 +34,8 @@ public class ModerationRules : IModerationRules
     public bool ReplaceMutes { get; set; }
 
     public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
+
+    public LogReprimandType? HistoryReprimands { get; set; }
 
     public TimeSpan? CensorTimeRange { get; set; }
 

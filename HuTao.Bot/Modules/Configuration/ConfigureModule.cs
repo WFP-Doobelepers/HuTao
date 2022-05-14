@@ -7,6 +7,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
@@ -95,7 +96,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Command("mute")]
     [Summary("Configures the Mute role.")]
     public async Task ConfigureMuteAsync(
-        [Summary("Optionally provide a mention, ID, or name of an existing role.")] IRole? role = null,
+        [Summary("Optionally provide a mention, ID, or name of an existing role.")]
+        IRole? role = null,
         [Summary("True if you want to skip setting up permissions.")]
         bool skipPermissions = false,
         ModerationCategory? category = null)
@@ -149,6 +151,21 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
+    }
+
+    [Command("history reprimands")]
+    [Alias("history reprimand")]
+    [Summary("Set the default reprimand to show in the history.")]
+    public async Task HistoryReprimandsAsync(
+        [Summary("Comma separated values of reprimands to show by default.")]
+        LogReprimandType? type = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.HistoryReprimands = type;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
     }
 
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)

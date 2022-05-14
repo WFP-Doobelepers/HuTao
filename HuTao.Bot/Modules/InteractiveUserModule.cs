@@ -33,7 +33,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public async Task SlashHistoryAsync(
         [Summary(description: "The user to show history of")] IUser user,
         [Summary(description: "Leave empty to show warnings and notices")]
-        LogReprimandType type = LogReprimandType.Warning | LogReprimandType.Notice,
+        LogReprimandType type = LogReprimandType.None,
         [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
