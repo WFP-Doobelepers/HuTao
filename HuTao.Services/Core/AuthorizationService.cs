@@ -52,7 +52,9 @@ public class AuthorizationService
         if (auth.Any()) return guildEntity;
 
         var permission = new PermissionCriterion(GuildPermission.Administrator);
-        auth.AddRules(AuthorizationScope.All, await guild.GetCurrentUserAsync(), AccessType.Allow, permission);
+        auth.AddRules(
+            AuthorizationScope.All, await guild.GetCurrentUserAsync(),
+            AccessType.Allow, JudgeType.Any, permission);
         await _db.SaveChangesAsync(cancellationToken);
 
         return guildEntity;

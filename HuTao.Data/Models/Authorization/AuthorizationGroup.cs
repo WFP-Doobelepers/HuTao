@@ -13,17 +13,19 @@ public class AuthorizationGroup : IModerationAction
     protected AuthorizationGroup() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public AuthorizationGroup(AuthorizationScope scope, AccessType access, ICollection<Criterion> rules)
+    public AuthorizationGroup(AuthorizationScope scope, AccessType access, JudgeType type, ICollection<Criterion> rules)
     {
         Scope      = scope;
         Access     = access;
+        JudgeType  = type;
         Collection = rules;
     }
 
     public AuthorizationGroup(
         AuthorizationScope scope = AuthorizationScope.None,
-        AccessType access = AccessType.Allow, params Criterion[] rules)
-        : this(scope, access, rules.ToList()) { }
+        AccessType access = AccessType.Allow,
+        JudgeType type = JudgeType.Any, params Criterion[] rules)
+        : this(scope, access, type, rules.ToList()) { }
 
     public Guid Id { get; set; }
 
@@ -32,6 +34,8 @@ public class AuthorizationGroup : IModerationAction
     public AuthorizationScope Scope { get; set; }
 
     public virtual ICollection<Criterion> Collection { get; set; } = new List<Criterion>();
+
+    public JudgeType JudgeType { get; set; }
 
     public virtual ModerationAction? Action { get; set; } = null!;
 

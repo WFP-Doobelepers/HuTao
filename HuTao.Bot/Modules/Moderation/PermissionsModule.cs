@@ -55,9 +55,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         }
 
         var moderator = (IGuildUser) Context.User;
-        var group = new AuthorizationGroup(scope, options.AccessType, rules).WithModerator(moderator);
-
-        await AddEntityAsync(group);
+        var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
+        await AddEntityAsync(group.WithModerator(moderator));
     }
 
     [Command("configure")]
@@ -94,11 +93,11 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         _ = await _db.Users.TrackUserAsync(moderator);
         var guild = await _auth.AutoConfigureGuild(Context.Guild);
 
-        guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow,
+        guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow, JudgeType.Any,
             new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin)));
 
         guild.AuthorizationGroups.AddRules(results.Get<AuthorizationScope>(ConfigureOptions.Permissions),
-            moderator, AccessType.Allow,
+            moderator, AccessType.Allow, JudgeType.Any,
             new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator)));
 
         _db.Update(guild);
@@ -147,6 +146,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
             .WithTitle($"{group.Scope}: {group.Id}").WithTimestamp(group)
             .WithColor(group.Access is AccessType.Allow ? Color.Green : Color.Red)
             .AddField("Type", Format.Bold(group.Access.Humanize()), true)
+            .AddField("Judge", Format.Bold(group.JudgeType.Humanize()), true)
             .AddField("Scope", Format.Bold(group.Scope.Humanize()), true)
             .AddField("Moderator", group.GetModerator(), true);
 
@@ -170,6 +170,9 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     {
         [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
         public AccessType AccessType { get; set; } = AccessType.Allow;
+
+        [HelpSummary("The way how the criteria are judged. Defaults to 'Any'.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
 
         [HelpSummary("The permissions that the user must have.")] public GuildPermission Permission { get; set; }
 

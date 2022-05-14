@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
@@ -90,7 +91,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     protected override EmbedBuilder EntityViewer(ModerationTemplate template) => new EmbedBuilder()
         .WithTitle($"{template.Name}: {template.Id}")
         .WithDescription(template.Reason ?? "No reason")
-        .AddField("Action", $"{template}");
+        .AddField("Action", $"{template}")
+        .AddField("Scope", template.Scope.Humanize());
 
     protected override async Task<ICollection<ModerationTemplate>> GetCollectionAsync()
     {
