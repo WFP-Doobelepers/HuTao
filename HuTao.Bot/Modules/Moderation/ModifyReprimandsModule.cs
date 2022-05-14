@@ -24,7 +24,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
 public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 {
-    private const AuthorizationScope Scope = All | History;
+    private const AuthorizationScope Scope = All | Modify;
     private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
     private readonly AuthorizationService _auth;
     private readonly CommandErrorHandler _error;

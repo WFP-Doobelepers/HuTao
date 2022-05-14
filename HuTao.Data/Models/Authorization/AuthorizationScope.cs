@@ -40,6 +40,9 @@ public enum AuthorizationScope
     [Description("Allows viewing of the moderation log.")]
     History = 1 << 13,
 
+    [Description("Allow updating the moderation log.")]
+    Modify = 1 << 14,
+
     [Description("Allows warning, mute, kick, notes, and ban.")]
     Moderator = Warning | Mute | Kick | Ban | Note,
 
