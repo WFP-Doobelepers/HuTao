@@ -17,8 +17,9 @@ public class CategoryTypeReader : TypeReader
     {
         if (string.IsNullOrEmpty(input)
             || input.Equals("null", StringComparison.OrdinalIgnoreCase)
-            || input.Equals("None", StringComparison.OrdinalIgnoreCase))
-            return TypeReaderResult.FromSuccess(ModerationCategory.None);
+            || input.Equals("None", StringComparison.OrdinalIgnoreCase)
+            || input.Equals("Default", StringComparison.OrdinalIgnoreCase))
+            return TypeReaderResult.FromSuccess(ModerationCategory.Default);
 
         if (context.Guild is null)
             return TypeReaderResult.FromError(UnmetPrecondition, "This command can only be used in a guild.");

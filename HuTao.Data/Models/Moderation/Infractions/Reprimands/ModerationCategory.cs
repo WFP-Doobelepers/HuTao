@@ -25,7 +25,7 @@ public class ModerationCategory : IModerationRules
 
     public virtual ICollection<AuthorizationGroup> Authorization { get; set; } = new List<AuthorizationGroup>();
 
-    public static ModerationCategory None { get; } = new("None", null, null);
+    public static ModerationCategory Default { get; } = new("Default", null, null);
 
     public virtual ModerationLoggingRules? LoggingRules { get; set; }
 

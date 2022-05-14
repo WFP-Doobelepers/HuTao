@@ -109,7 +109,7 @@ public static class ReprimandExtensions
         ModerationCategory? category) => category switch
     {
         null                                    => reprimands,
-        var c when c == ModerationCategory.None => reprimands.Where(r => r.Category is null),
+        var c when c == ModerationCategory.Default => reprimands.Where(r => r.Category is null),
         _                                       => reprimands.Where(r => r.Category?.Id == category.Id)
     };
 

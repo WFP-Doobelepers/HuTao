@@ -22,7 +22,7 @@ public class CategoryAutocomplete : AutocompleteHandler
 
         var input = interaction.Data.Current.Value.ToString();
         var templates = guild.ModerationCategories
-            .Append(ModerationCategory.None)
+            .Append(ModerationCategory.Default)
             .Where(t => string.IsNullOrEmpty(input) || t.Name.StartsWith(input, StringComparison.OrdinalIgnoreCase))
             .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
 

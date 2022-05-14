@@ -21,7 +21,7 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
         var auth = services.GetRequiredService<AuthorizationService>();
         var command = new CommandContext(context);
 
-        return value is ModerationCategory category && category != ModerationCategory.None
+        return value is ModerationCategory category && category != ModerationCategory.Default
             ? AuthorizationService.IsAuthorized(command, _scope, category)
                 ? PreconditionResult.FromSuccess()
                 : PreconditionResult.FromError($"You are not authorized to use the `{category.Name}` category.")

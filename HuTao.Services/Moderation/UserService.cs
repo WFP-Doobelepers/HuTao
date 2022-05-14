@@ -106,16 +106,15 @@ public class UserService
 
         void Components(IUserMessage message)
         {
-            var components = GetMessageComponents(message)
-                .WithSelectMenu(InfractionMenu(user, category, type))
-                .WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type))
-                .Build();
+            var components = GetMessageComponents(message).WithSelectMenu(InfractionMenu(user, category, type));
+            if (guild.ModerationCategories.Any())
+                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
 
             _ = message switch
             {
-                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components),
-                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components),
-                _                        => message.ModifyAsync(r => r.Components = components)
+                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components.Build()),
+                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components.Build()),
+                _                        => message.ModifyAsync(r => r.Components = components.Build())
             };
         }
 
@@ -169,7 +168,7 @@ public class UserService
             .WithPlaceholder("Select a category")
             .WithMinValues(0).WithMaxValues(1)
             .WithOptions(categories
-                .Append(ModerationCategory.None)
+                .Append(ModerationCategory.Default)
                 .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
@@ -195,8 +194,8 @@ public class UserService
 
     private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(Context context, IUser user)
     {
-        var isAuthorized = 
-            await _auth.IsAuthorizedAsync(context, Scope) || 
+        var isAuthorized =
+            await _auth.IsAuthorizedAsync(context, Scope) ||
             await _auth.IsCategoryAuthorizedAsync(context, Scope);
 
         var userEntity = await _db.Users.FindAsync(user.Id, context.Guild.Id);

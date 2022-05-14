@@ -18,7 +18,7 @@ public record ReprimandDetails(
         ModerationCategory? category = null,
         ReprimandResult? result = null)
         : this(user, (IGuildUser) context.User, reason, trigger, context,
-            category == ModerationCategory.None ? null : category ?? trigger?.Category, result) { }
+            category == ModerationCategory.Default ? null : category ?? trigger?.Category, result) { }
 
     public IGuild Guild => Moderator.Guild;
 
