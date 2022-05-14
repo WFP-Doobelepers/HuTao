@@ -20,7 +20,7 @@ public record QuotedMessage(Context Context, ulong ChannelId, ulong MessageId, u
 
 public interface IQuoteService
 {
-    Task<Paginator> GetPaginatorAsync(Context context,
+    Task<Paginator?> GetPaginatorAsync(Context context,
         SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls);
 }
@@ -42,7 +42,7 @@ public class QuoteService : IQuoteService
         _db      = db;
     }
 
-    public async Task<Paginator> GetPaginatorAsync(Context context, SocketMessage source,
+    public async Task<Paginator?> GetPaginatorAsync(Context context, SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls)
     {
         var mention = source.MentionedUsers.Any() ? AllowedMentions.All : AllowedMentions.None;
@@ -92,7 +92,7 @@ public class QuoteService : IQuoteService
             }
         }
 
-        return builder.Build();
+        return builder.QuotedPages.Any() ? builder.Build() : null;
     }
 
     private static async Task<IEnumerable<EmbedBuilder>> BuildEmbedAsync(IMessage message, IMentionable executingUser)

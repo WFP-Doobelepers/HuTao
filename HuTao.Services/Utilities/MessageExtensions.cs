@@ -37,6 +37,8 @@ public static class MessageExtensions
         this JumpMessage jump, Context context,
         bool allowHidden = false, bool? allowNsfw = null)
     {
+        if (context.User is not IGuildUser user) return null;
+
         var (guildId, channelId, messageId, ignored) = jump;
         if (ignored || context.Guild.Id != guildId) return null;
 
@@ -44,7 +46,7 @@ public static class MessageExtensions
         if (channel is null) return null;
 
         allowNsfw ??= (context.Channel as ITextChannel)?.IsNsfw;
-        return await GetMessageAsync(channel, messageId, allowHidden, allowNsfw ?? false);
+        return await GetMessageAsync(channel, messageId, user, allowHidden, allowNsfw ?? false);
     }
 
     private static JumpMessage? ToJumpMessage(Match match)
@@ -59,15 +61,13 @@ public static class MessageExtensions
         => m.Groups["OpenBrace"].Success && m.Groups["CloseBrace"].Success ? m.Value : string.Empty);
 
     private static async Task<IMessage?> GetMessageAsync(
-        this ITextChannel channel, ulong messageId,
+        this ITextChannel channel, ulong messageId, IGuildUser user,
         bool allowHidden = false, bool allowNsfw = false)
     {
         if (channel.IsNsfw && !allowNsfw)
             return null;
 
-        var currentUser = await channel.Guild.GetCurrentUserAsync();
-        var channelPermissions = currentUser.GetPermissions(channel);
-
+        var channelPermissions = user.GetPermissions(channel);
         if (!channelPermissions.ViewChannel && !allowHidden)
             return null;
 

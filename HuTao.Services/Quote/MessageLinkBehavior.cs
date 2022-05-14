@@ -69,10 +69,11 @@ public class MessageLinkBehavior :
         if (!urls.Any()) return;
 
         var paginator = await _quoteService.GetPaginatorAsync(context, source, urls);
-        if (MessageExtensions.IsJumpUrls(source.Content))
-            _ = source.DeleteAsync();
+        if (paginator is null) return;
 
         var page = await paginator.GetOrLoadCurrentPageAsync() as QuotedPage;
+        if (MessageExtensions.IsJumpUrls(source.Content)) _ = source.DeleteAsync();
+
         await _interactive.SendPaginatorAsync(paginator, source.Channel,
             cancellationToken: cancellationToken,
             messageAction: m => MessageAction(m, page?.Quote));
