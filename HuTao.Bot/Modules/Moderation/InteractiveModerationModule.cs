@@ -116,13 +116,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("say", "Make the bot send a message to the specified channel")]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireAuthorization(AuthorizationScope.Send)]
     public Task SayAsync(string message, ITextChannel? channel = null)
         => _moderation.SendMessageAsync(Context, channel, message);
 
     [SlashCommand("slowmode", "Set a slowmode in the channel.")]
-    [RequireAuthorization(AuthorizationScope.Helper)]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
+    [RequireUserPermission(ChannelPermission.ManageChannels, Group = nameof(AuthorizationScope.Slowmode))]
+    [RequireAuthorization(AuthorizationScope.Slowmode, Group = nameof(AuthorizationScope.Slowmode))]
     public Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         => length is null && channel is null
             ? ModerationService.ShowSlowmodeChannelsAsync(Context)

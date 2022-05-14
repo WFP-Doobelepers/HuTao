@@ -150,7 +150,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command("test")]
     [Alias("testword")]
     [Summary("Test whether a word is in the list of censors or not.")]
-    [RequireAuthorization(AuthorizationScope.Helper | AuthorizationScope.Configuration)]
+    [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     public async Task TestCensorAsync(string word)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
@@ -167,7 +167,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Command]
     [Alias("list", "view")]
     [Summary("View the censor list.")]
-    [RequireAuthorization(AuthorizationScope.Helper | AuthorizationScope.Configuration)]
+    [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override bool IsMatch(Censor entity, string id)

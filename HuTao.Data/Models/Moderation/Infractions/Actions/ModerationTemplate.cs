@@ -5,22 +5,17 @@ using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
-public record TemplateDetails(string Name, ReprimandAction Action, string? Reason = null,
-    AuthorizationScope Scope = AuthorizationScope.Moderator);
-
 public class ModerationTemplate
 {
     protected ModerationTemplate() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public ModerationTemplate(TemplateDetails details)
+    public ModerationTemplate(string name, ReprimandAction action, AuthorizationScope scope, string? reason)
     {
-        var (name, action, reason, scope) = details;
-
         Name   = name;
         Action = action;
-        Reason = reason;
         Scope  = scope;
+        Reason = reason;
     }
 
     public Guid Id { get; set; }

@@ -85,7 +85,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("clean")]
-    [RequireAuthorization(AuthorizationScope.Moderator)]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     [Summary("Clean up unused Voice Chats.")]
     public async Task CleanAsync()
     {

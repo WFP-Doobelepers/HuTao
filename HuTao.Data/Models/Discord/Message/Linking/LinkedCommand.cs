@@ -18,7 +18,7 @@ public class LinkedCommand
         Name          = name;
         Ephemeral     = options.Ephemeral;
         Silent        = options.Silent;
-        Authorization = options.ToAuthorizationGroups(AuthorizationScope.Moderator, moderator).ToList();
+        Authorization = options.ToAuthorizationGroups(AuthorizationScope.None, moderator).ToList();
         Roles         = options.RoleTemplates.ToList();
         Message       = options.Message is not null ? new MessageTemplate(options.Message, options) : null;
         Description   = options.Description;

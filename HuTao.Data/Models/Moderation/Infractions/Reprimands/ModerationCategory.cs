@@ -17,7 +17,7 @@ public class ModerationCategory : IModerationRules
     public ModerationCategory(string name, ICriteriaOptions? options, IGuildUser? moderator)
     {
         Name = name;
-        Authorization = options?.ToAuthorizationGroups(AuthorizationScope.Moderator, moderator).ToList()
+        Authorization = options?.ToAuthorizationGroups(AuthorizationScope.All, moderator).ToList()
             ?? new List<AuthorizationGroup>();
     }
 

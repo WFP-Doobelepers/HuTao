@@ -25,13 +25,13 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 {
     [Command("view")]
     [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireAuthorization(AuthorizationScope.Roles)]
     public Task ViewRoleAsync([Remainder] SocketRole role) => ViewRolesAsync(role);
 
     [Priority(-1)]
     [Command("view")]
     [Summary("View the information of specified roles.")]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireAuthorization(AuthorizationScope.Roles)]
     public async Task ViewRolesAsync(
         [Summary("Leave empty to show all roles.")] params SocketRole[] roles)
     {
@@ -57,7 +57,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     }
 
     [RequireUserPermission(GuildPermission.ManageRoles, Group = nameof(RoleModule))]
-    [RequireAuthorization(AuthorizationScope.Roles, Group = nameof(RoleModule))]
+    [RequireAuthorization(AuthorizationScope.ManageRoles, Group = nameof(RoleModule))]
     public class AuthorizedRoleModule : ModuleBase<SocketCommandContext>
     {
         private readonly TemporaryRoleMemberService _member;

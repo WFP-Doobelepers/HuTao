@@ -23,7 +23,7 @@ public enum AuthorizationScope
     Note = 1 << 7,
 
     [Description("Allows managing of roles.")]
-    Roles = 1 << 8,
+    ManageRoles = 1 << 8,
 
     [Description("Allows usage of the user module.")]
     User = 1 << 9,
@@ -43,9 +43,12 @@ public enum AuthorizationScope
     [Description("Allow updating the moderation log.")]
     Modify = 1 << 14,
 
-    [Description("Allows warning, mute, kick, notes, and ban.")]
-    Moderator = Warning | Mute | Kick | Ban | Note,
+    [Description("Allow using the slowmode command.")]
+    Slowmode = 1 << 15,
 
-    [Description("Allows warning, notes, and mute.")]
-    Helper = Warning | Mute | Note
+    [Description("Allows using the say command.")]
+    Send = 1 << 16,
+
+    [Description("Allows using the role module.")]
+    Roles = 1 << 17
 }

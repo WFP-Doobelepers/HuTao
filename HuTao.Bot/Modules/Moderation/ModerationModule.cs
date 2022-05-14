@@ -169,20 +169,21 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
     [Command("say")]
     [Summary("Make the bot send a message to the specified channel")]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireAuthorization(AuthorizationScope.Send)]
     public Task SayAsync(ITextChannel? channel, [Remainder] string message)
         => _moderation.SendMessageAsync(Context, channel, message);
 
     [Command("say")]
     [HiddenFromHelp]
     [Summary("Make the bot send a message to the specified channel")]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireAuthorization(AuthorizationScope.Send)]
     public Task SayAsync([Remainder] string message) => SayAsync(null, message);
 
     [Command("slowmode")]
     [Summary("Set a slowmode in the channel.")]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireUserPermission(ChannelPermission.ManageChannels, Group = nameof(AuthorizationScope.Slowmode))]
+    [RequireAuthorization(AuthorizationScope.Slowmode, Group = nameof(AuthorizationScope.Slowmode))]
     public Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         => length is null && channel is null
             ? ModerationService.ShowSlowmodeChannelsAsync(Context)
@@ -192,7 +193,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("slowmode")]
     [Summary("Set a slowmode in the channel.")]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
-    [RequireAuthorization(AuthorizationScope.Helper)]
+    [RequireUserPermission(ChannelPermission.ManageChannels, Group = nameof(AuthorizationScope.Slowmode))]
+    [RequireAuthorization(AuthorizationScope.Slowmode, Group = nameof(AuthorizationScope.Slowmode))]
     public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null) => SlowmodeAsync(length, channel);
 
     [Alias("t")]
