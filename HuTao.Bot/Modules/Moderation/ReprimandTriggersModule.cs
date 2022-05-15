@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
@@ -131,7 +132,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
     protected override EmbedBuilder EntityViewer(ReprimandTrigger trigger) => new EmbedBuilder()
         .WithTitle($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}")
-        .AddField("Action", $"{trigger.Reprimand}")
+        .AddField("Action", $"{trigger.Reprimand}".Truncate(EmbedFieldBuilder.MaxFieldValueLength))
         .AddField("Category", trigger.Category?.Name ?? "None")
         .AddField("Trigger", trigger.GetTriggerDetails())
         .AddField("Active", $"{trigger.IsActive}")

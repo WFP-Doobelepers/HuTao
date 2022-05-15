@@ -227,7 +227,7 @@ public class UserService
 
             embed
                 .WithColor(roles.Select(r => r.Color).FirstOrDefault(c => c.RawValue is not 0))
-                .AddField($"Roles [{guildUser.Roles.Count}]", roles.Humanize(r => r.Mention));
+                .AddItemsIntoFields($"Roles [{guildUser.Roles.Count}]", roles.Select(r => r.Mention), " ");
 
             if (isAuthorized)
             {
