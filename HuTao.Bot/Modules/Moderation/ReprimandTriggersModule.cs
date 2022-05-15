@@ -127,9 +127,6 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     [Summary("View the reprimand trigger list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(ReprimandTrigger entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(ReprimandTrigger trigger) => new EmbedBuilder()
         .WithTitle($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}")
         .AddField("Action", $"{trigger.Reprimand}".Truncate(EmbedFieldBuilder.MaxFieldValueLength))
@@ -137,6 +134,8 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         .AddField("Trigger", trigger.GetTriggerDetails())
         .AddField("Active", $"{trigger.IsActive}")
         .AddField("Modified by", trigger.GetModerator());
+
+    protected override string Id(ReprimandTrigger entity) => entity.Id.ToString();
 
     protected override async Task RemoveEntityAsync(ReprimandTrigger entity)
     {

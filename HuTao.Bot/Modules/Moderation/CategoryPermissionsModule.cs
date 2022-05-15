@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -76,10 +75,9 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
     [Summary("Remove an authorization group.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-    protected override bool IsMatch(Authorization entity, string id)
-        => entity.Group.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(Authorization entity) => GetModerationCategoryDetails(entity);
+
+    protected override string Id(Authorization entity) => entity.Group.Id.ToString();
 
     protected override async Task RemoveEntityAsync(Authorization authorization)
     {

@@ -49,8 +49,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     [Command("disable")]
     [RequireContext(ContextType.Guild)]
     public async Task DisableStickyMessageAsync(
-        [Summary("The ID of the sticky message to disable.")]
-        string id)
+        [Summary("The ID of the sticky message to disable.")] string id)
     {
         var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (sticky == null)
@@ -64,8 +63,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
 
     [Command("enable")]
     public async Task EnableStickyMessageAsync(
-        [Summary("The ID of the sticky message to enable.")]
-        string id)
+        [Summary("The ID of the sticky message to enable.")] string id)
     {
         var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (sticky == null)
@@ -87,9 +85,6 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     [Summary("View sticky messages.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(StickyMessage entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(StickyMessage entity)
     {
         var template = entity.Template;
@@ -102,6 +97,8 @@ public class StickyModule : InteractiveEntity<StickyMessage>
             .AddField("Count Delay", entity.CountDelay ?? 0, true)
             .WithTitle($"Sticky: {entity.Id}");
     }
+
+    protected override string Id(StickyMessage entity) => entity.Id.ToString();
 
     protected override Task RemoveEntityAsync(StickyMessage entity) => _sticky.DeleteAsync(entity);
 

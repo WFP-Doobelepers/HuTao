@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -62,9 +61,6 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     [Summary("View linked buttons.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(LinkedButton entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(LinkedButton entity)
     {
         var template = entity.Message;
@@ -91,6 +87,8 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
 
         return embed.WithTitle($"Button: {entity.Id}");
     }
+
+    protected override string Id(LinkedButton entity) => entity.Id.ToString();
 
     protected override Task RemoveEntityAsync(LinkedButton entity) => _linking.DeleteAsync(entity);
 

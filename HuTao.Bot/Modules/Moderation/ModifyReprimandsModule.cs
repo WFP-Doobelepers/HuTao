@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -58,11 +57,6 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
     }
 
-    [Command("remove")]
-    [Alias("delete", "purgewarn")]
-    [Summary("Delete a reprimand, this completely removes the data.")]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
-
     [Priority(1)]
     [Command("history all")]
     [Alias("reprimand all", "reprimands all")]
@@ -77,11 +71,15 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         await PagedViewAsync(collection.OfType(type).OfCategory(category).OrderByDescending(h => h.Action?.Date));
     }
 
-    protected override bool IsMatch(Reprimand entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
+    [Command("remove")]
+    [Alias("delete", "purgewarn")]
+    [Summary("Delete a reprimand, this completely removes the data.")]
+    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
     protected override EmbedBuilder EntityViewer(Reprimand entity)
         => entity.ToEmbedBuilder(true);
+
+    protected override string Id(Reprimand entity) => entity.Id.ToString();
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {

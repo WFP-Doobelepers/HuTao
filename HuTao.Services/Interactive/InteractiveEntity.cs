@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Fergun.Interactive;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Services.Core.Listeners;
-using HuTao.Services.Interactive.Criteria;
-using HuTao.Services.Interactive.Functions;
 using HuTao.Services.Interactive.Paginator;
 
 namespace HuTao.Services.Interactive;
@@ -24,9 +23,9 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         _db    = db;
     }
 
-    protected abstract bool IsMatch(T entity, string id);
-
     protected abstract EmbedBuilder EntityViewer(T entity);
+
+    protected abstract string Id(T entity);
 
     protected async Task AddEntityAsync(T entity)
     {
@@ -91,17 +90,37 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         collection ??= await GetCollectionAsync();
         var filtered = collection
             .Where(e => IsMatch(e, id))
-            .ToList();
+            .Take(10).ToList();
 
         if (filtered.Count <= 1)
             return filtered.Count == 1 ? filtered.First() : null;
 
-        var containsCriterion = new FuncCriterion(m =>
-            int.TryParse(m.Content, out var selection)
-            && selection < filtered.Count && selection > -1);
+        var embeds = filtered.Zip(filtered.Select(EntityViewer).Select(e => e.Build())).ToList();
+        var options = embeds.Select(f =>
+        {
+            var embed = f.Second;
+            return new SelectMenuOptionBuilder()
+                .WithValue(Id(f.First))
+                .WithLabel(embed.Title.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength))
+                .WithDescription(embed.Description.Truncate(SelectMenuOptionBuilder.MaxDescriptionLength));
+        }).ToList();
 
-        await PagedViewAsync(filtered);
-        var selected = await Interactive.NextMessageAsync(containsCriterion.AsFunc(Context));
-        return selected.Value is null ? null : filtered.ElementAtOrDefault(int.Parse(selected.Value.Content));
+        var guid = Guid.NewGuid();
+        var component = new ComponentBuilder()
+            .WithSelectMenu($"select:{guid}", options, "Multiple matches found, select one...")
+            .WithButton("Cancel selection", $"cancel:{guid}", ButtonStyle.Danger, new Emoji("🛑"));
+
+        await ReplyAsync(embeds: embeds.Select(e => e.Second).ToArray(), components: component.Build());
+        var selected = await Interactive.NextMessageComponentAsync(c
+            => c.Data.CustomId == $"select:{guid}"
+            || c.Data.CustomId == $"cancel:{guid}");
+
+        _ = selected.Value?.DeferAsync();
+        _ = selected.Value?.ModifyOriginalResponseAsync(m => m.Components = new ComponentBuilder().Build());
+        return selected.IsSuccess && selected.Value.Data.CustomId == $"select:{guid}"
+            ? filtered.FirstOrDefault(e => IsMatch(e, selected.Value.Data.Values.First()))
+            : null;
+
+        bool IsMatch(T entity, string match) => Id(entity).StartsWith(match, StringComparison.OrdinalIgnoreCase);
     }
 }

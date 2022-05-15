@@ -57,9 +57,6 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
     [Summary("View the moderation category list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(ModerationCategory entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(ModerationCategory entity)
     {
         var authorization = entity.Authorization.Humanize().DefaultIfNullOrEmpty("None");
@@ -68,6 +65,8 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
             .AddField("Name", entity.Name, true)
             .AddField("Authorization", authorization, true);
     }
+
+    protected override string Id(ModerationCategory entity) => entity.Id.ToString();
 
     protected override async Task<ICollection<ModerationCategory>> GetCollectionAsync()
     {

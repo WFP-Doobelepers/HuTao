@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
@@ -63,10 +62,9 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
         await PagedViewAsync(collection);
     }
 
-    protected override bool IsMatch(Criterion entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(Criterion entity) => entity.ToEmbedBuilder();
+
+    protected override string Id(Criterion entity) => entity.Id.ToString();
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {

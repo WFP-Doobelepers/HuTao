@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
@@ -59,10 +58,9 @@ public class LoggingExclusionsModule : InteractiveEntity<Criterion>
     [Summary("View the configured logging exclusions.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(Criterion entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(Criterion entity) => entity.ToEmbedBuilder();
+
+    protected override string Id(Criterion entity) => entity.Id.ToString();
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {

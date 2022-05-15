@@ -120,10 +120,9 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     [Summary("Remove an authorization group.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-    protected override bool IsMatch(AuthorizationGroup entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(AuthorizationGroup entity) => GetAuthorizationGroupDetails(entity);
+
+    protected override string Id(AuthorizationGroup entity) => entity.Id.ToString();
 
     protected override async Task RemoveEntityAsync(AuthorizationGroup entity)
     {

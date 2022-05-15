@@ -98,14 +98,13 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     [Summary("View the reprimand trigger list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(ModerationTemplate entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(ModerationTemplate template) => new EmbedBuilder()
         .WithTitle($"{template.Name}: {template.Id}")
         .WithDescription(template.Reason ?? "No reason")
         .AddField("Action", $"{template}".Truncate(EmbedFieldBuilder.MaxFieldValueLength))
         .AddField("Scope", template.Scope.Humanize());
+
+    protected override string Id(ModerationTemplate entity) => entity.Id.ToString();
 
     protected override async Task<ICollection<ModerationTemplate>> GetCollectionAsync()
     {

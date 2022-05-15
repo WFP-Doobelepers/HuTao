@@ -170,9 +170,6 @@ public class CensorModule : InteractiveTrigger<Censor>
     [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(Censor entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(Censor censor) => new EmbedBuilder()
         .WithTitle($"{censor.Reprimand?.GetTitle()} Censor: {censor.Id}")
         .AddField("Pattern", Format.Code(censor.Pattern))
@@ -183,6 +180,8 @@ public class CensorModule : InteractiveTrigger<Censor>
         .AddField("Exclusions", censor.Exclusions.Humanize().DefaultIfNullOrEmpty("None"), true)
         .AddField("Active", $"{censor.IsActive}", true)
         .AddField("Modified by", censor.GetModerator(), true);
+
+    protected override string Id(Censor entity) => entity.Id.ToString();
 
     protected override async Task<ICollection<Censor>> GetCollectionAsync()
     {

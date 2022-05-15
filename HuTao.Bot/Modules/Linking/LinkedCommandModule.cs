@@ -60,9 +60,6 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
     [Summary("View message templates.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(LinkedCommand entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(LinkedCommand entity)
     {
         var permissions = entity.Authorization.Humanize().DefaultIfNullOrWhiteSpace("Anyone");
@@ -96,6 +93,8 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
 
         return embed.WithTitle($"{entity.Name}: {entity.Id}");
     }
+
+    protected override string Id(LinkedCommand entity) => entity.Id.ToString();
 
     protected override async Task RemoveEntityAsync(LinkedCommand entity)
     {

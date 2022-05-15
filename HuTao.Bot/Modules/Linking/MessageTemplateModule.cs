@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -34,8 +33,7 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
     [Command("link")]
     [Summary("Links a message to another message template using a button.")]
     public async Task LinkAsync(
-        [Summary("The message template to link to.")]
-        string id,
+        [Summary("The message template to link to.")] string id,
         [Remainder] LinkedMessageOptions options)
     {
         var template = await TryFindEntityAsync(id, await GetCollectionAsync());
@@ -59,11 +57,10 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
     [Summary("View message templates.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override bool IsMatch(MessageTemplate entity, string id)
-        => entity.Id.ToString().StartsWith(id, StringComparison.OrdinalIgnoreCase);
-
     protected override EmbedBuilder EntityViewer(MessageTemplate entity)
         => new EmbedBuilder().WithTemplateDetails(entity, Context.Guild);
+
+    protected override string Id(MessageTemplate entity) => entity.Id.ToString();
 
     protected override Task RemoveEntityAsync(MessageTemplate entity) => _linking.DeleteAsync(entity);
 
