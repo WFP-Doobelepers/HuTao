@@ -67,6 +67,19 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         await AddTemplateAsync(name, action, scope, reason);
     }
 
+    [Command("role")]
+    public async Task RoleTemplateAsync(string name, RoleTemplateOptions options)
+    {
+        if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
+        {
+            await ReplyAsync("You must specify at least one role to add, remove, or toggle.");
+            return;
+        }
+
+        var action = new RoleAction(options.Length, options);
+        await AddTemplateAsync(name, action, options.Scope, options.Reason);
+    }
+
     [Command("warn")]
     public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = Warning,
         [Remainder] string? reason = null)
@@ -116,5 +129,13 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
+    }
+
+    [NamedArgumentType]
+    public class RoleTemplateOptions : RoleReprimandOptions
+    {
+        public AuthorizationScope Scope { get; set; } = Mute;
+
+        public string? Reason { get; set; }
     }
 }

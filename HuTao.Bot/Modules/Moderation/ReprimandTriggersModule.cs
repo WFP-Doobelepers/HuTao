@@ -6,7 +6,6 @@ using Discord;
 using Discord.Commands;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
@@ -83,7 +82,10 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     public async Task RoleTriggerAsync(TriggerSource source, RoleReprimandOptions options)
     {
         if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
+        {
             await _error.AssociateError(Context, "No roles specified.");
+            return;
+        }
 
         var action = new RoleAction(options.Length, options);
         await TryAddTriggerAsync(action, source, options);
@@ -177,24 +179,6 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
         var embed = EntityViewer(trigger).WithColor(Color.Green);
         await ReplyAsync(embed: embed.Build());
-    }
-
-    [NamedArgumentType]
-    public class RoleReprimandOptions : IRoleTemplateOptions, ITrigger
-    {
-        public TimeSpan? Length { get; set; }
-
-        public IEnumerable<IRole>? AddRoles { get; set; }
-
-        public IEnumerable<IRole>? RemoveRoles { get; set; }
-
-        public IEnumerable<IRole>? ToggleRoles { get; set; }
-
-        public ModerationCategory? Category { get; set; }
-
-        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
-
-        public uint Amount { get; set; } = 1;
     }
 
     [NamedArgumentType]
