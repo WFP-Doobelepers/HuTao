@@ -342,9 +342,7 @@ public class LoggingService
 
         try
         {
-            var audits = await guild
-                .GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
-
+            var audits = await guild.GetAuditLogsAsync(actionType: ActionType.MessageDeleted);
             return audits
                 .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
                 .FirstOrDefault(e
@@ -356,6 +354,10 @@ public class LoggingService
         {
             return null;
         }
+        catch (NullReferenceException)
+        {
+            return null;
+        }
     }
 
     private static async Task<IAuditLogEntry?> TryGetAuditLogEntry(
@@ -363,9 +365,7 @@ public class LoggingService
     {
         try
         {
-            var audits = await channel.Guild
-                .GetAuditLogsAsync(actionType: ActionType.MessageBulkDeleted);
-
+            var audits = await channel.Guild.GetAuditLogsAsync(actionType: ActionType.MessageBulkDeleted);
             return audits
                 .Where(e => DateTimeOffset.UtcNow - e.CreatedAt < TimeSpan.FromMinutes(1))
                 .FirstOrDefault(e
@@ -374,6 +374,10 @@ public class LoggingService
                     && d.ChannelId == channel.Id);
         }
         catch (HttpException e) when (e.DiscordCode == DiscordErrorCode.InsufficientPermissions)
+        {
+            return null;
+        }
+        catch (NullReferenceException)
         {
             return null;
         }
