@@ -110,9 +110,11 @@ public class UserService
 
         void Components(IUserMessage message)
         {
-            var components = GetMessageComponents(message).WithSelectMenu(InfractionMenu(user, category, reprimand));
+            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(user, category, reprimand));
             if (guild.ModerationCategories.Any())
                 components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, reprimand));
+
+            components.WithSelectMenu(ReprimandMenu(user));
 
             _ = message switch
             {
@@ -217,14 +219,14 @@ public class UserService
                 .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
-    private static SelectMenuBuilder InfractionMenu(IUser user,
+    private static SelectMenuBuilder HistoryMenu(IUser user,
         ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
     {
         var types = Enum.GetValues<LogReprimandType>()[1..^1];
 
         var menu = new SelectMenuBuilder()
             .WithCustomId($"reprimand:{user.Id}:{category?.Name}")
-            .WithPlaceholder("Select an infraction")
+            .WithPlaceholder("View History")
             .WithMinValues(1).WithMaxValues(types.Length);
 
         foreach (var e in types)
@@ -232,6 +234,26 @@ public class UserService
             var name = e.ToString();
             var selected = type.HasFlag(e) && type is not LogReprimandType.None;
             menu.AddOption(name, name, isDefault: selected);
+        }
+
+        return menu;
+    }
+
+    private static SelectMenuBuilder ReprimandMenu(IUser user)
+    {
+        var menu = new SelectMenuBuilder()
+            .WithMinValues(1).WithMaxValues(1)
+            .WithCustomId($"mod-menu:{user.Id}")
+            .WithPlaceholder("Mod Menu")
+            .AddOption("Ban", nameof(LogReprimandType.Ban), "Ban the user")
+            .AddOption("Note", nameof(LogReprimandType.Note), "Add a note to the user");
+
+        if (user is IGuildUser)
+        {
+            menu.AddOption("Warn", nameof(LogReprimandType.Warning), "Warn the user")
+                .AddOption("Kick", nameof(LogReprimandType.Kick), "Kick the user")
+                .AddOption("Mute", nameof(LogReprimandType.Mute), "Mute the user")
+                .AddOption("Hard Mute", nameof(LogReprimandType.HardMute), "Hard Mute the user");
         }
 
         return menu;
@@ -297,6 +319,11 @@ public class UserService
     {
         var auth = await _auth.IsAuthorizedAsync(context, Scope);
         var category = await _auth.IsCategoryAuthorizedAsync(context, Scope);
-        return auth || category ? new ComponentBuilder().WithSelectMenu(InfractionMenu(user)).Build() : null;
+        return auth || category
+            ? new ComponentBuilder()
+                .WithSelectMenu(HistoryMenu(user))
+                .WithSelectMenu(ReprimandMenu(user))
+                .Build()
+            : null;
     }
 }

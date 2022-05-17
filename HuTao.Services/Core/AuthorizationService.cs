@@ -43,6 +43,13 @@ public class AuthorizationService
     public static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
         => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
 
+    public async Task<bool> IsAuthorizedAsync(
+        Context context, AuthorizationScope scope, ModerationCategory? category,
+        CancellationToken cancellationToken = default)
+        => category is not null && category != ModerationCategory.Default
+            ? IsAuthorized(context, scope, category)
+            : await IsAuthorizedAsync(context, scope, cancellationToken);
+
     public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
         CancellationToken cancellationToken = default)
     {

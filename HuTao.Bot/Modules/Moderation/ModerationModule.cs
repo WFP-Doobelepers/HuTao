@@ -168,7 +168,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
 
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
-    public async Task NoteAsync([RequireHigherRole] IGuildUser user,
+    public async Task NoteAsync([RequireHigherRole] IUser user,
         [CheckCategory(AuthorizationScope.Note)] ModerationCategory? category = null,
         [Remainder] string? note = null)
     {
@@ -180,7 +180,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Command("note")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task NoteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? note = null)
+    public Task NoteAsync([RequireHigherRole] IUser user, [Remainder] string? note = null)
         => NoteAsync(user, null, note);
 
     [Command("notice")]

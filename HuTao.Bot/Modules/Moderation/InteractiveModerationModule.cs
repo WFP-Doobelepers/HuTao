@@ -6,6 +6,7 @@ using Discord.Interactions;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
@@ -43,7 +44,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             return;
         }
 
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
@@ -58,7 +59,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryHardMuteAsync(length, details);
 
         if (result is null)
@@ -77,7 +78,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryKickAsync(details);
 
         if (result is null)
@@ -92,7 +93,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryMuteAsync(length, details);
 
         if (result is null)
@@ -112,13 +113,13 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
 
     [SlashCommand("note", "Add a note to a user. Notes are always silent.")]
     public async Task NoteAsync(
-        [RequireHigherRole] IGuildUser user, string? note = null,
+        [RequireHigherRole] IUser user, string? note = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Note)]
         ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, note, category);
+        var details = await GetDetailsAsync(user, note, category, ephemeral);
         await _moderation.NoteAsync(details);
     }
 
@@ -130,7 +131,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         await _moderation.NoticeAsync(details);
     }
 
@@ -171,7 +172,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             return;
         }
 
-        var details = await GetDetailsAsync(user, template.Reason, template.Category);
+        var details = await GetDetailsAsync(user, template.Reason, template.Category, ephemeral);
         var result = await _moderation.ReprimandAsync(template, details);
 
         if (result is null)
@@ -186,7 +187,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryUnbanAsync(details);
 
         if (result is null)
@@ -201,7 +202,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         var result = await _moderation.TryUnmuteAsync(details);
 
         if (!result)
@@ -216,18 +217,151 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
         await _moderation.WarnAsync(amount, details);
     }
 
-    private async Task<ReprimandDetails> GetDetailsAsync(
-        IUser user, string? reason, ModerationCategory? category)
+    [ModalInteraction("ban:*")]
+    public async Task BanAsync([RequireHigherRole] IUser user,
+        [CheckCategory(AuthorizationScope.Ban)] [RequireEphemeralScope]
+        BanModal modal)
+        => await BanAsync(user, modal.DeleteDays, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ModalInteraction("hardMute:*")]
+    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.HardMute)] [RequireEphemeralScope]
+        HardMuteModal modal)
+        => await HardMuteAsync(user, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ModalInteraction("kick:*")]
+    public async Task KickAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Kick)] [RequireEphemeralScope]
+        KickModal modal)
+        => await KickAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ModalInteraction("mute:*")]
+    public async Task MuteAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Mute)] [RequireEphemeralScope]
+        MuteModal modal)
+        => await MuteAsync(user, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ModalInteraction("note:*")]
+    public async Task NoteAsync([RequireHigherRole] IUser user,
+        [CheckCategory(AuthorizationScope.Note)] [RequireEphemeralScope]
+        NoteModal modal)
+        => await NoteAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ModalInteraction("notice:*")]
+    public async Task NoticeAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
+        NoticeModal modal)
+        => await NoticeAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
+
+    [ComponentInteraction("mod-menu:*")]
+    public async Task RespondModMenuAsync(IUser user, LogReprimandType[] options)
     {
-        var details = new ReprimandDetails(Context, user, reason, category: category);
+        var selected = options.FirstOrDefault();
+        if (selected is LogReprimandType.None) return;
+
+        await (selected switch
+        {
+            LogReprimandType.Ban      => RespondWithModalAsync<BanModal>($"ban:{user.Id}"),
+            LogReprimandType.Kick     => RespondWithModalAsync<KickModal>($"kick:{user.Id}"),
+            LogReprimandType.Mute     => RespondWithModalAsync<MuteModal>($"mute:{user.Id}"),
+            LogReprimandType.Note     => RespondWithModalAsync<NoteModal>($"note:{user.Id}"),
+            LogReprimandType.Notice   => RespondWithModalAsync<NoticeModal>($"notice:{user.Id}"),
+            LogReprimandType.Warning  => RespondWithModalAsync<WarnModal>($"warn:{user.Id}"),
+            LogReprimandType.HardMute => RespondWithModalAsync<HardMuteModal>($"hardMute:{user.Id}"),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(options), selected, "Invalid Mod Menu option.")
+        });
+    }
+
+    [ModalInteraction("warn:*")]
+    public async Task WarnAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
+        WarnModal modal)
+        => await WarnAsync(user, modal.Amount, modal.Reason, modal.Category, modal.Ephemeral);
+
+    private async Task<ReprimandDetails> GetDetailsAsync(
+        IUser user, string? reason, ModerationCategory? category, bool ephemeral)
+    {
+        var details = new ReprimandDetails(Context, user, reason, category: category, ephemeral: ephemeral);
 
         await _db.Users.TrackUserAsync(details);
         await _db.SaveChangesAsync();
 
         return details;
+    }
+
+    public abstract class ReprimandModal : IModal, ICategory, IEphemeral
+    {
+        [RequiredInput(false)]
+        [InputLabel("Reason")]
+        [ModalTextInput("reason", TextInputStyle.Paragraph, "Reason...")]
+        public string? Reason { get; set; }
+
+        [RequiredInput(false)]
+        [InputLabel("Category")]
+        [ModalTextInput("category", TextInputStyle.Short, "Default")]
+        public ModerationCategory? Category { get; set; }
+
+        [RequiredInput(false)]
+        [InputLabel("Execute silently")]
+        [ModalTextInput("ephemeral", TextInputStyle.Short, initValue: "False")]
+        public bool Ephemeral { get; set; }
+
+        public abstract string Title { get; }
+    }
+
+    public class KickModal : ReprimandModal
+    {
+        public override string Title => "Kick User";
+    }
+
+    public class MuteModal : ExpirableReprimandModal
+    {
+        public override string Title => "Mute User";
+    }
+
+    public class HardMuteModal : ExpirableReprimandModal
+    {
+        public override string Title => "Hard Mute User";
+    }
+
+    public class NoteModal : ReprimandModal
+    {
+        public override string Title => "Note User";
+    }
+
+    public class NoticeModal : ReprimandModal
+    {
+        public override string Title => "Notice User";
+    }
+
+    public class WarnModal : ReprimandModal
+    {
+        public override string Title => "Warn User";
+
+        [InputLabel("Warn amount")]
+        [ModalTextInput("amount", TextInputStyle.Short, initValue: "1")]
+        public uint Amount { get; set; }
+    }
+
+    public abstract class ExpirableReprimandModal : ReprimandModal
+    {
+        [RequiredInput(false)]
+        [InputLabel("Length")]
+        [ModalTextInput("length", TextInputStyle.Short, "Example: 1h30m")]
+        public TimeSpan? Length { get; set; }
+    }
+
+    public class BanModal : ExpirableReprimandModal
+    {
+        public override string Title => "Ban User";
+
+        [InputLabel("Delete amount of days")]
+        [ModalTextInput("delete", TextInputStyle.Short, maxLength: 1, initValue: "0")]
+        public uint DeleteDays { get; set; }
     }
 }

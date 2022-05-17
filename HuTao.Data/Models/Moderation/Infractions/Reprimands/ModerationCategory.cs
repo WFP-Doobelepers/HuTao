@@ -9,6 +9,11 @@ using HuTao.Data.Models.Moderation.Logging;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
+public interface ICategory
+{
+    public ModerationCategory? Category { get; }
+}
+
 public class ModerationCategory : IModerationRules
 {
     protected ModerationCategory() { }

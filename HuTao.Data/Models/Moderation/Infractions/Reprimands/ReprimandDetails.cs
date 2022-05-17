@@ -9,16 +9,16 @@ public record ReprimandDetails(
         IUser User, IGuildUser Moderator,
         string? Reason, Trigger? Trigger = null,
         Context? Context = null, ModerationCategory? Category = null,
-        ReprimandResult? Result = null)
+        ReprimandResult? Result = null, bool Ephemeral = true)
     : ActionDetails(Moderator.Id, Moderator.Guild.Id, Reason)
 {
     public ReprimandDetails(
         Context context, IUser user,
         string? reason, Trigger? trigger = null,
         ModerationCategory? category = null,
-        ReprimandResult? result = null)
+        ReprimandResult? result = null, bool ephemeral = true)
         : this(user, (IGuildUser) context.User, reason, trigger, context,
-            category == ModerationCategory.Default ? null : category ?? trigger?.Category, result) { }
+            category == ModerationCategory.Default ? null : category ?? trigger?.Category, result, ephemeral) { }
 
     public IGuild Guild => Moderator.Guild;
 

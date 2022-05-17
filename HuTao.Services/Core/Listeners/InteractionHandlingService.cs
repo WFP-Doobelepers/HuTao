@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
@@ -60,8 +61,19 @@ public class InteractionHandlingService :
         _commands.ContextCommandExecuted   += CommandExecutedAsync;
         _commands.ComponentCommandExecuted += CommandExecutedAsync;
 
+        _commands.AddUserTypeReader<IUser>();
+        _commands.AddUserTypeReader<SocketUser>();
+        _commands.AddUserTypeReader<RestUser>();
+
+        _commands.AddUserTypeReader<IGuildUser>();
+        _commands.AddUserTypeReader<SocketGuildUser>();
+        _commands.AddUserTypeReader<RestGuildUser>();
+
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
         _commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
+
+        _commands.AddComponentTypeConverter<ModerationCategory>(new CategoryComponentTypeConverter());
+        _commands.AddComponentTypeConverter<TimeSpan>(new TimeSpanTypeConverter());
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
     }
