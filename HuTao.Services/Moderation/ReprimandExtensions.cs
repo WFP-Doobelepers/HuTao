@@ -22,6 +22,19 @@ namespace HuTao.Services.Moderation;
 
 public static class ReprimandExtensions
 {
+    public static (long Active, long Total) HistoryCount<T>(this GuildUserEntity user, ModerationCategory? category)
+        where T : Reprimand
+    {
+        var reprimands = user.Reprimands<T>(category).ToList();
+        return (reprimands.Count(IsCounted), reprimands.Count);
+    }
+
+    public static (long Active, long Total) WarningCount(this GuildUserEntity user, ModerationCategory? category)
+    {
+        var reprimands = user.Reprimands<Warning>(category).ToList();
+        return (reprimands.Where(IsCounted).Sum(w => w.Count), reprimands.Sum(w => w.Count));
+    }
+
     public static bool IsActive(this IExpirable expirable)
         => expirable.EndedAt is null || expirable.ExpireAt > DateTimeOffset.UtcNow;
 
@@ -108,9 +121,9 @@ public static class ReprimandExtensions
     public static IEnumerable<Reprimand> OfCategory(this IEnumerable<Reprimand> reprimands,
         ModerationCategory? category) => category switch
     {
-        null                                    => reprimands,
+        null                                       => reprimands,
         var c when c == ModerationCategory.Default => reprimands.Where(r => r.Category is null),
-        _                                       => reprimands.Where(r => r.Category?.Id == category.Id)
+        _                                          => reprimands.Where(r => r.Category?.Id == category.Id)
     };
 
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)
@@ -133,17 +146,11 @@ public static class ReprimandExtensions
             });
     }
 
-    public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user,
-        ModerationCategory? category, bool countHidden) where T : Reprimand
-    {
-        var reprimands = user.Guild.ReprimandHistory
+    public static IEnumerable<T> Reprimands<T>(this GuildUserEntity user, ModerationCategory? category)
+        where T : Reprimand
+        => user.Guild.ReprimandHistory
             .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted)
             .OfCategory(category).OfType<T>();
-
-        return countHidden
-            ? reprimands
-            : reprimands.Where(reprimand => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated);
-    }
 
     public static string GetAction(this Reprimand action)
     {
@@ -275,16 +282,31 @@ public static class ReprimandExtensions
         CancellationToken cancellationToken = default) where T : Reprimand
     {
         var user = await reprimand.GetUserAsync(db, cancellationToken);
-        return (uint) user.Reprimands<T>(trigger.Category, countHidden)
+        return (uint) user.Reprimands<T>(trigger.Category)
             .LongCount(r => r.TriggerId == trigger.Id);
     }
 
-    public static uint HistoryCount<T>(this GuildUserEntity user,
-        ModerationCategory? category, bool countPardoned) where T : Reprimand
-        => (uint) user.Reprimands<T>(category, countPardoned).LongCount();
+    public static async ValueTask<(long Active, long Total)> CountUserReprimandsAsync(
+        this Reprimand reprimand, DbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await reprimand.GetUserAsync(db, cancellationToken);
 
-    public static uint WarningCount(this GuildUserEntity user, ModerationCategory? category, bool countHidden)
-        => (uint) user.Reprimands<Warning>(category, countHidden).Sum(w => w.Count);
+        return reprimand switch
+        {
+            Ban           => user.HistoryCount<Ban>(reprimand.Category),
+            Censored      => user.HistoryCount<Censored>(reprimand.Category),
+            Kick          => user.HistoryCount<Kick>(reprimand.Category),
+            Mute          => user.HistoryCount<Mute>(reprimand.Category),
+            Note          => user.HistoryCount<Note>(reprimand.Category),
+            Notice        => user.HistoryCount<Notice>(reprimand.Category),
+            RoleReprimand => user.HistoryCount<RoleReprimand>(reprimand.Category),
+            Warning       => user.WarningCount(reprimand.Category),
+
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(reprimand), reprimand, "An unknown reprimand was given.")
+        };
+    }
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
@@ -309,27 +331,8 @@ public static class ReprimandExtensions
         return null;
     }
 
-    public static async ValueTask<uint> CountUserReprimandsAsync(
-        this Reprimand reprimand, DbContext db, bool countPardoned = true,
-        CancellationToken cancellationToken = default)
-    {
-        var user = await reprimand.GetUserAsync(db, cancellationToken);
-
-        return reprimand switch
-        {
-            Ban           => user.HistoryCount<Ban>(reprimand.Category, countPardoned),
-            Censored      => user.HistoryCount<Censored>(reprimand.Category, countPardoned),
-            Kick          => user.HistoryCount<Kick>(reprimand.Category, countPardoned),
-            Mute          => user.HistoryCount<Mute>(reprimand.Category, countPardoned),
-            Note          => user.HistoryCount<Note>(reprimand.Category, countPardoned),
-            Notice        => user.HistoryCount<Notice>(reprimand.Category, countPardoned),
-            RoleReprimand => user.HistoryCount<RoleReprimand>(reprimand.Category, countPardoned),
-            Warning       => user.WarningCount(reprimand.Category, countPardoned),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(reprimand), reprimand, "An unknown reprimand was given.")
-        };
-    }
+    private static bool IsCounted(this Reprimand reprimand)
+        => reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated;
 
     private static bool IsIncluded(this Reprimand reprimand, LogReprimandStatus status)
     {

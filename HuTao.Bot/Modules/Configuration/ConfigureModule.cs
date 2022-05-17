@@ -155,7 +155,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
 
     [Command("history reprimands")]
     [Alias("history reprimand")]
-    [Summary("Set the default reprimand to show in the history.")]
+    [Summary("Set the default reprimands to show in the history.")]
     public async Task HistoryReprimandsAsync(
         [Summary("Comma separated values of reprimands to show by default.")]
         LogReprimandType? type = null,
@@ -166,6 +166,21 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         await _db.SaveChangesAsync();
 
         await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
+    }
+
+    [Command("summary reprimands")]
+    [Alias("summary reprimand")]
+    [Summary("Set the default summary reprimands to show in the history.")]
+    public async Task SummaryReprimandsAsync(
+        [Summary("Comma separated values of reprimands to show by default.")]
+        LogReprimandType? type = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.SummaryReprimands = type;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"New value: {rules.SummaryReprimands.Humanize()}");
     }
 
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
