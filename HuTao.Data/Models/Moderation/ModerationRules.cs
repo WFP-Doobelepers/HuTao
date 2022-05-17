@@ -22,6 +22,8 @@ public interface IModerationRules
 
     public TimeSpan? WarningExpiryLength { get; set; }
 
+    public ulong? HardMuteRoleId { get; set; }
+
     public ulong? MuteRoleId { get; set; }
 }
 
@@ -46,6 +48,8 @@ public class ModerationRules : IModerationRules
     public TimeSpan? NoticeExpiryLength { get; set; }
 
     public TimeSpan? WarningExpiryLength { get; set; }
+
+    public ulong? HardMuteRoleId { get; set; }
 
     public ulong? MuteRoleId { get; set; }
 }

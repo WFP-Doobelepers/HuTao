@@ -79,11 +79,34 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
+    public async Task ConfigureHardMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role,
+        bool skipPermissions)
+    {
+        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.MuteRoleId);
+        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.HardMuteRoleId);
+        role ??= guild.Roles.FirstOrDefault(r => r.Name == "Hard Muted");
+        role ??= await guild.CreateRoleAsync("Hard Muted", isMentionable: false);
+
+        rules.HardMuteRoleId = role.Id;
+        await _db.SaveChangesAsync();
+
+        if (skipPermissions) return;
+        var permissions = new OverwritePermissions(
+            addReactions: PermValue.Deny,
+            sendMessages: PermValue.Deny,
+            speak: PermValue.Deny,
+            stream: PermValue.Deny);
+
+        var channels = await guild.GetChannelsAsync();
+        foreach (var channel in channels.Where(channel => channel is not IThreadChannel))
+        {
+            await channel.AddPermissionOverwriteAsync(role, permissions);
+        }
+    }
+
     public async Task ConfigureMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role, bool skipPermissions)
     {
-        var roleId = rules.MuteRoleId;
-
-        role ??= guild.Roles.FirstOrDefault(r => r.Id == roleId);
+        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.MuteRoleId);
         role ??= guild.Roles.FirstOrDefault(r => r.Name == "Muted");
         role ??= await guild.CreateRoleAsync("Muted", isMentionable: false);
 
@@ -275,16 +298,13 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         return activeBan;
     }
 
-    public async Task<Mute?> TryUnmuteAsync(ReprimandDetails details,
+    public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
-        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
-        if (activeMute is not null)
-            await ExpireMuteAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
-        else
-            await EndMuteAsync(await details.GetUserAsync(), details.Category);
-
-        return activeMute;
+        var mute = await _db.GetActive<Mute>(details, cancellationToken);
+        return mute is not null
+            ? await ExpireMuteAsync(mute, ReprimandStatus.Pardoned, cancellationToken, details)
+            : await EndMuteAsync(await details.GetUserAsync(), null, details.Category);
     }
 
     public Task<ReprimandResult?> ReprimandAsync(ModerationTemplate template, ReprimandDetails details,
@@ -311,6 +331,58 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
                 $"By {details.Moderator}: {details.Reason}".Truncate(512));
 
             return result;
+        }
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+        {
+            return null;
+        }
+    }
+
+    public async Task<ReprimandResult?> TryHardMuteAsync(TimeSpan? length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await details.GetUserAsync();
+        if (user is null) return null;
+
+        var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
+        var activeMute = await _db.GetActive<HardMute>(details, cancellationToken);
+
+        var muteRole = details.Category?.HardMuteRoleId
+            ?? details.Category?.MuteRoleId
+            ?? guildEntity.ModerationRules?.HardMuteRoleId
+            ?? guildEntity.ModerationRules?.MuteRoleId;
+
+        if (muteRole is null) return null;
+
+        if (activeMute is not null)
+        {
+            var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
+            if (!replace) return null;
+
+            await ExpireReprimandAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
+        }
+
+        try
+        {
+            var removed = new List<RoleEntity>();
+            foreach (var id in user.RoleIds.Where(r => r != user.Guild.EveryoneRole.Id))
+            {
+                try
+                {
+                    await user.RemoveRoleAsync(id, new RequestOptions { CancelToken = cancellationToken });
+                    removed.Add(await _db.Roles.TrackRoleAsync(user.Guild.Id, id, cancellationToken));
+                }
+                catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+                {
+                    // Ignore
+                }
+            }
+
+            await user.AddRoleAsync(muteRole.Value);
+            var mute = _db.Add(new HardMute(length, removed, details)).Entity;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return await PublishReprimandAsync(mute, details, cancellationToken);
         }
         catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
         {
@@ -428,20 +500,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         return source is not null;
     }
 
-    private async Task EndMuteAsync(IGuildUser? user, IModerationRules? rules)
-    {
-        if (user is null) return;
-
-        var guild = await _db.Guilds.TrackGuildAsync(user.Guild);
-        rules ??= guild.ModerationRules;
-
-        if (rules?.MuteRoleId is not null)
-            await user.RemoveRoleAsync(rules.MuteRoleId.Value);
-
-        if (user.VoiceChannel is not null)
-            await user.ModifyAsync(u => u.Mute = false);
-    }
-
     private async Task ExpireBanAsync(ExpirableReprimand ban, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
@@ -449,17 +507,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _ = guild.RemoveBanAsync(ban.UserId);
 
         await ExpireReprimandAsync(ban, status, cancellationToken, details);
-    }
-
-    private async Task ExpireMuteAsync(ExpirableReprimand mute, ReprimandStatus status,
-        CancellationToken cancellationToken, ReprimandDetails? details = null)
-    {
-        var guild = (IGuild) _client.GetGuild(mute.GuildId);
-        var user = await guild.GetUserAsync(mute.UserId);
-
-        _ = EndMuteAsync(user, mute.Category);
-
-        await ExpireReprimandAsync(mute, status, cancellationToken, details);
     }
 
     private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, ReprimandStatus status,
@@ -508,17 +555,67 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
     }
 
+    private async Task<bool> EndMuteAsync(IGuildUser? user, ILength? mute, IModerationRules? rules)
+    {
+        if (user is null) return false;
+
+        var guild = await _db.Guilds.TrackGuildAsync(user.Guild);
+        var roleId = rules?.MuteRoleId ?? guild.ModerationRules?.MuteRoleId;
+
+        if (mute is HardMute hard)
+        {
+            roleId = rules?.HardMuteRoleId ?? guild.ModerationRules?.HardMuteRoleId ?? roleId;
+            foreach (var role in hard.Roles)
+            {
+                try
+                {
+                    await user.AddRoleAsync(role.RoleId);
+                }
+                catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+                {
+                    // Ignore
+                }
+            }
+        }
+
+        if (roleId is not null)
+        {
+            if (user.HasRole(roleId.Value))
+                await user.RemoveRoleAsync(roleId.Value);
+            else
+                return false;
+        }
+
+        if (user.VoiceChannel is not null)
+            await user.ModifyAsync(u => u.Mute = false);
+
+        return true;
+    }
+
+    private async Task<bool> ExpireMuteAsync(Mute mute, ReprimandStatus status,
+        CancellationToken cancellationToken, ReprimandDetails? details = null)
+    {
+        var guild = (IGuild) _client.GetGuild(mute.GuildId);
+        var user = await guild.GetUserAsync(mute.UserId);
+
+        var result = await EndMuteAsync(user, mute, mute.Category);
+        await ExpireReprimandAsync(mute, status, cancellationToken, details);
+
+        return result;
+    }
+
     private async Task<ReprimandResult?> ReprimandAsync(ReprimandAction? reprimand, ReprimandDetails details,
         CancellationToken cancellationToken) => reprimand switch
     {
-        BanAction b     => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-        KickAction      => await TryKickAsync(details, cancellationToken),
-        MuteAction m    => await TryMuteAsync(m.Length, details, cancellationToken),
-        RoleAction r    => await TryApplyRolesAsync(r.Roles, r.Length, details, cancellationToken),
-        WarningAction w => await WarnAsync(w.Count, details, cancellationToken),
-        NoticeAction    => await NoticeAsync(details, cancellationToken),
-        NoteAction      => await NoteAsync(details, cancellationToken),
-        _               => null
+        BanAction b      => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+        KickAction       => await TryKickAsync(details, cancellationToken),
+        HardMuteAction t => await TryHardMuteAsync(t.Length, details, cancellationToken),
+        MuteAction m     => await TryMuteAsync(m.Length, details, cancellationToken),
+        RoleAction r     => await TryApplyRolesAsync(r.Roles, r.Length, details, cancellationToken),
+        WarningAction w  => await WarnAsync(w.Count, details, cancellationToken),
+        NoticeAction     => await NoticeAsync(details, cancellationToken),
+        NoteAction       => await NoteAsync(details, cancellationToken),
+        _                => null
     };
 
     private async Task<ReprimandResult?> TryApplyRolesAsync(

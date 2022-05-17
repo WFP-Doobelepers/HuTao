@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using HuTao.Data.Models.Discord;
@@ -12,31 +10,29 @@ namespace HuTao.Services.Utilities;
 
 public static class DbSetExtensions
 {
-    [SuppressMessage("ReSharper", "NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract")]
-    public static async Task<GuildEntity> TrackGuildAsync(
-        this DbSet<GuildEntity> set, IGuild guild,
-        CancellationToken cancellationToken = default)
-        => await set.FindByIdAsync(guild.Id, cancellationToken)
-            ?? set.Add(new GuildEntity(guild.Id)).Entity;
-
     public static async Task<ReactionEntity> TrackEmoteAsync(this DbContext db, IEmote reaction,
         CancellationToken cancellationToken = default)
     {
         if (reaction is Emote emote)
         {
-            var entity = await db.Set<EmoteEntity>().ToAsyncEnumerable()
+            var entity = await db.Set<EmoteEntity>()
                 .FirstOrDefaultAsync(e => e.EmoteId == emote.Id, cancellationToken);
 
             return entity ?? db.Add(new EmoteEntity(emote)).Entity;
         }
         else
         {
-            var entity = await db.Set<EmojiEntity>().ToAsyncEnumerable()
+            var entity = await db.Set<EmojiEntity>()
                 .FirstOrDefaultAsync(e => e.Name == reaction.Name, cancellationToken);
 
             return entity ?? db.Add(new EmojiEntity(reaction)).Entity;
         }
     }
+
+    public static async ValueTask<GuildEntity> TrackGuildAsync(
+        this DbSet<GuildEntity> set, IGuild guild,
+        CancellationToken cancellationToken = default)
+        => await set.FindByIdAsync(guild.Id, cancellationToken) ?? set.Add(new GuildEntity(guild.Id)).Entity;
 
     public static async ValueTask<GuildUserEntity> TrackUserAsync(this DbSet<GuildUserEntity> set, IGuildUser user,
         CancellationToken cancellationToken = default)
@@ -60,6 +56,16 @@ public static class DbSetExtensions
 
         return userEntity;
     }
+
+    public static async ValueTask<RoleEntity> TrackRoleAsync(
+        this DbSet<RoleEntity> set, IRole role,
+        CancellationToken cancellationToken = default)
+        => await set.FindByIdAsync(role.Id, cancellationToken) ?? set.Add(new RoleEntity(role)).Entity;
+
+    public static async ValueTask<RoleEntity> TrackRoleAsync(
+        this DbSet<RoleEntity> set, ulong guildId, ulong roleId,
+        CancellationToken cancellationToken = default)
+        => await set.FindByIdAsync(roleId, cancellationToken) ?? set.Add(new RoleEntity(guildId, roleId)).Entity;
 
     public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
         CancellationToken cancellationToken = default)
