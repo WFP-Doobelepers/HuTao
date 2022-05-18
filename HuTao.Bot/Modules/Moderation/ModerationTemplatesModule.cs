@@ -8,7 +8,6 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
@@ -25,7 +24,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 {
     private readonly HuTaoContext _db;
 
-    public ModerationTemplatesModule(CommandErrorHandler error, HuTaoContext db) : base(error, db) { _db = db; }
+    public ModerationTemplatesModule(HuTaoContext db) { _db = db; }
 
     [Command("ban")]
     public async Task BanTemplateAsync(string name, uint deleteDays = 0, TimeSpan? length = null,

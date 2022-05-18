@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using HuTao.Data;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Moderation;
@@ -13,8 +12,7 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
     private readonly CommandErrorHandler _error;
     private readonly ModerationService _moderation;
 
-    protected InteractiveTrigger(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
-        : base(error, db)
+    protected InteractiveTrigger(CommandErrorHandler error, ModerationService moderation)
     {
         _error      = error;
         _moderation = moderation;

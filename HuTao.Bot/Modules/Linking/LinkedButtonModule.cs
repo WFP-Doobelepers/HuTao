@@ -25,7 +25,7 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
     private readonly HuTaoContext _db;
     private readonly LinkingService _linking;
 
-    public LinkedButtonModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking) : base(error, db)
+    public LinkedButtonModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
     {
         _error   = error;
         _linking = linking;

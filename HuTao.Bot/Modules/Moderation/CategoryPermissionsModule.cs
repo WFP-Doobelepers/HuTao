@@ -32,8 +32,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
 
-    public CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext db) :
-        base(error, db)
+    public CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext db)
     {
         _error = error;
         _db    = db;

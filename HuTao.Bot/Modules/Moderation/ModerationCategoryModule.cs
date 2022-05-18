@@ -9,7 +9,6 @@ using HuTao.Data;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.CommandHelp;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
@@ -21,7 +20,7 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
 {
     private readonly HuTaoContext _db;
 
-    public ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db) : base(error, db) { _db = db; }
+    public ModerationCategoryModule(HuTaoContext db) { _db = db; }
 
     [Command("add")]
     [Summary("Add a new moderation category.")]
