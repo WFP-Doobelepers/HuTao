@@ -34,7 +34,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
     public ReprimandTriggersModule(
         CommandErrorHandler error, HuTaoContext db,
-        ModerationService moderation) : base(error, db, moderation)
+        ModerationService moderation) : base(error, moderation)
     {
         _error      = error;
         _db         = db;

@@ -10,7 +10,6 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Linking;
@@ -31,8 +30,7 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
     private readonly HuTaoContext _db;
     private readonly LinkedCommandService _linked;
 
-    public LinkedCommandModule(CommandErrorHandler error, HuTaoContext db,
-        CommandService commands, LinkedCommandService linked) : base(error, db)
+    public LinkedCommandModule(HuTaoContext db, CommandService commands, LinkedCommandService linked)
     {
         _commands = commands;
         _linked   = linked;

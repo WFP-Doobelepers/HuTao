@@ -40,9 +40,6 @@ public class AuthorizationService
             : seed;
     }
 
-    public static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
-        => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
-
     public async Task<bool> IsAuthorizedAsync(
         Context context, AuthorizationScope scope, ModerationCategory? category,
         CancellationToken cancellationToken = default)
@@ -88,6 +85,9 @@ public class AuthorizationService
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
         return rules.ModerationCategories.Any(c => IsAuthorized(context, scope, c));
     }
+
+    private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
+        => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
 
     private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)
     {

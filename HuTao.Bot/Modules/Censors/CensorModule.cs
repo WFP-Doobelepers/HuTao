@@ -35,7 +35,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     private readonly HuTaoContext _db;
 
     public CensorModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
-        : base(error, db, moderation)
+        : base(error, moderation)
     {
         _db = db;
     }

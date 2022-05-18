@@ -23,7 +23,7 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
     private readonly HuTaoContext _db;
     private readonly LinkingService _linking;
 
-    public MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking) : base(error, db)
+    public MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
     {
         _error   = error;
         _linking = linking;

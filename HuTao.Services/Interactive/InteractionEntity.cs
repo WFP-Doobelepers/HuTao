@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Interactions;
 using Fergun.Interactive;
 using Humanizer;
 using HuTao.Data;
@@ -11,7 +12,7 @@ using HuTao.Services.Interactive.Paginator;
 
 namespace HuTao.Services.Interactive;
 
-public abstract class InteractiveEntity<T> : InteractivePromptBase where T : class
+public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInteractionContext> where T : class
 {
     protected const string EmptyMatchMessage = "Unable to find any match. Provide at least 2 characters.";
 
@@ -19,7 +20,9 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
 
     public HuTaoContext Db { get; init; } = null!;
 
-    protected int ChunkSize => 6;
+    public InteractiveService Interactive { get; init; } = null!;
+
+    protected virtual int ChunkSize => 6;
 
     protected abstract EmbedBuilder EntityViewer(T entity);
 
@@ -31,13 +34,13 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
         collection.Add(entity);
 
         await Db.SaveChangesAsync();
-        await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
 
-    protected async Task PagedViewAsync(IEnumerable<T> collection) => await PagedViewAsync(collection, EntityViewer);
+    protected async Task PagedViewAsync(IEnumerable<T> collection, bool ephemeral = false)
+        => await PagedViewAsync(collection, EntityViewer, ephemeral);
 
     protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
-        Func<TEntity, EmbedBuilder> entityViewer)
+        Func<TEntity, EmbedBuilder> entityViewer, bool ephemeral = false)
     {
         var pages = collection
             .Chunk(ChunkSize)
@@ -48,22 +51,28 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             });
 
         var paginated = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
-        await Interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel);
+        await Interactive.SendPaginatorAsync(
+            paginated.WithUsers(Context.User).Build(),
+            Context.Interaction, ephemeral: ephemeral,
+            responseType: Context.Interaction.HasResponded
+                ? InteractionResponseType.DeferredChannelMessageWithSource
+                : InteractionResponseType.ChannelMessageWithSource);
     }
 
-    protected virtual async Task RemoveEntityAsync(string id)
+    protected virtual async Task RemoveEntityAsync(string id, bool ephemeral = false)
     {
+        await DeferAsync(ephemeral);
         var collection = await GetCollectionAsync();
         var entity = await TryFindEntityAsync(id, collection);
 
         if (entity is null)
         {
-            await Error.AssociateError(Context.Message, EmptyMatchMessage);
+            await FollowupAsync(EmptyMatchMessage, ephemeral: true);
             return;
         }
 
         await RemoveEntityAsync(entity);
-        await Context.Message.AddReactionAsync(new Emoji("✅"));
+        await FollowupAsync("Removed.", ephemeral: true);
     }
 
     protected virtual async Task RemoveEntityAsync(T entity)
@@ -74,6 +83,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
 
     protected virtual async Task ViewEntityAsync()
     {
+        await DeferAsync();
         var collection = await GetCollectionAsync();
         await PagedViewAsync(collection);
     }
@@ -108,7 +118,7 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
             .WithSelectMenu($"select:{guid}", options, "Multiple matches found, select one...")
             .WithButton("Cancel selection", $"cancel:{guid}", ButtonStyle.Danger, new Emoji("🛑"));
 
-        await ReplyAsync(embeds: embeds.Select(e => e.Second).ToArray(), components: component.Build());
+        await FollowupAsync(embeds: embeds.Select(e => e.Second).ToArray(), components: component.Build());
         var selected = await Interactive.NextMessageComponentAsync(c
             => c.Data.CustomId == $"select:{guid}"
             || c.Data.CustomId == $"cancel:{guid}");

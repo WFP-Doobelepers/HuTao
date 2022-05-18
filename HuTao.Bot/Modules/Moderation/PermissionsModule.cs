@@ -33,7 +33,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
 
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db) : base(error, db)
+    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db)
     {
         _auth  = auth;
         _error = error;

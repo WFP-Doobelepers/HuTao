@@ -5,13 +5,13 @@ using Discord;
 using Discord.Interactions;
 using Humanizer;
 using HuTao.Data;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HuTao.Services.Core.Autocomplete;
 
-public class CategoryAutocomplete : AutocompleteHandler
+public class ReprimandAutocomplete : AutocompleteHandler
 {
     public override async Task<AutocompletionResult> GenerateSuggestionsAsync(
         IInteractionContext context, IAutocompleteInteraction interaction,
@@ -21,11 +21,11 @@ public class CategoryAutocomplete : AutocompleteHandler
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 
         var input = interaction.Data.Current.Value.ToString();
-        var templates = guild.ModerationCategories
-            .Append(ModerationCategory.Default)
-            .Where(t => t.Name.StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase))
-            .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
+        var reprimands = guild.ReprimandHistory
+            .Where(r => r.Id.ToString().StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(r => r.Action?.Date).Take(25)
+            .Select(r => new AutocompleteResult($"{r.GetTitle(true)} {r.GetReason()}".Truncate(100), r.Id.ToString()));
 
-        return AutocompletionResult.FromSuccess(templates);
+        return AutocompletionResult.FromSuccess(reprimands);
     }
 }

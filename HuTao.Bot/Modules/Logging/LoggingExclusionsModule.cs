@@ -9,7 +9,6 @@ using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Logging;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
@@ -26,7 +25,7 @@ public class LoggingExclusionsModule : InteractiveEntity<Criterion>
 {
     private readonly HuTaoContext _db;
 
-    public LoggingExclusionsModule(CommandErrorHandler error, HuTaoContext db) : base(error, db) { _db = db; }
+    public LoggingExclusionsModule(HuTaoContext db) { _db = db; }
 
     protected virtual string Title => "Censor Exclusions";
 

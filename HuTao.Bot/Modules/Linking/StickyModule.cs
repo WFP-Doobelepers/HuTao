@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Humanizer;
-using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
@@ -24,7 +23,7 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     private readonly CommandErrorHandler _error;
     private readonly StickyService _sticky;
 
-    public StickyModule(CommandErrorHandler error, HuTaoContext db, StickyService sticky) : base(error, db)
+    public StickyModule(CommandErrorHandler error, StickyService sticky)
     {
         _error  = error;
         _sticky = sticky;
