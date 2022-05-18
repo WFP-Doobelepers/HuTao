@@ -88,7 +88,7 @@ public static class ReprimandExtensions
     {
         var embed = new EmbedBuilder()
             .WithTitle($"{r.Status} {r.GetTitle(showId)}")
-            .WithDescription(r.GetReason().Truncate(EmbedBuilder.MaxDescriptionLength))
+            .WithDescription(r.GetReason(EmbedFieldBuilder.MaxFieldValueLength))
             .WithColor(r.GetColor()).WithTimestamp(r)
             .AddField("Reprimand", r.GetAction(), true)
             .AddField("Moderator", r.GetModerator(), true);
