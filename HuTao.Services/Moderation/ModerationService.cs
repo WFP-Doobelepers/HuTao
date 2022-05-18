@@ -205,9 +205,10 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         var builders = history
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => new EmbedBuilder().WithExpirableDetails(r));
+            .Select(r => new EmbedBuilder().WithExpirableDetails(r))
+            .Chunk(10);
 
-        var pages = new MultiEmbedPageBuilder().WithBuilders(builders);
+        var pages = builders.Select(b => new MultiEmbedPageBuilder().WithBuilders(b));
         var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
 
         await (context switch
