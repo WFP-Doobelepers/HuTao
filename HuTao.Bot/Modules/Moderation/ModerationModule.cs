@@ -230,8 +230,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [RequireAuthorization(AuthorizationScope.Slowmode, Group = nameof(AuthorizationScope.Slowmode))]
     public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null) => SlowmodeAsync(length, channel);
 
-    [Alias("t")]
-    [Command("template")]
+    [Priority(-1)]
+    [Command("template")] [Alias("t")]
     [Summary("Run a configured moderation template")]
     public async Task TemplateAsync(string name, [RequireHigherRole] IUser user)
     {
