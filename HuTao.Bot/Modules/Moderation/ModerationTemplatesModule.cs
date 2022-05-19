@@ -7,11 +7,13 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
-using static HuTao.Data.Models.Authorization.AuthorizationScope;
 
 namespace HuTao.Bot.Modules.Moderation;
 
@@ -28,7 +30,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
     [Command("ban")]
     public async Task BanTemplateAsync(string name, uint deleteDays = 0, TimeSpan? length = null,
-        AuthorizationScope scope = Ban, [Remainder] string? reason = null)
+        AuthorizationScope scope = AuthorizationScope.Ban, [Remainder] string? reason = null)
     {
         var action = new BanAction(deleteDays, length);
         await AddTemplateAsync(name, action, scope, reason);
@@ -36,7 +38,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
     [Command("kick")]
     public async Task KickTemplateAsync(string name,
-        AuthorizationScope scope = Kick, [Remainder] string? reason = null)
+        AuthorizationScope scope = AuthorizationScope.Kick, [Remainder] string? reason = null)
     {
         var action = new KickAction();
         await AddTemplateAsync(name, action, scope, reason);
@@ -44,14 +46,14 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
     [Command("mute")]
     public async Task MuteTemplateAsync(string name, TimeSpan? length = null,
-        AuthorizationScope scope = Mute, [Remainder] string? reason = null)
+        AuthorizationScope scope = AuthorizationScope.Mute, [Remainder] string? reason = null)
     {
         var action = new MuteAction(length);
         await AddTemplateAsync(name, action, scope, reason);
     }
 
     [Command("note")]
-    public async Task NoteTemplateAsync(string name, AuthorizationScope scope = Note,
+    public async Task NoteTemplateAsync(string name, AuthorizationScope scope = AuthorizationScope.Note,
         [Remainder] string? reason = null)
     {
         var action = new NoteAction();
@@ -59,7 +61,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [Command("notice")]
-    public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = Warning,
+    public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = AuthorizationScope.Warning,
         [Remainder] string? reason = null)
     {
         var action = new NoticeAction();
@@ -80,7 +82,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [Command("warn")]
-    public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = Warning,
+    public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = AuthorizationScope.Warning,
         [Remainder] string? reason = null)
     {
         var action = new WarningAction(amount);
@@ -94,7 +96,7 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
     [Command]
     [Alias("list", "view")]
-    [Summary("View the reprimand trigger list.")]
+    [Summary("View the moderation templates list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override EmbedBuilder EntityViewer(ModerationTemplate template) => new EmbedBuilder()
@@ -130,10 +132,24 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [NamedArgumentType]
-    public class RoleTemplateOptions : RoleReprimandOptions
+    public class RoleTemplateOptions : IRoleTemplateOptions, ITrigger
     {
-        public AuthorizationScope Scope { get; set; } = Mute;
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Mute;
 
         public string? Reason { get; set; }
+
+        public TimeSpan? Length { get; set; }
+
+        public IEnumerable<IRole>? AddRoles { get; set; }
+
+        public IEnumerable<IRole>? RemoveRoles { get; set; }
+
+        public IEnumerable<IRole>? ToggleRoles { get; set; }
+
+        public ModerationCategory? Category { get; set; }
+
+        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
+
+        public uint Amount { get; set; } = 1;
     }
 }

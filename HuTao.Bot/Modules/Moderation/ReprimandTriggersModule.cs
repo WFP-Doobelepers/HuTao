@@ -7,6 +7,7 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
@@ -191,6 +192,24 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         public TriggerMode Mode { get; set; } = TriggerMode.Exact;
 
         [HelpSummary("The amount of times the trigger should be triggered before reprimanding.")]
+        public uint Amount { get; set; } = 1;
+    }
+
+    [NamedArgumentType]
+    public class RoleReprimandOptions : IRoleTemplateOptions, ITrigger
+    {
+        public TimeSpan? Length { get; set; }
+
+        public IEnumerable<IRole>? AddRoles { get; set; }
+
+        public IEnumerable<IRole>? RemoveRoles { get; set; }
+
+        public IEnumerable<IRole>? ToggleRoles { get; set; }
+
+        public ModerationCategory? Category { get; set; }
+
+        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
+
         public uint Amount { get; set; } = 1;
     }
 }
