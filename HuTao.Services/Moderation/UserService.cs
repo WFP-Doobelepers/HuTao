@@ -236,8 +236,9 @@ public class UserService
         foreach (var e in types)
         {
             var name = e.ToString();
+            var title = e.Humanize(LetterCasing.Title);
             var selected = type.HasFlag(e) && type is not LogReprimandType.None;
-            menu.AddOption(name, name, isDefault: selected);
+            menu.AddOption(title, name, $"View {title} history", isDefault: selected);
         }
 
         return menu;

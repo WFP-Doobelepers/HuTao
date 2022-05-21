@@ -64,7 +64,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     [RequireCategoryAuthorization(History, Group = nameof(History))]
     public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: true);
 
-    [UserCommand("User Information")]
+    [UserCommand("User Mod Menu")]
     [RequireAuthorization(User)]
     public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
 
