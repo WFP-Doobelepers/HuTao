@@ -52,6 +52,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             await FollowupAsync("Failed to ban user.");
     }
 
+    [SlashCommand("ban-menu", "Open a menu to ban a user from the current guild.")]
+    public Task BanMenuAsync([RequireHigherRole] IUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Ban);
+
     [SlashCommand("hardmute", "Hard Mute a user from the current guild.")]
     public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
@@ -71,6 +75,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         }
     }
 
+    [SlashCommand("hardmute-menu", "Open a menu to hard mute a user from the current guild.")]
+    public Task HardMuteMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.HardMute);
+
     [SlashCommand("kick", "Kick a user from the current guild.")]
     public async Task KickAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
@@ -85,6 +93,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         if (result is null)
             await FollowupAsync("Failed to kick user.");
     }
+
+    [SlashCommand("kick-menu", "Open a menu to kick a user from the current guild.")]
+    public Task KickMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Kick);
 
     [SlashCommand("mute", "Mute a user from the current guild.")]
     public async Task MuteAsync([RequireHigherRole] IGuildUser user,
@@ -112,6 +124,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
         => _moderation.SendMuteListAsync(Context, category, ephemeral);
 
+    [SlashCommand("mute-menu", "Open a menu to mute a user from the current guild.")]
+    public Task MuteMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Mute);
+
     [SlashCommand("note", "Add a note to a user. Notes are always silent.")]
     public async Task NoteAsync(
         [RequireHigherRole] IUser user, string? note = null,
@@ -124,6 +140,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         await _moderation.NoteAsync(details);
     }
 
+    [SlashCommand("note-menu", "Open a menu to note a user from the current guild.")]
+    public Task NoteMenuAsync([RequireHigherRole] IUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Note);
+
     [SlashCommand("notice", "Add a notice to a user. This counts as a minor warning.")]
     public async Task NoticeAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
@@ -135,6 +155,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
         await _moderation.NoticeAsync(details);
     }
+
+    [SlashCommand("notice-menu", "Open a menu to notice a user from the current guild.")]
+    public Task NoticeMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Notice);
 
     [SlashCommand("say", "Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Send)]
@@ -222,6 +246,10 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         await _moderation.WarnAsync(amount, details);
     }
 
+    [SlashCommand("warn-menu", "Open a menu to warn a user from the current guild.")]
+    public Task WarnMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Warning);
+
     [ModalInteraction("ban:*")]
     public async Task BanAsync([RequireHigherRole] IUser user,
         [CheckCategory(AuthorizationScope.Ban)] [RequireEphemeralScope]
@@ -264,18 +292,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         var selected = options.FirstOrDefault();
         if (selected is LogReprimandType.None) return;
 
-        await (selected switch
-        {
-            LogReprimandType.Ban      => RespondWithModalAsync<BanModal>($"ban:{user.Id}"),
-            LogReprimandType.Kick     => RespondWithModalAsync<KickModal>($"kick:{user.Id}"),
-            LogReprimandType.Mute     => RespondWithModalAsync<MuteModal>($"mute:{user.Id}"),
-            LogReprimandType.Note     => RespondWithModalAsync<NoteModal>($"note:{user.Id}"),
-            LogReprimandType.Notice   => RespondWithModalAsync<NoticeModal>($"notice:{user.Id}"),
-            LogReprimandType.Warning  => RespondWithModalAsync<WarnModal>($"warn:{user.Id}"),
-            LogReprimandType.HardMute => RespondWithModalAsync<HardMuteModal>($"hardMute:{user.Id}"),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(options), selected, "Invalid Mod Menu option.")
-        });
+        await RespondModMenuAsync(user, selected);
     }
 
     [ModalInteraction("warn:*")]
@@ -283,6 +300,19 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
         WarnModal modal)
         => await WarnAsync(user, modal.Amount, modal.Reason, modal.Category, modal.Ephemeral);
+
+    private async Task RespondModMenuAsync(IUser user, LogReprimandType type) => await (type switch
+    {
+        LogReprimandType.Ban      => RespondWithModalAsync<BanModal>($"ban:{user.Id}"),
+        LogReprimandType.Kick     => RespondWithModalAsync<KickModal>($"kick:{user.Id}"),
+        LogReprimandType.Mute     => RespondWithModalAsync<MuteModal>($"mute:{user.Id}"),
+        LogReprimandType.Note     => RespondWithModalAsync<NoteModal>($"note:{user.Id}"),
+        LogReprimandType.Notice   => RespondWithModalAsync<NoticeModal>($"notice:{user.Id}"),
+        LogReprimandType.Warning  => RespondWithModalAsync<WarnModal>($"warn:{user.Id}"),
+        LogReprimandType.HardMute => RespondWithModalAsync<HardMuteModal>($"hardMute:{user.Id}"),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(type), type, "Invalid Mod Menu option.")
+    });
 
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category, bool ephemeral)
