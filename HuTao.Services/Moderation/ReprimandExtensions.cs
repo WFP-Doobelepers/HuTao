@@ -11,6 +11,7 @@ using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
@@ -59,7 +60,7 @@ public static class ReprimandExtensions
         };
     }
 
-    public static bool IsIncluded(this Reprimand reprimand, ModerationLogConfig config)
+    public static bool IsIncluded<T>(this Reprimand reprimand, LogConfig<T> config) where T : ModerationLogConfig
         => reprimand.IsIncluded(config.LogReprimands) && reprimand.IsIncluded(config.LogReprimandStatus);
 
     public static Color GetColor(this Reprimand reprimand)
@@ -261,7 +262,8 @@ public static class ReprimandExtensions
     {
         var entities = await db.Set<T>()
             .Where(r => r.UserId == details.User.Id && r.GuildId == details.Guild.Id)
-            .Where(r => details.Category == null || (r.Category != null && r.Category.Id == details.Category.Id))
+            .Where(r => details.Category == null
+                || (r.Category != null && r.Category.Id == details.Category.Id))
             .ToListAsync(cancellationToken);
 
         return entities.FirstOrDefault(m => m.IsActive());

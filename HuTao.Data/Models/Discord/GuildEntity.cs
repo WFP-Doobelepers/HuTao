@@ -6,7 +6,6 @@ using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
-using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Data.Models.TimeTracking;
 using HuTao.Data.Models.VoiceChat;
 
@@ -60,8 +59,6 @@ public class GuildEntity
         = new List<TemporaryRoleMember>();
 
     public virtual LoggingRules? LoggingRules { get; set; }
-
-    public virtual ModerationLoggingRules? ModerationLoggingRules { get; set; }
 
     public virtual ModerationRules? ModerationRules { get; set; }
 

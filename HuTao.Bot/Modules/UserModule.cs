@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;

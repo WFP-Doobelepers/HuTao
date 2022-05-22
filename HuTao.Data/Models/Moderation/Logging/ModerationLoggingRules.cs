@@ -6,13 +6,19 @@ public class ModerationLoggingRules
 {
     public Guid Id { get; set; }
 
-    public LogReprimandType SilentReprimands { get; set; } = LogReprimandType.None;
+    public bool IgnoreDuplicates { get; set; }
 
-    public virtual ModerationLogChannelConfig ModeratorLog { get; set; } = new();
+    public LogReprimandType? HistoryReprimands { get; set; }
 
-    public virtual ModerationLogChannelConfig PublicLog { get; set; } = new();
+    public LogReprimandType? SilentReprimands { get; set; }
 
-    public virtual ModerationLogConfig CommandLog { get; set; } = new();
+    public LogReprimandType? SummaryReprimands { get; set; }
 
-    public virtual ModerationLogConfig UserLog { get; set; } = new();
+    public virtual ModerationLogChannelConfig? ModeratorLog { get; set; }
+
+    public virtual ModerationLogChannelConfig? PublicLog { get; set; }
+
+    public virtual ModerationLogConfig? CommandLog { get; set; }
+
+    public virtual ModerationLogConfig? UserLog { get; set; }
 }

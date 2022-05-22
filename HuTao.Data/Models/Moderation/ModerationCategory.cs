@@ -7,7 +7,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation.Logging;
 
-namespace HuTao.Data.Models.Moderation.Infractions.Reprimands;
+namespace HuTao.Data.Models.Moderation;
 
 public interface ICategory
 {
@@ -32,17 +32,13 @@ public class ModerationCategory : IModerationRules
 
     public static ModerationCategory Default { get; } = new("Default", null, null);
 
-    public virtual ModerationLoggingRules? LoggingRules { get; set; }
-
     public string Name { get; set; } = null!;
 
     public bool ReplaceMutes { get; set; }
 
     public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
 
-    public LogReprimandType? HistoryReprimands { get; set; }
-
-    public LogReprimandType? SummaryReprimands { get; set; }
+    public virtual ModerationLoggingRules? Logging { get; set; }
 
     public TimeSpan? CensorTimeRange { get; set; }
 

@@ -10,6 +10,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core;
@@ -70,13 +71,16 @@ public class UserService
 
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
 
-        var reprimand = type is LogReprimandType.None
-            ? category?.HistoryReprimands ?? guild.ModerationRules?.HistoryReprimands ?? LogReprimandType.None
-            : type;
+        if (type is LogReprimandType.None)
+        {
+            type = category?.Logging?.HistoryReprimands
+                ?? guild.ModerationRules?.Logging?.HistoryReprimands
+                ?? LogReprimandType.None;
+        }
 
         var history = guild.ReprimandHistory
             .Where(r => r.UserId == user.Id)
-            .OfType(reprimand).OfCategory(category);
+            .OfType(type).OfCategory(category);
 
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
@@ -110,9 +114,9 @@ public class UserService
 
         void Components(IUserMessage message)
         {
-            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(user, category, reprimand));
+            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(user, category, type));
             if (guild.ModerationCategories.Any())
-                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, reprimand));
+                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
 
             components.WithSelectMenu(ReprimandMenu(user));
 
@@ -146,8 +150,8 @@ public class UserService
 
     private static EmbedBuilder GetReprimands(GuildUserEntity user, ModerationCategory? category)
     {
-        var rules = category?.SummaryReprimands
-            ?? user.Guild.ModerationRules?.SummaryReprimands
+        var rules = category?.Logging?.SummaryReprimands
+            ?? user.Guild.ModerationRules?.Logging?.SummaryReprimands
             ?? LogReprimandType.All;
 
         var embed = new EmbedBuilder().WithTitle(category is null

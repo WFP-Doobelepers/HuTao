@@ -1,5 +1,6 @@
 using System;
 using Discord.Interactions;
+using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig.ModerationLogOptions;
 
 namespace HuTao.Data.Models.Moderation.Logging;
 
@@ -24,15 +25,33 @@ public class ModerationLogConfig
             | ShowAvatarThumbnail | ShowActive | ShowTotal | ShowTrigger | ShowCategory
     }
 
+    private const ModerationLogOptions UserOptions = All & ~ShowReprimandId & ~ShowModerator & ~ShowTrigger;
+
     public Guid Id { get; set; }
 
-    public LogReprimandStatus LogReprimandStatus { get; set; } = LogReprimandStatus.All;
+    public LogReprimandStatus? LogReprimandStatus { get; set; }
 
-    public LogReprimandType LogReprimands { get; set; } = LogReprimandType.None;
+    public LogReprimandType? LogReprimands { get; set; }
 
-    public LogReprimandType ShowAppealOnReprimands { get; set; } = LogReprimandType.None;
+    public LogReprimandType? ShowAppealOnReprimands { get; set; }
 
-    public ModerationLogOptions Options { get; set; } = ModerationLogOptions.None;
+    public static ModerationLogConfig DefaultCommandLogConfig { get; } = new()
+    {
+        LogReprimandStatus     = Logging.LogReprimandStatus.All,
+        LogReprimands          = LogReprimandType.All,
+        ShowAppealOnReprimands = LogReprimandType.None,
+        Options                = All
+    };
+
+    public static ModerationLogConfig DefaultUserLogConfig { get; } = new()
+    {
+        LogReprimandStatus     = Logging.LogReprimandStatus.All,
+        LogReprimands          = LogReprimandType.All & ~LogReprimandType.Note,
+        ShowAppealOnReprimands = LogReprimandType.Ban,
+        Options                = UserOptions
+    };
+
+    public ModerationLogOptions? Options { get; set; }
 
     public string? AppealMessage { get; set; }
 }

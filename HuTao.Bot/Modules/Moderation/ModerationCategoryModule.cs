@@ -7,7 +7,7 @@ using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Criteria;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;

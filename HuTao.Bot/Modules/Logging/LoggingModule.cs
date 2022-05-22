@@ -9,7 +9,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
@@ -57,7 +57,8 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         var config = await GetConfigAsync(category, context);
         if (type is not LogReprimandType.None)
         {
-            var reprimands = config.ShowAppealOnReprimands.SetValue(type, showAppeal);
+            config.ShowAppealOnReprimands ??= LogReprimandType.None;
+            var reprimands = config.ShowAppealOnReprimands.Value.SetValue(type, showAppeal);
             config.ShowAppealOnReprimands = reprimands;
             await _db.SaveChangesAsync();
         }
@@ -74,11 +75,12 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         bool? isSilent = null,
         ModerationCategory? category = null)
     {
-        var rules = await GetLoggingRulesAsync(category);
+        var rules = await GetLoggingAsync(category);
         if (type is not LogReprimandType.None)
         {
-            var reprimands = rules.SilentReprimands.SetValue(type, isSilent);
-            rules.SilentReprimands = reprimands;
+            rules.SilentReprimands ??= LogReprimandType.None;
+            rules.SilentReprimands =   rules.SilentReprimands.Value.SetValue(type, isSilent);
+
             await _db.SaveChangesAsync();
         }
 
@@ -154,8 +156,8 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         var config = await GetConfigAsync(category, context);
         if (type is not ModerationLogOptions.None)
         {
-            var options = config.Options.SetValue(type, state);
-            config.Options = options;
+            config.Options ??= ModerationLogOptions.None;
+            config.Options =   config.Options.Value.SetValue(type, state);
             await _db.SaveChangesAsync();
         }
 
@@ -196,8 +198,8 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         var config = await GetConfigAsync(category, context);
         if (type is not LogReprimandType.None)
         {
-            var reprimands = config.LogReprimands.SetValue(type, state);
-            config.LogReprimands = reprimands;
+            config.LogReprimands ??= LogReprimandType.None;
+            config.LogReprimands =   config.LogReprimands.Value.SetValue(type, state);
             await _db.SaveChangesAsync();
         }
 
@@ -217,12 +219,57 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         var config = await GetConfigAsync(category, context);
         if (type is not LogReprimandStatus.None)
         {
-            var reprimands = config.LogReprimandStatus.SetValue(type, state);
-            config.LogReprimandStatus = reprimands;
+            config.LogReprimandStatus ??= LogReprimandStatus.None;
+            config.LogReprimandStatus =   config.LogReprimandStatus.Value.SetValue(type, state);
             await _db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {config.LogReprimandStatus.Humanize()}");
+    }
+
+    [Command("history reprimands")]
+    [Alias("history reprimand")]
+    [Summary("Set the default reprimands to show in the history.")]
+    public async Task HistoryReprimandsAsync(
+        [Summary("Comma separated values of reprimands to show by default.")]
+        LogReprimandType? type = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetLoggingAsync(category);
+        rules.HistoryReprimands = type;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
+    }
+
+    [Command("ignore duplicates")]
+    [Alias("ignore duplicate")]
+    [Summary("Ignore duplicate moderation logs.")]
+    public async Task IgnoreDuplicatesAsync(
+        [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
+        bool? state = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetLoggingAsync(category);
+        rules.IgnoreDuplicates = state ?? !rules.IgnoreDuplicates;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"New value: {rules.IgnoreDuplicates}");
+    }
+
+    [Command("summary reprimands")]
+    [Alias("summary reprimand")]
+    [Summary("Set the default summary reprimands to show in the history.")]
+    public async Task SummaryReprimandsAsync(
+        [Summary("Comma separated values of reprimands to show by default.")]
+        LogReprimandType? type = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetLoggingAsync(category);
+        rules.SummaryReprimands = type;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"New value: {rules.SummaryReprimands.Humanize()}");
     }
 
     private async Task SetLoggingChannelAsync<T>(
@@ -244,34 +291,40 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
 
     private async Task<IChannelEntity> GetConfigAsync(ModerationCategory? category, LoggingChannelContext context)
     {
-        var rules = await GetLoggingRulesAsync(category);
+        var rules = await GetLoggingAsync(category);
         return context switch
         {
-            LoggingChannelContext.Moderator => rules.ModeratorLog,
-            LoggingChannelContext.Public    => rules.PublicLog,
+            LoggingChannelContext.Moderator => rules.ModeratorLog ??= new ModerationLogChannelConfig(),
+            LoggingChannelContext.Public    => rules.PublicLog ??= new ModerationLogChannelConfig(),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid logging context.")
         };
+    }
+
+    private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
+    {
+        if (category is not null) return category;
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        return guild.ModerationRules ??= new ModerationRules();
     }
 
     private async Task<ModerationLogConfig> GetConfigAsync(ModerationCategory? category, LoggingContext? context)
     {
-        var rules = await GetLoggingRulesAsync(category);
+        var rules = await GetLoggingAsync(category);
         return context switch
         {
-            LoggingContext.Command   => rules.CommandLog,
-            LoggingContext.User      => rules.UserLog,
-            LoggingContext.Moderator => rules.ModeratorLog,
-            LoggingContext.Public    => rules.PublicLog,
+            LoggingContext.Command   => rules.CommandLog ??= new ModerationLogConfig(),
+            LoggingContext.User      => rules.UserLog ??= new ModerationLogConfig(),
+            LoggingContext.Moderator => rules.ModeratorLog ??= new ModerationLogChannelConfig(),
+            LoggingContext.Public    => rules.PublicLog ??= new ModerationLogChannelConfig(),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid logging context.")
         };
     }
 
-    private async Task<ModerationLoggingRules> GetLoggingRulesAsync(ModerationCategory? category)
+    private async Task<ModerationLoggingRules> GetLoggingAsync(ModerationCategory? category)
     {
-        if (category is not null) return category.LoggingRules ??= new ModerationLoggingRules();
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        return guild.ModerationLoggingRules ??= new ModerationLoggingRules();
+        var rules = await GetRulesAsync(category);
+        return rules.Logging ??= new ModerationLoggingRules();
     }
 }

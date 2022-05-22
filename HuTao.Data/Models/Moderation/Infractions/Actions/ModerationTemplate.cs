@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 

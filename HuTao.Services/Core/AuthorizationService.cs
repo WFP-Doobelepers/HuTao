@@ -10,7 +10,7 @@ using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.Utilities;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;

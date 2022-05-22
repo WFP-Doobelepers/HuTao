@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;

@@ -1,5 +1,3 @@
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
-
 namespace HuTao.Data.Models.Moderation.Infractions.Triggers;
 
 public interface ITrigger

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using Microsoft.Extensions.DependencyInjection;
 using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
