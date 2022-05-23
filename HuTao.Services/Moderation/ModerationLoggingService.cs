@@ -32,6 +32,9 @@ public record LogConfig<T>(T? Config, T Template) where T : ModerationLogConfig
 
     public ModerationLogOptions Options => Config?.Options ?? Template.Options ?? All;
 
+    public string MentionChannel
+        => Config is ModerationLogChannelConfig config ? config.MentionChannel() : "Not configured";
+
     public string? AppealMessage => Config?.AppealMessage ?? Template.AppealMessage;
 
     public ulong ChannelId => Config is ModerationLogChannelConfig config ? config.ChannelId : default;
