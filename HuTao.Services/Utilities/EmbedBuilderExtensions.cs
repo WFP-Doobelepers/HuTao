@@ -63,16 +63,17 @@ public static class EmbedBuilderExtensions
         => string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
 
     public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
-        IEnumerable<T> items, Func<T, string> selector, string? separator = null) =>
-        builder.AddItemsIntoFields(title, items.Select(selector), separator);
+        IEnumerable<T>? items, Func<T, string> selector, string? separator = null) =>
+        builder.AddItemsIntoFields(title, items?.Select(selector), separator);
 
     public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
-        IEnumerable<T> items, Func<T, int, string> selector, string? separator = null) =>
-        builder.AddItemsIntoFields(title, items.Select(selector), separator);
+        IEnumerable<T>? items, Func<T, int, string> selector, string? separator = null) =>
+        builder.AddItemsIntoFields(title, items?.Select(selector), separator);
 
     public static EmbedBuilder AddItemsIntoFields(this EmbedBuilder builder, string title,
-        IEnumerable<string> items, string? separator = null)
+        IEnumerable<string>? items, string? separator = null)
     {
+        if (items is null) return builder;
         var splitLines = SplitItemsIntoChunks(items, separator: separator).ToArray();
         return builder.AddIntoFields(title, splitLines);
     }

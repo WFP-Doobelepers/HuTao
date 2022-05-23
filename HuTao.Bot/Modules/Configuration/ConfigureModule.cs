@@ -1,20 +1,32 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using static Discord.MentionUtils;
+using static Humanizer.LetterCasing;
+using static HuTao.Data.Models.Moderation.Logging.LogReprimandType;
+using static HuTao.Data.Models.Moderation.Logging.ModerationLogChannelConfig;
+using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig;
 
 namespace HuTao.Bot.Modules.Configuration;
 
 [Group("configure")]
+[Alias("config", "configuration", "set", "setting", "settings")]
 [Name("Configuration")]
 [Summary("Bot Configurations.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
@@ -91,7 +103,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             await ReplyAsync($"Censors will now be considered active for {Format.Bold(length.Value.Humanize())}");
     }
 
-    [Command("mute")]
+    [Command("hard mute")]
     [Summary("Configures the Hard Mute role.")]
     public async Task ConfigureHardMuteAsync(
         [Summary("Optionally provide a mention, ID, or name of an existing role.")]
@@ -167,6 +179,107 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
+    }
+
+    [Command]
+    [Summary("View the current settings.")]
+    public async Task ViewSettingsAsync(ModerationCategory? category = null)
+    {
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var rules = await GetRulesAsync(category);
+
+        var mod = rules.Logging;
+        var log = guild.LoggingRules;
+        var time = guild.GenshinRules;
+        var voice = guild.VoiceChatRules;
+
+        var embeds = new List<Embed>
+        {
+            new EmbedBuilder()
+                .WithTitle($"Moderation Configuration for {category?.Name ?? "Default"} category")
+                .AddField("Replace Mutes", rules.ReplaceMutes, true)
+                .AddField("Censor Time Range", Length(rules.CensorTimeRange), true)
+                .AddField("Notice Expiry Length", Length(rules.NoticeExpiryLength), true)
+                .AddField("Warning Expiry Length", Length(rules.WarningExpiryLength), true)
+                .AddField("Mute Role", Role(rules.MuteRoleId), true)
+                .AddField("Hard Mute Role", Role(rules.HardMuteRoleId), true)
+                .Build(),
+            new EmbedBuilder()
+                .WithTitle("Moderation Logging Configuration")
+                .AddField("Ignore duplicates", mod?.IgnoreDuplicates ?? false, true)
+                .AddField("Default History Reprimands", (mod?.HistoryReprimands ?? All).Humanize(), true)
+                .AddField("_ _", "_ _")
+                .AddField("History Summary Reprimands", (mod?.SummaryReprimands ?? All).Humanize(), true)
+                .AddField("Silent Reprimands", (mod?.SilentReprimands ?? None).Humanize(), true)
+                .AddField("_ _", "_ _")
+                .AddField(Config("Command Log", mod?.CommandLog, DefaultCommandLogConfig))
+                .AddField(Config("Moderator Log", mod?.ModeratorLog, DefaultModeratorLogConfig))
+                .AddField("_ _", "_ _")
+                .AddField(Config("User Log", mod?.UserLog, DefaultUserLogConfig))
+                .AddField(Config("Public Log", mod?.PublicLog, DefaultPublicLogConfig))
+                .Build(),
+            new EmbedBuilder()
+                .WithTitle("Logging Configuration")
+                .AddItemsIntoFields("Exclusions", log?.LoggingExclusions.Select(c => c.ToString() ?? "Unknown"), " ")
+                .AddItemsIntoFields("Logging", log?.LoggingChannels.GroupBy(l => l.ChannelId), Logging)
+                .Build()
+        };
+
+        if (time is not null)
+        {
+            embeds.Add(new EmbedBuilder()
+                .WithTitle("Genshin Configuration")
+                .AddField("Server Status", time.ServerStatus?.JumpUrl ?? "Not configured")
+                .AddField(Tracking("America", time.AmericaChannel))
+                .AddField(Tracking("Asia", time.AsiaChannel))
+                .AddField("_ _", "_ _")
+                .AddField(Tracking("Europe", time.EuropeChannel))
+                .AddField(Tracking("SAR", time.SARChannel))
+                .Build());
+        }
+
+        if (voice is not null)
+        {
+            embeds.Add(new EmbedBuilder()
+                .WithTitle("Voice Chat Configuration")
+                .AddField("Hub Voice Channel", MentionChannel(voice.HubVoiceChannelId), true)
+                .AddField("Voice Channel Category", MentionChannel(voice.VoiceChannelCategoryId), true)
+                .AddField("Voice Chat Category", MentionChannel(voice.VoiceChatCategoryId), true)
+                .AddField("Purge Empty Voice Chats", voice.PurgeEmpty, true)
+                .AddField("Show Join/Leave", voice.ShowJoinLeave, true)
+                .AddField("Deletion Delay", Length(voice.DeletionDelay), true)
+                .Build());
+        }
+
+        await ReplyAsync(embeds: embeds.ToArray());
+
+        static EmbedFieldBuilder Config<T>(string name, T? current, T template) where T : ModerationLogConfig
+        {
+            var config = new LogConfig<T>(current, template);
+            var builder = new StringBuilder()
+                .AppendLine($"> Log Status: `{config.LogReprimandStatus.Humanize()}`")
+                .AppendLine($"> Log Reprimands: `{config.LogReprimands.Humanize()}`")
+                .AppendLine($"> Show Appeal: `{config.ShowAppealOnReprimands.Humanize()}`")
+                .AppendLine($"> Log Options: `{config.Options.Humanize()}`")
+                .AppendLine($"> Appeal Message: `{config.AppealMessage?.Truncate(256) ?? "None"}`");
+
+            if (config is LogConfig<ModerationLogChannelConfig>)
+                builder.AppendLine($"> Channel: {config.MentionChannel}");
+
+            return new EmbedFieldBuilder().WithName(name).WithValue(builder).WithIsInline(true);
+        }
+
+        static string Logging(IGrouping<ulong, EnumChannel<LogType>> g)
+            => $"{MentionChannel(g.Key)}: {g.Humanize(l => l.Type.Humanize(Title))}";
+
+        static EmbedFieldBuilder Tracking(string title, IChannelEntity? tracking)
+            => new EmbedFieldBuilder()
+                .WithName($"{title} Server Time").WithIsInline(true)
+                .WithValue(tracking?.MentionChannel() ?? "Not configured");
+
+        static string Length(TimeSpan? length) => length?.Humanize() ?? "Indefinite";
+
+        static string Role(ulong? role) => role is null ? "None" : $"{MentionRole(role.Value)} ({role})";
     }
 
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
