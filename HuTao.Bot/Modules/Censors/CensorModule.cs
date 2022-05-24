@@ -150,7 +150,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [Alias("testword")]
     [Summary("Test whether a word is in the list of censors or not.")]
     [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
-    public async Task TestCensorAsync(string word)
+    public async Task TestCensorAsync([Remainder] string word)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
