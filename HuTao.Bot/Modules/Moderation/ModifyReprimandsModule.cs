@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core;

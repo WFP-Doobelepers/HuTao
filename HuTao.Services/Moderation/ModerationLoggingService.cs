@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -12,10 +13,29 @@ using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Utilities;
+using static HuTao.Data.Models.Moderation.Logging.ModerationLogChannelConfig;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig.ModerationLogOptions;
 
 namespace HuTao.Services.Moderation;
+
+public record LogConfig<T>(T? Config, T Template) where T : ModerationLogConfig
+{
+    public LogReprimandStatus LogReprimandStatus
+        => Config?.LogReprimandStatus ?? Template.LogReprimandStatus ?? LogReprimandStatus.All;
+
+    public LogReprimandType LogReprimands
+        => Config?.LogReprimands ?? Template.LogReprimands ?? LogReprimandType.All;
+
+    public LogReprimandType ShowAppealOnReprimands
+        => Config?.ShowAppealOnReprimands ?? Template.ShowAppealOnReprimands ?? LogReprimandType.All;
+
+    public ModerationLogOptions Options => Config?.Options ?? Template.Options ?? All;
+
+    public string? AppealMessage => Config?.AppealMessage ?? Template.AppealMessage;
+
+    public ulong ChannelId => Config is ModerationLogChannelConfig config ? config.ChannelId : default;
+}
 
 public class ModerationLoggingService
 {
@@ -28,47 +48,62 @@ public class ModerationLoggingService
     {
         var reprimand = result.Last;
         var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
-        var options = reprimand.Category?.LoggingRules ?? guild.ModerationLoggingRules;
-        if (options is null) return result;
 
-        await PublishAsync(options.ModeratorLog);
-        await PublishAsync(options.PublicLog);
+        var commandLog = GetConfig(r => r?.CommandLog, DefaultCommandLogConfig);
+        var userLog = GetConfig(r => r?.UserLog, DefaultUserLogConfig);
 
-        if (reprimand.IsIncluded(options.CommandLog) && details.Context is not null)
-            await PublishToContextAsync(options.CommandLog, details.Context);
+        var published = false;
+        if (reprimand.IsIncluded(commandLog) && details.Context is not null)
+            published = await PublishToContextAsync(details.Context, commandLog);
 
-        if (reprimand.IsIncluded(options.UserLog))
-            await PublishToUserAsync(options.UserLog, details.User);
+        if (reprimand.IsIncluded(userLog))
+            await PublishToUserAsync(details.User, userLog);
 
-        async Task PublishAsync<T>(T config) where T : ModerationLogConfig, IChannelEntity
+        await PublishAsync(GetConfig(r => r?.ModeratorLog, DefaultModeratorLogConfig));
+        await PublishAsync(GetConfig(r => r?.PublicLog, DefaultPublicLogConfig));
+
+        return result;
+
+        LogConfig<T> GetConfig<T>(Func<ModerationLoggingRules?, T?> selector, T template) where T : ModerationLogConfig
+            => reprimand.Category is null
+                ? new LogConfig<T>(selector(guild.ModerationRules?.Logging), template)
+                : new LogConfig<T>(selector(reprimand.Category.Logging), template);
+
+        async Task PublishAsync(LogConfig<ModerationLogChannelConfig> config)
         {
+            if (config.Config is null) return;
             if (!reprimand.IsIncluded(config)) return;
+            if (published
+                && (details.Category?.Logging?.IgnoreDuplicates ??
+                    guild.ModerationRules?.Logging?.IgnoreDuplicates ?? false)
+                && details.Context?.Channel.Id == config.ChannelId) return;
 
-            var channel = await details.Guild.GetTextChannelAsync(config.ChannelId);
-            await PublishToChannelAsync(config, channel);
+            var text = await details.Guild.GetTextChannelAsync(config.ChannelId);
+            await PublishToChannelAsync(text, config);
         }
 
-        async Task PublishToContextAsync(ModerationLogConfig config, Context context)
+        async Task<bool> PublishToContextAsync(Context context, LogConfig<ModerationLogConfig> config)
         {
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
                 await context.ReplyAsync(embed: embed.Build(), ephemeral: details.Ephemeral);
+                return !(context is InteractionContext && details.Ephemeral);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
-                if (details.Context is null) return;
                 await context.ReplyAsync(new StringBuilder()
                     .AppendLine($"Could not publish reprimand for {context.User}.")
                     .AppendLine(e.Message).ToString(), ephemeral: true);
+                return false;
             }
         }
 
-        async Task PublishToUserAsync(ModerationLogConfig config, IUser user)
+        async Task PublishToUserAsync(IUser user, LogConfig<ModerationLogConfig> config)
         {
             try
             {
-                await PublishToChannelAsync(config, await user.CreateDMChannelAsync());
+                await PublishToChannelAsync(await user.CreateDMChannelAsync(), config);
             }
             catch (HttpException e) when (
                 e.HttpCode is HttpStatusCode.Forbidden ||
@@ -81,7 +116,7 @@ public class ModerationLoggingService
             }
         }
 
-        async Task PublishToChannelAsync(ModerationLogConfig config, IMessageChannel? channel)
+        async Task PublishToChannelAsync<T>(IMessageChannel? channel, LogConfig<T> config) where T : ModerationLogConfig
         {
             try
             {
@@ -97,11 +132,10 @@ public class ModerationLoggingService
                     .AppendLine(e.Message).ToString(), ephemeral: true);
             }
         }
-
-        return result;
     }
 
-    private async Task AddPrimaryAsync(EmbedBuilder embed, Reprimand reprimand, ReprimandDetails details,
+    private async Task AddPrimaryAsync(
+        EmbedBuilder embed, Reprimand reprimand, ReprimandDetails details,
         ModerationLogOptions options, CancellationToken cancellationToken)
     {
         AddReprimandUser(details.User);
@@ -173,9 +207,9 @@ public class ModerationLoggingService
             embed.AddField($"{secondary.GetTitle(showId)}", message);
     }
 
-    private async Task<EmbedBuilder> CreateEmbedAsync(ReprimandResult result, ReprimandDetails details,
-        ModerationLogConfig config,
-        CancellationToken cancellationToken = default)
+    private async Task<EmbedBuilder> CreateEmbedAsync<T>(
+        ReprimandResult result, ReprimandDetails details, LogConfig<T> config,
+        CancellationToken cancellationToken = default) where T : ModerationLogConfig
     {
         var title = result.Primary.GetTitle(config.Options.HasFlag(ShowReprimandId));
         var embed = new EmbedBuilder()

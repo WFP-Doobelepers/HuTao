@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Data;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using static Discord.Commands.CommandError;

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 
 namespace HuTao.Services.Core.TypeReaders.Interactions;
 

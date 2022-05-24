@@ -6,8 +6,6 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
-using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
@@ -169,36 +167,6 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         await ReplyAsync(embed: embed.Build());
-    }
-
-    [Command("history reprimands")]
-    [Alias("history reprimand")]
-    [Summary("Set the default reprimands to show in the history.")]
-    public async Task HistoryReprimandsAsync(
-        [Summary("Comma separated values of reprimands to show by default.")]
-        LogReprimandType? type = null,
-        ModerationCategory? category = null)
-    {
-        var rules = await GetRulesAsync(category);
-        rules.HistoryReprimands = type;
-        await _db.SaveChangesAsync();
-
-        await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
-    }
-
-    [Command("summary reprimands")]
-    [Alias("summary reprimand")]
-    [Summary("Set the default summary reprimands to show in the history.")]
-    public async Task SummaryReprimandsAsync(
-        [Summary("Comma separated values of reprimands to show by default.")]
-        LogReprimandType? type = null,
-        ModerationCategory? category = null)
-    {
-        var rules = await GetRulesAsync(category);
-        rules.SummaryReprimands = type;
-        await _db.SaveChangesAsync();
-
-        await ReplyAsync($"New value: {rules.SummaryReprimands.Humanize()}");
     }
 
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)

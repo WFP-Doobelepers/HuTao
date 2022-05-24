@@ -7,7 +7,7 @@ using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
 using HuTao.Data.Config;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.Core.Messages;
 using HuTao.Services.Core.TypeReaders.Interactions;
 using MediatR;

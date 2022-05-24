@@ -11,7 +11,7 @@ using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Logging;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Messages;
 using HuTao.Services.Core.TypeReaders.Commands;
@@ -67,15 +67,15 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
-        
+
         _commands.AddUserTypeReader<IUser>();
         _commands.AddUserTypeReader<SocketUser>();
         _commands.AddUserTypeReader<RestUser>();
-        
+
         _commands.AddUserTypeReader<IGuildUser>();
         _commands.AddUserTypeReader<SocketGuildUser>();
         _commands.AddUserTypeReader<RestGuildUser>();
-        
+
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
         _commands.AddTypeReaders<IMessage>(

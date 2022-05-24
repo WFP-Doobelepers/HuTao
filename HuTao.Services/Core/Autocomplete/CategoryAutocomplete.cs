@@ -5,7 +5,7 @@ using Discord;
 using Discord.Interactions;
 using Humanizer;
 using HuTao.Data;
-using HuTao.Data.Models.Moderation.Infractions.Reprimands;
+using HuTao.Data.Models.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
