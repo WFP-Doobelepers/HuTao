@@ -332,7 +332,9 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category)
     {
-        var details = new ReprimandDetails(Context, user, reason, category: category);
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var variables = guild.ModerationRules?.Variables;
+        var details = new ReprimandDetails(Context, user, reason, variables, category: category);
 
         await _db.Users.TrackUserAsync(details);
         await _db.SaveChangesAsync();

@@ -110,8 +110,10 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
         else
         {
+            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            var variables = guild.ModerationRules?.Variables;
             var user = await ((IDiscordClient) Context.Client).GetUserAsync(reprimand.UserId);
-            var details = new ReprimandDetails(Context, user, reason);
+            var details = new ReprimandDetails(Context, user, reason, variables);
 
             await update(reprimand, details);
         }

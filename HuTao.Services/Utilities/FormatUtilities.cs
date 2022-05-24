@@ -101,7 +101,7 @@ public static class FormatUtilities
         => string.IsNullOrWhiteSpace(content) ? text : content;
 
     /// <summary>
-    ///     Attempts to fix the indentation of a piece of code by aligning the left sidie.
+    ///     Attempts to fix the indentation of a piece of code by aligning the left side.
     /// </summary>
     /// <param name="code">The code to align</param>
     /// <returns>The newly aligned code</returns>
