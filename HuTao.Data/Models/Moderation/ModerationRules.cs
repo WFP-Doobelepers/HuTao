@@ -12,6 +12,8 @@ public class ModerationRules : IModerationRules
 
     public virtual AntiSpamRules? AntiSpamRules { get; set; }
 
+    public virtual ICollection<ModerationVariable> Variables { get; set; } = new List<ModerationVariable>();
+
     public virtual ICollection<Trigger> Triggers { get; set; } = new List<Trigger>();
 
     public bool ReplaceMutes { get; set; }

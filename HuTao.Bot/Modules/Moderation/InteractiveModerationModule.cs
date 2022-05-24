@@ -317,7 +317,11 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category, bool ephemeral)
     {
-        var details = new ReprimandDetails(Context, user, reason, category: category, ephemeral: ephemeral);
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var variables = guild.ModerationRules?.Variables;
+        var details = new ReprimandDetails(
+            Context, user, reason, variables,
+            category: category, ephemeral: ephemeral);
 
         await _db.Users.TrackUserAsync(details);
         await _db.SaveChangesAsync();

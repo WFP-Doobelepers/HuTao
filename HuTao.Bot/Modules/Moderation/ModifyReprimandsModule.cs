@@ -99,8 +99,12 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         return guild.ReprimandHistory;
     }
 
-    private ReprimandDetails GetDetails(IUser user, string? reason)
-        => new(Context, user, reason);
+    private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
+    {
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var variables = guild.ModerationRules?.Variables;
+        return new ReprimandDetails(Context, user, reason, variables);
+    }
 
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
@@ -113,8 +117,8 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
             await _error.AssociateError(Context.Message, EmptyMatchMessage);
         else
         {
-            var user = await ((IDiscordClient) Context.Client).GetUserAsync(reprimand.UserId);
-            var details = GetDetails(user, reason);
+            var user = await Context.Client.GetUserAsync(reprimand.UserId);
+            var details = await GetDetailsAsync(user, reason);
 
             await update(reprimand, details);
         }

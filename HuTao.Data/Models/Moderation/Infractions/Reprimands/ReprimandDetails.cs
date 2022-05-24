@@ -1,4 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Discord;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
@@ -14,13 +18,24 @@ public record ReprimandDetails(
 {
     public ReprimandDetails(
         Context context, IUser user,
-        string? reason, Trigger? trigger = null,
-        ModerationCategory? category = null,
+        string? reason, IEnumerable<ModerationVariable>? variables,
+        Trigger? trigger = null, ModerationCategory? category = null,
         ReprimandResult? result = null, bool ephemeral = false)
-        : this(user, (IGuildUser) context.User, reason, trigger, context,
+        : this(user, (IGuildUser) context.User, GetReason(reason, variables), trigger, context,
             category == ModerationCategory.Default ? null : category ?? trigger?.Category, result, ephemeral) { }
 
     public IGuild Guild => Moderator.Guild;
 
     public async Task<IGuildUser?> GetUserAsync() => await Moderator.Guild.GetUserAsync(User.Id);
+
+    private static string? GetReason(string? reason, IEnumerable<ModerationVariable>? variables)
+    {
+        if (string.IsNullOrWhiteSpace(reason) || variables is null) return null;
+        var result = variables.Aggregate(reason, (result, variable)
+            => Regex.Replace(result,
+                $@"(?<!\\)[$](({variable.Name})\b|" +
+                $@"[{{]\s*({variable.Name})(\s*:(?<args>.+?)\s*)?\s*[}}])",
+                variable.Value, RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1)));
+        return string.IsNullOrWhiteSpace(result) ? null : result;
+    }
 }
