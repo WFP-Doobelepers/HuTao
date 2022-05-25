@@ -61,12 +61,12 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         {
             if (!censor.Silent) _ = message.DeleteAsync();
 
-            var triggerCount = await censored.CountAsync(censor, _db, false, cancellationToken);
-            if (censor.IsTriggered(triggerCount))
+            var count = await censored.CountAsync(censor, _db, cancellationToken);
+            if (censor.IsTriggered((uint) count.Active))
             {
                 var censorDetails = details with
                 {
-                    Reason = $"[Reprimand Triggered] at {triggerCount}",
+                    Reason = $"[Reprimand Triggered] at {count.Active}",
                     Trigger = censor,
                     Result = new ReprimandResult(censored)
                 };
@@ -570,11 +570,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken)
     {
         var reprimand = result.Last;
-        var count = await reprimand.CountUserReprimandsAsync(_db, false, cancellationToken);
+        var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
 
         var secondary = await ReprimandAsync(trigger.Reprimand, details with
         {
-            Reason = $"[Reprimand Count Triggered] at {count}",
+            Reason = $"[Reprimand Count Triggered] at {count.Active}",
             Trigger = trigger
         }, cancellationToken);
 
@@ -603,8 +603,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         if (!TryGetTriggerSource(reprimand, out var source))
             return null;
 
-        var count = await reprimand.CountUserReprimandsAsync(_db, false, cancellationToken);
-        var trigger = await GetCountTriggerAsync(reprimand, count, source.Value, cancellationToken);
+        var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
+        var trigger = await GetCountTriggerAsync(reprimand, (uint) count.Active, source.Value, cancellationToken);
 
         return trigger;
     }

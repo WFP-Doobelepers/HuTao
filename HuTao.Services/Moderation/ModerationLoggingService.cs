@@ -117,11 +117,9 @@ public class ModerationLoggingService
             embed.AddItemsIntoFields("Reason", reasons.ToArray(), " ");
         }
 
-        if (options.HasFlag(ShowActive))
-            embed.AddField("Active", await reprimand.CountUserReprimandsAsync(_db, false, cancellationToken), true);
-
-        if (options.HasFlag(ShowTotal))
-            embed.AddField("Total", await reprimand.CountUserReprimandsAsync(_db, true, cancellationToken), true);
+        var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
+        if (options.HasFlag(ShowActive)) embed.AddField("Active", count.Active, true);
+        if (options.HasFlag(ShowTotal)) embed.AddField("Total", count.Total, true);
 
         if (options.HasFlag(ShowCategory))
             embed.AddField("Category", reprimand.Category?.Name ?? "None", true);
@@ -168,10 +166,8 @@ public class ModerationLoggingService
 
         if (options.HasFlag(ShowActive))
         {
-            var active = await secondary.CountUserReprimandsAsync(_db, false, cancellationToken);
-            var total = await secondary.CountUserReprimandsAsync(_db, true, cancellationToken);
-
-            embed.AddField($"{secondary.GetTitle(showId)} [{active}/{total}]", message);
+            var count = await secondary.CountUserReprimandsAsync(_db, cancellationToken);
+            embed.AddField($"{secondary.GetTitle(showId)} [{count.Active}/{count.Total}]", message);
         }
         else
             embed.AddField($"{secondary.GetTitle(showId)}", message);

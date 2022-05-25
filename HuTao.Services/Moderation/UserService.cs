@@ -142,27 +142,68 @@ public class UserService
         await context.ReplyAsync(components: components, embeds: embeds, ephemeral: ephemeral);
     }
 
-    private static EmbedBuilder GetReprimands(GuildUserEntity user, ModerationCategory? category) => new EmbedBuilder()
-        .WithTitle("Reprimands [Active/Total]")
-        .AddField(Warnings(user, category))
-        .AddField(Reprimands<Notice>(user, category))
-        .AddField(Reprimands<Ban>(user, category))
-        .AddField(Reprimands<Kick>(user, category))
-        .AddField(Reprimands<Note>(user, category))
-        .AddField(Reprimands<Mute>(user, category))
-        .AddField(Reprimands<Censored>(user, category));
+    private static EmbedBuilder GetReprimands(GuildUserEntity user, ModerationCategory? category)
+    {
+        var rules = category?.SummaryReprimands
+            ?? user.Guild.ModerationRules?.SummaryReprimands
+            ?? LogReprimandType.All;
+
+        var embed = new EmbedBuilder().WithTitle(category is null
+            ? "Reprimands [Active/Total]"
+            : "Reprimands [Active/Total] [Global]");
+
+        if (rules.HasFlag(LogReprimandType.Warning))
+            embed.AddField(Warnings(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Notice))
+            embed.AddField(Reprimands<Notice>(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Ban))
+            embed.AddField(Reprimands<Ban>(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Kick))
+            embed.AddField(Reprimands<Kick>(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Note))
+            embed.AddField(Reprimands<Note>(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Mute))
+            embed.AddField(Reprimands<Mute>(user, category));
+
+        if (rules.HasFlag(LogReprimandType.Censored))
+            embed.AddField(Reprimands<Censored>(user, category));
+
+        return embed;
+    }
 
     private static EmbedFieldBuilder Reprimands<T>(GuildUserEntity user, ModerationCategory? category)
-        where T : Reprimand => new EmbedFieldBuilder()
-        .WithName(typeof(T).Name)
-        .WithValue($"{user.HistoryCount<T>(category, false)}/{user.HistoryCount<T>(category, true)}")
-        .WithIsInline(true);
+        where T : Reprimand
+    {
+        var global = user.HistoryCount<T>(null);
+        var count = user.HistoryCount<T>(category);
+
+        var embed = new EmbedFieldBuilder()
+            .WithName(typeof(T).Name)
+            .WithIsInline(true);
+
+        return category is null
+            ? embed.WithValue($"{count.Active}/{count.Total}")
+            : embed.WithValue($"{count.Active}/{count.Total} [{global.Active}/{global.Total}]");
+    }
 
     private static EmbedFieldBuilder Warnings(GuildUserEntity user, ModerationCategory? category)
-        => new EmbedFieldBuilder()
+    {
+        var global = user.WarningCount(null);
+        var count = user.WarningCount(category);
+
+        var embed = new EmbedFieldBuilder()
             .WithName(nameof(Warning))
-            .WithValue($"{user.WarningCount(category, false)}/{user.WarningCount(category, true)}")
             .WithIsInline(true);
+
+        return category is null
+            ? embed.WithValue($"{count.Active}/{count.Total}")
+            : embed.WithValue($"{count.Active}/{count.Total} [{global.Active}/{global.Total}]");
+    }
 
     private static SelectMenuBuilder CategoryMenu(
         IUser user, IEnumerable<ModerationCategory> categories,
@@ -243,7 +284,7 @@ public class UserService
         if (!isAuthorized || ban is null) return embeds;
 
         embed.WithColor(Color.Red);
-        var banDetails = userEntity?.Reprimands<Ban>(null, false).MaxBy(b => b.Action?.Date);
+        var banDetails = userEntity?.Reprimands<Ban>(null).MaxBy(b => b.Action?.Date);
         if (banDetails is not null)
             embeds.Add(banDetails.ToEmbedBuilder(true));
         else

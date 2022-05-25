@@ -37,6 +37,8 @@ public class ModerationCategory : IModerationRules
 
     public LogReprimandType? HistoryReprimands { get; set; }
 
+    public LogReprimandType? SummaryReprimands { get; set; }
+
     public TimeSpan? CensorTimeRange { get; set; }
 
     public TimeSpan? NoticeExpiryLength { get; set; }

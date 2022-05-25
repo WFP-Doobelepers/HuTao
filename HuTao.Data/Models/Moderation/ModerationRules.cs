@@ -14,6 +14,8 @@ public interface IModerationRules
 
     public LogReprimandType? HistoryReprimands { get; set; }
 
+    public LogReprimandType? SummaryReprimands { get; set; }
+
     public TimeSpan? CensorTimeRange { get; set; }
 
     public TimeSpan? NoticeExpiryLength { get; set; }
@@ -36,6 +38,8 @@ public class ModerationRules : IModerationRules
     public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
 
     public LogReprimandType? HistoryReprimands { get; set; }
+
+    public LogReprimandType? SummaryReprimands { get; set; }
 
     public TimeSpan? CensorTimeRange { get; set; }
 
