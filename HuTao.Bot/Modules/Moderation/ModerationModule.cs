@@ -72,6 +72,39 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
         => BanAsync(user, deleteDays, null, null, reason);
 
+    [Priority(-1)]
+    [Command("mute")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => MuteAsync(user, length, null, reason);
+
+    [Command("hardmute")]
+    [Summary("Hard Mute a user from the current guild.")]
+    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.HardMute)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        var details = await GetDetailsAsync(user, reason, category);
+        var result = await _moderation.TryHardMuteAsync(length, details);
+
+        if (result is null)
+        {
+            await _error.AssociateError(Context.Message, "Failed to mute user. " +
+                "Either the user is already muted or there is no hard mute role configured. " +
+                "Configure the mute role by running the 'configure hard mute' command.");
+        }
+    }
+
+    [Priority(-2)]
+    [Command("hardmute")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task HardMuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
+        => HardMuteAsync(user, null, null, reason);
+
     [Command("kick")]
     [Summary("Kick a user from the current guild.")]
     public async Task KickAsync([RequireHigherRole] IGuildUser user,
@@ -110,20 +143,20 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Priority(-1)]
-    [Command("mute")]
-    [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task MuteAsync([RequireHigherRole] IGuildUser user,
-        TimeSpan? length = null, [Remainder] string? reason = null)
-        => MuteAsync(user, length, null, reason);
-
     [Priority(-2)]
     [Command("mute")]
     [HiddenFromHelp]
     [RequireAuthorization(AuthorizationScope.Mute)]
     public Task MuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => MuteAsync(user, null, null, reason);
+
+    [Priority(-1)]
+    [Command("hardmute")]
+    [HiddenFromHelp]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => HardMuteAsync(user, length, null, reason);
 
     [Priority(1)]
     [Command("mutes")]
@@ -253,7 +286,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnmuteAsync(details);
 
-        if (result is null)
+        if (!result)
             await _error.AssociateError(Context.Message, "Unmute failed.");
     }
 

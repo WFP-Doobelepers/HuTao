@@ -45,5 +45,7 @@ public class ModerationCategory : IModerationRules
 
     public TimeSpan? WarningExpiryLength { get; set; }
 
+    public ulong? HardMuteRoleId { get; set; }
+
     public ulong? MuteRoleId { get; set; }
 }

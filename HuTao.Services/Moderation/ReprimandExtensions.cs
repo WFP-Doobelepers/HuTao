@@ -47,6 +47,7 @@ public static class ReprimandExtensions
         {
             Ban           => log.HasFlag(LogReprimandType.Ban),
             Censored      => log.HasFlag(LogReprimandType.Censored),
+            HardMute      => log.HasFlag(LogReprimandType.HardMute),
             Kick          => log.HasFlag(LogReprimandType.Kick),
             Mute          => log.HasFlag(LogReprimandType.Mute),
             Note          => log.HasFlag(LogReprimandType.Note),
@@ -70,6 +71,7 @@ public static class ReprimandExtensions
         {
             Ban           => Color.Red,
             Censored      => Color.Blue,
+            HardMute      => Color.DarkOrange,
             Kick          => Color.Red,
             Mute          => Color.Orange,
             Note          => Color.Blue,
@@ -142,6 +144,7 @@ public static class ReprimandExtensions
                 LogReprimandType.Notice   => reprimands.OfType<Notice>(),
                 LogReprimandType.Warning  => reprimands.OfType<Warning>(),
                 LogReprimandType.Role     => reprimands.OfType<RoleReprimand>(),
+                LogReprimandType.HardMute => reprimands.OfType<HardMute>(),
                 _                         => Enumerable.Empty<Reprimand>()
             });
     }
@@ -161,6 +164,7 @@ public static class ReprimandExtensions
         {
             Ban b           => $"{status} ban to {mention} for {b.GetLength()}.",
             Censored c      => $"{status} censor to {mention}: {c.CensoredMessage().Truncate(512)}",
+            HardMute h      => $"{status} hard mute to {mention} for {h.GetLength()}.",
             Kick            => $"{status} kick to {mention}.",
             Mute m          => $"{status} mute to {mention} for {m.GetLength()}.",
             Note            => $"{status} note to {mention}.",
@@ -179,6 +183,7 @@ public static class ReprimandExtensions
         {
             Ban           => nameof(Ban),
             Censored      => nameof(Censored),
+            HardMute      => nameof(HardMute),
             Kick          => nameof(Kick),
             Mute          => nameof(Mute),
             Note          => nameof(Note),
@@ -201,10 +206,6 @@ public static class ReprimandExtensions
         var reprimands = user.Reprimands<T>(trigger.Category).Where(r => r.TriggerId == trigger.Id).ToList();
         return (reprimands.Count(IsCounted), reprimands.Count);
     }
-
-    public static Task<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,
-        CancellationToken cancellationToken)
-        => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
     public static async Task<RoleTemplateResult> AddRolesAsync(
         this IGuildUser user, ICollection<RoleTemplate> templates,
@@ -295,6 +296,7 @@ public static class ReprimandExtensions
         {
             Ban           => user.HistoryCount<Ban>(reprimand.Category),
             Censored      => user.HistoryCount<Censored>(reprimand.Category),
+            HardMute      => user.HistoryCount<HardMute>(reprimand.Category),
             Kick          => user.HistoryCount<Kick>(reprimand.Category),
             Mute          => user.HistoryCount<Mute>(reprimand.Category),
             Note          => user.HistoryCount<Note>(reprimand.Category),
@@ -306,6 +308,10 @@ public static class ReprimandExtensions
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
         };
     }
+
+    public static ValueTask<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,
+        CancellationToken cancellationToken)
+        => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)

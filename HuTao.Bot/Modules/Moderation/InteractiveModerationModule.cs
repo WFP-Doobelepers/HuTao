@@ -50,6 +50,25 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             await FollowupAsync("Failed to ban user.");
     }
 
+    [SlashCommand("hardmute", "Hard Mute a user from the current guild.")]
+    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
+    {
+        await DeferAsync(ephemeral);
+        var details = await GetDetailsAsync(user, reason, category);
+        var result = await _moderation.TryHardMuteAsync(length, details);
+
+        if (result is null)
+        {
+            await FollowupAsync("Failed to hard mute user. " +
+                "Either the user is already hard muted or there is no hard mute role configured. " +
+                "Configure the mute role by running the 'configure hard mute' command.");
+        }
+    }
+
     [SlashCommand("kick", "Kick a user from the current guild.")]
     public async Task KickAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
@@ -177,7 +196,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     [SlashCommand("unmute", "Unmute a user from the current guild.")]
     public async Task UnmuteAsync(
         IGuildUser user, string? reason = null,
-        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
         ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -185,7 +204,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         var details = await GetDetailsAsync(user, reason, category);
         var result = await _moderation.TryUnmuteAsync(details);
 
-        if (result is null)
+        if (!result)
             await FollowupAsync("Unmute failed.");
     }
 

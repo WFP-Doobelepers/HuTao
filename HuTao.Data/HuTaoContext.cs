@@ -38,6 +38,8 @@ public class HuTaoContext : DbContext
 
     public DbSet<GuildUserEntity> Users { get; init; } = null!;
 
+    public DbSet<HardMute> HardMuteHistory { get; init; } = null!;
+
     public DbSet<Kick> KickHistory { get; init; } = null!;
 
     public DbSet<KickAction> KickActions { get; init; } = null!;
@@ -65,6 +67,8 @@ public class HuTaoContext : DbContext
     public DbSet<RoleAction> RoleActions { get; init; } = null!;
 
     public DbSet<RoleCriterion> RoleCriteria { get; init; } = null!;
+
+    public DbSet<RoleEntity> Roles { get; init; } = null!;
 
     public DbSet<RoleReprimand> RoleHistory { get; init; } = null!;
 

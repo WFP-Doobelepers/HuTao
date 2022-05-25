@@ -94,6 +94,24 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("mute")]
+    [Summary("Configures the Hard Mute role.")]
+    public async Task ConfigureHardMuteAsync(
+        [Summary("Optionally provide a mention, ID, or name of an existing role.")]
+        IRole? role = null,
+        [Summary("True if you want to skip setting up permissions.")]
+        bool skipPermissions = false,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        await _moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+
+        if (role is null)
+            await ReplyAsync("Mute role has been configured.");
+        else
+            await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
+    }
+
+    [Command("mute")]
     [Summary("Configures the Mute role.")]
     public async Task ConfigureMuteAsync(
         [Summary("Optionally provide a mention, ID, or name of an existing role.")]

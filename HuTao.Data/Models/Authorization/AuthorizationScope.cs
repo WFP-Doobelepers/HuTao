@@ -50,5 +50,7 @@ public enum AuthorizationScope
     Send = 1 << 16,
 
     [Description("Allows using the role module.")]
-    Roles = 1 << 17
+    Roles = 1 << 17,
+    
+    HardMute = 1 << 18
 }
