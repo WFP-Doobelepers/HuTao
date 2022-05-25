@@ -14,7 +14,7 @@ public static class CriteriaExtensions
             && context.Channel is INestedChannel channel
             && Judge(rule, channel, user);
 
-    public static bool Judge(this Criterion rule, INestedChannel channel, IGuildUser user) => rule switch
+    public static bool Judge(this Criterion rule, INestedChannel? channel, IGuildUser? user) => rule switch
     {
         UserCriterion auth       => auth.Judge(user),
         RoleCriterion auth       => auth.Judge(user),
@@ -37,15 +37,15 @@ public static class CriteriaExtensions
             "Unknown kind of Criterion.")
     };
 
-    private static bool Judge(this IUserEntity auth, IGuildUser user)
-        => auth.UserId == user.Id;
+    private static bool Judge(this IUserEntity auth, IGuildUser? user)
+        => auth.UserId == user?.Id;
 
-    private static bool Judge(this IRoleEntity auth, IGuildUser user)
-        => user.RoleIds.Contains(auth.RoleId);
+    private static bool Judge(this IRoleEntity auth, IGuildUser? user)
+        => user?.RoleIds.Contains(auth.RoleId) ?? false;
 
-    private static bool Judge(this IPermissionEntity auth, IGuildUser user)
-        => (auth.Permission & (GuildPermission) user.GuildPermissions.RawValue) != 0;
+    private static bool Judge(this IPermissionEntity auth, IGuildUser? user)
+        => (auth.Permission & (GuildPermission?) user?.GuildPermissions.RawValue) != 0;
 
-    private static bool Judge(this IChannelEntity auth, INestedChannel channel)
-        => auth.ChannelId == channel.CategoryId || auth.ChannelId == channel.Id;
+    private static bool Judge(this IChannelEntity auth, INestedChannel? channel)
+        => auth.ChannelId == channel?.CategoryId || auth.ChannelId == channel?.Id;
 }

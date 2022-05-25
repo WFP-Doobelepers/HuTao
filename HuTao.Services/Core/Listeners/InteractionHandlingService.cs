@@ -6,10 +6,12 @@ using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
+using HuTao.Data;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Moderation;
 using HuTao.Services.Core.Messages;
 using HuTao.Services.Core.TypeReaders.Interactions;
+using HuTao.Services.Utilities;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -20,18 +22,21 @@ public class InteractionHandlingService :
     INotificationHandler<ReadyNotification>
 {
     private readonly DiscordSocketClient _discord;
+    private readonly HuTaoContext _db;
     private readonly ILogger<InteractionHandlingService> _log;
     private readonly InteractionService _commands;
     private readonly IServiceProvider _services;
 
     public InteractionHandlingService(
-        InteractionService commands,
         DiscordSocketClient discord,
+        HuTaoContext db,
+        InteractionService commands,
         ILogger<InteractionHandlingService> log,
         IServiceProvider services)
     {
-        _commands = commands;
         _discord  = discord;
+        _db       = db;
+        _commands = commands;
         _log      = log;
         _services = services;
     }
@@ -41,6 +46,7 @@ public class InteractionHandlingService :
         var interaction = notification.Interaction;
 
         var context = new SocketInteractionContext(_discord, interaction);
+        if (context.User is IGuildUser user) await _db.Users.TrackUserAsync(user, cancellationToken);
         await _commands.ExecuteCommandAsync(context, _services);
     }
 
@@ -85,7 +91,10 @@ public class InteractionHandlingService :
 
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason} in {Name}", result.Error, result.ErrorReason, command.Name);
+            _log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
+                result.Error, result.ErrorReason, command.Name,
+                context.User, context.Channel, context.Guild);
+
             if (context.Interaction.HasResponded)
                 await context.Interaction.FollowupAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
             else

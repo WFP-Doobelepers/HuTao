@@ -80,7 +80,7 @@ public class QuoteService : IQuoteService
                 var permissions = guildUser.GetPermissions(channel);
                 if (!permissions.ViewChannel) continue;
 
-                var log = await _logging.GetLatestMessage(jump.MessageId);
+                var log = await _logging.GetLatestMessage(jump.GuildId, jump.ChannelId, jump.MessageId);
                 if (log is null || log.Guild.Id != context.Guild.Id) continue;
 
                 builder.AddPage(new QuotedPage(
@@ -120,7 +120,9 @@ public class QuoteService : IQuoteService
 
         if (message.ReferencedMessageId is not null)
         {
-            var reply = await _logging.GetLatestMessage(message.ReferencedMessageId.Value);
+            var reply = await _logging.GetLatestMessage(
+                message.GuildId, message.ChannelId,
+                message.ReferencedMessageId.Value);
             var replyUser = await _logging.GetUserAsync(reply);
 
             embed.WithMessageReference(message, reply, replyUser);

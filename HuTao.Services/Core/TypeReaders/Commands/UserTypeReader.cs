@@ -6,6 +6,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using HuTao.Data;
+using HuTao.Services.Utilities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HuTao.Services.Core.TypeReaders.Commands;
 
@@ -13,17 +16,17 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 ///     A <see cref="TypeReader" /> for parsing objects implementing <see cref="IUser" />.
 /// </summary>
 /// <typeparam name="T">The type to be checked; must implement <see cref="IUser" />.</typeparam>
-public class UserTypeReader<T> : TypeReader
-    where T : class, IUser
+public class UserTypeReader<T> : TypeReader where T : class, IUser
 {
     private readonly CacheMode _cacheMode;
+    private HuTaoContext _db = null!;
 
     public UserTypeReader(CacheMode cacheMode = CacheMode.AllowDownload) { _cacheMode = cacheMode; }
 
-    /// <inheritdoc />
     public override async Task<TypeReaderResult> ReadAsync(
         ICommandContext context, string input, IServiceProvider services)
     {
+        _db = services.GetRequiredService<HuTaoContext>();
         var results = new Dictionary<ulong, TypeReaderValue>();
 
         // By Mention (1.0)
@@ -34,14 +37,14 @@ public class UserTypeReader<T> : TypeReader
                 var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, guildUser, id);
 
-                AddResult(results, user, 1.00f);
+                await AddResultAsync(results, user, 1.00f);
             }
             else
             {
                 var channelUser = await context.Channel.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, channelUser, id);
 
-                AddResult(results, user, 1.00f);
+                await AddResultAsync(results, user, 1.00f);
             }
         }
 
@@ -53,14 +56,14 @@ public class UserTypeReader<T> : TypeReader
                 var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, guildUser, id);
 
-                AddResult(results, user, 0.90f);
+                await AddResultAsync(results, user, 0.90f);
             }
             else
             {
                 var channelUser = await context.Channel.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, channelUser, id);
 
-                AddResult(results, user, 0.90f);
+                await AddResultAsync(results, user, 0.90f);
             }
         }
 
@@ -81,7 +84,7 @@ public class UserTypeReader<T> : TypeReader
                         .Where(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase))
                         .Where(u => u.DiscriminatorValue == discriminator))
                     {
-                        AddResult(results, user as T, user.Username == username ? 0.85f : 0.80f);
+                        await AddResultAsync(results, user as T, user.Username == username ? 0.85f : 0.80f);
                     }
                 }
             }
@@ -95,14 +98,14 @@ public class UserTypeReader<T> : TypeReader
                 var usernames = search.Where(u => string.Equals(input, u.Username, StringComparison.OrdinalIgnoreCase));
                 foreach (var user in usernames)
                 {
-                    AddResult(results, user as T, user.Username == input ? 0.65f : 0.55f);
+                    await AddResultAsync(results, user as T, user.Username == input ? 0.65f : 0.55f);
                 }
 
                 // By Nickname (0.5-0.6)
                 var nicknames = search.Where(u => string.Equals(input, u.Nickname, StringComparison.OrdinalIgnoreCase));
                 foreach (var user in nicknames)
                 {
-                    AddResult(results, user as T, user.Nickname == input ? 0.65f : 0.55f);
+                    await AddResultAsync(results, user as T, user.Nickname == input ? 0.65f : 0.55f);
                 }
             }
         }
@@ -112,15 +115,18 @@ public class UserTypeReader<T> : TypeReader
             : TypeReaderResult.FromError(CommandError.ObjectNotFound, "User not found.");
     }
 
+    private async Task AddResultAsync(IDictionary<ulong, TypeReaderValue> results, T? user, float score)
+    {
+        if (user is not null && !results.ContainsKey(user.Id))
+        {
+            results.Add(user.Id, new TypeReaderValue(user, score));
+            if (user is IGuildUser guild) await _db.Users.TrackUserAsync(guild);
+        }
+    }
+
     private async Task<T?> GetUserAsync(IDiscordClient client, IUser? user, ulong id)
     {
         if (user is T result) return result;
         return await client.GetUserAsync(id, _cacheMode) as T;
-    }
-
-    private static void AddResult(IDictionary<ulong, TypeReaderValue> results, T? user, float score)
-    {
-        if (user is not null && !results.ContainsKey(user.Id))
-            results.Add(user.Id, new TypeReaderValue(user, score));
     }
 }

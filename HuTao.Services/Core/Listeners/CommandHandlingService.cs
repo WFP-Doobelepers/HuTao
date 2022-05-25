@@ -7,6 +7,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Rest;
 using Discord.WebSocket;
+using HuTao.Data;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
@@ -15,6 +16,7 @@ using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Messages;
 using HuTao.Services.Core.TypeReaders.Commands;
+using HuTao.Services.Utilities;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig;
@@ -26,6 +28,7 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
     private readonly CommandErrorHandler _errorHandler;
     private readonly CommandService _commands;
     private readonly DiscordSocketClient _discord;
+    private readonly HuTaoContext _db;
     private readonly ILogger<CommandHandlingService> _log;
     private readonly IServiceProvider _services;
 
@@ -33,12 +36,14 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         CommandErrorHandler errorHandler,
         CommandService commands,
         DiscordSocketClient discord,
+        HuTaoContext db,
         ILogger<CommandHandlingService> log,
         IServiceProvider services)
     {
         _errorHandler = errorHandler;
         _commands     = commands;
         _discord      = discord;
+        _db           = db;
         _log          = log;
         _services     = services;
     }
@@ -57,6 +62,7 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         if (hasPrefix || hasMention)
         {
             var context = new SocketCommandContext(_discord, message);
+            if (context.User is IGuildUser user) await _db.Users.TrackUserAsync(user, cancellationToken);
             await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
         }
     }
@@ -124,7 +130,10 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         if (result.Error is not CommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason} in {Name}", result.Error, result.ErrorReason, command.Value?.Name);
+            _log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
+                result.Error, result.ErrorReason, command.Value?.Name,
+                context.User, context.Channel, context.Guild);
+
             await _errorHandler.AssociateError(context.Message, $"{result.Error}: {result.ErrorReason}");
         }
     }

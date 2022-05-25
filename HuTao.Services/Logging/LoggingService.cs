@@ -12,6 +12,7 @@ using Discord.Rest;
 using Discord.WebSocket;
 using Humanizer;
 using HuTao.Data;
+using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message;
 using HuTao.Data.Models.Discord.Reaction;
@@ -23,6 +24,7 @@ using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Attachment = HuTao.Data.Models.Discord.Message.Attachment;
 
 namespace HuTao.Services.Logging;
 
@@ -46,27 +48,35 @@ public class LoggingService
 
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.Message is not IUserMessage { Channel: INestedChannel channel } message) return;
-        if (message.Author is not IGuildUser { Username: { } } user || user.IsBot) return;
-        if (await IsExcludedAsync(channel, user, cancellationToken)) return;
+        if (notification.Message is not IUserMessage
+            {
+                Author: IGuildUser user,
+                Author.IsBot: false,
+                Channel: INestedChannel channel
+            } message) return;
 
-        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
-        await LogMessageAsync(userEntity, message, cancellationToken);
+        if (await IsExcludedAsync(channel, user, cancellationToken)) return;
+        await LogMessageAsync(user, message, cancellationToken);
     }
 
     public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
     {
         var message = await GetMessageAsync(notification.Message);
-        if (message.Channel is not INestedChannel channel) return;
+        if (message is not
+            {
+                Author: IGuildUser user,
+                Author.IsBot: false,
+                Channel: INestedChannel channel
+            }) return;
 
         var reaction = notification.Reaction;
         if (message.Reactions.TryGetValue(reaction.Emote, out var metadata) && metadata.ReactionCount > 1)
             return;
 
-        var user = reaction.User.GetValueOrDefault();
-        if (user is not IGuildUser guildUser || guildUser.IsBot) return;
-        if (await IsExcludedAsync(channel, guildUser, cancellationToken)) return;
+        var reactor = reaction.User.GetValueOrDefault();
+        if (reactor is not IGuildUser { IsBot: false } guildUser) return;
 
+        if (await IsExcludedAsync(channel, user, cancellationToken)) return;
         var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
         await PublishLogAsync(log, LogType.ReactionAdded, channel.Guild, cancellationToken);
@@ -75,24 +85,31 @@ public class LoggingService
     public async Task LogAsync(ReactionRemovedNotification notification, CancellationToken cancellationToken)
     {
         var message = await GetMessageAsync(notification.Message);
-        if (message.Channel is not IGuildChannel channel) return;
+        if (message is not
+            {
+                Author: IGuildUser user,
+                Author.IsBot: false,
+                Channel: INestedChannel channel
+            }) return;
 
         var reaction = notification.Reaction;
         if (message.Reactions.ContainsKey(reaction.Emote))
             return;
 
+        if (await IsExcludedAsync(channel, user, cancellationToken)) return;
         var log = await LogDeletionAsync(reaction, null, cancellationToken);
         await PublishLogAsync(new ReactionDeleteDetails(log, channel.Guild), cancellationToken);
     }
 
     public async Task LogAsync(MessageDeletedNotification notification, CancellationToken cancellationToken)
     {
-        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not INestedChannel channel) return;
+        if (await IsExcludedAsync(channel, null, cancellationToken)) return;
 
         var message = notification.Message.Value;
         var details = await TryGetAuditLogDetails(message, channel.Guild);
 
-        var latest = await GetLatestMessage(notification.Message.Id, cancellationToken);
+        var latest = await GetLatestMessage(channel.Guild.Id, channel.Id, notification.Message.Id, cancellationToken);
         if (latest is null) return;
 
         var log = await LogDeletionAsync(latest, details, cancellationToken);
@@ -101,24 +118,27 @@ public class LoggingService
 
     public async Task LogAsync(MessageUpdatedNotification notification, CancellationToken cancellationToken)
     {
-        if (notification.NewMessage is not IUserMessage { Channel: INestedChannel channel } message) return;
-        if (message.Author is not IGuildUser { Username: { } } user || user.IsBot) return;
+        if (notification.NewMessage is not IUserMessage
+            {
+                Author: IGuildUser user,
+                Author.IsBot: false,
+                Channel: INestedChannel channel
+            } message) return;
+
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
+        var latest = await GetLatestMessage(channel.Guild.Id, channel.Id, message.Id, cancellationToken);
 
-        var latest = await GetLatestMessage(message.Id, cancellationToken);
         if (latest is null) return;
+        if (await MessageUnchanged(latest, message, cancellationToken)) return;
 
-        if (await LogEmbedsUpdated(latest, message, cancellationToken))
-            return;
-
-        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
-        var log = await LogMessageAsync(userEntity, message, latest, cancellationToken);
+        var log = await LogMessageAsync(user, message, latest, cancellationToken);
         await PublishLogAsync(log, LogType.MessageUpdated, channel.Guild, cancellationToken);
     }
 
     public async Task LogAsync(MessagesBulkDeletedNotification notification, CancellationToken cancellationToken)
     {
-        if (await notification.Channel.GetOrDownloadAsync() is not IGuildChannel channel) return;
+        if (await notification.Channel.GetOrDownloadAsync() is not INestedChannel channel) return;
+        if (await IsExcludedAsync(channel, null, cancellationToken)) return;
 
         var details = await TryGetAuditLogDetails(notification.Messages.Count, channel);
         var messages = GetLatestMessages(channel, notification.Messages.Select(x => x.Id)).ToList();
@@ -127,11 +147,25 @@ public class LoggingService
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
     }
 
+    public Task<IEnumerable<Criterion>> GetExclusionsAsync(IGuild guild, CancellationToken cancellationToken)
+        => _memoryCache.GetOrCreateAsync($"{nameof(GetExclusionsAsync)}.{guild.Id}", async entry =>
+        {
+            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+            var rules = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+            return rules.LoggingRules?.LoggingExclusions ?? Enumerable.Empty<Criterion>();
+        });
+
     public async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
         => log is null ? null : await ((IDiscordClient) _client).GetUserAsync(log.UserId);
 
-    public ValueTask<MessageLog?> GetLatestMessage(ulong messageId, CancellationToken cancellationToken = default)
-        => GetLatestLogAsync<MessageLog>(m => m.MessageId == messageId, cancellationToken);
+    public ValueTask<MessageLog?> GetLatestMessage(
+        ulong guildId, ulong channelId, ulong messageId,
+        CancellationToken cancellationToken = default)
+        => GetLatestLogAsync<MessageLog>(m
+                => m.GuildId == guildId
+                && m.ChannelId == channelId
+                && m.MessageId == messageId,
+            cancellationToken);
 
     private IEnumerable<MessageLog> GetLatestMessages(IGuildChannel channel, IEnumerable<ulong> messageIds)
         => _db.Set<MessageLog>()
@@ -199,29 +233,34 @@ public class LoggingService
         return new ActionDetails(user, entry.Reason);
     }
 
-    private async Task<bool> IsExcludedAsync(INestedChannel channel, IGuildUser user,
+    private async Task<bool> IsExcludedAsync(
+        INestedChannel channel, IGuildUser? user,
         CancellationToken cancellationToken)
     {
         var guild = channel.Guild;
 
-        var guildEntity = await _db.Guilds.FindByIdAsync(guild.Id, cancellationToken);
-        if (guildEntity is null || cancellationToken.IsCancellationRequested) return false;
-
-        return guildEntity.LoggingRules?.LoggingExclusions.Any(e => e.Judge(channel, user)) ?? false;
+        var exclusions = await GetExclusionsAsync(guild, cancellationToken);
+        return exclusions.Any(e => e.Judge(channel, user));
     }
 
-    private async Task<bool> LogEmbedsUpdated(MessageLog log, IMessage message, CancellationToken cancellationToken)
+    private async Task<bool> MessageUnchanged(MessageLog log, IMessage message, CancellationToken cancellationToken)
     {
         var embeds = message.Embeds
             .Select(embed => new Data.Models.Discord.Message.Embeds.Embed(embed))
             .ToList();
 
-        var embedsChanged = !embeds.SequenceEqual(log.Embeds);
+        var attachments = message.Attachments
+            .Select(attachment => new Attachment(attachment))
+            .ToList();
 
-        log.Embeds = embeds;
+        var embedsEqual = embeds.SequenceEqual(log.Embeds);
+        var attachmentsEqual = attachments.SequenceEqual(log.Attachments);
+
+        log.Embeds      = embedsEqual ? log.Embeds : embeds;
+        log.Attachments = attachmentsEqual ? log.Attachments : attachments;
         await _db.SaveChangesAsync(cancellationToken);
 
-        return message.Content == log.Content && embedsChanged;
+        return message.Content == log.Content && embedsEqual && attachmentsEqual;
     }
 
     private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
@@ -261,7 +300,7 @@ public class LoggingService
 
         if (log.ReferencedMessageId is not null)
         {
-            var reply = await GetLatestMessage(log.ReferencedMessageId.Value);
+            var reply = await GetLatestMessage(log.GuildId, log.ChannelId, log.ReferencedMessageId.Value);
             var replyUser = await GetUserAsync(reply);
 
             embed.WithMessageReference(log, reply, replyUser);
@@ -403,7 +442,7 @@ public class LoggingService
         return deleted;
     }
 
-    private async Task<MessageLog?> LogMessageAsync(GuildUserEntity user,
+    private async Task<MessageLog?> LogMessageAsync(IGuildUser user,
         IUserMessage message, MessageLog oldLog,
         CancellationToken cancellationToken)
     {
@@ -413,10 +452,12 @@ public class LoggingService
         return oldLog;
     }
 
-    private async Task<MessageLog> LogMessageAsync(GuildUserEntity user, IUserMessage message,
+    private async Task<MessageLog> LogMessageAsync(IGuildUser user, IUserMessage message,
         CancellationToken cancellationToken)
     {
-        var log = _db.Add(new MessageLog(user, message)).Entity;
+        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+
+        var log = _db.Add(new MessageLog(userEntity, message)).Entity;
         await _db.SaveChangesAsync(cancellationToken);
 
         return log;

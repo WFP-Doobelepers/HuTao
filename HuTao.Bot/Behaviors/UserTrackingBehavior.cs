@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Discord;
 using HuTao.Data;
 using HuTao.Services.Core.Messages;
 using HuTao.Services.Utilities;
@@ -10,7 +9,6 @@ namespace HuTao.Bot.Behaviors;
 
 public class UserTrackingBehavior :
     INotificationHandler<GuildMemberUpdatedNotification>,
-    INotificationHandler<MessageReceivedNotification>,
     INotificationHandler<UserJoinedNotification>
 {
     private readonly HuTaoContext _db;
@@ -24,15 +22,6 @@ public class UserTrackingBehavior :
 
         await _db.Users.TrackUserAsync(user, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
-    {
-        if (notification.Message.Author is IGuildUser { Username: { } } user)
-        {
-            await _db.Users.TrackUserAsync(user, cancellationToken);
-            await _db.SaveChangesAsync(cancellationToken);
-        }
     }
 
     public async Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)
