@@ -365,8 +365,10 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         try
         {
+            await user.AddRoleAsync(muteRole.Value);
+
             var removed = new List<RoleEntity>();
-            foreach (var id in user.RoleIds.Where(r => r != user.Guild.EveryoneRole.Id))
+            foreach (var id in user.RoleIds.Where(r => r != user.Guild.EveryoneRole.Id && r != muteRole.Value))
             {
                 try
                 {
@@ -379,7 +381,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
                 }
             }
 
-            await user.AddRoleAsync(muteRole.Value);
             var mute = _db.Add(new HardMute(length, removed, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);
 
