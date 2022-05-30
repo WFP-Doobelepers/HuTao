@@ -84,8 +84,12 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 
+        _commands.AddTypeReaders<IUserMessage>(
+            new JumpUrlTypeReader<IUserMessage>(),
+            new TypeReaders.Commands.MessageTypeReader<IUserMessage>());
+
         _commands.AddTypeReaders<IMessage>(
-            new JumpUrlTypeReader(),
+            new JumpUrlTypeReader<IMessage>(),
             new TypeReaders.Commands.MessageTypeReader<IMessage>());
 
         _commands.AddTypeReaders<IEmote>(
