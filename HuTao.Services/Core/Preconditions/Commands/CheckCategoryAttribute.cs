@@ -21,12 +21,15 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
         var auth = services.GetRequiredService<AuthorizationService>();
         var command = new CommandContext(context);
 
-        return value is ModerationCategory category && category != ModerationCategory.Default
-            ? AuthorizationService.IsAuthorized(command, _scope, category)
-                ? PreconditionResult.FromSuccess()
-                : PreconditionResult.FromError($"You are not authorized to use the `{category.Name}` category.")
-            : await auth.IsAuthorizedAsync(command, _scope)
-                ? PreconditionResult.FromSuccess()
-                : PreconditionResult.FromError("You are not authorized to use a blank category.");
+        var category = value switch
+        {
+            ModerationCategory c => c,
+            ICategory m          => m.Category,
+            _                    => ModerationCategory.Default
+        };
+
+        return await auth.IsAuthorizedAsync(command, _scope, category)
+            ? PreconditionResult.FromSuccess()
+            : PreconditionResult.FromError($"Not authorized to use the `{category?.Name ?? "Default"}` category.");
     }
 }

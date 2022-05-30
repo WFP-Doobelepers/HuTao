@@ -53,7 +53,7 @@ public class ModerationLoggingService
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
-                await context.ReplyAsync(embed: embed.Build());
+                await context.ReplyAsync(embed: embed.Build(), ephemeral: details.Ephemeral);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {

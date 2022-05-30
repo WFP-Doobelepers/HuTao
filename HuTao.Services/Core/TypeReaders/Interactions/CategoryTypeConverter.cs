@@ -16,3 +16,12 @@ public class CategoryTypeConverter : TypeConverter<ModerationCategory?>
         IInteractionContext context, IApplicationCommandInteractionDataOption option, IServiceProvider services)
         => Reader.ReadAsync(context, option.Value.ToString(), services);
 }
+
+public class CategoryComponentTypeConverter : ComponentTypeConverter<ModerationCategory?>
+{
+    private static readonly CategoryTypeReader Reader = new();
+
+    public override Task<TypeConverterResult> ReadAsync(
+        IInteractionContext context, IComponentInteractionData option, IServiceProvider services)
+        => Reader.ReadAsync(context, option.Value, services);
+}
