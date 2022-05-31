@@ -101,7 +101,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
                 VoiceChat    = Context.Guild.GetTextChannel(rules.TextChannelId),
                 Rules        = rules
             })
-            .Where(v => v.VoiceChannel?.Users.All(u => u.IsBot || u.IsWebhook) ?? true);
+            .Where(v => v.VoiceChannel?.ConnectedUsers.All(u => u.IsBot || u.IsWebhook) ?? true);
 
         await foreach (var link in empty)
         {

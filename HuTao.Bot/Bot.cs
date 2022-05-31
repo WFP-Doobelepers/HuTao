@@ -101,7 +101,8 @@ public class Bot
         }
         else if (connect.IsFaulted)
         {
-            Log.Fatal(connect.Exception, "Client reset faulted, killing process");
+            Log.Fatal(connect.Exception as Exception ?? new InvalidOperationException(),
+                "Client reset faulted, killing process");
             FailFast();
         }
         else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");

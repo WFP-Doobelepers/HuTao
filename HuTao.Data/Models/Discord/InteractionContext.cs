@@ -88,6 +88,12 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
 
     public string UserLocale => Interaction.UserLocale;
 
+    public ulong ApplicationId => Interaction.ApplicationId;
+
+    public ulong? ChannelId => Interaction.ChannelId;
+
+    public ulong? GuildId => Interaction.GuildId;
+
     public IDiscordInteraction Interaction { get; }
 
     public DateTimeOffset CreatedAt => Interaction.CreatedAt;

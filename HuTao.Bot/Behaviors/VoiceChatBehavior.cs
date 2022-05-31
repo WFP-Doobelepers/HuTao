@@ -133,7 +133,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
         if (oldChannel is not null && oldChannel.Id != newChannel?.Id)
         {
-            var users = oldChannel.Users.Where(u => !u.IsBot);
+            var users = oldChannel.ConnectedUsers.Where(u => !u.IsBot);
             var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == oldChannel.Id);
 
             if (voiceChat is not null)
@@ -150,7 +150,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                         await Task.Delay(rules.DeletionDelay, tokenSource.Token);
 
                         var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-                        if (voiceChannel?.Users.Any() ?? false) return;
+                        if (voiceChannel?.ConnectedUsers.Any() ?? false) return;
 
                         _ = voiceChannel?.DeleteAsync();
                         _ = textChannel?.DeleteAsync();
