@@ -24,9 +24,7 @@ public static class ModerationActionExtensions
         => action.Action?.GetModerator() ?? "Unknown";
 
     public static string GetReason(this ModerationAction action, int length = 256)
-        => Format.Bold(action.Reason?.Length > length
-            ? $"{action.Reason.Truncate(length)}"
-            : action.Reason ?? "No reason.");
+        => (action.Reason ?? "No reason").Truncate(length);
 
     public static string GetReason(this IModerationAction action, int length = 256)
         => action.Action?.GetReason(length) ?? "No reason.";
