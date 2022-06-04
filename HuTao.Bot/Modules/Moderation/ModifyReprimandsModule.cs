@@ -73,13 +73,29 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         await PagedViewAsync(collection.OfType(type).OfCategory(category).OrderByDescending(h => h.Action?.Date));
     }
 
+    [Command("reprimand")]
+    [Summary("View the details of the reprimand.")]
+    [RequireAuthorization(History, Group = nameof(History))]
+    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    public async Task ViewReprimandAsync(string id)
+    {
+        var reprimand = await TryFindEntityAsync(id);
+        if (reprimand == null)
+            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+        else
+        {
+            await ReplyAsync(
+                embed: reprimand.ToEmbedBuilder(true, EmbedBuilder.MaxDescriptionLength).Build(),
+                components: reprimand.ToComponentBuilder().Build());
+        }
+    }
+
     [Command("remove")]
     [Alias("delete", "purgewarn")]
     [Summary("Delete a reprimand, this completely removes the data.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
-    protected override EmbedBuilder EntityViewer(Reprimand entity)
-        => entity.ToEmbedBuilder(true);
+    protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
 
     protected override string Id(Reprimand entity) => entity.Id.ToString();
 
@@ -99,13 +115,6 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         return guild.ReprimandHistory;
     }
 
-    private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
-    {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
-        var variables = guild.ModerationRules?.Variables;
-        return new ReprimandDetails(Context, user, reason, variables);
-    }
-
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
@@ -122,6 +131,13 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 
             await update(reprimand, details);
         }
+    }
+
+    private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
+    {
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var variables = guild.ModerationRules?.Variables;
+        return new ReprimandDetails(Context, user, reason, variables);
     }
 
     private delegate Task UpdateReprimandDelegate(Reprimand reprimand, ReprimandDetails details,

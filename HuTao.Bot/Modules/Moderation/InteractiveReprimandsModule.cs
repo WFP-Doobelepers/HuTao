@@ -44,7 +44,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     {
         await DeferAsync(ephemeral);
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, (r, d, t)
+        await ModifyReprimandAsync(reprimand, ephemeral, (r, d, t)
             => _moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
@@ -56,7 +56,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     {
         await DeferAsync(ephemeral);
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
+        await ModifyReprimandAsync(reprimand, ephemeral, _moderation.UpdateReprimandAsync, reason);
     }
 
     [SlashCommand("history", "Views the entire reprimand history of the server.")]
@@ -72,25 +72,67 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         await PagedViewAsync(collection.OfType(type).OfCategory(category).OrderByDescending(h => h.Action?.Date));
     }
 
+    [SlashCommand("view", "View the details of the reprimand.")]
+    [RequireAuthorization(History, Group = nameof(History))]
+    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    public async Task ViewReprimandAsync(
+        [Autocomplete(typeof(ReprimandAutocomplete))] string id,
+        bool ephemeral = false)
+    {
+        var reprimand = await TryFindEntityAsync(id);
+        if (reprimand == null)
+            await RespondAsync(EmptyMatchMessage, ephemeral: true);
+        else
+        {
+            await RespondAsync(ephemeral: ephemeral,
+                embed: reprimand.ToEmbedBuilder(true, EmbedBuilder.MaxDescriptionLength).Build(),
+                components: reprimand.ToComponentBuilder(ephemeral).Build());
+        }
+    }
+
+    [ComponentInteraction("reprimand-delete:*:*", true)]
     [SlashCommand("delete", "Delete a reprimand. this completely removes the data.")]
     protected override Task RemoveEntityAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))] string id,
         [RequireEphemeralScope] bool ephemeral = false)
         => base.RemoveEntityAsync(id, ephemeral);
 
-    protected override EmbedBuilder EntityViewer(Reprimand entity)
-        => entity.ToEmbedBuilder(true);
+    [ModalInteraction("reprimand-pardon:*:*", true)]
+    public Task PardonReprimandAsync(string id, bool ephemeral, PardonModal modal)
+        => PardonReprimandAsync(id, modal.Reason, ephemeral);
+
+    [ComponentInteraction("reprimand-pardon:*:*", true)]
+    public Task PardonReprimandMenuAsync(string id, bool ephemeral)
+        => RespondWithModalAsync<PardonModal>($"reprimand-pardon:{id}:{ephemeral}");
+
+    [ModalInteraction("reprimand-update:*:*", true)]
+    public Task UpdateReprimandAsync(string id, bool ephemeral, UpdateModal modal)
+        => UpdateReprimandAsync(id, modal.Reason, ephemeral);
+
+    [ComponentInteraction("reprimand-update:*:*", true)]
+    public async Task UpdateReprimandMenuAsync(string id, bool ephemeral)
+    {
+        var reprimand = await TryFindEntityAsync(id);
+        var modal = new ModalBuilder()
+            .WithTitle("Update Reprimand")
+            .WithCustomId($"reprimand-update:{id}:{ephemeral}")
+            .AddTextInput("Reason", "reason", TextInputStyle.Paragraph, "Reason...", value: reprimand?.GetLatestReason(4000));
+
+        await RespondWithModalAsync(modal.Build());
+    }
+
+    protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
 
     protected override string Id(Reprimand entity) => entity.Id.ToString();
 
-    protected override async Task RemoveEntityAsync(Reprimand entity)
+    protected override async Task RemoveEntityAsync(Reprimand entity, bool ephemeral)
     {
         var authorized = await _auth.IsAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
         else
-            await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
+            await ModifyReprimandAsync(entity, ephemeral, _moderation.DeleteReprimandAsync);
     }
 
     protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
@@ -99,7 +141,8 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         return guild.ReprimandHistory;
     }
 
-    private async Task ModifyReprimandAsync(Reprimand? reprimand,
+    private async Task ModifyReprimandAsync(
+        Reprimand? reprimand, bool ephemeral,
         UpdateReprimandDelegate update, string? reason = null)
     {
         var authorized = await _auth.IsAuthorizedAsync(Context, Scope, reprimand?.Category);
@@ -113,10 +156,32 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
             var variables = guild.ModerationRules?.Variables;
             var user = await ((IDiscordClient) Context.Client).GetUserAsync(reprimand.UserId);
-            var details = new ReprimandDetails(Context, user, reason, variables);
+            var details = new ReprimandDetails(
+                Context, user, reason, variables,
+                ephemeral: ephemeral, modify: true);
 
             await update(reprimand, details);
         }
+    }
+
+    public class PardonModal : ReprimandModal
+    {
+        public override string Title => "Pardon Reprimand";
+    }
+
+    public abstract class ReprimandModal : IModal
+    {
+        [RequiredInput(false)]
+        [InputLabel("Reason")]
+        [ModalTextInput("reason", TextInputStyle.Paragraph, "Reason...")]
+        public string? Reason { get; set; }
+
+        public abstract string Title { get; }
+    }
+
+    public class UpdateModal : ReprimandModal
+    {
+        public override string Title => "Update Reprimand";
     }
 
     private delegate Task UpdateReprimandDelegate(

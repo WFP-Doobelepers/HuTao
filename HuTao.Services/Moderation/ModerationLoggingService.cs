@@ -50,6 +50,7 @@ public class ModerationLoggingService
         CancellationToken cancellationToken = default)
     {
         var reprimand = result.Last;
+        var buttons = reprimand.ToComponentBuilder().Build();
         var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
 
         var commandLog = GetConfig(r => r?.CommandLog, DefaultCommandLogConfig);
@@ -82,7 +83,7 @@ public class ModerationLoggingService
                 && details.Context?.Channel.Id == config.ChannelId) return;
 
             var text = await details.Guild.GetTextChannelAsync(config.ChannelId);
-            await PublishToChannelAsync(text, config);
+            await PublishToChannelAsync(text, config, buttons);
         }
 
         async Task<bool> PublishToContextAsync(Context context, LogConfig<ModerationLogConfig> config)
@@ -90,7 +91,32 @@ public class ModerationLoggingService
             var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
             try
             {
-                await context.ReplyAsync(embed: embed.Build(), ephemeral: details.Ephemeral);
+                if (context is InteractionContext
+                    {
+                        Interaction: IComponentInteraction or IModalInteraction
+                    } interaction)
+                {
+                    var modalComponents = reprimand.ToComponentBuilder(details.Ephemeral).Build();
+                    if (details.Modify)
+                    {
+                        await interaction.ModifyOriginalResponseAsync(m =>
+                        {
+                            m.Embed      = embed.Build();
+                            m.Components = modalComponents;
+                        });
+                    }
+                    else
+                    {
+                        await interaction.FollowupAsync(
+                            embed: embed.Build(),
+                            components: modalComponents,
+                            ephemeral: details.Ephemeral);
+                    }
+
+                    return !details.Ephemeral;
+                }
+
+                await context.ReplyAsync(embed: embed.Build(), ephemeral: details.Ephemeral, components: buttons);
                 return !(context is InteractionContext && details.Ephemeral);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
@@ -119,13 +145,15 @@ public class ModerationLoggingService
             }
         }
 
-        async Task PublishToChannelAsync<T>(IMessageChannel? channel, LogConfig<T> config) where T : ModerationLogConfig
+        async Task PublishToChannelAsync<T>(
+            IMessageChannel? channel, LogConfig<T> config,
+            MessageComponent? components = null) where T : ModerationLogConfig
         {
             try
             {
                 if (channel is null) return;
                 var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
-                await channel.SendMessageAsync(embed: embed.Build());
+                await channel.SendMessageAsync(embed: embed.Build(), components: components);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {

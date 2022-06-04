@@ -65,6 +65,9 @@ public static class ReprimandExtensions
 
     public static Color GetColor(this Reprimand reprimand)
     {
+        if (reprimand.Status is ReprimandStatus.Deleted)
+            return Color.Red;
+
         if (reprimand.Status is not ReprimandStatus.Added)
             return Color.Purple;
 
@@ -85,11 +88,25 @@ public static class ReprimandExtensions
         };
     }
 
-    public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId)
+    public static ComponentBuilder ToComponentBuilder(this Reprimand reprimand, bool ephemeral = false)
+    {
+        var components = new ComponentBuilder();
+
+        if (reprimand.Status is ReprimandStatus.Deleted) return components;
+
+        components.WithButton("Update", $"reprimand-update:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary);
+
+        if (reprimand is ExpirableReprimand && reprimand.IsCounted())
+            components.WithButton("Pardon", $"reprimand-pardon:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary);
+
+        return components.WithButton("Delete", $"reprimand-delete:{reprimand.Id}:{ephemeral}", ButtonStyle.Danger);
+    }
+
+    public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId, int? length = null)
     {
         var embed = new EmbedBuilder()
             .WithTitle($"{r.Status} {r.GetTitle(showId)}")
-            .WithDescription(r.GetReason(EmbedFieldBuilder.MaxFieldValueLength))
+            .WithDescription(r.GetReason(length ?? EmbedFieldBuilder.MaxFieldValueLength))
             .WithColor(r.GetColor()).WithTimestamp(r)
             .AddField("Reprimand", r.GetAction(), true)
             .AddField("Moderator", r.GetModerator(), true);

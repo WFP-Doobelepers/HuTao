@@ -64,15 +64,16 @@ public class CommandErrorHandler :
     private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
-        //Don't trigger if the emoji is wrong, if the user is a bot, or if we've
-        //made an error message reply already
-
+        // Don't trigger if the emoji is wrong, if the user is a bot, or if we've
+        // made an error message reply already
         if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;
-
         if (reaction.Emote.Name != Emoji || ErrorReplies.ContainsKey(cachedMessage.Id)) return;
 
-        //If the message that was reacted to has an associated error, reply in the same channel
-        //with the error message then add that to the replies collection
+        var message = await cachedMessage.GetOrDownloadAsync();
+        if (message.Author.Id != reaction.User.Value.Id) return;
+
+        // If the message that was reacted to has an associated error, reply in the same channel
+        // with the error message then add that to the replies collection
         if (AssociatedErrors.TryGetValue(cachedMessage.Id, out var value))
         {
             var msg = await channel.SendMessageAsync("", false, new EmbedBuilder

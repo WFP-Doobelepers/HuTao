@@ -71,11 +71,10 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
             return;
         }
 
-        await RemoveEntityAsync(entity);
-        await FollowupAsync("Removed.", ephemeral: true);
+        await RemoveEntityAsync(entity, ephemeral);
     }
 
-    protected virtual async Task RemoveEntityAsync(T entity)
+    protected virtual async Task RemoveEntityAsync(T entity, bool ephemeral)
     {
         Db.Remove(entity);
         await Db.SaveChangesAsync();

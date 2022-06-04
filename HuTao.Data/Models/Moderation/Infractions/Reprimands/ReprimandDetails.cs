@@ -13,16 +13,17 @@ public record ReprimandDetails(
         IUser User, IGuildUser Moderator,
         string? Reason, Trigger? Trigger = null,
         Context? Context = null, ModerationCategory? Category = null,
-        ReprimandResult? Result = null, bool Ephemeral = false)
+        ReprimandResult? Result = null, bool Ephemeral = false, bool Modify = false)
     : ActionDetails(Moderator.Id, Moderator.Guild.Id, Reason)
 {
     public ReprimandDetails(
         Context context, IUser user,
         string? reason, IEnumerable<ModerationVariable>? variables,
         Trigger? trigger = null, ModerationCategory? category = null,
-        ReprimandResult? result = null, bool ephemeral = false)
+        ReprimandResult? result = null, bool ephemeral = false, bool modify = false)
         : this(user, (IGuildUser) context.User, GetReason(reason, variables), trigger, context,
-            category == ModerationCategory.Default ? null : category ?? trigger?.Category, result, ephemeral) { }
+            category == ModerationCategory.Default ? null : category ?? trigger?.Category,
+            result, ephemeral, modify) { }
 
     public IGuild Guild => Moderator.Guild;
 

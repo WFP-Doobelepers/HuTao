@@ -24,7 +24,7 @@ public class ReprimandAutocomplete : AutocompleteHandler
         var reprimands = guild.ReprimandHistory
             .Where(r => r.Id.ToString().StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(r => r.Action?.Date).Take(25)
-            .Select(r => new AutocompleteResult($"{r.GetTitle(true)} {r.GetReason()}".Truncate(100), r.Id.ToString()));
+            .Select(r => new AutocompleteResult($"{r.GetTitle(true)} {r.GetLatestReason()}".Truncate(100), r.Id.ToString()));
 
         return AutocompletionResult.FromSuccess(reprimands);
     }
