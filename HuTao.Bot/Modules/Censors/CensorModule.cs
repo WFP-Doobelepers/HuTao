@@ -228,6 +228,9 @@ public class CensorModule : InteractiveTrigger<Censor>
         [HelpSummary("The roles that are excluded.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
+        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
+
         [HelpSummary("The name of the category this will be added to.")]
         public ModerationCategory? Category { get; set; }
 

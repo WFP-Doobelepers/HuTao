@@ -86,5 +86,8 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
 
         [HelpSummary("The roles that are excluded.")]
         public IEnumerable<IRole>? Roles { get; set; }
+
+        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 }

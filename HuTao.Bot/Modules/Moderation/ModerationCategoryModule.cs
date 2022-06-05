@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using Humanizer;
 using HuTao.Data;
+using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation;
 using HuTao.Services.CommandHelp;
@@ -87,5 +88,8 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
 
         [HelpSummary("The roles that the user must have.")]
         public IEnumerable<IRole>? Roles { get; set; }
+
+        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 }

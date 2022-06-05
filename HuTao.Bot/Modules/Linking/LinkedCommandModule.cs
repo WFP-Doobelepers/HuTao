@@ -142,6 +142,9 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         [HelpSummary("The roles that are allowed to use the command.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
+        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
+
         [HelpSummary("True to send the message as ephemeral and False to not.")]
         public bool Ephemeral { get; set; }
 

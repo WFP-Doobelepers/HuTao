@@ -29,9 +29,10 @@ public static class CriteriaExtensions
     public static ICollection<Criterion> ToCriteria(this ICriteriaOptions options)
         => new List<Criterion>().AddCriteria(options);
 
-    public static IEnumerable<AuthorizationGroup> ToAuthorizationGroups(this ICriteriaOptions options,
-        AuthorizationScope scope, IGuildUser? moderator = null)
-        => options.ToCriteria().Select(c => new AuthorizationGroup(scope, rules: c).WithModerator(moderator));
+    public static IEnumerable<AuthorizationGroup> ToAuthorizationGroups(
+        this ICriteriaOptions options, AuthorizationScope scope, IGuildUser? moderator = null)
+        => options.ToCriteria().Select(criteria
+            => new AuthorizationGroup(scope, type: options.JudgeType, rules: criteria).WithModerator(moderator));
 
     private static ICollection<Criterion> AddCriteria<T>(this ICollection<Criterion> collection,
         IEnumerable<T>? source, Func<T, Criterion> func)
