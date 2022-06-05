@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
@@ -298,18 +299,21 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     [ModalInteraction("warn:*")]
     public async Task WarnAsync([RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
-        WarnModal modal)
+        WarningModal modal)
         => await WarnAsync(user, modal.Amount, modal.Reason, modal.Category, modal.Ephemeral);
+
+    private Task ReprimandWithModalAsync<T>(IUser user, string id) where T : ReprimandModal
+        => Context.Interaction.RespondWithModalAsync<T>(id, modifyModal: m => m.WithTitle($"{m.Title} {user}"));
 
     private async Task RespondModMenuAsync(IUser user, LogReprimandType type) => await (type switch
     {
-        LogReprimandType.Ban      => RespondWithModalAsync<BanModal>($"ban:{user.Id}"),
-        LogReprimandType.Kick     => RespondWithModalAsync<KickModal>($"kick:{user.Id}"),
-        LogReprimandType.Mute     => RespondWithModalAsync<MuteModal>($"mute:{user.Id}"),
-        LogReprimandType.Note     => RespondWithModalAsync<NoteModal>($"note:{user.Id}"),
-        LogReprimandType.Notice   => RespondWithModalAsync<NoticeModal>($"notice:{user.Id}"),
-        LogReprimandType.Warning  => RespondWithModalAsync<WarnModal>($"warn:{user.Id}"),
-        LogReprimandType.HardMute => RespondWithModalAsync<HardMuteModal>($"hardMute:{user.Id}"),
+        LogReprimandType.Ban      => ReprimandWithModalAsync<BanModal>(user, $"ban:{user.Id}"),
+        LogReprimandType.Kick     => ReprimandWithModalAsync<KickModal>(user, $"kick:{user.Id}"),
+        LogReprimandType.Mute     => ReprimandWithModalAsync<MuteModal>(user, $"mute:{user.Id}"),
+        LogReprimandType.Note     => ReprimandWithModalAsync<NoteModal>(user, $"note:{user.Id}"),
+        LogReprimandType.Notice   => ReprimandWithModalAsync<NoticeModal>(user, $"notice:{user.Id}"),
+        LogReprimandType.Warning  => ReprimandWithModalAsync<WarningModal>(user, $"warn:{user.Id}"),
+        LogReprimandType.HardMute => ReprimandWithModalAsync<HardMuteModal>(user, $"hardMute:{user.Id}"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(type), type, "Invalid Mod Menu option.")
     });
@@ -351,32 +355,32 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
 
     public class KickModal : ReprimandModal
     {
-        public override string Title => "Kick User";
+        public override string Title => nameof(Kick);
     }
 
     public class MuteModal : ExpirableReprimandModal
     {
-        public override string Title => "Mute User";
+        public override string Title => nameof(Mute);
     }
 
     public class HardMuteModal : ExpirableReprimandModal
     {
-        public override string Title => "Hard Mute User";
+        public override string Title => nameof(HardMute).Humanize(LetterCasing.Title);
     }
 
     public class NoteModal : ReprimandModal
     {
-        public override string Title => "Note User";
+        public override string Title => nameof(Note);
     }
 
     public class NoticeModal : ReprimandModal
     {
-        public override string Title => "Notice User";
+        public override string Title => nameof(Notice);
     }
 
-    public class WarnModal : ReprimandModal
+    public class WarningModal : ReprimandModal
     {
-        public override string Title => "Warn User";
+        public override string Title => nameof(Warning);
 
         [InputLabel("Warn amount")]
         [ModalTextInput("amount", TextInputStyle.Short, initValue: "1")]

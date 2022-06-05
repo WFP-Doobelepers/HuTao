@@ -20,35 +20,24 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Alias("av")]
     [Summary("Get the avatar of the user. Leave empty to view your own avatar.")]
     [RequireAuthorization(User)]
-    public async Task AvatarAsync(
-        [Summary("The mention, username or ID of the user.")] IUser? user = null)
-    {
-        user ??= Context.User;
-        await _user.ReplyAvatarAsync(Context, user);
-    }
+    public Task AvatarAsync([Summary("The mention, username or ID of the user.")] IUser? user = null)
+        => _user.ReplyAvatarAsync(Context, user ?? Context.User);
 
     [Command("history")]
     [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
     [Summary("View a specific history of a user's infractions.")]
     [RequireAuthorization(History, Group = nameof(History))]
     [RequireCategoryAuthorization(History, Group = nameof(History))]
-    public async Task InfractionsAsync(
+    public Task InfractionsAsync(
         [Summary("The user to show the infractions of.")] IUser? user = null,
         [Summary("Leave empty to show warnings.")] LogReprimandType type = LogReprimandType.None,
         ModerationCategory? category = null)
-    {
-        user ??= Context.User;
-        await _user.ReplyHistoryAsync(Context, category, type, user, false);
-    }
+        => _user.ReplyHistoryAsync(Context, category, type, user ?? Context.User, false);
 
     [Command("user")]
     [Alias("whois")]
     [Summary("Views the information of a user. Leave blank to view self.")]
     [RequireAuthorization(User)]
-    public async Task UserAsync(
-        [Summary("The mention, username or ID of the user.")] IUser? user = null)
-    {
-        user ??= Context.User;
-        await _user.ReplyUserAsync(Context, user);
-    }
+    public Task UserAsync([Summary("The mention, username or ID of the user.")] IUser? user = null)
+        => _user.ReplyUserAsync(Context, user ?? Context.User);
 }

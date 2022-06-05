@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
@@ -103,23 +104,15 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
     [ComponentInteraction("reprimand-pardon:*:*", true)]
     public Task PardonReprimandMenuAsync(string id, bool ephemeral)
-        => RespondWithModalAsync<PardonModal>($"reprimand-pardon:{id}:{ephemeral}");
+        => UpdateReprimandAsync<PardonModal>($"reprimand-pardon:{id}:{ephemeral}", id);
 
     [ModalInteraction("reprimand-update:*:*", true)]
     public Task UpdateReprimandAsync(string id, bool ephemeral, UpdateModal modal)
         => UpdateReprimandAsync(id, modal.Reason, ephemeral);
 
     [ComponentInteraction("reprimand-update:*:*", true)]
-    public async Task UpdateReprimandMenuAsync(string id, bool ephemeral)
-    {
-        var reprimand = await TryFindEntityAsync(id);
-        var modal = new ModalBuilder()
-            .WithTitle("Update Reprimand")
-            .WithCustomId($"reprimand-update:{id}:{ephemeral}")
-            .AddTextInput("Reason", "reason", TextInputStyle.Paragraph, "Reason...", value: reprimand?.GetLatestReason(4000));
-
-        await RespondWithModalAsync(modal.Build());
-    }
+    public Task UpdateReprimandMenuAsync(string id, bool ephemeral)
+        => UpdateReprimandAsync<UpdateModal>($"reprimand-update:{id}:{ephemeral}", id);
 
     protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
 
@@ -162,6 +155,22 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
             await update(reprimand, details);
         }
+    }
+
+    private async Task UpdateReprimandAsync<T>(string customId, string id) where T : ReprimandModal
+    {
+        var reprimand = await TryFindEntityAsync(id);
+        if (reprimand is null)
+        {
+            await RespondAsync(EmptyMatchMessage, ephemeral: true);
+            return;
+        }
+
+        var user = await reprimand.GetUserAsync(Context);
+        var reason = reprimand.GetLatestReason();
+        await Context.Interaction.RespondWithModalAsync<T>(customId, modifyModal: m => m
+            .WithTitle($"{m.Title} for {user}".Truncate(45))
+            .UpdateTextInput("reason", b => b.WithValue(reason)));
     }
 
     public class PardonModal : ReprimandModal
