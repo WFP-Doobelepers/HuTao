@@ -167,7 +167,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         }
 
         var user = await reprimand.GetUserAsync(Context);
-        var reason = reprimand.GetLatestReason();
+        var reason = reprimand.GetLatestReason(TextInputBuilder.LargestMaxLength);
         await Context.Interaction.RespondWithModalAsync<T>(customId, modifyModal: m => m
             .WithTitle($"{m.Title} for {user}".Truncate(45))
             .UpdateTextInput("reason", b => b.WithValue(reason)));
