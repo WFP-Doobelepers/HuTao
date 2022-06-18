@@ -159,7 +159,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
     private async Task UpdateReprimandAsync<T>(string customId, string id) where T : ReprimandModal
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = _db.Set<Reprimand>().FirstOrDefault(r => r.Id.ToString() == id);
         if (reprimand is null)
         {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);
