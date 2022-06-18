@@ -4,17 +4,26 @@ using HuTao.Data.Models.Authorization;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
+public interface ITemplateOptions
+{
+    public AuthorizationScope Scope { get; }
+
+    public ModerationCategory? Category { get; }
+
+    public string? Reason { get; }
+}
+
 public class ModerationTemplate
 {
     protected ModerationTemplate() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public ModerationTemplate(string name, ReprimandAction action, AuthorizationScope scope, string? reason)
+    public ModerationTemplate(string name, ReprimandAction action, ITemplateOptions options)
     {
         Name   = name;
         Action = action;
-        Scope  = scope;
-        Reason = reason;
+        Scope  = options.Scope;
+        Reason = options.Reason;
     }
 
     public Guid Id { get; set; }

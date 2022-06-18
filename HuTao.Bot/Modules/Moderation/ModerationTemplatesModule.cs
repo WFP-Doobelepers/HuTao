@@ -10,7 +10,6 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
-using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
@@ -29,43 +28,38 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     public ModerationTemplatesModule(HuTaoContext db) { _db = db; }
 
     [Command("ban")]
-    public async Task BanTemplateAsync(string name, uint deleteDays = 0, TimeSpan? length = null,
-        AuthorizationScope scope = AuthorizationScope.Ban, [Remainder] string? reason = null)
+    public async Task BanTemplateAsync(string name, BanTemplateOptions options)
     {
-        var action = new BanAction(deleteDays, length);
-        await AddTemplateAsync(name, action, scope, reason);
+        var action = new BanAction(options.DeleteDays, options.Length);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("kick")]
-    public async Task KickTemplateAsync(string name,
-        AuthorizationScope scope = AuthorizationScope.Kick, [Remainder] string? reason = null)
+    public async Task KickTemplateAsync(string name, KickTemplateOptions options)
     {
         var action = new KickAction();
-        await AddTemplateAsync(name, action, scope, reason);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("mute")]
-    public async Task MuteTemplateAsync(string name, TimeSpan? length = null,
-        AuthorizationScope scope = AuthorizationScope.Mute, [Remainder] string? reason = null)
+    public async Task MuteTemplateAsync(string name, MuteTemplateOptions options)
     {
-        var action = new MuteAction(length);
-        await AddTemplateAsync(name, action, scope, reason);
+        var action = new MuteAction(options.Length);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("note")]
-    public async Task NoteTemplateAsync(string name, AuthorizationScope scope = AuthorizationScope.Note,
-        [Remainder] string? reason = null)
+    public async Task NoteTemplateAsync(string name, NoteTemplateOptions options)
     {
         var action = new NoteAction();
-        await AddTemplateAsync(name, action, scope, reason);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("notice")]
-    public async Task NoticeTemplateAsync(string name, AuthorizationScope scope = AuthorizationScope.Warning,
-        [Remainder] string? reason = null)
+    public async Task NoticeTemplateAsync(string name, NoticeTemplateOptions options)
     {
         var action = new NoticeAction();
-        await AddTemplateAsync(name, action, scope, reason);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("role")]
@@ -78,15 +72,14 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         }
 
         var action = new RoleAction(options.Length, options);
-        await AddTemplateAsync(name, action, options.Scope, options.Reason);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("warn")]
-    public async Task WarnTemplateAsync(string name, uint amount, AuthorizationScope scope = AuthorizationScope.Warning,
-        [Remainder] string? reason = null)
+    public async Task WarnTemplateAsync(string name, WarnTemplateOptions options)
     {
-        var action = new WarningAction(amount);
-        await AddTemplateAsync(name, action, scope, reason);
+        var action = new WarningAction(options.Amount);
+        await AddTemplateAsync(name, action, options);
     }
 
     [Command("remove")]
@@ -103,7 +96,8 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         .WithTitle($"{template.Name}: {template.Id}")
         .WithDescription(template.Reason ?? "No reason")
         .AddField("Action", $"{template}".Truncate(EmbedFieldBuilder.MaxFieldValueLength))
-        .AddField("Scope", template.Scope.Humanize());
+        .AddField("Scope", template.Scope.Humanize())
+        .AddField("Category", template.Category?.Name ?? "Default");
 
     protected override string Id(ModerationTemplate entity) => entity.Id.ToString();
 
@@ -113,9 +107,9 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
         return guild.ModerationTemplates;
     }
 
-    private async Task AddTemplateAsync(string name, ReprimandAction action, AuthorizationScope scope, string? reason)
+    private async Task AddTemplateAsync(string name, ReprimandAction action, ITemplateOptions options)
     {
-        var template = new ModerationTemplate(name, action, scope, reason);
+        var template = new ModerationTemplate(name, action, options);
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
 
         var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name == template.Name);
@@ -132,12 +126,76 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
     }
 
     [NamedArgumentType]
-    public class RoleTemplateOptions : IRoleTemplateOptions, ITrigger
+    public class BanTemplateOptions : ITemplateOptions
     {
-        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Mute;
+        public TimeSpan? Length { get; set; }
+
+        public uint DeleteDays { get; set; }
+
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Ban;
+
+        public ModerationCategory? Category { get; set; }
 
         public string? Reason { get; set; }
+    }
 
+    [NamedArgumentType]
+    public class NoteTemplateOptions : ITemplateOptions
+    {
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Note;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class NoticeTemplateOptions : ITemplateOptions
+    {
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Warning;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class KickTemplateOptions : ITemplateOptions
+    {
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Kick;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class MuteTemplateOptions : ITemplateOptions
+    {
+        public TimeSpan? Length { get; set; }
+
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Mute;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class WarnTemplateOptions : ITemplateOptions
+    {
+        public uint Amount { get; set; } = 1;
+
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Warning;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class RoleTemplateOptions : ITemplateOptions, IRoleTemplateOptions
+    {
         public TimeSpan? Length { get; set; }
 
         public IEnumerable<IRole>? AddRoles { get; set; }
@@ -146,10 +204,10 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
         public IEnumerable<IRole>? ToggleRoles { get; set; }
 
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Mute;
+
         public ModerationCategory? Category { get; set; }
 
-        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
-
-        public uint Amount { get; set; } = 1;
+        public string? Reason { get; set; }
     }
 }
