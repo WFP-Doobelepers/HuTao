@@ -31,7 +31,7 @@ public record ReprimandDetails(
 
     private static string? GetReason(string? reason, IEnumerable<ModerationVariable>? variables)
     {
-        if (string.IsNullOrWhiteSpace(reason) || variables is null) return null;
+        if (string.IsNullOrWhiteSpace(reason) || variables is null) return reason;
         var result = variables.Aggregate(reason, (result, variable)
             => Regex.Replace(result,
                 $@"(?<!\\)[$](({variable.Name})\b|" +
