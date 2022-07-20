@@ -48,6 +48,7 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _services     = services;
     }
 
+    [Priority(0)]
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
         var rawMessage = notification.Message;
