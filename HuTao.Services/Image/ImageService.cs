@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Discord;
@@ -102,8 +103,15 @@ public sealed class ImageService : IImageService
         if (_cache.TryGetValue(key, out Color color))
             return color;
 
-        var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
-        return _cache.Set(key, GetDominantColor(imageBytes), TimeSpan.FromDays(7));
+        try
+        {
+            var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
+            return _cache.Set(key, GetDominantColor(imageBytes), TimeSpan.FromHours(1));
+        }
+        catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound)
+        {
+            return Color.Default;
+        }
     }
 
     private static object GetKey(Uri uri) => new { Target = nameof(GetDominantColor), uri.AbsoluteUri };
