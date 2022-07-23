@@ -18,6 +18,9 @@ public static class ModerationActionExtensions
     public static string GetDate(this IModerationAction action)
         => action.Action?.GetDate() ?? "Unknown";
 
+    public static string GetLatestReason(this Reprimand action, int length = 256)
+        => action.ModifiedAction?.GetReason(length) ?? action.Action?.GetReason(length) ?? "No reason.";
+
     public static string GetModerator(this ModerationAction action)
         => $"{Format.Bold(action.MentionUser())} ({action.UserId})";
 
@@ -27,9 +30,6 @@ public static class ModerationActionExtensions
     public static string GetReason(this ModerationAction action, int length = 256)
         => (action.Reason ?? "No reason").Truncate(length);
 
-    public static string GetLatestReason(this Reprimand action, int length = 256)
-        => action.ModifiedAction?.GetReason(length) ?? action.Action?.GetReason(length) ?? "No reason.";
-
     public static string GetReason(this IModerationAction action, int length = 256)
         => action.Action?.GetReason(length) ?? "No reason.";
 
@@ -37,6 +37,6 @@ public static class ModerationActionExtensions
         bool useFooter = true)
     {
         if (action is not null) builder.WithTimestamp(action.Date);
-        return useFooter ? builder.WithFooter(action?.Date.Humanize().Humanize(LetterCasing.Sentence)) : builder;
+        return useFooter ? builder.WithFooter(action?.Date.Humanize()) : builder;
     }
 }

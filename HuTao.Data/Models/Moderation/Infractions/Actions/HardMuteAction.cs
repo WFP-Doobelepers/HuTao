@@ -1,17 +1,12 @@
 ﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
-public class HardMuteAction : MuteAction, IHardMute
+public class HardMuteAction : ReprimandAction, IHardMute
 {
-    public HardMuteAction(TimeSpan? length) : base(length) { }
-}
+    public HardMuteAction(TimeSpan? length) { Length = length; }
 
-public class HardMuteConfiguration : IEntityTypeConfiguration<HardMuteAction>
-{
-    public void Configure(EntityTypeBuilder<HardMuteAction> builder) => builder
-        .Property(t => t.Length)
-        .HasColumnName(nameof(HardMuteAction.Length));
+    [Column(nameof(ILength.Length))]
+    public TimeSpan? Length { get; set; }
 }

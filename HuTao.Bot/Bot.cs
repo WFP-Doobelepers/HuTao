@@ -41,11 +41,11 @@ public class Bot
     public static async Task Main() => await new Bot().StartAsync();
 
     private static ServiceProvider ConfigureServices() =>
-        new ServiceCollection().AddHttpClient().AddMemoryCache().AddHangfireServer()
-            .AddDbContext<HuTaoContext>(ContextOptions)
-            .AddMediatR(c => c.Using<HuTaoMediator>(),
-                typeof(Bot), typeof(DiscordSocketListener))
+        new ServiceCollection()
             .AddLogging(l => l.AddSerilog())
+            .AddHttpClient().AddMemoryCache().AddHangfireServer()
+            .AddDbContext<HuTaoContext>(ContextOptions)
+            .AddMediatR(c => c.Using<HuTaoMediator>(), typeof(Bot), typeof(DiscordSocketListener))
             .AddSingleton(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = HuTaoConfig.Configuration.AlwaysDownloadUsers,

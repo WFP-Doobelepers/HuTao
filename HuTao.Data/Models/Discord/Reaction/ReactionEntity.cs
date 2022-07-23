@@ -3,7 +3,7 @@ using Discord;
 
 namespace HuTao.Data.Models.Discord.Reaction;
 
-public abstract class ReactionEntity : IEmote
+public abstract class ReactionEntity : IEmote, IEquatable<IEmote>
 {
     protected ReactionEntity() { }
 
@@ -12,4 +12,6 @@ public abstract class ReactionEntity : IEmote
     public Guid Id { get; set; }
 
     public string Name { get; set; } = null!;
+
+    public bool Equals(IEmote? other) => Name == other?.Name;
 }

@@ -2,21 +2,17 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Moderation;
+using HuTao.Services.Utilities;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Interactive;
 
 public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Trigger
 {
-    private readonly CommandErrorHandler _error;
-    private readonly ModerationService _moderation;
+    public IMemoryCache Cache { get; init; } = null!;
 
-    protected InteractiveTrigger(CommandErrorHandler error, ModerationService moderation)
-    {
-        _error      = error;
-        _moderation = moderation;
-    }
+    public ModerationService Moderation { get; init; } = null!;
 
     [Command("delete")]
     [Summary("Deletes a trigger by ID. Associated reprimands will be deleted.")]
@@ -29,12 +25,15 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 
         if (trigger is null)
         {
-            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            await Error.AssociateError(Context.Message, EmptyMatchMessage);
             return;
         }
 
         var reply = await ReplyAsync($"Deleting trigger {trigger.Id}...");
-        await _moderation.DeleteTriggerAsync(trigger, (IGuildUser) Context.User, silent);
+
+        await Moderation.DeleteTriggerAsync(trigger, (IGuildUser) Context.User, silent);
+        Cache.InvalidateCaches(Context.Guild);
+
         await reply.AddReactionAsync(new Emoji("✅"));
     }
 
@@ -56,7 +55,7 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
         var entity = await TryFindEntityAsync(id, collection);
 
         if (entity is null)
-            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            await Error.AssociateError(Context.Message, EmptyMatchMessage);
         else
             await ToggleTriggerAsync(entity, state);
     }
@@ -65,7 +64,9 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 
     private async Task ToggleTriggerAsync(T entity, bool? state)
     {
-        await _moderation.ToggleTriggerAsync(entity, (IGuildUser) Context.User, state);
+        await Moderation.ToggleTriggerAsync(entity, (IGuildUser) Context.User, state);
+        Cache.InvalidateCaches(Context.Guild);
+
         await ReplyAsync(embed: EntityViewer(entity).Build());
     }
 }

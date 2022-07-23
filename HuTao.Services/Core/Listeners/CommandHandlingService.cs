@@ -74,6 +74,11 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
 
         _commands.AddTypeReader<Color>(new HexColorTypeReader());
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
+        _commands.AddTypeReader<SpamTypeReader>(new SpamTypeReader());
+
+        _commands.AddInviteTypeReader<IInvite>();
+        _commands.AddInviteTypeReader<IInviteMetadata>();
+        _commands.AddInviteTypeReader<RestInviteMetadata>();
 
         _commands.AddUserTypeReader<IUser>();
         _commands.AddUserTypeReader<SocketUser>();
@@ -82,6 +87,10 @@ public class CommandHandlingService : INotificationHandler<MessageReceivedNotifi
         _commands.AddUserTypeReader<IGuildUser>();
         _commands.AddUserTypeReader<SocketGuildUser>();
         _commands.AddUserTypeReader<RestGuildUser>();
+
+        _commands.AddGuildTypeReader<IGuild>();
+        _commands.AddGuildTypeReader<SocketGuild>();
+        _commands.AddGuildTypeReader<RestGuild>();
 
         _commands.AddEnumerableTypeReader<LogType>(new EnumTryParseTypeReader<LogType>());
 

@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Censors;
 
@@ -25,6 +24,7 @@ public class Censor : Trigger, ICensor, ITriggerAction
         Silent  = options?.Silent ?? false;
     }
 
+    [Column(nameof(ITriggerAction.ReprimandId))]
     public Guid? ReprimandId { get; set; }
 
     public bool Silent { get; set; }
@@ -36,11 +36,4 @@ public class Censor : Trigger, ICensor, ITriggerAction
     public string Pattern { get; set; } = null!;
 
     public virtual ReprimandAction? Reprimand { get; set; }
-}
-
-public class CensorConfiguration : IEntityTypeConfiguration<Censor>
-{
-    public void Configure(EntityTypeBuilder<Censor> builder) => builder
-        .Property(t => t.ReprimandId)
-        .HasColumnName(nameof(ITriggerAction.ReprimandId));
 }

@@ -7,13 +7,23 @@ namespace HuTao.Data.Models.Moderation;
 
 public interface IModerationRules
 {
+    public bool CensorNicknames { get; set; }
+
+    public bool CensorUsernames { get; set; }
+
     public bool ReplaceMutes { get; set; }
 
     public ICollection<Criterion> CensorExclusions { get; set; }
 
     public ModerationLoggingRules? Logging { get; set; }
 
-    public TimeSpan? CensorTimeRange { get; set; }
+    public string? NameReplacement { get; set; }
+
+    public TimeSpan? AutoReprimandCooldown { get; set; }
+
+    public TimeSpan? CensoredExpiryLength { get; set; }
+
+    public TimeSpan? FilteredExpiryLength { get; set; }
 
     public TimeSpan? NoticeExpiryLength { get; set; }
 

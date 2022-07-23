@@ -19,12 +19,14 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
         UserId  = details.User.Id;
         GuildId = details.Guild.Id;
 
-        Category = details.Category;
-        Trigger  = details.Trigger;
-        Action   = details;
+        CategoryId = details.Category?.Id;
+        TriggerId  = details.Trigger?.Id;
+        Action     = details;
     }
 
     public Guid Id { get; set; }
+
+    public Guid? CategoryId { get; set; }
 
     public Guid? TriggerId { get; set; }
 

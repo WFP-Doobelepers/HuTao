@@ -15,11 +15,11 @@ using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.CommandHelp;
-using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using Microsoft.Extensions.Caching.Memory;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Bot.Modules.Censors;
@@ -32,11 +32,12 @@ public class CensorModule : InteractiveTrigger<Censor>
 {
     private const string PatternSummary = "The .NET flavor regex pattern to be used.";
     private readonly HuTaoContext _db;
+    private readonly IMemoryCache _cache;
 
-    public CensorModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
-        : base(error, moderation)
+    public CensorModule(HuTaoContext db, IMemoryCache cache)
     {
-        _db = db;
+        _db    = db;
+        _cache = cache;
     }
 
     [Command("ban")]
@@ -135,7 +136,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddWarningCensorAsync(
         [Summary(PatternSummary)] string pattern,
-        [Summary("The amount of warnings to be given. Defaults to 1.")]
+        [Summary("The amount of warnings to be given. Defaults to `1`.")]
         uint count = 1,
         CensorOptions? options = null)
     {
@@ -198,7 +199,9 @@ public class CensorModule : InteractiveTrigger<Censor>
 
         guild.ModerationRules ??= new ModerationRules();
         guild.ModerationRules.Triggers.Add(censor.WithModerator(Context));
+
         await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
     }
 
     private async Task ReplyCensorAsync(Censor censor)
@@ -213,8 +216,8 @@ public class CensorModule : InteractiveTrigger<Censor>
         [HelpSummary("Silently match and do not delete the message.")]
         public bool Silent { get; set; } = false;
 
-        [HelpSummary("Comma separated regex flags.")]
-        public RegexOptions Flags { get; set; } = RegexOptions.None;
+        [HelpSummary("Comma separated regex flags. Defaults to `IgnoreCase`.")]
+        public RegexOptions Flags { get; set; } = RegexOptions.IgnoreCase;
 
         [HelpSummary("The permissions that the user must have.")]
         public GuildPermission Permission { get; set; } = GuildPermission.None;
@@ -228,7 +231,7 @@ public class CensorModule : InteractiveTrigger<Censor>
         [HelpSummary("The roles that are excluded.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
-        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
 
         [HelpSummary("The name of the category this will be added to.")]

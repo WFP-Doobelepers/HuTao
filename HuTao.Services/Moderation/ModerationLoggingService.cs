@@ -134,9 +134,7 @@ public class ModerationLoggingService
             {
                 await PublishToChannelAsync(await user.CreateDMChannelAsync(), config);
             }
-            catch (HttpException e) when (
-                e.HttpCode is HttpStatusCode.Forbidden ||
-                e.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
+            catch (HttpException e)
             {
                 if (details.Context is null) return;
                 await details.Context.ReplyAsync(new StringBuilder()
@@ -195,7 +193,7 @@ public class ModerationLoggingService
             if (trigger is not null)
             {
                 embed
-                    .AddField("Trigger", trigger.GetTriggerDetails(), true)
+                    .AddField("Trigger", trigger.GetDetails(), true)
                     .AddField("Trigger ID", trigger.Id, true);
             }
         }

@@ -6,10 +6,8 @@ namespace HuTao.Data.Models.Logging;
 
 public abstract class DeleteLog : ILog, IModerationAction
 {
-    protected DeleteLog() { }
-
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    protected DeleteLog(ActionDetails? details)
+    protected DeleteLog(ActionDetails? details = null)
     {
         LogDate = DateTimeOffset.UtcNow;
         Action  = details?.ToModerationAction();

@@ -75,7 +75,7 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
         [HelpSummary("Include messages with bots.")]
         public bool? IsBot { get; set; }
 
-        [HelpSummary("Defaults to 'Any'.")] public FilterType FilterMode { get; set; }
+        [HelpSummary("Defaults to `Any`.")] public FilterType FilterMode { get; set; }
 
         [HelpSummary("Include messages that mention these roles.")]
         public IEnumerable<IRole>? MentionedRoles { get; set; }
@@ -125,7 +125,7 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
             {
                 yield return m =>
                 {
-                    var match = RegexUtilities.DiscordInvite.IsMatch(m.Content);
+                    var match = RegexUtilities.Invite.IsMatch(m.Content);
                     return HasInvites.Value == match;
                 };
             }

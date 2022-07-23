@@ -33,9 +33,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     private readonly HuTaoContext _db;
     private readonly ModerationService _moderation;
 
-    public ReprimandTriggersModule(
-        CommandErrorHandler error, HuTaoContext db,
-        ModerationService moderation) : base(error, moderation)
+    public ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
     {
         _error      = error;
         _db         = db;
@@ -132,7 +130,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         .WithTitle($"{trigger.Reprimand?.GetTitle()}: {trigger.Id}")
         .AddField("Action", $"{trigger.Reprimand}".Truncate(EmbedFieldBuilder.MaxFieldValueLength))
         .AddField("Category", trigger.Category?.Name ?? "None")
-        .AddField("Trigger", trigger.GetTriggerDetails())
+        .AddField("Trigger", trigger.GetDetails())
         .AddField("Active", $"{trigger.IsActive}")
         .AddField("Modified by", trigger.GetModerator());
 
@@ -156,7 +154,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
-        return rules.Triggers.OfType<ReprimandTrigger>().ToArray();
+        return rules.Triggers.OfType<ReprimandTrigger>().ToList();
     }
 
     private async Task TryAddTriggerAsync(

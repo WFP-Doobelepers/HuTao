@@ -34,13 +34,23 @@ public class ModerationCategory : IModerationRules
 
     public string Name { get; set; } = null!;
 
+    public bool CensorNicknames { get; set; }
+
+    public bool CensorUsernames { get; set; }
+
     public bool ReplaceMutes { get; set; }
 
     public virtual ICollection<Criterion> CensorExclusions { get; set; } = new List<Criterion>();
 
     public virtual ModerationLoggingRules? Logging { get; set; }
 
-    public TimeSpan? CensorTimeRange { get; set; }
+    public string? NameReplacement { get; set; }
+
+    public TimeSpan? AutoReprimandCooldown { get; set; }
+
+    public TimeSpan? CensoredExpiryLength { get; set; }
+
+    public TimeSpan? FilteredExpiryLength { get; set; }
 
     public TimeSpan? NoticeExpiryLength { get; set; }
 

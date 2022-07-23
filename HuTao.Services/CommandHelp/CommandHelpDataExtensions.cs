@@ -90,7 +90,7 @@ public static class CommandHelpDataExtensions
         else
         {
             builder
-                .AppendSummaries(parameter.Options, false)
+                .AppendSummaries(parameter.Options.OrderBy(o => o.Name), false)
                 .AppendLine(
                     $"▌Provide values by doing {Format.Code("name: value")} " +
                     $"or {Format.Code("name: \"value with spaces\"")}.");

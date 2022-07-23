@@ -17,6 +17,7 @@ using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using Microsoft.Extensions.Caching.Memory;
 using static Discord.MentionUtils;
 using static Humanizer.LetterCasing;
 using static HuTao.Data.Models.Moderation.Logging.LogReprimandType;
@@ -33,12 +34,65 @@ namespace HuTao.Bot.Modules.Configuration;
 public class ConfigureModule : ModuleBase<SocketCommandContext>
 {
     private readonly HuTaoContext _db;
+    private readonly IMemoryCache _cache;
     private readonly ModerationService _moderation;
 
-    public ConfigureModule(ModerationService moderation, HuTaoContext db)
+    public ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationService moderation)
     {
-        _moderation = moderation;
         _db         = db;
+        _cache      = cache;
+        _moderation = moderation;
+    }
+
+    [Command("censor nicknames")]
+    [Alias("censor nickname")]
+    [Summary("Whether nicknames should be censored. You must set `name replacement` for this to take effect.")]
+    public async Task CensorNicknamesAsync(
+        [Summary("Leave empty to toggle")] bool? shouldCensor = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.CensorNicknames = shouldCensor ?? !rules.CensorNicknames;
+
+        await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
+
+        await ReplyAsync($"New value: {rules.CensorNicknames}");
+    }
+
+    [Command("censor usernames")]
+    [Alias("censor username")]
+    [Summary("Whether usernames should be censored. You must set `name replacement` for this to take effect.")]
+    public async Task CensorUsernamesAsync(
+        [Summary("Leave empty to toggle")] bool? shouldCensor = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.CensorUsernames = shouldCensor ?? !rules.CensorUsernames;
+
+        await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
+
+        await ReplyAsync($"New value: {rules.CensorUsernames}");
+    }
+
+    [Command("auto cooldown")]
+    [Summary("Configures the auto moderation cooldown.")]
+    public async Task ConfigureAutoCooldownAsync(
+        [Summary("Leave empty to disable auto moderation cooldown.")]
+        TimeSpan? length = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.AutoReprimandCooldown = length;
+
+        await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
+
+        if (length is null)
+            await ReplyAsync("Auto moderation cooldown has been disabled.");
+        else
+            await ReplyAsync($"Auto moderation cooldown has been set to {Format.Bold(length.Value.Humanize())}");
     }
 
     [Command("notice expiry")]
@@ -49,7 +103,9 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetRulesAsync(category);
         rules.NoticeExpiryLength = length;
+
         await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Auto-pardon of notices has been disabled.");
@@ -65,7 +121,9 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetRulesAsync(category);
         rules.WarningExpiryLength = length;
+
         await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Auto-pardon of warnings has been disabled.");
@@ -82,25 +140,47 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetRulesAsync(category);
         rules.ReplaceMutes = shouldReplace ?? !rules.ReplaceMutes;
+
         await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
 
         await ReplyAsync($"New value: {rules.ReplaceMutes}");
     }
 
-    [Command("censor range")]
-    [Summary("Set the time for when a censor is considered.")]
-    public async Task ConfigureCensorTimeRangeAsync(
+    [Command("censor expiry")]
+    [Summary("Set the time for when a censor is considered. This is used for reprimand triggers.")]
+    public async Task ConfigureCensorExpiryAsync(
         [Summary("Leave empty to disable censor range.")] TimeSpan? length = null,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
-        rules.CensorTimeRange = length;
+        rules.CensoredExpiryLength = length;
+
         await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Censor range has been disabled.");
+            await ReplyAsync("Censor expiry has been disabled.");
         else
             await ReplyAsync($"Censors will now be considered active for {Format.Bold(length.Value.Humanize())}");
+    }
+
+    [Command("auto expiry")]
+    [Summary("Set the time for when a filter expires. This is used for reprimand triggers.")]
+    public async Task ConfigureFilterExpiryAsync(
+        [Summary("Leave empty to disable filter range.")] TimeSpan? length = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.FilteredExpiryLength = length;
+
+        await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
+
+        if (length is null)
+            await ReplyAsync("Filter expiry has been disabled.");
+        else
+            await ReplyAsync($"Filters will now be considered active for {Format.Bold(length.Value.Humanize())}");
     }
 
     [Command("hard mute")]
@@ -108,12 +188,13 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     public async Task ConfigureHardMuteAsync(
         [Summary("Optionally provide a mention, ID, or name of an existing role.")]
         IRole? role = null,
-        [Summary("True if you want to skip setting up permissions.")]
+        [Summary("`True` if you want to skip setting up permissions.")]
         bool skipPermissions = false,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
         await _moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        _cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
             await ReplyAsync("Mute role has been configured.");
@@ -126,17 +207,37 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     public async Task ConfigureMuteAsync(
         [Summary("Optionally provide a mention, ID, or name of an existing role.")]
         IRole? role = null,
-        [Summary("True if you want to skip setting up permissions.")]
+        [Summary("`True` if you want to skip setting up permissions.")]
         bool skipPermissions = false,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
         await _moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        _cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
             await ReplyAsync("Mute role has been configured.");
         else
             await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
+    }
+
+    [Command("name replacement")]
+    [Alias("name replace")]
+    [Summary("Set the replacement for censored names.")]
+    public async Task ConfigureNameReplacementAsync(
+        [Summary("Leave empty to disable")] string? replacement = null,
+        ModerationCategory? category = null)
+    {
+        var rules = await GetRulesAsync(category);
+        rules.NameReplacement = replacement;
+
+        await _db.SaveChangesAsync();
+        _cache.InvalidateCaches(Context.Guild);
+
+        if (replacement is null)
+            await ReplyAsync("Name replacement has been disabled.");
+        else
+            await ReplyAsync($"Name replacement has been set to {Format.Bold(replacement)}");
     }
 
     [Command("voice")]
@@ -197,10 +298,15 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         {
             new EmbedBuilder()
                 .WithTitle($"Moderation Configuration for {category?.Name ?? "Default"} category")
-                .AddField("Replace Mutes", rules.ReplaceMutes, true)
-                .AddField("Censor Time Range", Length(rules.CensorTimeRange), true)
+                .AddField("Auto Reprimand Cooldown", Length(rules.AutoReprimandCooldown), true)
+                .AddField("Filtered Expiry Length", Length(rules.FilteredExpiryLength), true)
                 .AddField("Notice Expiry Length", Length(rules.NoticeExpiryLength), true)
                 .AddField("Warning Expiry Length", Length(rules.WarningExpiryLength), true)
+                .AddField("Censor Expiry Length", Length(rules.CensoredExpiryLength), true)
+                .AddField("Censor Nicknames", rules.CensorNicknames, true)
+                .AddField("Censor Usernames", rules.CensorUsernames, true)
+                .AddField("Name Replacement", rules.NameReplacement.DefaultIfNullOrWhiteSpace("None"), true)
+                .AddField("Replace Mutes", rules.ReplaceMutes, true)
                 .AddField("Mute Role", Role(rules.MuteRoleId), true)
                 .AddField("Hard Mute Role", Role(rules.HardMuteRoleId), true)
                 .Build(),
@@ -217,13 +323,17 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
                 .AddField("_ _", "_ _")
                 .AddField(Config("User Log", mod?.UserLog, DefaultUserLogConfig))
                 .AddField(Config("Public Log", mod?.PublicLog, DefaultPublicLogConfig))
-                .Build(),
-            new EmbedBuilder()
-                .WithTitle("Logging Configuration")
-                .AddItemsIntoFields("Exclusions", log?.LoggingExclusions.Select(c => c.ToString() ?? "Unknown"), " ")
-                .AddItemsIntoFields("Logging", log?.LoggingChannels.GroupBy(l => l.ChannelId), Logging)
                 .Build()
         };
+
+        if (log is not null)
+        {
+            embeds.Add(new EmbedBuilder()
+                .WithTitle("Logging Configuration")
+                .AddItemsIntoFields("Exclusions", log.LoggingExclusions.Select(c => c.ToString() ?? "Unknown"), " ")
+                .AddItemsIntoFields("Logging", log.LoggingChannels.GroupBy(l => l.ChannelId), Logging)
+                .Build());
+        }
 
         if (time is not null)
         {
@@ -272,10 +382,9 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         static string Logging(IGrouping<ulong, EnumChannel<LogType>> g)
             => $"{MentionChannel(g.Key)}: {g.Humanize(l => l.Type.Humanize(Title))}";
 
-        static EmbedFieldBuilder Tracking(string title, IChannelEntity? tracking)
-            => new EmbedFieldBuilder()
-                .WithName($"{title} Server Time").WithIsInline(true)
-                .WithValue(tracking?.MentionChannel() ?? "Not configured");
+        static EmbedFieldBuilder Tracking(string title, IChannelEntity? tracking) => new EmbedFieldBuilder()
+            .WithName($"{title} Server Time").WithIsInline(true)
+            .WithValue(tracking?.MentionChannel() ?? "Not configured");
 
         static string Length(TimeSpan? length) => length?.Humanize() ?? "Indefinite";
 

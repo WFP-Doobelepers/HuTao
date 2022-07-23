@@ -12,14 +12,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HuTao.Data.Migrations
 {
     [DbContext(typeof(HuTaoContext))]
-    [Migration("20220524041008_AddModerationVariables")]
-    partial class AddModerationVariables
+    [Migration("20220723155757_AddAutoModeration")]
+    partial class AddAutoModeration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.3")
+                .HasAnnotation("ProductVersion", "6.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -966,38 +966,46 @@ namespace HuTao.Data.Migrations
                     b.ToTable("ReactionLog");
                 });
 
-            modelBuilder.Entity("HuTao.Data.Models.Moderation.AntiSpamRules", b =>
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.Link", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<TimeSpan?>("DuplicateMessageTime")
-                        .HasColumnType("interval");
-
-                    b.Property<int?>("DuplicateTolerance")
-                        .HasColumnType("integer");
-
-                    b.Property<long?>("EmojiLimit")
-                        .HasColumnType("bigint");
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<long?>("MessageLimit")
-                        .HasColumnType("bigint");
-
-                    b.Property<TimeSpan?>("MessageSpamTime")
-                        .HasColumnType("interval");
-
-                    b.Property<long?>("NewlineLimit")
-                        .HasColumnType("bigint");
+                    b.Property<string>("OriginalString")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GuildId");
+                    b.ToTable("Link");
+                });
 
-                    b.ToTable("AntiSpamRules");
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ModerationRulesId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfigurationId");
+
+                    b.HasIndex("ModerationRulesId");
+
+                    b.ToTable("ModerationExclusion");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("ModerationExclusion");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.ModerationTemplate", b =>
@@ -1150,9 +1158,7 @@ namespace HuTao.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Mode")
                         .HasColumnType("integer");
@@ -1254,7 +1260,19 @@ namespace HuTao.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<TimeSpan?>("CensorTimeRange")
+                    b.Property<TimeSpan?>("AutoReprimandCooldown")
+                        .HasColumnType("interval");
+
+                    b.Property<bool>("CensorNicknames")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CensorUsernames")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan?>("CensoredExpiryLength")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan?>("FilteredExpiryLength")
                         .HasColumnType("interval");
 
                     b.Property<decimal?>("GuildEntityId")
@@ -1271,6 +1289,9 @@ namespace HuTao.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NameReplacement")
                         .HasColumnType("text");
 
                     b.Property<TimeSpan?>("NoticeExpiryLength")
@@ -1297,10 +1318,19 @@ namespace HuTao.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("AntiSpamRulesId")
-                        .HasColumnType("uuid");
+                    b.Property<TimeSpan?>("AutoReprimandCooldown")
+                        .HasColumnType("interval");
 
-                    b.Property<TimeSpan?>("CensorTimeRange")
+                    b.Property<bool>("CensorNicknames")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CensorUsernames")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan?>("CensoredExpiryLength")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan?>("FilteredExpiryLength")
                         .HasColumnType("interval");
 
                     b.Property<decimal?>("HardMuteRoleId")
@@ -1312,6 +1342,9 @@ namespace HuTao.Data.Migrations
                     b.Property<decimal?>("MuteRoleId")
                         .HasColumnType("numeric(20,0)");
 
+                    b.Property<string>("NameReplacement")
+                        .HasColumnType("text");
+
                     b.Property<TimeSpan?>("NoticeExpiryLength")
                         .HasColumnType("interval");
 
@@ -1322,8 +1355,6 @@ namespace HuTao.Data.Migrations
                         .HasColumnType("interval");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AntiSpamRulesId");
 
                     b.HasIndex("LoggingId");
 
@@ -1604,6 +1635,9 @@ namespace HuTao.Data.Migrations
                         .HasColumnType("numeric(20,0)")
                         .HasColumnName("ChannelId");
 
+                    b.Property<Guid?>("FilteredId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("GuildId")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("numeric(20,0)")
@@ -1621,6 +1655,8 @@ namespace HuTao.Data.Migrations
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("numeric(20,0)")
                         .HasColumnName("UserId");
+
+                    b.HasIndex("FilteredId");
 
                     b.HasIndex("MessagesDeleteLogId");
 
@@ -1674,6 +1710,122 @@ namespace HuTao.Data.Migrations
                     b.HasIndex("EmoteId");
 
                     b.HasDiscriminator().HasValue("ReactionDeleteLog");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Triggers.Trigger");
+
+                    b.Property<TimeSpan?>("Cooldown")
+                        .HasColumnType("interval");
+
+                    b.Property<bool>("DeleteMessages")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Global")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan>("Length")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("MinimumLength")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ReprimandId")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("uuid")
+                        .HasColumnName("ReprimandId");
+
+                    b.HasIndex("ReprimandId");
+
+                    b.HasDiscriminator().HasValue("AutoConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.CriterionExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<Guid>("CriterionId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("CriterionId");
+
+                    b.HasDiscriminator().HasValue("CriterionExclusion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.EmojiExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<Guid>("EmojiId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("EmojiId");
+
+                    b.HasDiscriminator().HasValue("EmojiExclusion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.InviteExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<decimal>("GuildId")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("GuildId");
+
+                    b.HasIndex("GuildId");
+
+                    b.HasDiscriminator().HasValue("InviteExclusion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.LinkExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<Guid>("LinkId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("LinkId");
+
+                    b.HasDiscriminator().HasValue("LinkExclusion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.RoleMentionExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<decimal>("GuildId")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("GuildId");
+
+                    b.Property<decimal>("RoleId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasDiscriminator().HasValue("RoleMentionExclusion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.UserMentionExclusion", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion");
+
+                    b.Property<decimal>("GuildId")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("GuildId");
+
+                    b.Property<decimal>("UserId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.HasIndex("UserId", "GuildId");
+
+                    b.HasDiscriminator().HasValue("UserMentionExclusion");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.BanAction", b =>
@@ -1775,19 +1927,16 @@ namespace HuTao.Data.Migrations
                     b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Reprimands.Reprimand");
 
                     b.Property<DateTimeOffset?>("EndedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("EndedAt");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("ExpireAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeSpan?>("Length")
-                        .HasColumnType("interval")
-                        .HasColumnName("Length");
+                        .HasColumnType("interval");
 
                     b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("StartedAt");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasDiscriminator().HasValue("ExpirableReprimand");
                 });
@@ -1857,11 +2006,88 @@ namespace HuTao.Data.Migrations
                     b.HasDiscriminator().HasValue("MessageTimeTracking");
                 });
 
-            modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.HardMuteAction", b =>
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.AttachmentConfiguration", b =>
                 {
-                    b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Actions.MuteAction");
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
 
-                    b.HasDiscriminator().HasValue("HardMuteAction");
+                    b.HasDiscriminator().HasValue("AttachmentConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.DuplicateConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.Property<double>("Percentage")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Tolerance")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasDiscriminator().HasValue("DuplicateConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.EmojiConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.HasDiscriminator().HasValue("EmojiConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.InviteConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.HasDiscriminator().HasValue("InviteConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.LinkConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.HasDiscriminator().HasValue("LinkConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.MentionConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.Property<bool>("CountDuplicate")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CountInvalid")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CountRoleMembers")
+                        .HasColumnType("boolean");
+
+                    b.HasDiscriminator().HasValue("MentionConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.MessageConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.HasDiscriminator().HasValue("MessageConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.NewLineConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.Property<bool>("BlankOnly")
+                        .HasColumnType("boolean");
+
+                    b.HasDiscriminator().HasValue("NewLineConfiguration");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.ReplyConfiguration", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration");
+
+                    b.HasDiscriminator().HasValue("ReplyConfiguration");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Ban", b =>
@@ -1883,6 +2109,13 @@ namespace HuTao.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasDiscriminator().HasValue("Censored");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Filtered", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Reprimands.ExpirableReprimand");
+
+                    b.HasDiscriminator().HasValue("Filtered");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Mute", b =>
@@ -2274,15 +2507,17 @@ namespace HuTao.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("HuTao.Data.Models.Moderation.AntiSpamRules", b =>
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.ModerationExclusion", b =>
                 {
-                    b.HasOne("HuTao.Data.Models.Discord.GuildEntity", "Guild")
-                        .WithMany()
-                        .HasForeignKey("GuildId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration", "Configuration")
+                        .WithMany("Exclusions")
+                        .HasForeignKey("ConfigurationId");
 
-                    b.Navigation("Guild");
+                    b.HasOne("HuTao.Data.Models.Moderation.ModerationRules", null)
+                        .WithMany("Exclusions")
+                        .HasForeignKey("ModerationRulesId");
+
+                    b.Navigation("Configuration");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.ModerationTemplate", b =>
@@ -2429,15 +2664,9 @@ namespace HuTao.Data.Migrations
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.ModerationRules", b =>
                 {
-                    b.HasOne("HuTao.Data.Models.Moderation.AntiSpamRules", "AntiSpamRules")
-                        .WithMany()
-                        .HasForeignKey("AntiSpamRulesId");
-
                     b.HasOne("HuTao.Data.Models.Moderation.Logging.ModerationLoggingRules", "Logging")
                         .WithMany()
                         .HasForeignKey("LoggingId");
-
-                    b.Navigation("AntiSpamRules");
 
                     b.Navigation("Logging");
                 });
@@ -2525,6 +2754,10 @@ namespace HuTao.Data.Migrations
 
             modelBuilder.Entity("HuTao.Data.Models.Logging.MessageDeleteLog", b =>
                 {
+                    b.HasOne("HuTao.Data.Models.Moderation.Infractions.Reprimands.Filtered", null)
+                        .WithMany("Messages")
+                        .HasForeignKey("FilteredId");
+
                     b.HasOne("HuTao.Data.Models.Logging.MessagesDeleteLog", null)
                         .WithMany("Messages")
                         .HasForeignKey("MessagesDeleteLogId");
@@ -2539,6 +2772,81 @@ namespace HuTao.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Emote");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Moderation.Infractions.Actions.ReprimandAction", "Reprimand")
+                        .WithMany()
+                        .HasForeignKey("ReprimandId");
+
+                    b.Navigation("Reprimand");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.CriterionExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Criteria.Criterion", "Criterion")
+                        .WithMany()
+                        .HasForeignKey("CriterionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Criterion");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.EmojiExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Discord.Reaction.ReactionEntity", "Emoji")
+                        .WithMany()
+                        .HasForeignKey("EmojiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Emoji");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.InviteExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Discord.GuildEntity", "Guild")
+                        .WithMany()
+                        .HasForeignKey("GuildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Guild");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.LinkExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Moderation.Auto.Configurations.Link", "Link")
+                        .WithMany()
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Link");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.RoleMentionExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Discord.RoleEntity", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Exclusions.UserMentionExclusion", b =>
+                {
+                    b.HasOne("HuTao.Data.Models.Discord.GuildUserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId", "GuildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Censors.Censor", b =>
@@ -2653,6 +2961,8 @@ namespace HuTao.Data.Migrations
                 {
                     b.Navigation("CensorExclusions");
 
+                    b.Navigation("Exclusions");
+
                     b.Navigation("Triggers");
 
                     b.Navigation("Variables");
@@ -2678,6 +2988,11 @@ namespace HuTao.Data.Migrations
                     b.Navigation("Messages");
                 });
 
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Auto.Configurations.AutoConfiguration", b =>
+                {
+                    b.Navigation("Exclusions");
+                });
+
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.RoleAction", b =>
                 {
                     b.Navigation("Roles");
@@ -2686,6 +3001,11 @@ namespace HuTao.Data.Migrations
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Censors.Censor", b =>
                 {
                     b.Navigation("Exclusions");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Filtered", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.RoleReprimand", b =>

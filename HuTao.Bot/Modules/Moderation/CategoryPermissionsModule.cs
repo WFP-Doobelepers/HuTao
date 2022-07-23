@@ -125,7 +125,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
     [NamedArgumentType]
     public class RuleOptions : ICriteriaOptions
     {
-        [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
+        [HelpSummary("Set `allow` or `deny` the matched criteria. Defaults to `allow`.")]
         public AccessType AccessType { get; set; } = AccessType.Allow;
 
         [HelpSummary("The permissions that the user must have.")]
@@ -140,7 +140,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
         [HelpSummary("The roles that the user must have.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
-        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 }

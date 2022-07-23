@@ -66,9 +66,7 @@ public class UserService
     {
         await context.DeferAsync(ephemeral);
 
-        var userEntity = _db.Users.FirstOrDefault(u => u.Id == user.Id && u.GuildId == context.Guild.Id);
-        if (userEntity is null) return;
-
+        var userEntity = await _db.Users.TrackUserAsync(user, context.Guild);
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
 
         if (type is LogReprimandType.None)
