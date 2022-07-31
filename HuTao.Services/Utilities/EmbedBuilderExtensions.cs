@@ -30,7 +30,8 @@ public enum EmbedBuilderOptions
     UseProxy = 1 << 0,
     ReplaceTimestamps = 1 << 1,
     ReplaceAnimations = 1 << 2,
-    EnlargeThumbnails = 1 << 3
+    EnlargeThumbnails = 1 << 3,
+    UploadAttachments = 1 << 4,
 }
 
 public static class EmbedBuilderExtensions
@@ -122,12 +123,14 @@ public static class EmbedBuilderExtensions
 
         var description = string.Join(Environment.NewLine, attachments.Select(GetDetails));
         var footer = string.Join(Environment.NewLine, attachments.Select(Footer));
-        var url = attachments.First().ProxyUrl;
+        var url = options.HasFlag(UseProxy) ? attachments.First().ProxyUrl : attachments.First().Url;
 
         return attachments.Select(a => new EmbedBuilder()
             .WithUrl(url).WithDescription(description)
             .WithFooter(footer.Truncate(EmbedBuilder.MaxDescriptionLength))
-            .WithImageUrl(options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url));
+            .WithImageUrl(options.HasFlag(UploadAttachments)
+                ? $"attachment://{a.Filename}"
+                : options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url));
 
         static string Footer(IAttachment i)
             => $"{i.Filename.Truncate(EmbedBuilder.MaxTitleLength)} {i.Width}x{i.Height}px {i.Size.Bytes().Humanize()}";
