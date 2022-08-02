@@ -9,6 +9,8 @@ public class LoggingRules
 {
     public Guid Id { get; set; }
 
+    public bool UploadAttachments { get; set; }
+
     public virtual GuildEntity Guild { get; set; } = null!;
 
     public virtual ICollection<Criterion> LoggingExclusions { get; set; }

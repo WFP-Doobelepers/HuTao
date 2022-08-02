@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,26 +25,25 @@ using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using static HuTao.Services.Utilities.EmbedBuilderOptions;
 using Attachment = HuTao.Data.Models.Discord.Message.Attachment;
 
 namespace HuTao.Services.Logging;
 
 public class LoggingService
 {
-    private const EmbedBuilderOptions LogEmbedOptions =
-        EmbedBuilderOptions.UseProxy |
-        EmbedBuilderOptions.EnlargeThumbnails |
-        EmbedBuilderOptions.ReplaceAnimations;
-
+    private const EmbedBuilderOptions LogEmbedOptions = UseProxy | EnlargeThumbnails | ReplaceAnimations;
     private readonly DiscordSocketClient _client;
+    private readonly HttpClient _http;
     private readonly HuTaoContext _db;
     private readonly IMemoryCache _cache;
 
-    public LoggingService(DiscordSocketClient client, IMemoryCache cache, HuTaoContext db)
+    public LoggingService(DiscordSocketClient client, HttpClient http, HuTaoContext db, IMemoryCache cache)
     {
         _client = client;
-        _cache  = cache;
+        _http   = http;
         _db     = db;
+        _cache  = cache;
     }
 
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -167,13 +167,14 @@ public class LoggingService
             .Where(m => messageIds.Contains(m.MessageId))
             .OrderByDescending(m => m.LogDate);
 
-    private static MemoryStream GenerateStreamFromString(string value)
-        => new(Encoding.UTF8.GetBytes(value));
-
-    private async Task PublishLogAsync(DeleteDetails details,
-        CancellationToken cancellationToken)
+    private async Task PublishLogAsync(DeleteDetails details, CancellationToken cancellationToken)
     {
-        var embed = await BuildLogAsync(details);
+        var guildEntity = await _db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
+        var options = guildEntity.LoggingRules?.UploadAttachments is true
+            ? LogEmbedOptions | UploadAttachments
+            : LogEmbedOptions;
+
+        var embed = await BuildLogAsync(details, options);
         var channel = await GetLoggingChannelAsync(details switch
         {
             MessageDeleteDetails  => LogType.MessageDeleted,
@@ -189,7 +190,7 @@ public class LoggingService
     {
         if (log is null) return;
 
-        var embed = await BuildLogAsync(log);
+        var embed = await BuildLogAsync(log, LogEmbedOptions);
         var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
 
         await PublishLogAsync(embed, channel);
@@ -198,12 +199,7 @@ public class LoggingService
     private static async Task PublishLogAsync(EmbedLog? log, IMessageChannel? channel)
     {
         if (log is null || channel is null) return;
-        var (embeds, attachment) = log;
-
-        if (attachment is null)
-            await channel.SendMessageAsync(embeds: embeds);
-        else
-            await channel.SendFileAsync(GenerateStreamFromString(attachment), "Messages.md", embeds: embeds);
+        await channel.SendFilesAsync(log.Attachments, embeds: log.Embeds.ToArray());
     }
 
     private static async Task<ActionDetails?> TryGetAuditLogDetails(IMessage? message, IGuild guild)
@@ -266,10 +262,11 @@ public class LoggingService
             .AppendLine($"- Created: {log.LogDate} {log.LogDate.Humanize()}")
             .AppendLine($"- Message Count: {logs.Count}")
             .Append(await logs.GetDetailsAsync(_client));
-        return new EmbedLog(embed, content.ToString());
+
+        return new EmbedLog(embed, content: content.ToString());
     }
 
-    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessageLog log)
+    private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, MessageLog log, EmbedBuilderOptions options)
     {
         var user = await GetUserAsync(log);
 
@@ -298,14 +295,16 @@ public class LoggingService
             embed.WithMessageReference(log, reply, replyUser);
         }
 
-        var attachments = log.Attachments.Chunk(4)
-            .SelectMany(attachments => attachments.ToEmbedBuilders(LogEmbedOptions));
+        var attachments = log.Attachments.Chunk(4).SelectMany(attachments => attachments.ToEmbedBuilders(options));
+        var embeds = log.Embeds.Where(e => e.IsViewable()).Select(e => e.ToBuilder(options));
+        var files = options.HasFlag(UploadAttachments)
+            ? await log.Attachments.ToAsyncEnumerable()
+                .Select(a => (Url: options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url, Name: a.Filename))
+                .SelectAwait(async a => new FileAttachment(await _http.GetStreamAsync(a.Url), a.Name))
+                .ToListAsync()
+            : Enumerable.Empty<FileAttachment>();
 
-        var embeds = log.Embeds
-            .Where(e => e.IsViewable())
-            .Select(e => e.ToBuilder(LogEmbedOptions));
-
-        return new EmbedLog(embed, attachments.Concat(embeds));
+        return new EmbedLog(embed, attachments.Concat(embeds), attachments: files);
     }
 
     private async Task<EmbedLog> AddDetailsAsync<T>(EmbedBuilder embed, T log) where T : ILog, IReactionEntity
@@ -326,7 +325,7 @@ public class LoggingService
         return new EmbedLog(embed);
     }
 
-    private async Task<EmbedLog> BuildLogAsync(DeleteDetails details)
+    private async Task<EmbedLog> BuildLogAsync(DeleteDetails details, EmbedBuilderOptions options)
     {
         var log = details.Deleted;
         var embed = new EmbedBuilder()
@@ -345,13 +344,13 @@ public class LoggingService
         return details switch
         {
             MessagesDeleteDetails messages => await AddDetailsAsync(embed, messages.Log, messages.Messages),
-            MessageDeleteDetails message => await AddDetailsAsync(embed, message.Message),
+            MessageDeleteDetails message => await AddDetailsAsync(embed, message.Message, options),
             ReactionDeleteDetails reaction => await AddDetailsAsync(embed, reaction.Log),
             _ => throw new ArgumentOutOfRangeException(nameof(log), log, "Invalid log type.")
         };
     }
 
-    private async Task<EmbedLog> BuildLogAsync(ILog log)
+    private async Task<EmbedLog> BuildLogAsync(ILog log, EmbedBuilderOptions options)
     {
         var embed = new EmbedBuilder()
             .WithTitle(log.GetTitle())
@@ -360,7 +359,7 @@ public class LoggingService
 
         return log switch
         {
-            MessageLog message   => await AddDetailsAsync(embed, message),
+            MessageLog message   => await AddDetailsAsync(embed, message, options),
             ReactionLog reaction => await AddDetailsAsync(embed, reaction),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(log), log, "Invalid log type.")
@@ -518,12 +517,20 @@ public class LoggingService
     private record MessagesDeleteDetails(IReadOnlyCollection<MessageLog> Messages, MessagesDeleteLog Log, IGuild Guild)
         : DeleteDetails(Log, Guild);
 
-    private record EmbedLog(Embed[] Embeds, string? Attachment = null)
+    private record EmbedLog(IEnumerable<Embed> Embeds, IEnumerable<FileAttachment> Attachments)
     {
-        public EmbedLog(EmbedBuilder embed, string? attachment = null)
-            : this(new[] { embed.Build() }, attachment) { }
+        public EmbedLog(
+            EmbedBuilder embed, IEnumerable<EmbedBuilder>? embeds = null, string? content = null,
+            IEnumerable<FileAttachment>? attachments = null) : this(
+            (embeds?.Select(e => e.Build()) ?? Enumerable.Empty<Embed>()).Prepend(embed.Build()),
+            attachments ?? Enumerable.Empty<FileAttachment>())
+        {
+            if (!string.IsNullOrEmpty(content))
+                Attachments = Attachments.Prepend(Attachment(content)).Take(10);
+        }
 
-        public EmbedLog(EmbedBuilder embed, IEnumerable<EmbedBuilder> embeds)
-            : this(new[] { embed.Build() }.Concat(embeds.Select(e => e.Build())).ToArray()) { }
+        private static FileAttachment Attachment(string content) => new(Stream(content), "messages.md");
+
+        private static MemoryStream Stream(string value) => new(Encoding.UTF8.GetBytes(value));
     }
 }

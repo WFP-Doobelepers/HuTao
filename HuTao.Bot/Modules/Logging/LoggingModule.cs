@@ -125,6 +125,22 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         await ReplyAsync(embed: embed.Build());
     }
 
+    [Command("attachments")]
+    [Alias("attachment")]
+    [Summary("Re-upload attachments when messages are deleted.")]
+    public async Task ConfigureAttachmentsAsync(
+        [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
+        bool? reUpload = null)
+    {
+        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        guild.LoggingRules ??= new LoggingRules();
+
+        guild.LoggingRules.UploadAttachments = reUpload ?? !guild.LoggingRules.UploadAttachments;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"Current value: {guild.LoggingRules.UploadAttachments}");
+    }
+
     [Command("channel")]
     [Summary("Set the channel to output the reprimand.")]
     public async Task ConfigureChannelAsync(
