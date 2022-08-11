@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
@@ -57,29 +59,65 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             await _error.AssociateError(Context.Message, "Failed to ban user.");
     }
 
-    [Priority(-2)]
-    [Command("ban")]
-    [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Ban)]
-    public Task BanAsync([RequireHigherRole] IUser user, [Remainder] string? reason = null)
-        => BanAsync(user, 0, null, null, reason);
-
     [Priority(-1)]
-    [Command("ban")]
     [HiddenFromHelp]
+    [Command("ban")]
     [RequireAuthorization(AuthorizationScope.Ban)]
     public Task BanAsync(
         [RequireHigherRole] IUser user, uint deleteDays = 0,
         [Remainder] string? reason = null)
         => BanAsync(user, deleteDays, null, null, reason);
 
-    [Priority(-1)]
-    [Command("mute")]
+    [Priority(-2)]
     [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task HardMuteAsync([RequireHigherRole] IGuildUser user,
-        TimeSpan? length = null, [Remainder] string? reason = null)
-        => MuteAsync(user, length, null, reason);
+    [Command("ban")]
+    [RequireAuthorization(AuthorizationScope.Ban)]
+    public Task BanAsync([RequireHigherRole] IUser user, [Remainder] string? reason = null)
+        => BanAsync(user, 0, null, null, reason);
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("ban")]
+    public async Task BanAsync(
+        [RequireHigherRole] IEnumerable<IUser> users,
+        uint deleteDays = 0, TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await BanAsync(user, deleteDays, length, category, reason);
+        }
+    }
+
+    [Priority(-4)]
+    [HiddenFromHelp]
+    [Command("ban")]
+    [RequireAuthorization(AuthorizationScope.Ban)]
+    public async Task BanAsync(
+        [RequireHigherRole] IEnumerable<IUser> users,
+        uint deleteDays = 0,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await BanAsync(user, deleteDays, null, null, reason);
+        }
+    }
+
+    [Priority(-5)]
+    [HiddenFromHelp]
+    [Command("ban")]
+    [RequireAuthorization(AuthorizationScope.Ban)]
+    public async Task BanAsync(
+        [RequireHigherRole] IEnumerable<IUser> users,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await BanAsync(user, 0, null, null, reason);
+        }
+    }
 
     [Command("hardmute")]
     [Summary("Hard Mute a user from the current guild.")]
@@ -99,12 +137,59 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Priority(-2)]
-    [Command("hardmute")]
+    [Priority(-1)]
     [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Mute)]
+    [Command("hardmute")]
+    [RequireAuthorization(AuthorizationScope.HardMute)]
+    public Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => HardMuteAsync(user, length, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("hardmute")]
+    [RequireAuthorization(AuthorizationScope.HardMute)]
     public Task HardMuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => HardMuteAsync(user, null, null, reason);
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("hardmute")]
+    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.HardMute)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await HardMuteAsync(user, length, category, reason);
+        }
+    }
+
+    [Priority(-4)]
+    [HiddenFromHelp]
+    [Command("hardmute")]
+    [RequireAuthorization(AuthorizationScope.HardMute)]
+    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await HardMuteAsync(user, length, null, reason);
+        }
+    }
+
+    [Priority(-5)]
+    [HiddenFromHelp]
+    [Command("hardmute")]
+    [RequireAuthorization(AuthorizationScope.HardMute)]
+    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await HardMuteAsync(user, null, null, reason);
+        }
+    }
 
     [Command("kick")]
     [Summary("Kick a user from the current guild.")]
@@ -120,11 +205,36 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("kick")]
     [HiddenFromHelp]
+    [Command("kick")]
     [RequireAuthorization(AuthorizationScope.Kick)]
     public Task KickAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => KickAsync(user, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("kick")]
+    public async Task KickAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Kick)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await KickAsync(user, category, reason);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("kick")]
+    [RequireAuthorization(AuthorizationScope.Kick)]
+    public async Task KickAsync([RequireHigherRole] IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await KickAsync(user, null, reason);
+        }
+    }
 
     [Command("mute")]
     [Summary("Mute a user from the current guild.")]
@@ -144,20 +254,59 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Priority(-2)]
-    [Command("mute")]
+    [Priority(-1)]
     [HiddenFromHelp]
+    [Command("mute")]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null, [Remainder] string? reason = null)
+        => MuteAsync(user, length, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("mute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
     public Task MuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => MuteAsync(user, null, null, reason);
 
-    [Priority(-1)]
-    [Command("hardmute")]
+    [Priority(-3)]
     [HiddenFromHelp]
+    [Command("mute")]
+    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await MuteAsync(user, length, category, reason);
+        }
+    }
+
+    [Priority(-4)]
+    [HiddenFromHelp]
+    [Command("mute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
         TimeSpan? length = null, [Remainder] string? reason = null)
-        => HardMuteAsync(user, length, null, reason);
+    {
+        foreach (var user in users)
+        {
+            await MuteAsync(user, length, null, reason);
+        }
+    }
+
+    [Priority(-5)]
+    [HiddenFromHelp]
+    [Command("mute")]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await MuteAsync(user, null, null, reason);
+        }
+    }
 
     [Priority(1)]
     [Command("mutes")]
@@ -178,11 +327,36 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("note")]
     [HiddenFromHelp]
-    [RequireAuthorization(AuthorizationScope.Mute)]
+    [Command("note")]
+    [RequireAuthorization(AuthorizationScope.Note)]
     public Task NoteAsync([RequireHigherRole] IUser user, [Remainder] string? note = null)
         => NoteAsync(user, null, note);
+
+    [Priority(-2)]
+    [Command("note")]
+    [Summary("Add a note to several users. Comma separated.")]
+    public async Task NoteAsync([RequireHigherRole] IEnumerable<IUser> users,
+        [CheckCategory(AuthorizationScope.Note)] ModerationCategory? category = null,
+        [Remainder] string? note = null)
+    {
+        foreach (var user in users)
+        {
+            await NoteAsync(user, category, note);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("note")]
+    [RequireAuthorization(AuthorizationScope.Note)]
+    public async Task NoteAsync([RequireHigherRole] IEnumerable<IUser> users, [Remainder] string? note = null)
+    {
+        foreach (var user in users)
+        {
+            await NoteAsync(user, null, note);
+        }
+    }
 
     [Command("notice")]
     [Summary("Add a notice to a user. This counts as a minor warning.")]
@@ -195,11 +369,36 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("notice")]
     [HiddenFromHelp]
+    [Command("notice")]
     [RequireAuthorization(AuthorizationScope.Warning)]
     public Task NoticeAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => NoticeAsync(user, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("notice")]
+    public async Task NoticeAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await NoticeAsync(user, category, reason);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("notice")]
+    [RequireAuthorization(AuthorizationScope.Warning)]
+    public async Task NoticeAsync([RequireHigherRole] IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await NoticeAsync(user, null, reason);
+        }
+    }
 
     [Command("say")]
     [Summary("Make the bot send a message to the specified channel")]
@@ -234,7 +433,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Priority(-1)]
     [Command("template")] [Alias("t")]
     [Summary("Run a configured moderation template")]
-    public async Task TemplateAsync(string name, [RequireHigherRole] IUser user)
+    public async Task TemplateAsync(string name, [RequireHigherRole] params IUser[] users)
     {
         var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
         var template = guild.ModerationTemplates
@@ -252,11 +451,16 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             return;
         }
 
-        var details = await GetDetailsAsync(user, template.Reason, null);
-        var result = await _moderation.ReprimandAsync(template, details);
+        var failed = new List<IUser>();
+        foreach (var user in users.DistinctBy(u => u.Id))
+        {
+            var details = await GetDetailsAsync(user, template.Reason, null);
+            var result = await _moderation.ReprimandAsync(template, details);
 
-        if (result is null)
-            await _error.AssociateError(Context.Message, "Failed to use the template.");
+            if (result is null) failed.Add(user);
+        }
+
+        if (failed.Count > 0) await ReplyAsync($"Failed to run template on {failed.Count} {failed.Humanize()}.");
     }
 
     [Command("unban")]
@@ -273,10 +477,35 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("unban")]
     [HiddenFromHelp]
+    [Command("unban")]
     [RequireAuthorization(AuthorizationScope.Ban)]
     public Task UnbanAsync(IUser user, [Remainder] string? reason = null) => UnbanAsync(user, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("unban")]
+    public async Task UnbanAsync(IEnumerable<IUser> users,
+        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UnbanAsync(user, category, reason);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("unban")]
+    [RequireAuthorization(AuthorizationScope.Ban)]
+    public async Task UnbanAsync(IEnumerable<IUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UnbanAsync(user, null, reason);
+        }
+    }
 
     [Command("unmute")]
     [Summary("Unmute a user from the current guild.")]
@@ -292,10 +521,35 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("unmute")]
     [HiddenFromHelp]
+    [Command("unmute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
     public Task UnmuteAsync(IGuildUser user, [Remainder] string? reason = null) => UnmuteAsync(user, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("unmute")]
+    public async Task UnmuteAsync(IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UnmuteAsync(user, category, reason);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("unmute")]
+    [RequireAuthorization(AuthorizationScope.Mute)]
+    public async Task UnmuteAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UnmuteAsync(user, null, reason);
+        }
+    }
 
     [Command("warn")]
     [Summary("Warn a user from the current guild.")]
@@ -308,26 +562,84 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Priority(-1)]
-    [Command("warn")]
     [HiddenFromHelp]
+    [Command("warn")]
     public Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1,
         [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
         [Remainder] string? reason = null)
         => WarnAsync(user, category, amount, reason);
 
     [Priority(-2)]
-    [Command("warn")]
     [HiddenFromHelp]
+    [Command("warn")]
+    public Task WarnAsync([RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+        => WarnAsync(user, category, 1, reason);
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("warn")]
     [RequireAuthorization(AuthorizationScope.Warning)]
     public Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1, [Remainder] string? reason = null)
         => WarnAsync(user, null, amount, reason);
 
-    [Priority(-3)]
-    [Command("warn")]
+    [Priority(-4)]
     [HiddenFromHelp]
+    [Command("warn")]
     [RequireAuthorization(AuthorizationScope.Warning)]
     public Task WarnAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null)
         => WarnAsync(user, null, 1, reason);
+
+    [Priority(-5)]
+    [HiddenFromHelp]
+    [Command("warn")]
+    public async Task WarnAsync(IEnumerable<IGuildUser> users, uint amount = 1,
+        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await WarnAsync(user, category, amount, reason);
+        }
+    }
+
+    [Priority(-6)]
+    [HiddenFromHelp]
+    [Command("warn")]
+    public async Task WarnAsync(IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await WarnAsync(user, category, 1, reason);
+        }
+    }
+
+    [Priority(-7)]
+    [HiddenFromHelp]
+    [Command("warn")]
+    [RequireAuthorization(AuthorizationScope.Warning)]
+    public async Task WarnAsync(IEnumerable<IGuildUser> users, uint amount = 1, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await WarnAsync(user, null, amount, reason);
+        }
+    }
+
+    [Priority(-8)]
+    [HiddenFromHelp]
+    [Command("warn")]
+    [RequireAuthorization(AuthorizationScope.Warning)]
+    public async Task WarnAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await WarnAsync(user, null, 1, reason);
+        }
+    }
 
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category)

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 
 namespace HuTao.Services.Core.Preconditions.Interactions;
 
@@ -18,24 +17,21 @@ public class RequireHierarchyAttribute : ParameterPreconditionAttribute
 
         return value switch
         {
-            SocketRole[] roles            => Task.FromResult(CheckHierarchy(roles, user)),
-            IRole[] roles                 => Task.FromResult(CheckHierarchy(roles, user)),
-            IEnumerable<SocketRole> roles => Task.FromResult(CheckHierarchy(roles, user)),
-            IEnumerable<IRole> roles      => Task.FromResult(CheckHierarchy(roles, user)),
+            IEnumerable<IRole> roles => Task.FromResult(CheckHierarchy(roles)),
             IRole role => role.Position >= user.Hierarchy
                 ? Task.FromResult(PreconditionResult.FromError("This role is higher or equal than your roles."))
                 : Task.FromResult(PreconditionResult.FromSuccess()),
             _ => Task.FromResult(PreconditionResult.FromError("Role not found."))
         };
-    }
 
-    private static PreconditionResult CheckHierarchy(IEnumerable<IRole> roles, IGuildUser user)
-    {
-        foreach (var role in roles.Where(role => role.Position >= user.Hierarchy))
+        PreconditionResult CheckHierarchy(IEnumerable<IRole> roles)
         {
-            return PreconditionResult.FromError($"{role} is higher or equal than your roles.");
-        }
+            foreach (var role in roles.Where(role => role.Position >= user.Hierarchy))
+            {
+                return PreconditionResult.FromError($"{role} is higher or equal than your roles.");
+            }
 
-        return PreconditionResult.FromSuccess();
+            return PreconditionResult.FromSuccess();
+        }
     }
 }

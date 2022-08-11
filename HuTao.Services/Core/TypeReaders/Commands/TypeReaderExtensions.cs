@@ -24,10 +24,16 @@ public static class TypeReaderExtensions
 
     public static void AddGuildTypeReader<TGuild>(this CommandService commands,
         CacheMode cacheMode = CacheMode.AllowDownload) where TGuild : class, IGuild
-        => commands.AddTypeReaders<TGuild>(new GuildTypeReader<TGuild>(cacheMode));
+    {
+        commands.AddTypeReader<TGuild>(new GuildTypeReader<TGuild>(cacheMode));
+        commands.AddEnumerableTypeReader<TGuild>(new GuildTypeReader<TGuild>(cacheMode));
+    }
 
     public static void AddInviteTypeReader<TInvite>(this CommandService commands) where TInvite : class, IInvite
-        => commands.AddTypeReaders<TInvite>(new InviteTypeReader<TInvite>());
+    {
+        commands.AddTypeReader<TInvite>(new InviteTypeReader<TInvite>());
+        commands.AddEnumerableTypeReader<TInvite>(new InviteTypeReader<TInvite>());
+    }
 
     public static void AddTypeReaders<TResult>(this CommandService commands, params TypeReader[] readers)
         => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
@@ -37,5 +43,8 @@ public static class TypeReaderExtensions
 
     public static void AddUserTypeReader<TUser>(this CommandService commands,
         CacheMode cacheMode = CacheMode.AllowDownload) where TUser : class, IUser
-        => commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode));
+    {
+        commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode));
+        commands.AddEnumerableTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode));
+    }
 }

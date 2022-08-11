@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
@@ -13,19 +14,32 @@ public class RequireHigherRoleAttribute : ParameterPreconditionAttribute
         if (context.User is not IGuildUser user)
             return PreconditionResult.FromError("This command cannot be used outside of a guild.");
 
-        if (value is not IGuildUser target)
-        {
-            return value is IUser
-                ? PreconditionResult.FromSuccess()
-                : PreconditionResult.FromError("User not found.");
-        }
-
-        if (user.Hierarchy <= target.Hierarchy)
-            return PreconditionResult.FromError($"You cannot {parameter.Command.Name} this user.");
-
         var bot = await context.Guild.GetCurrentUserAsync().ConfigureAwait(false);
-        return bot?.Hierarchy <= target.Hierarchy
-            ? PreconditionResult.FromError("The bot's role is lower than the targeted user.")
-            : PreconditionResult.FromSuccess();
+        return value switch
+        {
+            IEnumerable<IGuildUser> users => CheckUsers(users),
+            IGuildUser target => target.Hierarchy >= bot.Hierarchy
+                ? PreconditionResult.FromError($"The bot's role is lower than {target}.")
+                : target.Hierarchy >= user.Hierarchy
+                    ? PreconditionResult.FromError($"You cannot {parameter.Command.Name} {target}.")
+                    : PreconditionResult.FromSuccess(),
+            IEnumerable<IUser> => PreconditionResult.FromSuccess(),
+            IUser              => PreconditionResult.FromSuccess(),
+            _                  => PreconditionResult.FromError("Invalid parameter type.")
+        };
+
+        PreconditionResult CheckUsers(IEnumerable<IGuildUser> users)
+        {
+            foreach (var u in users)
+            {
+                if (u.Hierarchy >= user.Hierarchy)
+                    return PreconditionResult.FromError($"You cannot {parameter.Command.Name} {u}.");
+
+                if (u.Hierarchy >= bot.Hierarchy)
+                    return PreconditionResult.FromError($"The bot's role is lower than {u}.");
+            }
+
+            return PreconditionResult.FromSuccess();
+        }
     }
 }
