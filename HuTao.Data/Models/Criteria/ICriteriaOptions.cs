@@ -17,3 +17,8 @@ public interface ICriteriaOptions
 
     public JudgeType JudgeType { get; }
 }
+
+public interface IJudge<in T>
+{
+    public bool Judge(T judge);
+}

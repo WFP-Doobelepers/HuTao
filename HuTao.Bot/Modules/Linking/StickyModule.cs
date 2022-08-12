@@ -107,19 +107,19 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     [NamedArgumentType]
     public class StickyMessageOptions : IMessageTemplateOptions, IStickyMessageOptions
     {
-        [HelpSummary("True to allow mentions and False to not.")]
+        [HelpSummary("`True` to allow mentions and `False` to not.")]
         public bool AllowMentions { get; set; }
 
-        [HelpSummary("True if you want the message to be live, where it will update its contents continuously.")]
+        [HelpSummary("`True` if you want the message to be live, where it will update its contents continuously.")]
         public bool IsLive { get; set; }
 
-        [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
+        [HelpSummary("`True` if you want embed timestamps to use the current time, `False` if not.")]
         public bool ReplaceTimestamps { get; set; }
 
-        [HelpSummary("True if you want embeds to be suppressed, False if not.")]
+        [HelpSummary("`True` if you want embeds to be suppressed, `False` if not.")]
         public bool SuppressEmbeds { get; set; }
 
-        [HelpSummary("False if you don't want this sticky to replace the current active one. Defaults to True.")]
+        [HelpSummary("`False` if you don't want this sticky to replace the current active one. Defaults to `True`.")]
         public bool IsActive { get; set; } = true;
 
         [HelpSummary("Optionally the text channel that the sticky message will be sent to.")]

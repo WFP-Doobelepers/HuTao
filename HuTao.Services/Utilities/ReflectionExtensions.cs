@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using HuTao.Services.CommandHelp;
 
 namespace HuTao.Services.Utilities;
@@ -35,6 +37,8 @@ public static class ReflectionExtensions
         typeof(IReadOnlyList<>)
     };
 
+    private static readonly ConditionalWeakTable<object, ConcurrentDictionary<string, object>> WeakCache = new();
+
     public static bool IsEnumerableOfT(this Type type)
         => type.IsGenericType && EnumerableTypes.Contains(type.GetGenericTypeDefinition());
 
@@ -49,6 +53,21 @@ public static class ReflectionExtensions
 
     public static T? GetAttributeOfEnum<T>(this Enum obj) where T : Attribute
         => EnumAttributeCache[(obj, typeof(T))] as T;
+
+    public static TResult Memoized<T, TResult>(
+        this object context, T arg, Func<T, TResult> f,
+        [CallerMemberName] string? cacheKey = null) where T : notnull
+    {
+        if (context == null) throw new ArgumentNullException(nameof(context));
+        if (cacheKey == null) throw new ArgumentNullException(nameof(cacheKey));
+
+        var objCache = WeakCache.GetOrCreateValue(context);
+
+        var methodCache = (ConcurrentDictionary<T, TResult>) objCache
+            .GetOrAdd(cacheKey, _ => new ConcurrentDictionary<T, TResult>());
+
+        return methodCache.GetOrAdd(arg, f);
+    }
 
     public static Type GetRealType(this Type type) => TypeCache[type];
 

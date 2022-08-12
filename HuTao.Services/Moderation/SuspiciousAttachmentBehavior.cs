@@ -67,7 +67,7 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
             .AppendLine(blacklisted.Humanize());
 
         var details = new ReprimandDetails(user, currentUser, reason.ToString());
-        var length = guildEntity.ModerationRules.CensorTimeRange;
+        var length = guildEntity.ModerationRules.CensoredExpiryLength;
 
         await _moderation.CensorAsync(message, length, details, cancellationToken);
     }

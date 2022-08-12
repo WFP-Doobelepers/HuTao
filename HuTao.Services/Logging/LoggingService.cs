@@ -37,13 +37,13 @@ public class LoggingService
 
     private readonly DiscordSocketClient _client;
     private readonly HuTaoContext _db;
-    private readonly IMemoryCache _memoryCache;
+    private readonly IMemoryCache _cache;
 
-    public LoggingService(DiscordSocketClient client, IMemoryCache memoryCache, HuTaoContext db)
+    public LoggingService(DiscordSocketClient client, IMemoryCache cache, HuTaoContext db)
     {
-        _client      = client;
-        _memoryCache = memoryCache;
-        _db          = db;
+        _client = client;
+        _cache  = cache;
+        _db     = db;
     }
 
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
@@ -146,14 +146,6 @@ public class LoggingService
         var log = await LogDeletionAsync(messages, channel, details, cancellationToken);
         await PublishLogAsync(new MessagesDeleteDetails(messages, log, channel.Guild), cancellationToken);
     }
-
-    public Task<IEnumerable<Criterion>> GetExclusionsAsync(IGuild guild, CancellationToken cancellationToken)
-        => _memoryCache.GetOrCreateAsync($"{nameof(GetExclusionsAsync)}.{guild.Id}", async entry =>
-        {
-            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
-            var rules = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-            return rules.LoggingRules?.LoggingExclusions ?? Enumerable.Empty<Criterion>();
-        });
 
     public async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
         => log is null ? null : await ((IDiscordClient) _client).GetUserAsync(log.UserId);
@@ -422,6 +414,12 @@ public class LoggingService
         }
     }
 
+    private async Task<IEnumerable<Criterion>> GetExclusionsAsync(IGuild guild, CancellationToken cancellationToken)
+    {
+        var rules = await _db.Guilds.GetLoggingAsync(guild, _cache, cancellationToken);
+        return rules?.LoggingExclusions ?? Enumerable.Empty<Criterion>();
+    }
+
     private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
         CancellationToken cancellationToken)
     {
@@ -497,7 +495,7 @@ public class LoggingService
     }
 
     private async ValueTask<IUserMessage> GetMessageAsync(Cacheable<IUserMessage, ulong> cached)
-        => await _memoryCache.GetOrCreateAsync(cached.Id, async cacheEntry =>
+        => await _cache.GetOrCreateAsync(cached.Id, async cacheEntry =>
         {
             cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();

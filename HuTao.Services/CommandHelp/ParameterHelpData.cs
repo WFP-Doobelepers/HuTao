@@ -28,7 +28,7 @@ public class ParameterHelpData
 
     public IEnumerable<ParameterHelpData> Options => LazyInitializer.EnsureInitialized(ref _options, () =>
     {
-        var type = Type.GetGenericArguments().FirstOrDefault() ?? Type;
+        var type = Type.GetGenericArguments().FirstOrDefault(Type);
 
         return type switch
         {

@@ -1,13 +1,22 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using Discord;
+using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message;
 using HuTao.Data.Models.Moderation.Infractions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HuTao.Data.Models.Logging;
 
 public class MessageDeleteLog : DeleteLog, IMessageEntity
 {
     protected MessageDeleteLog() { }
+
+    public MessageDeleteLog(IGuild guild, IMessage message, ActionDetails? details) : base(details)
+    {
+        GuildId   = guild.Id;
+        MessageId = message.Id;
+        ChannelId = message.Channel.Id;
+        UserId    = message.Author.Id;
+    }
 
     public MessageDeleteLog(IMessageEntity message, ActionDetails? details) : base(details)
     {
@@ -17,33 +26,17 @@ public class MessageDeleteLog : DeleteLog, IMessageEntity
         UserId    = message.UserId;
     }
 
+    [Column(nameof(IMessageEntity.ChannelId))]
     public ulong ChannelId { get; set; }
 
+    [Column(nameof(IMessageEntity.GuildId))]
     public ulong GuildId { get; set; }
 
+    [Column(nameof(IMessageEntity.MessageId))]
     public ulong MessageId { get; set; }
 
+    [Column(nameof(IMessageEntity.UserId))]
     public ulong UserId { get; set; }
-}
 
-public class MessageDeleteLogConfiguration : IEntityTypeConfiguration<MessageDeleteLog>
-{
-    public void Configure(EntityTypeBuilder<MessageDeleteLog> builder)
-    {
-        builder
-            .Property(l => l.ChannelId)
-            .HasColumnName(nameof(IMessageEntity.ChannelId));
-
-        builder
-            .Property(l => l.GuildId)
-            .HasColumnName(nameof(IMessageEntity.GuildId));
-
-        builder
-            .Property(l => l.MessageId)
-            .HasColumnName(nameof(IMessageEntity.MessageId));
-
-        builder
-            .Property(l => l.UserId)
-            .HasColumnName(nameof(IMessageEntity.UserId));
-    }
+    public override string ToString() => $"[{MessageId}]({this.JumpUrl()})";
 }

@@ -27,7 +27,7 @@ public record ReprimandDetails(
 
     public IGuild Guild => Moderator.Guild;
 
-    public async Task<IGuildUser?> GetUserAsync() => await Moderator.Guild.GetUserAsync(User.Id);
+    public async Task<IGuildUser?> GetUserAsync() => User as IGuildUser ?? await Moderator.Guild.GetUserAsync(User.Id);
 
     private static string? GetReason(string? reason, IEnumerable<ModerationVariable>? variables)
     {

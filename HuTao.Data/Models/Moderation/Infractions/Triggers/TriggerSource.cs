@@ -4,5 +4,6 @@ public enum TriggerSource
 {
     Notice,
     Warning,
-    Censored
+    Censored,
+    Filtered
 }

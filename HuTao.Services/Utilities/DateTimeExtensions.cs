@@ -13,6 +13,13 @@ public static class DateTimeExtensions
     public static string ToUniversalTimestamp(this TimeSpan length)
         => ToUniversalTimestamp(DateTimeOffset.UtcNow + length);
 
+    public static TimeSpan Clamp(this TimeSpan timeSpan, TimeSpan minimum, TimeSpan maximum) => timeSpan switch
+    {
+        _ when timeSpan < minimum => minimum,
+        _ when timeSpan > maximum => maximum,
+        _                         => timeSpan
+    };
+
     public static TimeSpan TimeLeft(this DateTimeOffset date) => date.ToUniversalTime() - DateTimeOffset.UtcNow;
 
     public static TimeSpan TimeLeft(this DateTime date) => date.ToUniversalTime() - DateTime.UtcNow;

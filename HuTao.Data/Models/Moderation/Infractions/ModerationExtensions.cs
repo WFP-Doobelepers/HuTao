@@ -1,5 +1,5 @@
 using Discord;
-using Discord.Commands;
+using HuTao.Data.Models.Discord;
 
 namespace HuTao.Data.Models.Moderation.Infractions;
 
@@ -13,6 +13,6 @@ public static class ModerationExtensions
         return action;
     }
 
-    public static T WithModerator<T>(this T action, ICommandContext context) where T : IModerationAction
+    public static T WithModerator<T>(this T action, Context context) where T : IModerationAction
         => action.WithModerator((IGuildUser) context.User);
 }

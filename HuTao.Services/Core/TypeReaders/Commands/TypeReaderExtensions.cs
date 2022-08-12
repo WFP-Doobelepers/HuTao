@@ -22,6 +22,13 @@ public static class TypeReaderExtensions
         commands.AddTypeReader<IReadOnlyCollection<TResult>>(reader);
     }
 
+    public static void AddGuildTypeReader<TGuild>(this CommandService commands,
+        CacheMode cacheMode = CacheMode.AllowDownload) where TGuild : class, IGuild
+        => commands.AddTypeReaders<TGuild>(new GuildTypeReader<TGuild>(cacheMode));
+
+    public static void AddInviteTypeReader<TInvite>(this CommandService commands) where TInvite : class, IInvite
+        => commands.AddTypeReaders<TInvite>(new InviteTypeReader<TInvite>());
+
     public static void AddTypeReaders<TResult>(this CommandService commands, params TypeReader[] readers)
         => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
 

@@ -6,13 +6,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Net;
+using Discord.WebSocket;
 using Humanizer;
 using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Auto.Exclusions;
 using HuTao.Data.Models.Moderation.Infractions;
+using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
@@ -48,6 +51,7 @@ public static class ReprimandExtensions
         {
             Ban           => log.HasFlag(LogReprimandType.Ban),
             Censored      => log.HasFlag(LogReprimandType.Censored),
+            Filtered      => log.HasFlag(LogReprimandType.Filtered),
             HardMute      => log.HasFlag(LogReprimandType.HardMute),
             Kick          => log.HasFlag(LogReprimandType.Kick),
             Mute          => log.HasFlag(LogReprimandType.Mute),
@@ -63,6 +67,20 @@ public static class ReprimandExtensions
     public static bool IsIncluded<T>(this Reprimand reprimand, LogConfig<T> config) where T : ModerationLogConfig
         => reprimand.IsIncluded(config.LogReprimands) && reprimand.IsIncluded(config.LogReprimandStatus);
 
+    public static Color GetColor(this ReprimandAction reprimand) => reprimand switch
+    {
+        BanAction      => Color.Red,
+        HardMuteAction => Color.DarkOrange,
+        KickAction     => Color.Red,
+        MuteAction     => Color.Orange,
+        NoteAction     => Color.Blue,
+        NoticeAction   => Color.Gold,
+        RoleAction     => Color.Orange,
+        WarningAction  => Color.Gold,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(reprimand), reprimand, "An unknown reprimand was given.")
+    };
+
     public static Color GetColor(this Reprimand reprimand)
     {
         if (reprimand.Status is ReprimandStatus.Deleted)
@@ -75,6 +93,7 @@ public static class ReprimandExtensions
         {
             Ban           => Color.Red,
             Censored      => Color.Blue,
+            Filtered      => Color.Blue,
             HardMute      => Color.DarkOrange,
             Kick          => Color.Red,
             Mute          => Color.Orange,
@@ -102,6 +121,11 @@ public static class ReprimandExtensions
         return components.WithButton("Delete", $"reprimand-delete:{reprimand.Id}:{ephemeral}", ButtonStyle.Danger);
     }
 
+    public static EmbedBuilder ToEmbedBuilder(this ModerationCategory category) => new EmbedBuilder()
+        .WithTitle($"Category: {category.Id}")
+        .AddField("Name", category.Name, true)
+        .AddField("Authorization", category.Authorization.Humanize().DefaultIfNullOrEmpty("None"), true);
+
     public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId, int? length = null)
     {
         var embed = new EmbedBuilder()
@@ -126,7 +150,7 @@ public static class ReprimandExtensions
             embed.AddField("Category", r.Category.Name, true);
 
         if (r.Trigger is not null)
-            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetTriggerDetails());
+            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetDetails());
 
         return embed;
     }
@@ -163,6 +187,7 @@ public static class ReprimandExtensions
                 LogReprimandType.Warning  => reprimands.OfType<Warning>(),
                 LogReprimandType.Role     => reprimands.OfType<RoleReprimand>(),
                 LogReprimandType.HardMute => reprimands.OfType<HardMute>(),
+                LogReprimandType.Filtered => reprimands.OfType<Filtered>(),
                 _                         => Enumerable.Empty<Reprimand>()
             });
     }
@@ -182,6 +207,7 @@ public static class ReprimandExtensions
         {
             Ban b           => $"{status} ban to {mention} for {b.GetLength()}.",
             Censored c      => $"{status} censor to {mention}: {c.CensoredMessage().Truncate(512)}",
+            Filtered f      => $"{status} filter to {mention}: {f.Messages.Humanize().Truncate(512)}",
             HardMute h      => $"{status} hard mute to {mention} for {h.GetLength()}.",
             Kick            => $"{status} kick to {mention}.",
             Mute m          => $"{status} mute to {mention} for {m.GetLength()}.",
@@ -195,12 +221,25 @@ public static class ReprimandExtensions
         };
     }
 
+    public static string GetDetails(this ModerationExclusion exclusion, Context context) => exclusion switch
+    {
+        InviteExclusion e      => $"Guild: {context.GetGuild(e.GuildId)} ({e.Guild.Id})",
+        EmojiExclusion e       => $"Emoji: {e.Emoji}",
+        CriterionExclusion e   => $"Criterion: {e.Criterion}",
+        LinkExclusion e        => $"Link: {e.Link.Uri}",
+        RoleMentionExclusion e => $"Role: {e.MentionRole()}",
+        UserMentionExclusion e => $"User: {e.MentionUser()}",
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(exclusion), exclusion, "An unknown exclusion was given.")
+    };
+
     public static string GetTitle(this Reprimand action, bool showId)
     {
         var title = action switch
         {
             Ban           => nameof(Ban),
             Censored      => nameof(Censored),
+            Filtered      => nameof(Filtered),
             HardMute      => nameof(HardMute),
             Kick          => nameof(Kick),
             Mute          => nameof(Mute),
@@ -315,6 +354,7 @@ public static class ReprimandExtensions
         {
             Ban           => user.HistoryCount<Ban>(reprimand.Category),
             Censored      => user.HistoryCount<Censored>(reprimand.Category),
+            Filtered      => user.HistoryCount<Filtered>(reprimand.Category),
             HardMute      => user.HistoryCount<HardMute>(reprimand.Category),
             Kick          => user.HistoryCount<Kick>(reprimand.Category),
             Mute          => user.HistoryCount<Mute>(reprimand.Category),
@@ -378,6 +418,10 @@ public static class ReprimandExtensions
 
     private static string GetExpirationTime(this IExpirable expirable)
         => expirable.ExpireAt?.ToUniversalTimestamp() ?? "Indefinitely";
+
+    private static string GetGuild(this Context context, ulong guildId) => context.Client is DiscordSocketClient client
+        ? client.GetGuild(guildId)?.Name ?? $"[Unknown Guild] ({guildId})"
+        : $"[Unknown Name] {guildId}";
 
     private static string GetLength(this ILength mute)
         => mute.Length?.Humanize(5,

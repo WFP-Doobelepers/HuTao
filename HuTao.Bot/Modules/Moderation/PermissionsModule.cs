@@ -56,7 +56,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 
         var moderator = (IGuildUser) Context.User;
         var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
-        await AddEntityAsync(group.WithModerator(moderator));
+        await AddEntitiesAsync(group.WithModerator(moderator));
     }
 
     [Command("configure")]
@@ -167,11 +167,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
     [NamedArgumentType]
     public class RuleOptions : ICriteriaOptions
     {
-        [HelpSummary("Set 'allow' or 'deny' the matched criteria. Defaults to allow.")]
+        [HelpSummary("Set `allow` or `deny` the matched criteria. Defaults to `allow`.")]
         public AccessType AccessType { get; set; } = AccessType.Allow;
-
-        [HelpSummary("The way how the criteria are judged. Defaults to 'Any'.")]
-        public JudgeType JudgeType { get; set; } = JudgeType.Any;
 
         [HelpSummary("The permissions that the user must have.")] public GuildPermission Permission { get; set; }
 
@@ -182,6 +179,9 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         public IEnumerable<IGuildUser>? Users { get; set; }
 
         [HelpSummary("The roles that the user must have.")] public IEnumerable<IRole>? Roles { get; set; }
+
+        [HelpSummary("The way how the criteria are judged. Defaults to `Any`.")]
+        public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 
     private enum ConfigureOptions

@@ -1,12 +1,11 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Discord;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message;
 using HuTao.Data.Models.Moderation.Infractions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HuTao.Data.Models.Logging;
 
@@ -26,21 +25,9 @@ public class MessagesDeleteLog : DeleteLog, IChannelEntity, IGuildEntity
 
     public virtual ICollection<MessageDeleteLog> Messages { get; set; } = null!;
 
+    [Column(nameof(IChannelEntity.ChannelId))]
     public ulong ChannelId { get; set; }
 
+    [Column(nameof(IGuildEntity.GuildId))]
     public ulong GuildId { get; set; }
-}
-
-public class MessagesBulkDeleteLogConfiguration : IEntityTypeConfiguration<MessagesDeleteLog>
-{
-    public void Configure(EntityTypeBuilder<MessagesDeleteLog> builder)
-    {
-        builder
-            .Property(l => l.ChannelId)
-            .HasColumnName(nameof(IChannelEntity.ChannelId));
-
-        builder
-            .Property(l => l.GuildId)
-            .HasColumnName(nameof(IGuildEntity.GuildId));
-    }
 }

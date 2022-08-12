@@ -1,6 +1,5 @@
 ﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
@@ -8,12 +7,6 @@ public class MuteAction : ReprimandAction, IMute
 {
     public MuteAction(TimeSpan? length) { Length = length; }
 
+    [Column(nameof(ILength.Length))]
     public TimeSpan? Length { get; set; }
-}
-
-public class MuteActionConfiguration : IEntityTypeConfiguration<MuteAction>
-{
-    public void Configure(EntityTypeBuilder<MuteAction> builder) => builder
-        .Property(t => t.Length)
-        .HasColumnName(nameof(MuteAction.Length));
 }

@@ -1,6 +1,5 @@
 ﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
@@ -14,12 +13,6 @@ public class BanAction : ReprimandAction, IBan
 
     public uint DeleteDays { get; set; }
 
+    [Column(nameof(ILength.Length))]
     public TimeSpan? Length { get; set; }
-}
-
-public class BanActionConfiguration : IEntityTypeConfiguration<BanAction>
-{
-    public void Configure(EntityTypeBuilder<BanAction> builder) => builder
-        .Property(t => t.Length)
-        .HasColumnName(nameof(BanAction.Length));
 }

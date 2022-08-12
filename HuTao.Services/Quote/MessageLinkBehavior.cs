@@ -42,9 +42,9 @@ public class MessageLinkBehavior :
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
         => await OnMessageReceivedAsync(notification.Message, cancellationToken);
 
-    private async Task OnMessageReceivedAsync(SocketMessage message, CancellationToken cancellationToken)
+    private async Task OnMessageReceivedAsync(IMessage message, CancellationToken cancellationToken)
     {
-        if (message is not SocketUserMessage source || message.Author.IsBot) return;
+        if (message is not SocketUserMessage { Author.IsBot: false } source) return;
         if (message.Content?.StartsWith(HuTaoConfig.Configuration.Prefix) ?? true) return;
 
         var context = (Context) new SocketCommandContext(_discordClient, source);

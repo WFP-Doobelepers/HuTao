@@ -1,6 +1,4 @@
 using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
@@ -22,22 +20,4 @@ public abstract class ExpirableReprimand : Reprimand, IExpirable
     public DateTimeOffset? ExpireAt { get; set; }
 
     public TimeSpan? Length { get; set; }
-}
-
-public class ExpireReprimandActionConfiguration : IEntityTypeConfiguration<ExpirableReprimand>
-{
-    public void Configure(EntityTypeBuilder<ExpirableReprimand> builder)
-    {
-        builder
-            .Property(r => r.EndedAt)
-            .HasColumnName(nameof(ExpirableReprimand.EndedAt));
-
-        builder
-            .Property(r => r.StartedAt)
-            .HasColumnName(nameof(ExpirableReprimand.StartedAt));
-
-        builder
-            .Property(r => r.Length)
-            .HasColumnName(nameof(ExpirableReprimand.Length));
-    }
 }

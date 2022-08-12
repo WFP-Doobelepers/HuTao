@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Interactive;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
@@ -57,14 +57,7 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
     [Summary("View the moderation category list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
-    protected override EmbedBuilder EntityViewer(ModerationCategory entity)
-    {
-        var authorization = entity.Authorization.Humanize().DefaultIfNullOrEmpty("None");
-        return new EmbedBuilder()
-            .WithTitle($"Category: {entity.Id}")
-            .AddField("Name", entity.Name, true)
-            .AddField("Authorization", authorization, true);
-    }
+    protected override EmbedBuilder EntityViewer(ModerationCategory entity) => entity.ToEmbedBuilder();
 
     protected override string Id(ModerationCategory entity) => entity.Id.ToString();
 
@@ -89,7 +82,7 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
         [HelpSummary("The roles that the user must have.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
-        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 }

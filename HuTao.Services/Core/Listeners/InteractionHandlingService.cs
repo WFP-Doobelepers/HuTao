@@ -63,9 +63,11 @@ public class InteractionHandlingService :
 
     public async Task InitializeAsync()
     {
-        _commands.SlashCommandExecuted     += CommandExecutedAsync;
-        _commands.ContextCommandExecuted   += CommandExecutedAsync;
-        _commands.ComponentCommandExecuted += CommandExecutedAsync;
+        _commands.AutocompleteCommandExecuted += CommandExecutedAsync;
+        _commands.ComponentCommandExecuted    += CommandExecutedAsync;
+        _commands.ContextCommandExecuted      += CommandExecutedAsync;
+        _commands.ModalCommandExecuted        += CommandExecutedAsync;
+        _commands.SlashCommandExecuted        += CommandExecutedAsync;
 
         _commands.AddUserTypeReader<IUser>();
         _commands.AddUserTypeReader<SocketUser>();

@@ -15,10 +15,10 @@ public class LinkedMessageOptions : ILinkedButtonOptions
     [HelpSummary("DM the user if the Button is clicked.")]
     public bool DmUser { get; set; }
 
-    [HelpSummary("True to send the message as ephemeral and False to not.")]
+    [HelpSummary("`True` to send the message as ephemeral and `False` to not.")]
     public bool Ephemeral { get; set; }
 
-    [HelpSummary("True if you want the Button to be disabled, False if not.")]
+    [HelpSummary("`True` if you want the Button to be disabled, `False` if not.")]
     public bool IsDisabled { get; set; }
 
     [HelpSummary("The style of the Button.")]
@@ -39,16 +39,16 @@ public class LinkedMessageOptions : ILinkedButtonOptions
     [HelpSummary("The URL of the Button.")]
     public string? Url { get; set; }
 
-    [HelpSummary("True to allow mentions and False to not.")]
+    [HelpSummary("`True` to allow mentions and `False` to not.")]
     public bool AllowMentions { get; set; }
 
-    [HelpSummary("True if you want the message to be live, where it will update its contents continuously.")]
+    [HelpSummary("`True` if you want the message to be live, where it will update its contents continuously.")]
     public bool IsLive { get; set; }
 
-    [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
+    [HelpSummary("`True` if you want embed timestamps to use the current time, `False` if not.")]
     public bool ReplaceTimestamps { get; set; }
 
-    [HelpSummary("True if you want embeds to be suppressed, False if not.")]
+    [HelpSummary("`True` if you want embeds to be suppressed, `False` if not.")]
     public bool SuppressEmbeds { get; set; }
 
     [HelpSummary("The roles to be added when this button is pressed.")]

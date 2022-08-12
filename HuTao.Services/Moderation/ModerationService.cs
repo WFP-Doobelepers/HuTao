@@ -14,7 +14,9 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Auto.Configurations;
 using HuTao.Data.Models.Moderation.Infractions;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
@@ -48,35 +50,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         _db          = db;
         _interactive = interactive;
         _logging     = logging;
-    }
-
-    public async Task CensorAsync(
-        SocketMessage message, TimeSpan? length, ReprimandDetails details,
-        CancellationToken cancellationToken = default)
-    {
-        var censored = _db.Add(new Censored(message.Content, length, details)).Entity;
-        await _db.SaveChangesAsync(cancellationToken);
-
-        if (details.Trigger is Censor censor)
-        {
-            if (!censor.Silent) _ = message.DeleteAsync();
-
-            var count = await censored.CountAsync(censor, _db, cancellationToken);
-            if (censor.IsTriggered((uint) count.Active))
-            {
-                var censorDetails = details with
-                {
-                    Reason = $"[Reprimand Triggered] at {count.Active}",
-                    Trigger = censor,
-                    Result = new ReprimandResult(censored)
-                };
-
-                await ReprimandAsync(censor.Reprimand, censorDetails, cancellationToken);
-                return;
-            }
-        }
-        else _ = message.DeleteAsync();
-        await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
     public async Task ConfigureHardMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role,
@@ -135,6 +108,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         if (details is not null)
             await UpdateReprimandAsync(reprimand, ReprimandStatus.Deleted, details, cancellationToken);
+
+        if (reprimand is Filtered filtered)
+            _db.RemoveRange(filtered.Messages);
 
         if (reprimand.Action is not null)
             _db.Remove(reprimand.Action);
@@ -308,6 +284,81 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             : await EndMuteAsync(await details.GetUserAsync(), null, details.Category);
     }
 
+    public async Task<ReprimandResult?> AutoReprimandAsync(
+        IReadOnlyCollection<IUserMessage> messages, TimeSpan? length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var logs = messages.Select(m => new MessageDeleteLog(details.Guild, m, details)).ToList();
+        var filtered = _db.Add(new Filtered(logs, length, details)).Entity;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (details.Trigger is AutoConfiguration config)
+        {
+            if (config.DeleteMessages) _ = DeleteMessagesAsync();
+
+            var result = await ReprimandAsync(config.Reprimand, details, cancellationToken);
+            if (result is not null) return result;
+        }
+        else _ = DeleteMessagesAsync();
+        return await PublishReprimandAsync(filtered, details, cancellationToken);
+
+        async Task DeleteMessagesAsync()
+        {
+            var options = new RequestOptions { CancelToken = cancellationToken };
+            foreach (var group in messages.GroupBy(m => m.Channel))
+            {
+                try
+                {
+                    if (group.Key is not SocketTextChannel channel) continue;
+                    await channel.DeleteMessagesAsync(group, options);
+                }
+                catch (HttpException)
+                {
+                    // Ignored
+                }
+            }
+        }
+    }
+
+    public async Task<ReprimandResult?> CensorAsync(
+        SocketMessage message, TimeSpan? length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var censored = _db.Add(new Censored(message.Content, length, details)).Entity;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (details.Trigger is Censor censor)
+        {
+            if (!censor.Silent) _ = message.DeleteAsync();
+
+            var reprimand = await CensorReprimandAsync(details, censored, censor, cancellationToken);
+            if (reprimand is not null) return reprimand;
+        }
+        else _ = message.DeleteAsync();
+
+        return await PublishReprimandAsync(censored, details, cancellationToken);
+    }
+
+    public async Task<ReprimandResult?> CensorNameAsync(
+        string name, string replace, TimeSpan? length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await details.GetUserAsync();
+        if (user is null) return null;
+
+        await user.ModifyAsync(u => u.Nickname = replace);
+        var censored = _db.Add(new Censored(name, length, details)).Entity;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (details.Trigger is Censor censor)
+        {
+            var result = await ReprimandAsync(censor.Reprimand, details, cancellationToken);
+            if (result is not null) return result;
+        }
+
+        return await PublishReprimandAsync(censored, details, cancellationToken);
+    }
+
     public Task<ReprimandResult?> ReprimandAsync(ModerationTemplate template, ReprimandDetails details,
         CancellationToken cancellationToken = default)
         => ReprimandAsync(template.Action, details, cancellationToken);
@@ -325,12 +376,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             var days = deleteDays ?? 1;
 
             var ban = _db.Add(new Ban(days, length, details)).Entity;
-            await _db.SaveChangesAsync(cancellationToken);
 
             var result = await PublishReprimandAsync(ban, details, cancellationToken);
-            await details.Guild.AddBanAsync(user, (int) days,
-                $"By {details.Moderator}: {details.Reason}".Truncate(512));
+            await details.Guild.AddBanAsync(user, (int) days, $"{details.Moderator}: {details.Reason}".Truncate(512));
 
+            await _db.SaveChangesAsync(cancellationToken);
             return result;
         }
         catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
@@ -401,11 +451,11 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             if (user is null) return null;
 
             var kick = _db.Add(new Kick(details)).Entity;
-            await _db.SaveChangesAsync(cancellationToken);
 
             var result = await PublishReprimandAsync(kick, details, cancellationToken);
             await user.KickAsync(details.Reason);
 
+            await _db.SaveChangesAsync(cancellationToken);
             return result;
         }
         catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
@@ -496,6 +546,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             Censored => TriggerSource.Censored,
             Notice   => TriggerSource.Notice,
             Warning  => TriggerSource.Warning,
+            Filtered => TriggerSource.Filtered,
             _        => null
         };
 
@@ -604,6 +655,20 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         await ExpireReprimandAsync(mute, status, cancellationToken, details);
 
         return result;
+    }
+
+    private async Task<ReprimandResult?> CensorReprimandAsync(ReprimandDetails details,
+        Censored censored, Censor censor, CancellationToken cancellationToken)
+    {
+        var count = await censored.CountAsync(censor, _db, cancellationToken);
+        if (!censor.IsTriggered((uint) count.Active)) return null;
+
+        return await ReprimandAsync(censor.Reprimand, details with
+        {
+            Reason = $"[Reprimand Triggered] at {count.Active}",
+            Trigger = censor,
+            Result = new ReprimandResult(censored)
+        }, cancellationToken);
     }
 
     private async Task<ReprimandResult?> ReprimandAsync(ReprimandAction? reprimand, ReprimandDetails details,

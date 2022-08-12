@@ -142,13 +142,13 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         [HelpSummary("The roles that are allowed to use the command.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
-        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
 
-        [HelpSummary("True to send the message as ephemeral and False to not.")]
+        [HelpSummary("`True` to send the message as ephemeral and `False` to not.")]
         public bool Ephemeral { get; set; }
 
-        [HelpSummary("True to delete the message after the command is executed, False if not.")]
+        [HelpSummary("`True` to delete the message after the command is executed, `False` if not.")]
         public bool Silent { get; set; }
 
         [HelpSummary("The message that will be sent to the user.")]
@@ -163,16 +163,16 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
         [HelpSummary("The different options that will be used, comma separated.")]
         public UserTargetOptions UserOptions { get; set; }
 
-        [HelpSummary("True to allow mentions and False to not.")]
+        [HelpSummary("`True` to allow mentions and `False` to not.")]
         public bool AllowMentions { get; set; }
 
-        [HelpSummary("True if you want the message to be live, where it will update its contents continuously.")]
+        [HelpSummary("`True` if you want the message to be live, where it will update its contents continuously.")]
         public bool IsLive { get; set; }
 
-        [HelpSummary("True if you want embed timestamps to use the current time, False if not.")]
+        [HelpSummary("`True` if you want embed timestamps to use the current time, `False` if not.")]
         public bool ReplaceTimestamps { get; set; }
 
-        [HelpSummary("True if you want embeds to be suppressed, False if not.")]
+        [HelpSummary("`True` if you want embeds to be suppressed, `False` if not.")]
         public bool SuppressEmbeds { get; set; }
 
         [HelpSummary("The roles that will be added to the user.")]

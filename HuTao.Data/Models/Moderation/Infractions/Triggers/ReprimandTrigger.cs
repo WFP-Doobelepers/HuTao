@@ -1,8 +1,7 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HuTao.Data.Models.Moderation.Infractions.Triggers;
 
@@ -18,16 +17,10 @@ public class ReprimandTrigger : Trigger, ITriggerAction
         Reprimand = reprimand;
     }
 
+    [Column(nameof(ITriggerAction.ReprimandId))]
     public Guid? ReprimandId { get; set; }
 
     public TriggerSource Source { get; set; }
 
     public virtual ReprimandAction? Reprimand { get; set; }
-}
-
-public class ReprimandTriggerConfiguration : IEntityTypeConfiguration<ReprimandTrigger>
-{
-    public void Configure(EntityTypeBuilder<ReprimandTrigger> builder) => builder
-        .Property(t => t.ReprimandId)
-        .HasColumnName(nameof(ITriggerAction.ReprimandId));
 }

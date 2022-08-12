@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
@@ -12,6 +11,7 @@ using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
+using Microsoft.Extensions.Caching.Memory;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Bot.Modules.Censors;
@@ -19,13 +19,18 @@ namespace HuTao.Bot.Modules.Censors;
 [Name("Censor Exclusions")]
 [Group("censor")]
 [Alias("censors")]
-[Summary("Manages cencor exclusions.")]
+[Summary("Manages censor exclusions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class CensorExclusionsModule : InteractiveEntity<Criterion>
 {
     private readonly HuTaoContext _db;
+    private readonly IMemoryCache _cache;
 
-    public CensorExclusionsModule(HuTaoContext db) { _db = db; }
+    public CensorExclusionsModule(HuTaoContext db, IMemoryCache cache)
+    {
+        _db    = db;
+        _cache = cache;
+    }
 
     protected virtual string Title => "Censor Exclusions";
 
@@ -34,23 +39,17 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
     [Summary("Exclude the set criteria globally in all censors.")]
     public async Task ExcludeAsync(Exclusions exclusions)
     {
-        var collection = await GetCollectionAsync();
-        collection.AddCriteria(exclusions);
-
-        await _db.SaveChangesAsync();
-
-        var embed = new EmbedBuilder()
-            .WithTitle("Censors exclusions added")
-            .WithColor(Color.Green)
-            .AddField("Excluded: ", exclusions.ToCriteria().Humanize())
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-        await ReplyAsync(embed: embed.Build());
+        await AddEntitiesAsync(exclusions.ToCriteria());
+        _cache.InvalidateCaches(Context.Guild);
     }
 
     [Command("include")]
     [Summary("Remove a global censor exclusion by ID.")]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+    protected override async Task RemoveEntityAsync(string id)
+    {
+        await base.RemoveEntityAsync(id);
+        _cache.InvalidateCaches(Context.Guild);
+    }
 
     [Command("exclusions")]
     [Alias("view exclusions", "list exclusions")]
@@ -87,7 +86,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
         [HelpSummary("The roles that are excluded.")]
         public IEnumerable<IRole>? Roles { get; set; }
 
-        [HelpSummary("The way how the criteria is judged. Defaults to 'Any'.")]
+        [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
     }
 }

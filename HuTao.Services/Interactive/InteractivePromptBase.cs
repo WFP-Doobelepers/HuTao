@@ -17,7 +17,7 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
 {
     public IImageService ImageService { get; init; } = null!;
 
-    public InteractiveService Interactive { get; init; } = null!;
+    public InteractiveService Service { get; init; } = null!;
 
     public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
         where T : notnull => new(this, errorMessage);
@@ -30,10 +30,10 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
         InteractiveResult<SocketMessage?> response;
         var timeout = TimeSpan.FromSeconds(promptOptions?.SecondsTimeout ?? 30);
         if (promptOptions?.Criterion is null)
-            response = await Interactive.NextMessageAsync(timeout: timeout);
+            response = await Service.NextMessageAsync(timeout: timeout);
         else
         {
-            response = await Interactive.NextMessageAsync(timeout: timeout,
+            response = await Service.NextMessageAsync(timeout: timeout,
                 filter: promptOptions.Criterion.AsFunc(Context));
         }
 
