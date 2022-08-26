@@ -352,20 +352,23 @@ public static class ReprimandExtensions
 
         return reprimand switch
         {
-            Ban           => user.HistoryCount<Ban>(reprimand.Category),
-            Censored      => user.HistoryCount<Censored>(reprimand.Category),
-            Filtered      => user.HistoryCount<Filtered>(reprimand.Category),
-            HardMute      => user.HistoryCount<HardMute>(reprimand.Category),
-            Kick          => user.HistoryCount<Kick>(reprimand.Category),
-            Mute          => user.HistoryCount<Mute>(reprimand.Category),
-            Note          => user.HistoryCount<Note>(reprimand.Category),
-            Notice        => user.HistoryCount<Notice>(reprimand.Category),
-            RoleReprimand => user.HistoryCount<RoleReprimand>(reprimand.Category),
+            Ban           => Count<Ban>(),
+            Censored      => Count<Censored>(),
+            Filtered      => Count<Filtered>(),
+            HardMute      => Count<HardMute>(),
+            Kick          => Count<Kick>(),
+            Mute          => Count<Mute>(),
+            Note          => Count<Note>(),
+            Notice        => Count<Notice>(),
+            RoleReprimand => Count<RoleReprimand>(),
             Warning       => user.WarningCount(reprimand.Category),
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
         };
+
+        (long Active, long Total) Count<T>() where T : Reprimand
+            => user.HistoryCount<T>(reprimand.Category ?? ModerationCategory.Default);
     }
 
     public static ValueTask<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,

@@ -729,9 +729,9 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
     }
 
-    private async Task<ReprimandResult> TriggerReprimandAsync(ReprimandTrigger trigger, ReprimandResult result,
-        ReprimandDetails details,
-        CancellationToken cancellationToken)
+    private async Task<ReprimandResult> TriggerReprimandAsync(
+        ReprimandTrigger trigger, ReprimandResult result,
+        ReprimandDetails details, CancellationToken cancellationToken)
     {
         var reprimand = result.Last;
         var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
@@ -768,8 +768,6 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             return null;
 
         var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
-        var trigger = await GetCountTriggerAsync(reprimand, (uint) count.Active, source.Value, cancellationToken);
-
-        return trigger;
+        return await GetCountTriggerAsync(reprimand, (uint) count.Active, source.Value, cancellationToken);
     }
 }
