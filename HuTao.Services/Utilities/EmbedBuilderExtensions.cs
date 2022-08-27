@@ -39,7 +39,7 @@ public static class EmbedBuilderExtensions
     private static readonly Regex Giphy = new(@"giphy\.com/media/(?<id>\w+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
-    private static readonly Regex Tenor = new(@"tenor\.com/(?<id>\w+?)A+(\w+)/(?<n>[\w-]+)",
+    private static readonly Regex Tenor = new(@"tenor\.com/(?<id>[\w-]+?)A+(\w+)/(?<n>[\w-]+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static bool IsViewable(this Embed embed)
