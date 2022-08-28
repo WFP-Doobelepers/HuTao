@@ -24,7 +24,7 @@ public class CategoryAutocomplete : AutocompleteHandler
         var templates = guild.ModerationCategories
             .Append(ModerationCategory.Default)
             .Where(t => t.Name.StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase))
-            .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
+            .Take(25).Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
 
         return AutocompletionResult.FromSuccess(templates);
     }

@@ -13,7 +13,7 @@ using static SixLabors.ImageSharp.Image;
 namespace HuTao.Services.Image;
 
 /// <summary>
-///     Desribes a service that performs actions related to images.
+///     Describes a service that performs actions related to images.
 /// </summary>
 public interface IImageService
 {
@@ -23,6 +23,13 @@ public interface IImageService
     /// <param name="imageBytes">The bytes that compose the image for which the dominant color is to be retrieved.</param>
     /// <returns>A dominant color in the provided image.</returns>
     Color GetDominantColor(byte[] imageBytes);
+
+    /// <summary>
+    ///     Determines whether the provided image is a valid image.
+    /// </summary>
+    /// <param name="image">The location of the image.</param>
+    /// <returns><see langword="true" /> if it is a valid image, <see langword="false" /> if not.</returns>
+    Task<bool> IsImageAsync(Uri image);
 
     /// <summary>
     ///     Gets the dominant color of a user's avatar.
@@ -82,6 +89,17 @@ public sealed class ImageService : IImageService
             .MaxBy(x => x.Weight * x.Color.GetSaturation());
 
         return (Color) dominant.Color;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsImageAsync(Uri image)
+    {
+        var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(10);
+        var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, image));
+
+        return response.Content.Headers.ContentType?.MediaType?
+            .StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? false;
     }
 
     /// <inheritdoc />

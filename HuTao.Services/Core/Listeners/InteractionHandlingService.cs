@@ -77,6 +77,15 @@ public class InteractionHandlingService :
         _commands.AddUserTypeReader<SocketGuildUser>();
         _commands.AddUserTypeReader<RestGuildUser>();
 
+        _commands.AddTypeReader<IMessage>(new MessageTypeReader<IMessage>());
+        _commands.AddTypeReader<IUserMessage>(new MessageTypeReader<IUserMessage>());
+
+        _commands.AddTypeConverter<IMessage>(new MessageTypeConverter<IMessage>());
+        _commands.AddTypeConverter<IUserMessage>(new MessageTypeConverter<IUserMessage>());
+
+        _commands.AddComponentTypeConverter<IMessage>(new MessageComponentTypeConverter<IMessage>());
+        _commands.AddComponentTypeConverter<IUserMessage>(new MessageComponentTypeConverter<IUserMessage>());
+
         _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
         _commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
 

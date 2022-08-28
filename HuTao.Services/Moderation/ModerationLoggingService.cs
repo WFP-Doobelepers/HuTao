@@ -12,6 +12,7 @@ using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
+using HuTao.Services.Logging;
 using HuTao.Services.Utilities;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogChannelConfig;
 using static HuTao.Data.Models.Moderation.Logging.ModerationLogConfig;
@@ -179,6 +180,9 @@ public class ModerationLoggingService
             var reasons = reason.Split(" ");
             embed.AddItemsIntoFields("Reason", reasons.ToArray(), " ");
         }
+
+        if (options.HasFlag(ShowContext))
+            embed.WithReprimandContext(reprimand.Context);
 
         var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
         if (options.HasFlag(ShowActive)) embed.AddField("Active", count.Active, true);

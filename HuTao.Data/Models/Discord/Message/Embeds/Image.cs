@@ -15,12 +15,12 @@ public class Image : IImage, IEquatable<Image>
         Url      = image.Url;
     }
 
-    public Image(IImage thumbnail)
+    public Image(IImage image)
     {
-        Height   = thumbnail.Height;
-        ProxyUrl = thumbnail.ProxyUrl;
-        Width    = thumbnail.Width;
-        Url      = thumbnail.Url;
+        Height   = image.Height;
+        ProxyUrl = image.ProxyUrl;
+        Width    = image.Width;
+        Url      = image.Url;
     }
 
     public Guid Id { get; init; }

@@ -20,9 +20,11 @@ public class ModerationLogConfig
         ShowTotal = 1 << 7,
         ShowTrigger = 1 << 8,
         ShowCategory = 1 << 9,
+        ShowContext = 1 << 10,
 
         All = ShowReprimandId | ShowDetails | ShowReason | ShowModerator | ShowUser
             | ShowAvatarThumbnail | ShowActive | ShowTotal | ShowTrigger | ShowCategory
+            | ShowContext
     }
 
     private const ModerationLogOptions UserOptions = All & ~ShowReprimandId & ~ShowModerator & ~ShowTrigger;

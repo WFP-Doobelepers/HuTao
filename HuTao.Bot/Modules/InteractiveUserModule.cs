@@ -66,7 +66,17 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
 
     [UserCommand("User Mod Menu")]
     [RequireAuthorization(User)]
-    public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
+    public Task UserModMenuAsync(IUser user) => SlashInformationAsync(user, true);
+
+    [MessageCommand("Message Mod Menu")]
+    [RequireAuthorization(User)]
+    public async Task MessageModMenuAsync(IUserMessage message)
+    {
+        if (message.Author is null)
+            message = (IUserMessage) await message.Channel.GetMessageAsync(message.Id);
+
+        await SlashInformationAsync(message.Author, true);
+    }
 
     [ComponentInteraction("history:*")]
     [RequireAuthorization(History, Group = nameof(History))]

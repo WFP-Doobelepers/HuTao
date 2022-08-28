@@ -49,6 +49,7 @@ public static class ComponentBuilderExtensions
             MaxLength   = component.MaxLength,
             MinLength   = component.MinLength,
             Placeholder = component.Placeholder,
+            Required    = component.Required,
             Style       = component.Style,
             Value       = component.Value
         };

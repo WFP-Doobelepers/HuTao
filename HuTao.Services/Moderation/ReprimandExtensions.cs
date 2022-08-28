@@ -12,6 +12,7 @@ using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Auto.Exclusions;
 using HuTao.Data.Models.Moderation.Infractions;
@@ -19,6 +20,7 @@ using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
+using HuTao.Services.Logging;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 
@@ -126,31 +128,43 @@ public static class ReprimandExtensions
         .AddField("Name", category.Name, true)
         .AddField("Authorization", category.Authorization.Humanize().DefaultIfNullOrEmpty("None"), true);
 
-    public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId, int? length = null)
+    public static EmbedBuilder ToEmbedBuilder(this Reprimand reprimand, bool showId, int? length = null)
     {
         var embed = new EmbedBuilder()
-            .WithTitle($"{r.Status} {r.GetTitle(showId)}")
-            .WithDescription(r.GetReason(length ?? EmbedFieldBuilder.MaxFieldValueLength))
-            .WithColor(r.GetColor()).WithTimestamp(r)
-            .AddField("Reprimand", r.GetAction(), true)
-            .AddField("Moderator", r.GetModerator(), true);
+            .WithTitle($"{reprimand.Status} {reprimand.GetTitle(showId)}")
+            .WithDescription(reprimand.GetReason(length ?? EmbedFieldBuilder.MaxFieldValueLength))
+            .WithColor(reprimand.GetColor()).WithTimestamp(reprimand)
+            .AddField("Reprimand", reprimand.GetAction(), true)
+            .AddField("Moderator", reprimand.GetModerator(), true);
 
-        if (r.ModifiedAction is not null)
+        if (reprimand.ModifiedAction is not null)
         {
             embed.AddField(e => e
                 .WithName("Modified")
                 .WithValue(new StringBuilder()
-                    .AppendLine($"▌{r.Status.Humanize()} by {r.ModifiedAction.GetModerator()}")
-                    .AppendLine($"▌{r.ModifiedAction.GetDate()}")
-                    .AppendLine($"{r.ModifiedAction.GetReason()}")
+                    .AppendLine($"▌{reprimand.Status.Humanize()} by {reprimand.ModifiedAction.GetModerator()}")
+                    .AppendLine($"▌{reprimand.ModifiedAction.GetDate()}")
+                    .AppendLine($"{reprimand.ModifiedAction.GetReason()}")
                     .ToString()));
         }
 
-        if (r.Category is not null)
-            embed.AddField("Category", r.Category.Name, true);
+        if (reprimand.Context is not null)
+        {
+            var time = reprimand.Context.EditedTimestamp ?? reprimand.Context.Timestamp;
+            embed
+                .WithImageUrl(reprimand.Context.GetImages().FirstOrDefault()?.Url)
+                .AddField("Context",
+                    $"{reprimand.Context.MentionUser()} {time.ToUniversalTimestamp()}:{Environment.NewLine}" +
+                    $">>> {reprimand.Context.Content}".Truncate(256));
+        }
 
-        if (r.Trigger is not null)
-            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetDetails());
+        embed.WithReprimandContext(reprimand.Context);
+
+        if (reprimand.Category is not null)
+            embed.AddField("Category", reprimand.Category.Name, true);
+
+        if (reprimand.Trigger is not null)
+            embed.AddField($"Triggers on {reprimand.Trigger.GetTitle()}", reprimand.Trigger.GetDetails());
 
         return embed;
     }
@@ -161,6 +175,18 @@ public static class ReprimandExtensions
         .AddField("Category", reprimand.Category?.Name ?? "None", true)
         .AddField("Expiry", reprimand.GetExpirationTime(), true)
         .WithColor(reprimand.Length is null ? Color.DarkOrange : Color.Orange);
+
+    public static EmbedBuilder WithReprimandContext(this EmbedBuilder builder, MessageLog? context)
+    {
+        if (context is null) return builder;
+
+        var time = context.EditedTimestamp ?? context.Timestamp;
+        return builder
+            .WithImageUrl(context.GetImages().FirstOrDefault()?.Url)
+            .AddField("Context",
+                $"{context.MentionUser()} {time.ToUniversalTimestamp()}:{Environment.NewLine}" +
+                $">>> {context.Content}".Truncate(256));
+    }
 
     public static IEnumerable<Reprimand> OfCategory(this IEnumerable<Reprimand> reprimands,
         ModerationCategory? category) => category switch

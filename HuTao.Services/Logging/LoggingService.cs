@@ -452,9 +452,9 @@ public class LoggingService
     private async Task<MessageLog> LogMessageAsync(IGuildUser user, IUserMessage message,
         CancellationToken cancellationToken)
     {
-        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+        await _db.Users.TrackUserAsync(user, cancellationToken);
 
-        var log = _db.Add(new MessageLog(userEntity, message)).Entity;
+        var log = _db.Add(new MessageLog(user.Guild, message)).Entity;
         await _db.SaveChangesAsync(cancellationToken);
 
         return log;

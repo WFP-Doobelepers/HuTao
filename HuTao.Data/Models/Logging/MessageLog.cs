@@ -18,12 +18,13 @@ public class MessageLog : ILog, IMessageEntity
     protected MessageLog() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public MessageLog(GuildUserEntity user, IUserMessage message)
+    public MessageLog(IGuild guild, IUserMessage message)
     {
         LogDate = DateTimeOffset.UtcNow;
 
-        User      = user;
+        GuildId   = guild.Id;
         ChannelId = message.Channel.Id;
+        UserId    = message.Author.Id;
 
         Content = message.Content;
 

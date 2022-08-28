@@ -116,7 +116,7 @@ public class UserService
             if (guild.ModerationCategories.Any())
                 components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
 
-            components.WithSelectMenu(ReprimandMenu(user));
+            components.WithSelectMenu(ReprimandMenu(user, context));
 
             _ = message switch
             {
@@ -242,11 +242,15 @@ public class UserService
         return menu;
     }
 
-    private static SelectMenuBuilder ReprimandMenu(IUser user)
+    private static SelectMenuBuilder ReprimandMenu(IUser user, Context context)
     {
+        ulong? messageId = null;
+        if (context is IInteractionContext { Interaction.Data: IMessageCommandInteractionData data })
+            messageId = data.Message.Id;
+
         var menu = new SelectMenuBuilder()
             .WithMinValues(1).WithMaxValues(1)
-            .WithCustomId($"mod-menu:{user.Id}")
+            .WithCustomId($"mod-menu:{user.Id}:{messageId}")
             .WithPlaceholder("Mod Menu")
             .AddOption("Ban", nameof(LogReprimandType.Ban), "Ban the user")
             .AddOption("Note", nameof(LogReprimandType.Note), "Add a note to the user");
@@ -254,6 +258,7 @@ public class UserService
         if (user is IGuildUser)
         {
             menu.AddOption("Warn", nameof(LogReprimandType.Warning), "Warn the user")
+                .AddOption("Notice", nameof(LogReprimandType.Notice), "Notice the user")
                 .AddOption("Kick", nameof(LogReprimandType.Kick), "Kick the user")
                 .AddOption("Mute", nameof(LogReprimandType.Mute), "Mute the user")
                 .AddOption("Hard Mute", nameof(LogReprimandType.HardMute), "Hard Mute the user");
@@ -325,7 +330,7 @@ public class UserService
         return auth || category
             ? new ComponentBuilder()
                 .WithSelectMenu(HistoryMenu(user))
-                .WithSelectMenu(ReprimandMenu(user))
+                .WithSelectMenu(ReprimandMenu(user, context))
                 .Build()
             : null;
     }

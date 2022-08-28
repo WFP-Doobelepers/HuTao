@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using HuTao.Data.Models.Discord;
+using HuTao.Data.Models.Discord.Message.Embeds;
+using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,6 +25,9 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
         CategoryId = details.Category?.Id;
         TriggerId  = details.Trigger?.Id;
         Action     = details;
+
+        if (details.Message is not null)
+            Context = new MessageLog(details.Guild, details.Message);
     }
 
     public Guid Id { get; set; }
@@ -33,6 +39,8 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
     public virtual GuildEntity? Guild { get; set; }
 
     public virtual GuildUserEntity? User { get; set; }
+
+    public virtual ICollection<Embed> Embeds { get; set; }
 
     public virtual ModerationAction? ModifiedAction { get; set; }
 

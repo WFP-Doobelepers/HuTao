@@ -12,7 +12,6 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 /// <typeparam name="T">The type to be checked; must implement <see cref="IMessage" />.</typeparam>
 public class MessageTypeReader<T> : TypeReader where T : class, IMessage
 {
-    /// <inheritdoc />
     public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
         IServiceProvider services)
     {

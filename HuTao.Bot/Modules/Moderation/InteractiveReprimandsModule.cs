@@ -170,7 +170,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         var reason = reprimand.GetLatestReason(TextInputBuilder.LargestMaxLength);
         await Context.Interaction.RespondWithModalAsync<T>(customId, modifyModal: m => m
             .WithTitle($"{m.Title} for {user}".Truncate(45))
-            .UpdateTextInput("reason", b => b.WithValue(reason)));
+            .UpdateTextInput(nameof(ReprimandModal.Reason), b => b.WithValue(reason)));
     }
 
     public class PardonModal : ReprimandModal
@@ -182,7 +182,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     {
         [RequiredInput(false)]
         [InputLabel("Reason")]
-        [ModalTextInput("reason", TextInputStyle.Paragraph, "Reason...")]
+        [ModalTextInput(nameof(Reason), TextInputStyle.Paragraph, "Reason...")]
         public string? Reason { get; set; }
 
         public abstract string Title { get; }

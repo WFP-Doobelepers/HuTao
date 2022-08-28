@@ -321,7 +321,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     }
 
     public async Task<ReprimandResult?> CensorAsync(
-        SocketMessage message, TimeSpan? length, ReprimandDetails details,
+        IMessage message, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var censored = _db.Add(new Censored(message.Content, length, details)).Entity;
@@ -528,9 +528,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         var guild = await details.GetGuildAsync(_db, cancellationToken);
         var expiry = details.Category?.WarningExpiryLength ?? guild.ModerationRules?.WarningExpiryLength;
-        var warning = new Warning(amount, expiry, details);
 
-        _db.Add(warning);
+        var warning = _db.Add(new Warning(amount, expiry, details)).Entity;
         await _db.SaveChangesAsync(cancellationToken);
 
         return await PublishReprimandAsync(warning, details, cancellationToken);

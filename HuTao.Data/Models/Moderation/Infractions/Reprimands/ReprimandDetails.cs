@@ -12,16 +12,16 @@ namespace HuTao.Data.Models.Moderation.Infractions.Reprimands;
 public record ReprimandDetails(
         IUser User, IGuildUser Moderator,
         string? Reason, Trigger? Trigger = null,
-        Context? Context = null, ModerationCategory? Category = null,
+        Context? Context = null, IUserMessage? Message = null, ModerationCategory? Category = null,
         ReprimandResult? Result = null, bool Ephemeral = false, bool Modify = false)
     : ActionDetails(Moderator.Id, Moderator.Guild.Id, Reason)
 {
     public ReprimandDetails(
         Context context, IUser user,
         string? reason, IEnumerable<ModerationVariable>? variables,
-        Trigger? trigger = null, ModerationCategory? category = null,
+        IUserMessage? message = null, Trigger? trigger = null, ModerationCategory? category = null,
         ReprimandResult? result = null, bool ephemeral = false, bool modify = false)
-        : this(user, (IGuildUser) context.User, GetReason(reason, variables), trigger, context,
+        : this(user, (IGuildUser) context.User, GetReason(reason, variables), trigger, context, message,
             category == ModerationCategory.Default ? null : category ?? trigger?.Category,
             result, ephemeral, modify) { }
 

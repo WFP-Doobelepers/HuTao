@@ -7,7 +7,6 @@ using Discord;
 using Humanizer;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message;
-using HuTao.Data.Models.Discord.Message.Embeds;
 using HuTao.Data.Models.Logging;
 using HuTao.Services.Utilities;
 using Attachment = HuTao.Data.Models.Discord.Message.Attachment;
@@ -16,6 +15,16 @@ namespace HuTao.Services.Logging;
 
 public static class LoggingExtensions
 {
+    public static IEnumerable<IImage> GetImages(this MessageLog log)
+    {
+        var attachments = log.Attachments.Cast<IImage>();
+        var thumbnails = log.Embeds
+            .Select(e => e.Image as IImage ?? e.Thumbnail as IImage)
+            .OfType<IImage>();
+
+        return attachments.Concat(thumbnails);
+    }
+
     public static string ChannelMentionMarkdown(this IChannelEntity channel)
         => $"{channel.MentionChannel()} ({channel.ChannelId})";
 
@@ -60,16 +69,6 @@ public static class LoggingExtensions
         : embed.AddField($"Reply to {replyUser}", new StringBuilder()
             .AppendLine($"{log.ReferencedJumpMarkdown()} by {reply.MentionUser()}")
             .AppendLine(reply.Content.Truncate(512)));
-
-    private static IEnumerable<IImage> GetImages(this MessageLog log)
-    {
-        var attachments = log.Attachments.Cast<IImage>();
-        var thumbnails = log.Embeds
-            .Select(e => e.Thumbnail)
-            .OfType<Thumbnail>();
-
-        return attachments.Concat(thumbnails);
-    }
 
     private static string ReferencedJumpMarkdown(this MessageLog message)
         => $"[{message.MessageId}]({message.ReferencedJumpUrl()}) in {message.MentionChannel()}";
