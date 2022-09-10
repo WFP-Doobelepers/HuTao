@@ -42,6 +42,8 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
 
     public virtual ICollection<Embed> Embeds { get; set; }
 
+    public MessageLog? Context { get; set; }
+
     public virtual ModerationAction? ModifiedAction { get; set; }
 
     public virtual ModerationCategory? Category { get; set; }

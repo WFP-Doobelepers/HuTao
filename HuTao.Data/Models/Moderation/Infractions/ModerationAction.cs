@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Discord;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Image = HuTao.Data.Models.Discord.Message.Embeds.Image;
 
 namespace HuTao.Data.Models.Moderation.Infractions;
 
@@ -33,10 +31,10 @@ public class ModerationAction : IGuildUserEntity
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public ModerationAction(ActionDetails details)
     {
-        Date     = DateTimeOffset.UtcNow;
-        UserId   = details.ModeratorId;
-        GuildId  = details.GuildId;
-        Reason   = details.Reason;
+        Date    = DateTimeOffset.UtcNow;
+        UserId  = details.ModeratorId;
+        GuildId = details.GuildId;
+        Reason  = details.Reason;
     }
 
     public Guid Id { get; set; }
@@ -47,6 +45,7 @@ public class ModerationAction : IGuildUserEntity
 
     public virtual GuildUserEntity Moderator { get; set; } = null!;
 
+    public virtual MessageLog? Context { get; set; }
 
     public string? Reason { get; set; }
 

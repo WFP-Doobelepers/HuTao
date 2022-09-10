@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -44,8 +45,20 @@ public record LogConfig<T>(T? Config, T Template) where T : ModerationLogConfig
 public class ModerationLoggingService
 {
     private readonly HuTaoContext _db;
+    private readonly LoggingService  _logging;
 
-    public ModerationLoggingService(HuTaoContext db) { _db = db; }
+    public ModerationLoggingService(HuTaoContext db, LoggingService logging)
+    {
+        _db      = db;
+        _logging = logging;
+    }
+
+
+
+    public async IAsyncEnumerable<Embed> GetEmbedsAsync(Reprimand reprimand)
+    {
+
+    }
 
     public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
