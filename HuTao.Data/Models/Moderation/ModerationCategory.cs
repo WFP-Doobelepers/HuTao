@@ -32,6 +32,8 @@ public class ModerationCategory : IModerationRules
 
     public static ModerationCategory Default { get; } = new("Default", null, null);
 
+    public static ModerationCategory All { get; } = new("All", null, null);
+
     public string Name { get; set; } = null!;
 
     public bool CensorNicknames { get; set; }

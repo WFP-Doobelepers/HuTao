@@ -41,6 +41,20 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         _moderation = moderation;
     }
 
+    [Command("default category")]
+    [Summary("Sets the default category for reprimands.")]
+    [RequireAuthorization(History, Group = nameof(History))]
+    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    public async Task SetDefaultCategoryAsync(
+        [Summary("The category to set as the default.")] ModerationCategory category)
+    {
+        var user = await _db.Users.TrackUserAsync(Context.User, Context.Guild);
+        user.DefaultCategory = category == ModerationCategory.Default ? null : category;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"Default reprimand category set to {user.DefaultCategory?.Name ?? "None"}.");
+    }
+
     [Command("pardon")]
     [Alias("hide")]
     [Summary("Pardon a reprimand, this would mean they are not counted towards triggers.")]
@@ -101,7 +115,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
             await _error.AssociateError(Context.Message, NotAuthorizedMessage);
@@ -118,7 +132,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, reprimand?.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
 
         if (!authorized)
             await _error.AssociateError(Context.Message, NotAuthorizedMessage);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,12 +41,20 @@ public class AuthorizationService
             : seed;
     }
 
-    public async Task<bool> IsAuthorizedAsync(
+    public async Task<bool> IsCategoryAuthorizedAsync(
         Context context, AuthorizationScope scope, ModerationCategory? category,
         CancellationToken cancellationToken = default)
-        => category is not null && category != ModerationCategory.Default
-            ? IsAuthorized(context, scope, category)
-            : await IsAuthorizedAsync(context, scope, cancellationToken);
+    {
+        if (category == ModerationCategory.Default)
+        {
+            var user = await _db.Users.TrackUserAsync(context.User, context.Guild, cancellationToken);
+            category = user.DefaultCategory;
+        }
+
+        return category is null || category == ModerationCategory.All
+            ? await IsAuthorizedAsync(context, scope, cancellationToken)
+            : IsAuthorized(context, scope, category);
+    }
 
     public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
         CancellationToken cancellationToken = default)
@@ -77,13 +86,6 @@ public class AuthorizationService
     {
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
         return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope).ToList());
-    }
-
-    public async ValueTask<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope,
-        CancellationToken cancellationToken = default)
-    {
-        var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
-        return rules.ModerationCategories.Any(c => IsAuthorized(context, scope, c));
     }
 
     private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)

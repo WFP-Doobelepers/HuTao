@@ -217,8 +217,10 @@ public class UserService
             .WithPlaceholder("Select a category")
             .WithMinValues(0).WithMaxValues(1)
             .WithOptions(categories
-                .Append(ModerationCategory.Default)
-                .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name, isDefault: selected?.Name == c.Name))
+                .Prepend(ModerationCategory.Default)
+                .Append(ModerationCategory.All)
+                .Select(c => new SelectMenuOptionBuilder(
+                    c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
     private static SelectMenuBuilder HistoryMenu(IUser user,

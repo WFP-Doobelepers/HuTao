@@ -78,15 +78,14 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
     [ComponentInteraction("reprimand:*:*")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
-    public Task ComponentReprimandsAsync(string id, ModerationCategory? category, LogReprimandType[] types)
+    public Task ComponentReprimandsAsync(string id,
+        [CheckCategory(History)] ModerationCategory? category, LogReprimandType[] types)
         => ComponentReprimandsAsync(id, InfractionTypeBitwise.Or(types), new[] { category });
 
     [ComponentInteraction("category:*:*")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
-    public async Task ComponentReprimandsAsync(string id, LogReprimandType type, ModerationCategory?[] categories)
+    public async Task ComponentReprimandsAsync(string id, LogReprimandType type, [CheckCategory(History)]
+    ModerationCategory?[]
+    categories)
     {
         var category = categories.FirstOrDefault();
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));

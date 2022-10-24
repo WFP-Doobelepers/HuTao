@@ -162,12 +162,13 @@ public static class ReprimandExtensions
         .AddField("Expiry", reprimand.GetExpirationTime(), true)
         .WithColor(reprimand.Length is null ? Color.DarkOrange : Color.Orange);
 
-    public static IEnumerable<Reprimand> OfCategory(this IEnumerable<Reprimand> reprimands,
-        ModerationCategory? category) => category switch
+    public static IEnumerable<Reprimand> OfCategory(
+        this IEnumerable<Reprimand> reprimands, ModerationCategory? category) => category switch
     {
-        null                                       => reprimands,
-        var c when c == ModerationCategory.Default => reprimands.Where(r => r.Category is null),
-        _                                          => reprimands.Where(r => r.Category?.Id == category.Id)
+        null                                          => reprimands,
+        _ when category == ModerationCategory.All     => reprimands,
+        _ when category == ModerationCategory.Default => reprimands.Where(r => r.Category is null),
+        _                                             => reprimands.Where(r => r.Category?.Id == category.Id)
     };
 
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)

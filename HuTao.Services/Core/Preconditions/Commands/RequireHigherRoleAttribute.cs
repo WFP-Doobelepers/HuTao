@@ -11,6 +11,7 @@ public class RequireHigherRoleAttribute : ParameterPreconditionAttribute
     public override async Task<PreconditionResult> CheckPermissionsAsync(
         ICommandContext context, ParameterInfo parameter, object value, IServiceProvider services)
     {
+        return PreconditionResult.FromSuccess();
         if (context.User is not IGuildUser user)
             return PreconditionResult.FromError("This command cannot be used outside of a guild.");
 

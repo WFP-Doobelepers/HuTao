@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
+using HuTao.Data.Models.Moderation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,6 +27,8 @@ public class GuildUserEntity
     public DateTimeOffset? JoinedAt { get; set; }
 
     public virtual GuildEntity Guild { get; set; } = null!;
+
+    public virtual ModerationCategory? DefaultCategory { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public ulong GuildId { get; set; }

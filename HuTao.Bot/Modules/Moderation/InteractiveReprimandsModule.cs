@@ -61,10 +61,9 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     }
 
     [SlashCommand("history", "Views the entire reprimand history of the server.")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task ViewHistoryAsync(
-        [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(History)]
+        ModerationCategory? category = null,
         LogReprimandType type = LogReprimandType.All,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -82,7 +81,14 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     {
         var reprimand = await TryFindEntityAsync(id);
         if (reprimand == null)
+        {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);
+            return;
+        }
+
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History);
+        if (!authorized)
+            await RespondAsync(NotAuthorizedMessage, ephemeral: true);
         else
         {
             await RespondAsync(ephemeral: ephemeral,
@@ -92,7 +98,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     }
 
     [ComponentInteraction("reprimand-delete:*:*", true)]
-    [SlashCommand("delete", "Delete a reprimand. this completely removes the data.")]
+    [SlashCommand("delete", "Delete a reprimand. This completely removes the data.")]
     protected override Task RemoveEntityAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))] string id,
         [RequireEphemeralScope] bool ephemeral = false)
@@ -120,7 +126,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
     protected override async Task RemoveEntityAsync(Reprimand entity, bool ephemeral)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
@@ -138,7 +144,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         Reprimand? reprimand, bool ephemeral,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, reprimand?.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
 
         if (!authorized)
             await FollowupAsync(NotAuthorizedMessage, ephemeral: true);
