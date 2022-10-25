@@ -22,7 +22,7 @@ public record ReprimandDetails(
         Trigger? trigger = null, ModerationCategory? category = null,
         ReprimandResult? result = null, bool ephemeral = false, bool modify = false)
         : this(user, (IGuildUser) context.User, GetReason(reason, variables), trigger, context,
-            category == ModerationCategory.Default ? null : category ?? trigger?.Category,
+            category?.Id == Guid.Empty ? ModerationCategory.None : category ?? trigger?.Category,
             result, ephemeral, modify) { }
 
     public IGuild Guild => Moderator.Guild;

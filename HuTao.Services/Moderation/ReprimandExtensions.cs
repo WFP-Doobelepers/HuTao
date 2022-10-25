@@ -26,6 +26,8 @@ namespace HuTao.Services.Moderation;
 
 public static class ReprimandExtensions
 {
+    private const string DefaultMessage = "The default category cannot be used to filter reprimands.";
+
     public static (long Active, long Total) HistoryCount<T>(this GuildUserEntity user, ModerationCategory? category)
         where T : Reprimand
     {
@@ -167,7 +169,8 @@ public static class ReprimandExtensions
     {
         null                                          => reprimands,
         _ when category == ModerationCategory.All     => reprimands,
-        _ when category == ModerationCategory.Default => reprimands.Where(r => r.Category is null),
+        _ when category == ModerationCategory.Default => throw new ArgumentException(DefaultMessage, nameof(category)),
+        _ when category == ModerationCategory.None    => reprimands.Where(r => r.Category is null),
         _                                             => reprimands.Where(r => r.Category?.Id == category.Id)
     };
 

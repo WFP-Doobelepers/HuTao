@@ -21,13 +21,14 @@ public class CategoryTypeReader : EntityTypeReader<ModerationCategory>
         if (context.Guild is null)
             return TypeConverterResult.FromError(UnmetPrecondition, "This command can only be used in a guild.");
 
-        var db = services.GetRequiredService<HuTaoContext>();
-        var user = await db.Users.TrackUserAsync(context.User, context.Guild);
-
         if (string.IsNullOrEmpty(option)
             || option.Equals("null", StringComparison.OrdinalIgnoreCase)
             || option.Equals("Default", StringComparison.OrdinalIgnoreCase))
-            return TypeConverterResult.FromSuccess(user.DefaultCategory ?? ModerationCategory.Default);
+        {
+            var db = services.GetRequiredService<HuTaoContext>();
+            var user = await db.Users.TrackUserAsync(context.User, context.Guild);
+            return TypeConverterResult.FromSuccess(user.DefaultCategory ?? ModerationCategory.None);
+        }
 
         if (option.Equals("All", StringComparison.OrdinalIgnoreCase))
             return TypeConverterResult.FromSuccess(ModerationCategory.All);

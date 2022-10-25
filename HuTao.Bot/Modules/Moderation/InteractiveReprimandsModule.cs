@@ -73,8 +73,6 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     }
 
     [SlashCommand("view", "View the details of the reprimand.")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task ViewReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))] string id,
         bool ephemeral = false)
@@ -86,7 +84,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             return;
         }
 
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
         if (!authorized)
             await RespondAsync(NotAuthorizedMessage, ephemeral: true);
         else

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Moderation;
 using Microsoft.Extensions.DependencyInjection;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
@@ -23,30 +20,8 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
         var auth = services.GetRequiredService<AuthorizationService>();
         var command = new CommandContext(context);
 
-        return await (value switch
-        {
-            ModerationCategory c              => CheckCategory(c),
-            ICategory m                       => CheckCategory(m.Category),
-            ModerationCategory[] c            => CheckCategories(c),
-            ICategory[] m                     => CheckCategories(m.Select(c => c.Category)),
-            IEnumerable<ModerationCategory> c => CheckCategories(c),
-            IEnumerable<ICategory> m          => CheckCategories(m.Select(c => c.Category)),
-            _                                 => CheckCategory(ModerationCategory.Default)
-        });
-
-        Task<PreconditionResult> CheckCategory(params ModerationCategory?[] category) => CheckCategories(category);
-
-        async Task<PreconditionResult> CheckCategories(IEnumerable<ModerationCategory?> categories)
-        {
-            foreach (var category in categories)
-            {
-                if (await auth.IsCategoryAuthorizedAsync(command, _scope, category)) continue;
-
-                return PreconditionResult.FromError(
-                    $"Not authorized to use the `{category?.Name ?? "Default"}` category.");
-            }
-
-            return PreconditionResult.FromSuccess();
-        }
+        return await auth.IsCategoryAuthorizedAsync(command, _scope, value)
+            ? PreconditionResult.FromSuccess()
+            : PreconditionResult.FromError("You are not authorized to use this moderation category.");
     }
 }
