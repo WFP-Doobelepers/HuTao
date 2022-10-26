@@ -167,11 +167,10 @@ public static class ReprimandExtensions
     public static IEnumerable<Reprimand> OfCategory(
         this IEnumerable<Reprimand> reprimands, ModerationCategory? category) => category switch
     {
-        null                                          => reprimands,
+        null  => reprimands.Where(r => r.Category is null),
         _ when category == ModerationCategory.All     => reprimands,
-        _ when category == ModerationCategory.Default => throw new ArgumentException(DefaultMessage, nameof(category)),
         _ when category == ModerationCategory.None    => reprimands.Where(r => r.Category is null),
-        _                                             => reprimands.Where(r => r.Category?.Id == category.Id)
+        _                                             => reprimands.Where(r => r.Category?.Id == category?.Id)
     };
 
     public static IEnumerable<Reprimand> OfType(this IEnumerable<Reprimand> reprimands, LogReprimandType types)
@@ -371,8 +370,7 @@ public static class ReprimandExtensions
                 nameof(reprimand), reprimand, "An unknown reprimand was given.")
         };
 
-        (long Active, long Total) Count<T>() where T : Reprimand
-            => user.HistoryCount<T>(reprimand.Category ?? ModerationCategory.Default);
+        (long Active, long Total) Count<T>() where T : Reprimand => user.HistoryCount<T>(reprimand.Category);
     }
 
     public static ValueTask<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,
