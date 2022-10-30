@@ -68,10 +68,11 @@ public class UserService
 
         var userEntity = await _db.Users.TrackUserAsync(user, context.Guild);
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+        category ??= userEntity.DefaultCategory ?? ModerationCategory.None;
 
         if (type is LogReprimandType.None)
         {
-            type = category?.Logging?.HistoryReprimands
+            type = category.Logging?.HistoryReprimands
                 ?? guild.ModerationRules?.Logging?.HistoryReprimands
                 ?? LogReprimandType.None;
         }
@@ -152,7 +153,7 @@ public class UserService
             ?? user.Guild.ModerationRules?.Logging?.SummaryReprimands
             ?? LogReprimandType.All;
 
-        var embed = new EmbedBuilder().WithTitle(category is null
+        var embed = new EmbedBuilder().WithTitle(category == ModerationCategory.All
             ? "Reprimands [Active/Total]"
             : "Reprimands [Active/Total] [Global]");
 
@@ -217,8 +218,10 @@ public class UserService
             .WithPlaceholder("Select a category")
             .WithMinValues(0).WithMaxValues(1)
             .WithOptions(categories
-                .Append(ModerationCategory.Default)
-                .Select(c => new SelectMenuOptionBuilder(c.Name, c.Name, isDefault: selected?.Name == c.Name))
+                .Prepend(ModerationCategory.None)
+                .Append(ModerationCategory.All)
+                .Select(c => new SelectMenuOptionBuilder(
+                    c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
     private static SelectMenuBuilder HistoryMenu(IUser user,

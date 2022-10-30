@@ -9,6 +9,8 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Moderation;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core.Listeners;
+using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
@@ -19,9 +21,14 @@ namespace HuTao.Bot.Modules.Moderation;
 [Group("category")]
 public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
 {
+    private readonly CommandErrorHandler _error;
     private readonly HuTaoContext _db;
 
-    public ModerationCategoryModule(HuTaoContext db) { _db = db; }
+    public ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db)
+    {
+        _error = error;
+        _db    = db;
+    }
 
     [Command("add")]
     [Summary("Add a new moderation category.")]
@@ -45,6 +52,25 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
         collection.Add(category);
         await _db.SaveChangesAsync();
         await ReplyAsync(embed: EntityViewer(category).WithColor(Color.Green).Build());
+    }
+
+    [Command("default")]
+    [Summary("Sets the default category for reprimands.")]
+    public async Task SetDefaultCategoryAsync(
+        [Summary("The category to set as the default.")] [CheckCategory(AuthorizationScope.History)]
+        ModerationCategory? category = null)
+    {
+        if (category == ModerationCategory.All)
+        {
+            await _error.AssociateError(Context, "You cannot set the default category to `All`.");
+            return;
+        }
+
+        var user = await _db.Users.TrackUserAsync(Context.User, Context.Guild);
+        user.DefaultCategory = category == ModerationCategory.None ? null : category;
+        await _db.SaveChangesAsync();
+
+        await ReplyAsync($"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
     }
 
     [Command("remove")]

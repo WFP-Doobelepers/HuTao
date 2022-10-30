@@ -15,14 +15,23 @@ namespace HuTao.Services.Core.TypeReaders.Interactions;
 
 public class CategoryTypeReader : EntityTypeReader<ModerationCategory>
 {
-    public override async Task<TypeConverterResult> ReadAsync(IInteractionContext context, string option,
-        IServiceProvider services)
+    public override async Task<TypeConverterResult> ReadAsync(
+        IInteractionContext context, string option, IServiceProvider services)
     {
-        if (option.Equals("Default", StringComparison.OrdinalIgnoreCase))
-            return TypeConverterResult.FromSuccess(ModerationCategory.Default);
-
         if (context.Guild is null)
             return TypeConverterResult.FromError(UnmetPrecondition, "This command can only be used in a guild.");
+
+        if (string.IsNullOrEmpty(option)
+            || option.Equals("null", StringComparison.OrdinalIgnoreCase)
+            || option.Equals("Default", StringComparison.OrdinalIgnoreCase))
+        {
+            var db = services.GetRequiredService<HuTaoContext>();
+            var user = await db.Users.TrackUserAsync(context.User, context.Guild);
+            return TypeConverterResult.FromSuccess(user.DefaultCategory ?? ModerationCategory.None);
+        }
+
+        if (option.Equals("All", StringComparison.OrdinalIgnoreCase))
+            return TypeConverterResult.FromSuccess(ModerationCategory.All);
 
         return await base.ReadAsync(context, option, services);
     }

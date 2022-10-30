@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Moderation;
 using Microsoft.Extensions.DependencyInjection;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
@@ -16,20 +15,13 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
 
     public override async Task<PreconditionResult> CheckPermissionsAsync(
         ICommandContext context, ParameterInfo parameter,
-        object value, IServiceProvider services)
+        object? value, IServiceProvider services)
     {
         var auth = services.GetRequiredService<AuthorizationService>();
         var command = new CommandContext(context);
 
-        var category = value switch
-        {
-            ModerationCategory c => c,
-            ICategory m          => m.Category,
-            _                    => ModerationCategory.Default
-        };
-
-        return await auth.IsAuthorizedAsync(command, _scope, category)
+        return await auth.IsCategoryAuthorizedAsync(command, _scope, value)
             ? PreconditionResult.FromSuccess()
-            : PreconditionResult.FromError($"Not authorized to use the `{category?.Name ?? "Default"}` category.");
+            : PreconditionResult.FromError("You are not authorized to use this moderation category.");
     }
 }

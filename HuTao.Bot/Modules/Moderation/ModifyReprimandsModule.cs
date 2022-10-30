@@ -63,25 +63,30 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     [Command("history all")]
     [Alias("reprimand all", "reprimands all")]
     [Summary("Views the entire reprimand history of the server.")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task ViewHistoryAsync(
-        ModerationCategory? category = null,
+        [CheckCategory(History)] ModerationCategory? category = null,
         [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
     {
         var collection = await GetCollectionAsync();
-        await PagedViewAsync(collection.OfType(type).OfCategory(category).OrderByDescending(h => h.Action?.Date));
+        await PagedViewAsync(collection.OfType(type)
+            .OfCategory(category ?? ModerationCategory.None)
+            .OrderByDescending(h => h.Action?.Date));
     }
 
     [Command("reprimand")]
     [Summary("View the details of the reprimand.")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task ViewReprimandAsync(string id)
     {
         var reprimand = await TryFindEntityAsync(id);
         if (reprimand == null)
+        {
             await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            return;
+        }
+
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        if (!authorized)
+            await _error.AssociateError(Context, NotAuthorizedMessage);
         else
         {
             await ReplyAsync(
@@ -101,7 +106,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
             await _error.AssociateError(Context.Message, NotAuthorizedMessage);
@@ -118,7 +123,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await _auth.IsAuthorizedAsync(Context, Scope, reprimand?.Category);
+        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
 
         if (!authorized)
             await _error.AssociateError(Context.Message, NotAuthorizedMessage);

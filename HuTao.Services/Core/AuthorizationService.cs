@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -40,12 +41,49 @@ public class AuthorizationService
             : seed;
     }
 
-    public async Task<bool> IsAuthorizedAsync(
-        Context context, AuthorizationScope scope, ModerationCategory? category,
+    public async Task<bool> IsCategoryAuthorizedAsync(
+        Context context, AuthorizationScope scope, ModerationCategory? category = null,
         CancellationToken cancellationToken = default)
-        => category is not null && category != ModerationCategory.Default
-            ? IsAuthorized(context, scope, category)
-            : await IsAuthorizedAsync(context, scope, cancellationToken);
+    {
+        if (category is null)
+        {
+            var user = await _db.Users.TrackUserAsync(context.User, context.Guild, cancellationToken);
+            category = user.DefaultCategory ?? ModerationCategory.None;
+        }
+
+        return category == ModerationCategory.All || category == ModerationCategory.None
+            ? await IsAuthorizedAsync(context, scope, cancellationToken)
+            : IsAuthorized(context, scope, category);
+    }
+
+    public async Task<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope, object? value)
+    {
+        var user = await _db.Users.TrackUserAsync(context.User, context.Guild);
+        value ??= user.DefaultCategory ?? ModerationCategory.None;
+
+        return await (value switch
+        {
+            ModerationCategory c               => CheckCategory(c),
+            ICategory m                        => CheckCategory(m.Category),
+            ICollection<ModerationCategory?> c => CheckCategories(c),
+            _                                  => throw new ArgumentException("Unknown Category Type", nameof(value))
+        });
+
+        Task<bool> CheckCategory(params ModerationCategory?[] category) => CheckCategories(category);
+
+        async Task<bool> CheckCategories(ICollection<ModerationCategory?> categories)
+        {
+            if (categories.All(c => c is null))
+                return await IsCategoryAuthorizedAsync(context, scope, user.DefaultCategory ?? ModerationCategory.None);
+
+            if (categories.Any(c => c == ModerationCategory.All))
+                return await IsCategoryAuthorizedAsync(context, scope, ModerationCategory.All);
+
+            return await categories
+                .ToAsyncEnumerable()
+                .AllAwaitAsync(async c => await IsCategoryAuthorizedAsync(context, scope, c));
+        }
+    }
 
     public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
         CancellationToken cancellationToken = default)
@@ -77,13 +115,6 @@ public class AuthorizationService
     {
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
         return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope).ToList());
-    }
-
-    public async ValueTask<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope,
-        CancellationToken cancellationToken = default)
-    {
-        var rules = await AutoConfigureGuild(context.Guild, cancellationToken);
-        return rules.ModerationCategories.Any(c => IsAuthorized(context, scope, c));
     }
 
     private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)

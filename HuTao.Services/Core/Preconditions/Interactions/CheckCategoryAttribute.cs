@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Moderation;
 using Microsoft.Extensions.DependencyInjection;
 using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
@@ -17,20 +16,13 @@ public class CheckCategoryAttribute : ParameterPreconditionAttribute
 
     public override async Task<PreconditionResult> CheckRequirementsAsync(
         IInteractionContext context, IParameterInfo parameterInfo,
-        object value, IServiceProvider services)
+        object? value, IServiceProvider services)
     {
         var auth = services.GetRequiredService<AuthorizationService>();
         var interaction = new InteractionContext(context);
 
-        var category = value switch
-        {
-            ModerationCategory c => c,
-            ICategory m          => m.Category,
-            _                    => ModerationCategory.Default
-        };
-
-        return await auth.IsAuthorizedAsync(interaction, _scope, category)
+        return await auth.IsCategoryAuthorizedAsync(interaction, _scope, value)
             ? PreconditionResult.FromSuccess()
-            : PreconditionResult.FromError($"Not authorized to use the `{category?.Name ?? "Default"}` category.");
+            : PreconditionResult.FromError("You are not authorized to use this moderation category.");
     }
 }
