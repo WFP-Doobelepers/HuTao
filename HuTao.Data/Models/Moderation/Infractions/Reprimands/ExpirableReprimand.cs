@@ -6,6 +6,13 @@ public abstract class ExpirableReprimand : Reprimand, IExpirable
 {
     protected ExpirableReprimand() { }
 
+    protected ExpirableReprimand(TimeSpan? length, ReprimandShort details) : base(details)
+    {
+        Length    = length;
+        StartedAt = DateTimeOffset.UtcNow;
+        ExpireAt  = StartedAt + Length;
+    }
+
     protected ExpirableReprimand(TimeSpan? length, ReprimandDetails details) : base(details)
     {
         Length    = length;

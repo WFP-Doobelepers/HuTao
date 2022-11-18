@@ -40,3 +40,10 @@ public record ReprimandDetails(
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 }
+
+public record ReprimandShort(
+        ulong UserId, ulong ModeratorId, ulong GuildId,
+        string? Reason, Trigger? Trigger = null,
+        Context? Context = null, ModerationCategory? Category = null,
+        ReprimandResult? Result = null)
+    : ActionDetails(ModeratorId, GuildId, Reason);

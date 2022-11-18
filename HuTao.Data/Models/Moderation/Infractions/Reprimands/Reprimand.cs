@@ -12,6 +12,19 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
     protected Reprimand() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
+    protected Reprimand(ReprimandShort details)
+    {
+        Status = ReprimandStatus.Added;
+
+        UserId  = details.UserId;
+        GuildId = details.GuildId;
+
+        Category = details.Category;
+        Trigger  = details.Trigger;
+        Action   = details;
+    }
+
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected Reprimand(ReprimandDetails details)
     {
         Status = ReprimandStatus.Added;

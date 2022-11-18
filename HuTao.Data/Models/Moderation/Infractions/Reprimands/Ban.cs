@@ -11,5 +11,10 @@ public class Ban : ExpirableReprimand, IBan
         DeleteDays = deleteDays;
     }
 
+    public Ban(uint deleteDays, TimeSpan? length, ReprimandShort details) : base(length, details)
+    {
+        DeleteDays = deleteDays;
+    }
+
     public uint DeleteDays { get; set; }
 }

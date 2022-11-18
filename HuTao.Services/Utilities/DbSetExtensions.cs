@@ -75,6 +75,23 @@ public static class DbSetExtensions
         CancellationToken cancellationToken = default)
         => set.TrackUserAsync(details.User, details.Guild, cancellationToken);
 
+    public static async ValueTask<GuildUserEntity> TrackUserAsync(
+        this DbSet<GuildUserEntity> set, ulong user, ulong guild,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await UserSemaphore.WaitAsync(cancellationToken);
+
+            var userEntity = await set.FindAsync(new object[] { user, guild }, cancellationToken);
+            return userEntity ?? set.Add(new GuildUserEntity(user, guild)).Entity;
+        }
+        finally
+        {
+            UserSemaphore.Release();
+        }
+    }
+
     public static async ValueTask<RoleEntity> TrackRoleAsync(
         this DbSet<RoleEntity> set, IRole role,
         CancellationToken cancellationToken = default)
@@ -109,23 +126,6 @@ public static class DbSetExtensions
         finally
         {
             GuildSemaphore.Release();
-        }
-    }
-
-    private static async ValueTask<GuildUserEntity> TrackUserAsync(
-        this DbSet<GuildUserEntity> set, ulong user, ulong guild,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await UserSemaphore.WaitAsync(cancellationToken);
-
-            var userEntity = await set.FindAsync(new object[] { user, guild }, cancellationToken);
-            return userEntity ?? set.Add(new GuildUserEntity(user, guild)).Entity;
-        }
-        finally
-        {
-            UserSemaphore.Release();
         }
     }
 }
