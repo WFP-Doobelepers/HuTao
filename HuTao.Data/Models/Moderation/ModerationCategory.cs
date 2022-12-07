@@ -30,7 +30,9 @@ public class ModerationCategory : IModerationRules
 
     public virtual ICollection<AuthorizationGroup> Authorization { get; set; } = new List<AuthorizationGroup>();
 
-    public static ModerationCategory Default { get; } = new("Default", null, null);
+    public static ModerationCategory All { get; } = new("All", null, null);
+
+    public static ModerationCategory None { get; } = new("None", null, null);
 
     public string Name { get; set; } = null!;
 

@@ -28,13 +28,12 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         => await _user.ReplyAvatarAsync(Context, user, ephemeral);
 
     [SlashCommand("history", "View a history of a user's infractions")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public async Task SlashHistoryAsync(
         [Summary(description: "The user to show history of")] IUser user,
         [Summary(description: "Leave empty to show warnings and notices")]
         LogReprimandType type = LogReprimandType.None,
-        [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(History)]
+        ModerationCategory? category = null,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
         => await _user.ReplyHistoryAsync(Context, category, type, user, false, ephemeral);
@@ -78,15 +77,15 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
     public Task ComponentInformationAsync(IUser user) => SlashInformationAsync(user);
 
     [ComponentInteraction("reprimand:*:*")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
-    public Task ComponentReprimandsAsync(string id, ModerationCategory? category, LogReprimandType[] types)
-        => ComponentReprimandsAsync(id, InfractionTypeBitwise.Or(types), new[] { category });
+    public Task ComponentReprimandsAsync(string id,
+        [CheckCategory(History)] ModerationCategory? category, LogReprimandType[] types)
+        => ComponentReprimandsAsync(
+            id, InfractionTypeBitwise.Or(types),
+            new[] { category ?? ModerationCategory.None });
 
     [ComponentInteraction("category:*:*")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
-    public async Task ComponentReprimandsAsync(string id, LogReprimandType type, ModerationCategory?[] categories)
+    public async Task ComponentReprimandsAsync(string id, LogReprimandType type,
+        [CheckCategory(History)] ModerationCategory[] categories)
     {
         var category = categories.FirstOrDefault();
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));

@@ -26,13 +26,20 @@ public class UserModule : ModuleBase<SocketCommandContext>
     [Command("history")]
     [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
     [Summary("View a specific history of a user's infractions.")]
-    [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
     public Task InfractionsAsync(
         [Summary("The user to show the infractions of.")] IUser? user = null,
         [Summary("Leave empty to show warnings.")] LogReprimandType type = LogReprimandType.None,
-        ModerationCategory? category = null)
+        [CheckCategory(History)] ModerationCategory? category = null)
         => _user.ReplyHistoryAsync(Context, category, type, user ?? Context.User, false);
+
+    [Command("history")]
+    [Alias("infraction", "infractions", "reprimand", "reprimands", "warnlist")]
+    [Summary("View a specific history of a user's infractions.")]
+    [RequireAuthorization(History)]
+    public Task InfractionsAsync(
+        [Summary("The user to show the infractions of.")] IUser? user = null,
+        [CheckCategory(History)] ModerationCategory? category = null)
+        => InfractionsAsync(user, LogReprimandType.None, category);
 
     [Command("user")]
     [Alias("whois")]

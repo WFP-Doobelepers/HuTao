@@ -8,7 +8,7 @@ public abstract class Trigger : ITrigger, IModerationAction
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected Trigger(ITrigger? options = null)
     {
-        Category = options?.Category == ModerationCategory.Default ? null : options?.Category;
+        Category = options?.Category?.Id == Guid.Empty ? null : options?.Category;
         Mode     = options?.Mode ?? TriggerMode.Exact;
         Amount   = options?.Amount ?? 1;
         IsActive = true;
