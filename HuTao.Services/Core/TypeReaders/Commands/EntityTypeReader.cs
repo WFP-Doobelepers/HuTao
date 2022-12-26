@@ -14,16 +14,13 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public abstract class EntityTypeReader<T> : TypeReader where T : class
 {
-    private const string EmptyMatchMessage = "Unable to find any match. Provide at least 2 characters.";
+    private string EmptyMatchMessage => $"Unable to find any match for this {typeof(T).Name}.";
 
     public override async Task<TypeReaderResult> ReadAsync(
         ICommandContext command, string input, IServiceProvider services)
     {
         if (string.IsNullOrEmpty(input) || input.Equals("null", StringComparison.OrdinalIgnoreCase))
             return TypeReaderResult.FromSuccess(null);
-
-        if (input.Length < 2)
-            return TypeReaderResult.FromError(CommandError.ObjectNotFound, EmptyMatchMessage);
 
         var context = new CommandContext(command);
         var collection = await GetCollectionAsync(context, services) ?? Enumerable.Empty<T>();
