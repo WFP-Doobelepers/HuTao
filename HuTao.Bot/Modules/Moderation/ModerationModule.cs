@@ -642,7 +642,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("voice deafen")]
-    [Summary("Deafen a User in Voice channels on the server.")]
+    [Summary("Server deafen a User in Voice channels on the server.")]
     [Alias("deafen", "deaf")]
     [RequireUserPermission(GuildPermission.DeafenMembers)]
     [RequireBotPermission(GuildPermission.DeafenMembers)]
@@ -667,8 +667,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("voice mute")]
-    [Summary("Mute a User in Voice channels on the server.")]
-    [Alias("vc mute")]
+    [Summary("Server mute a User in Voice channels on the server.")]
+    [Alias("vc mute", "smute")]
     [RequireUserPermission(GuildPermission.MuteMembers)]
     [RequireBotPermission(GuildPermission.MuteMembers)]
 
@@ -692,7 +692,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("voice undeafen")]
-    [Summary("Deafen a User in Voice channels on the server.")]
+    [Summary("Server undeafen a User in Voice channels on the server.")]
     [Alias("undeafen", "undeaf")]
     [RequireUserPermission(GuildPermission.DeafenMembers)]
     [RequireBotPermission(GuildPermission.DeafenMembers)]
@@ -717,8 +717,8 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     }
 
     [Command("voice unmute")]
-    [Summary("Mute a User in Voice channels on the server.")]
-    [Alias("vc unmute")]
+    [Summary("Server unmute a User in Voice channels on the server.")]
+    [Alias("vc unmute", "sunmute")]
     [RequireUserPermission(GuildPermission.MuteMembers)]
     [RequireBotPermission(GuildPermission.MuteMembers)]
 
