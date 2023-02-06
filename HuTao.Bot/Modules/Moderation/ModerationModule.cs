@@ -641,6 +641,106 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         }
     }
 
+    [Command("voice deafen")]
+    [Summary("Deafen a User in Voice channels on the server.")]
+    [Alias("deafen", "deaf")]
+    [RequireUserPermission(GuildPermission.DeafenMembers)]
+    [RequireBotPermission(GuildPermission.DeafenMembers)]
+
+    public async Task VoiceDeafenAsync(IGuildUser user, [Remainder] string? reason = null)
+    {
+        await user.ModifyAsync(user => user.Deaf = true);
+
+        var embed = new EmbedBuilder()
+            .WithTitle($"Voice Channel Deafened {user.Username}")
+            .WithAuthor($"{user.Username} ({user.Id})", user.GetGuildAvatarUrl())
+            .WithThumbnailUrl(user.GetGuildAvatarUrl())
+            .WithColor(0xFF0000);
+
+        if (reason != null) embed.AddField("Reason:", $"{reason}");
+
+        embed.WithFooter($"Requested by {Context.Guild.Name}", Context.Guild.IconUrl);
+        await user.SendMessageAsync(embed: embed.Build());
+
+        embed.WithFooter($"Requested by {Context.User.Username} ({Context.User.Id})", Context.User.GetAvatarUrl());
+        await ReplyAsync(embed: embed.Build());
+    }
+
+    [Command("voice mute")]
+    [Summary("Mute a User in Voice channels on the server.")]
+    [Alias("vc mute")]
+    [RequireUserPermission(GuildPermission.MuteMembers)]
+    [RequireBotPermission(GuildPermission.MuteMembers)]
+
+    public async Task VoiceMuteAsync(IGuildUser user, [Remainder] string? reason = null)
+    {
+        await user.ModifyAsync(user => user.Mute = true);
+
+        var embed = new EmbedBuilder()
+            .WithTitle($"Voice Channel Muted {user.Username}")
+            .WithAuthor($"{user.Username} ({user.Id})", user.GetGuildAvatarUrl())
+            .WithThumbnailUrl(user.GetGuildAvatarUrl())
+            .WithColor(0xFF0000);
+
+        if (reason != null) embed.AddField("Reason:", $"{reason}");
+
+        embed.WithFooter($"Requested by {Context.Guild.Name}", Context.Guild.IconUrl);
+        await user.SendMessageAsync(embed: embed.Build());
+
+        embed.WithFooter($"Requested by {Context.User.Username} ({Context.User.Id})", Context.User.GetAvatarUrl());
+        await ReplyAsync(embed: embed.Build());
+    }
+
+    [Command("voice undeafen")]
+    [Summary("Deafen a User in Voice channels on the server.")]
+    [Alias("undeafen", "undeaf")]
+    [RequireUserPermission(GuildPermission.DeafenMembers)]
+    [RequireBotPermission(GuildPermission.DeafenMembers)]
+
+    public async Task VoiceUndeafenAsync(IGuildUser user, [Remainder] string? reason = null)
+    {
+        await user.ModifyAsync(user => user.Deaf = false);
+
+        var embed = new EmbedBuilder()
+            .WithTitle($"Voice Channel Undeafened {user.Username}")
+            .WithAuthor($"{user.Username} ({user.Id})", user.GetGuildAvatarUrl())
+            .WithThumbnailUrl(user.GetGuildAvatarUrl())
+            .WithColor(0xA020F0);
+
+        if (reason != null) embed.AddField("Reason:", $"{reason}");
+
+        embed.WithFooter($"Requested by {Context.Guild.Name}", Context.Guild.IconUrl);
+        await user.SendMessageAsync(embed: embed.Build());
+
+        embed.WithFooter($"Requested by {Context.User.Username} ({Context.User.Id})", Context.User.GetAvatarUrl());
+        await ReplyAsync(embed: embed.Build());
+    }
+
+    [Command("voice unmute")]
+    [Summary("Mute a User in Voice channels on the server.")]
+    [Alias("vc unmute")]
+    [RequireUserPermission(GuildPermission.MuteMembers)]
+    [RequireBotPermission(GuildPermission.MuteMembers)]
+
+    public async Task VoiceUnmuteAsync(IGuildUser user, [Remainder] string? reason = null)
+    {
+        await user.ModifyAsync(user => user.Mute = false);
+
+        var embed = new EmbedBuilder()
+            .WithTitle($"Voice Channel Unmuted {user.Username}")
+            .WithAuthor($"{user.Username} ({user.Id})", user.GetGuildAvatarUrl())
+            .WithThumbnailUrl(user.GetGuildAvatarUrl())
+            .WithColor(0xA020F0);
+
+        if (reason != null) embed.AddField("Reason:", $"{reason}");
+
+        embed.WithFooter($"Requested by {Context.Guild.Name}", Context.Guild.IconUrl);
+        await user.SendMessageAsync(embed: embed.Build());
+
+        embed.WithFooter($"Requested by {Context.User.Username} ({Context.User.Id})", Context.User.GetAvatarUrl());
+        await ReplyAsync(embed: embed.Build());
+    }
+
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category)
     {
