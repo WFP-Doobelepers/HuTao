@@ -175,8 +175,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
-                or ReprimandStatus.Pardoned
-                or ReprimandStatus.Deleted)
+                and not ReprimandStatus.Pardoned
+                and not ReprimandStatus.Deleted)
             .Where(r => category is null || r.Category?.Id == category.Id);
 
         var builders = history

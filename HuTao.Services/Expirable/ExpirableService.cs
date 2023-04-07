@@ -25,11 +25,12 @@ public abstract class ExpirableService<T> where T : class, IExpirable
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public async Task ExpireEntityAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var job = _cache.GetOrCreate(id, _ => new SemaphoreSlim(1, 1));
-        await job.WaitAsync(cancellationToken);
+        var job = _cache.GetOrCreate(id, _ => new SemaphoreSlim(1, 1))!;
 
         try
         {
+            await job.WaitAsync(cancellationToken);
+
             var expirable = _db.Set<T>().FirstOrDefault(e => e.Id == id);
             if (expirable?.IsActive() is true)
             {

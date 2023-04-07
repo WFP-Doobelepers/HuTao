@@ -24,7 +24,6 @@ using HuTao.Services.Moderation;
 using HuTao.Services.Quote;
 using HuTao.Services.Sticky;
 using HuTao.Services.TimeTracking;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -45,7 +44,7 @@ public class Bot
             .AddLogging(l => l.AddSerilog())
             .AddHttpClient().AddMemoryCache().AddHangfireServer()
             .AddDbContext<HuTaoContext>(ContextOptions)
-            .AddMediatR(c => c.Using<HuTaoMediator>(), typeof(Bot), typeof(DiscordSocketListener))
+            .AddMediatR(c => c.RegisterServicesFromAssemblies(typeof(HuTaoMediator).Assembly, typeof(Bot).Assembly))
             .AddSingleton(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = HuTaoConfig.Configuration.AlwaysDownloadUsers,

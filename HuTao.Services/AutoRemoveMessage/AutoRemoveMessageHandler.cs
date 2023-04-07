@@ -33,7 +33,7 @@ public class AutoRemoveMessageHandler :
 
         if (cancellationToken.IsCancellationRequested
             || notification.Reaction.Emote.Name != "❌"
-            || !_cache.TryGetValue(key, out RemovableMessage cachedMessage)
+            || !_cache.TryGetValue(key, out RemovableMessage? cachedMessage) || cachedMessage is null
             || cachedMessage.Users.All(user => user.Id != notification.Reaction.UserId))
             return;
 

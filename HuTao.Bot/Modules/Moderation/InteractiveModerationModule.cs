@@ -347,7 +347,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
 
         [RequiredInput(false)]
         [InputLabel("Execute silently")]
-        [ModalTextInput("ephemeral", TextInputStyle.Short, initValue: "False")]
+        [ModalTextInput("ephemeral", initValue: "False")]
         public bool Ephemeral { get; set; }
 
         public abstract string Title { get; }
@@ -383,7 +383,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         public override string Title => nameof(Warning);
 
         [InputLabel("Warn amount")]
-        [ModalTextInput("amount", TextInputStyle.Short, initValue: "1")]
+        [ModalTextInput("amount", initValue: "1")]
         public uint Amount { get; set; }
     }
 
@@ -400,7 +400,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         public override string Title => "Ban User";
 
         [InputLabel("Delete amount of days")]
-        [ModalTextInput("delete", TextInputStyle.Short, maxLength: 1, initValue: "0")]
+        [ModalTextInput("delete", maxLength: 1, initValue: "0")]
         public uint DeleteDays { get; set; }
     }
 }

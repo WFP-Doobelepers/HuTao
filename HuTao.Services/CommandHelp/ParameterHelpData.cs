@@ -32,9 +32,9 @@ public class ParameterHelpData
 
         return type switch
         {
-            var t when t.IsEnum                                                 => FromEnum(t),
-            var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(t),
-            _                                                                   => Enumerable.Empty<ParameterHelpData>()
+            { IsEnum: true }                                                   => FromEnum(type),
+            _ when type.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(type),
+            _                                                                  => Enumerable.Empty<ParameterHelpData>()
         };
     });
 
