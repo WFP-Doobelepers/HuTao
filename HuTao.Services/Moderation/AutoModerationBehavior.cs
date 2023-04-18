@@ -57,14 +57,14 @@ public class AutoModerationBehavior :
         {
             e.SlidingExpiration = CacheExpiration;
             return new ConcurrentDictionary<ulong, IUserMessage>();
-        });
+        }) ?? throw new InvalidOperationException("Cache returned null");
 
     private ConcurrentQueue<ulong> MessageQueue(IGuildUser user)
         => _cache.GetOrCreate($"{nameof(MessageQueue)}.{user.Guild.Id}.{user.Id}", e =>
         {
             e.SlidingExpiration = CacheExpiration;
             return new ConcurrentQueue<ulong>();
-        });
+        }) ?? throw new InvalidOperationException("Cache returned null");
 
     private async Task ProcessMessage(IMessage source, CancellationToken cancellationToken = default)
     {
@@ -250,7 +250,7 @@ public class AutoModerationBehavior :
             {
                 e.SlidingExpiration = CacheExpiration;
                 return new SemaphoreSlim(1, 1);
-            });
+            }) ?? throw new InvalidOperationException($"Cache entry was null for {nameof(AutoModerationBehavior)}.{nameof(Reprimand)}");
 
             try
             {

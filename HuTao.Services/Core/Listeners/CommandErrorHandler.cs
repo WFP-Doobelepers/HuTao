@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -29,11 +30,13 @@ public class CommandErrorHandler :
 
     //This relates user messages with errors
     private ConcurrentDictionary<ulong, string> AssociatedErrors =>
-        _memoryCache.GetOrCreate(AssociatedErrorsKey, _ => new ConcurrentDictionary<ulong, string>());
+        _memoryCache.GetOrCreate(AssociatedErrorsKey, _ => new ConcurrentDictionary<ulong, string>())
+        ?? throw new InvalidOperationException($"Cache returned null for {nameof(AssociatedErrors)}");
 
     //This relates user messages to messages containing errors
     private ConcurrentDictionary<ulong, ulong> ErrorReplies =>
-        _memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>());
+        _memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>())
+        ?? throw new InvalidOperationException($"Cache returned null for {nameof(ErrorReplies)}");
 
     public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
         => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(),

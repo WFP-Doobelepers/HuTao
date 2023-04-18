@@ -34,8 +34,8 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
             var rules = options.GetRules();
             var result = options.FilterMode switch
             {
-                PurgeFilters.FilterType.All      => messages.Where(m => rules.All(rule => rule(m))),
-                PurgeFilters.FilterType.Any or _ => messages.Where(m => rules.Any(rule => rule(m)))
+                PurgeFilters.FilterType.All => messages.Where(m => rules.All(rule => rule(m))),
+                _                           => messages.Where(m => rules.Any(rule => rule(m)))
             };
 
             if (options.Invert ?? false)

@@ -101,7 +101,7 @@ public class StickyService
         {
             e.SlidingExpiration = TimeSpan.FromDays(1);
             return new StickyMessageDetails();
-        });
+        }) ?? throw new InvalidOperationException($"Cache entry was null in {nameof(StickyService)}");
 
         lock (details)
         {

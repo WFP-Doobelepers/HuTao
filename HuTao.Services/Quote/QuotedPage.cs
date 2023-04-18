@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Discord;
 using Fergun.Interactive;
 
@@ -27,6 +29,8 @@ public class QuotedPage : IPage
     public AllowedMentions? AllowedMentions { get; }
 
     public bool IsTTS { get; }
+
+    public Func<ValueTask<IEnumerable<FileAttachment>?>>? AttachmentsFactory { get; set; }
 
     public IReadOnlyCollection<Embed> Embeds => EmbedArray.Select(e => e.Build()).ToArray();
 

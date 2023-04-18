@@ -12,23 +12,23 @@ namespace HuTao.Services.Core.Listeners;
 
 public class HuTaoMediator : Mediator
 {
-    public HuTaoMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
+    public HuTaoMediator(IServiceProvider provider) : base(provider) { }
 
     protected override Task PublishCore(
-        IEnumerable<Func<INotification, CancellationToken, Task>> handlers,
+        IEnumerable<NotificationHandlerExecutor> handlers,
         INotification notification, CancellationToken cancellationToken)
     {
         try
         {
             _ = Task.Run(async () =>
             {
-                var priorities = handlers.Select(h => (Handler: h, GetOrderAttribute(h)?.Priority));
+                var priorities = handlers.Select(h => (Handler: h, GetOrderAttribute(h.HandlerCallback)?.Priority));
                 var ordered = priorities.OrderBy(h => !h.Priority.HasValue).ThenBy(h => h.Priority);
-                foreach (var handler in ordered)
+                foreach (var (handler, _) in ordered)
                 {
                     try
                     {
-                        await handler.Handler(notification, cancellationToken);
+                        await handler.HandlerCallback(notification, cancellationToken);
                     }
                     catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
                     {
@@ -51,7 +51,7 @@ public class HuTaoMediator : Mediator
     private static PriorityAttribute? GetOrderAttribute(Func<INotification, CancellationToken, Task> x)
     {
         var handlerFieldInfo = x.Target?.GetType().GetField("x");
-        if (handlerFieldInfo is not { FieldType.IsGenericType: true, FieldType.GenericTypeArguments.Length: 1 })
+        if (handlerFieldInfo is not { FieldType: { IsGenericType: true, GenericTypeArguments.Length: 1 } })
             return null;
 
         var type = handlerFieldInfo.GetValue(x.Target)?.GetType();

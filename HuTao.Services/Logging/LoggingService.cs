@@ -500,7 +500,7 @@ public class LoggingService
         {
             cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();
-        });
+        }) ?? throw new InvalidOperationException($"Cached message {cached.Id} not found.");
 
     private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
         CancellationToken cancellationToken) where T : class, ILog
