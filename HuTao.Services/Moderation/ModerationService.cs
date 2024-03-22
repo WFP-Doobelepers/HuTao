@@ -581,19 +581,23 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
         var guild = (IGuild) _client.GetGuild(roles.GuildId);
+
         var user = await guild.GetUserAsync(roles.UserId);
-
-        var templates = roles.Roles.Select(role =>
+        if (user is not null)
         {
-            return role.Modify(r => r.Behavior = r.Behavior switch
+            var templates = roles.Roles.Select(role =>
             {
-                RoleBehavior.Add    => RoleBehavior.Remove,
-                RoleBehavior.Remove => RoleBehavior.Add,
-                _                   => role.Behavior
+                return role.Modify(r => r.Behavior = r.Behavior switch
+                {
+                    RoleBehavior.Add    => RoleBehavior.Remove,
+                    RoleBehavior.Remove => RoleBehavior.Add,
+                    _                   => role.Behavior
+                });
             });
-        });
 
-        await user.AddRolesAsync(templates.ToList(), cancellationToken);
+            await user.AddRolesAsync(templates.ToList(), cancellationToken);
+        }
+
         await ExpireReprimandAsync(roles, status, cancellationToken, details);
     }
 
