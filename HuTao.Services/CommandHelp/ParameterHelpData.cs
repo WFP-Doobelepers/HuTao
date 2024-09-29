@@ -70,7 +70,7 @@ public class ParameterHelpData
         {
             var info = p.ToContextualProperty();
             return new ParameterHelpData(info.Name, info.PropertyType,
-                info.GetContextAttribute<HelpSummaryAttribute>()?.Text,
+                info.PropertyType.GetContextAttribute<HelpSummaryAttribute>(true)?.Text,
                 info.Nullability == Nullability.Nullable);
         });
     }

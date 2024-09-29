@@ -26,10 +26,13 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public Task DeleteOriginalResponseAsync(RequestOptions? options = null)
         => Interaction.DeleteOriginalResponseAsync(options);
 
+    public Task RespondWithPremiumRequiredAsync(RequestOptions? options = null)
+        => Interaction.RespondWithPremiumRequiredAsync(options);
+
     public Task RespondAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false, bool ephemeral = false,
         AllowedMentions? allowedMentions = null, MessageComponent? components = null, Embed? embed = null,
-        RequestOptions? options = null)
+        RequestOptions? options = null, PollProperties? poll = null)
         => Interaction.RespondAsync(
             text, embeds, isTTS, ephemeral,
             allowedMentions, components, embed,
@@ -38,7 +41,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public Task RespondWithFilesAsync(
         IEnumerable<FileAttachment> attachments, string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
         => Interaction.RespondWithFilesAsync(
             attachments, text, embeds, isTTS,
             ephemeral, allowedMentions, components,
@@ -50,7 +53,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public async Task<IUserMessage> FollowupAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
         => await Interaction.FollowupAsync(
             text, embeds, isTTS,
             ephemeral, allowedMentions, components,
@@ -59,7 +62,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public Task<IUserMessage> FollowupWithFilesAsync(
         IEnumerable<FileAttachment> attachments, string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
         => Interaction.FollowupWithFilesAsync(
             attachments, text, embeds, isTTS,
             ephemeral, allowedMentions, components,
@@ -89,6 +92,14 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
     public string UserLocale => Interaction.UserLocale;
 
     public ulong ApplicationId => Interaction.ApplicationId;
+
+    public IReadOnlyCollection<IEntitlement> Entitlements => Interaction.Entitlements;
+
+    public IReadOnlyDictionary<ApplicationIntegrationType, ulong> IntegrationOwners => Interaction.IntegrationOwners;
+
+    public InteractionContextType? ContextType => Interaction.ContextType;
+
+    public GuildPermissions Permissions => Interaction.Permissions;
 
     public ulong? ChannelId => Interaction.ChannelId;
 
