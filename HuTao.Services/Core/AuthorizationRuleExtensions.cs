@@ -20,7 +20,7 @@ public static class AuthorizationRuleExtensions
 
     public static IEnumerable<T> Scoped<T>(
         this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
-        => rules.Where(rule => (rule.Scope & scope) != 0);
+        => rules.Where(rule => (rule.Scope & scope) != 0 || rule.Scope == AuthorizationScope.All);
 
     public static void AddRules(this ICollection<AuthorizationGroup> group,
         AuthorizationScope scope, IGuildUser moderator,

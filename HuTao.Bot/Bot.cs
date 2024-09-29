@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Fergun.Interactive;
 using Hangfire;
@@ -57,6 +58,7 @@ public class Bot
                 UseCompiledLambda = true
             })
             .AddSingleton<DiscordSocketClient>()
+            .AddSingleton<DiscordRestClient>(x => x.GetRequiredService<DiscordSocketClient>().Rest)
             .AddSingleton<CommandService>()
             .AddSingleton<CommandErrorHandler>()
             .AddSingleton<CommandHandlingService>()
@@ -85,7 +87,11 @@ public class Bot
     private static async Task CheckStateAsync(IDiscordClient client)
     {
         // Client reconnected, no need to reset
-        if (client.ConnectionState == ConnectionState.Connected) return;
+        if (client.ConnectionState is ConnectionState.Connected or ConnectionState.Connecting)
+        {
+            Log.Information("Client is already connected or connecting, skipping reset.");
+            return;
+        }
 
         Log.Information("Attempting to reset the client");
 
