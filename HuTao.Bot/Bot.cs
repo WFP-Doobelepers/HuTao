@@ -172,7 +172,7 @@ public class Bot
             .UseActivator(new AspNetCoreJobActivator(
                 services.GetRequiredService<IServiceScopeFactory>()))
             .UseSerilogLogProvider()
-            .UsePostgreSqlStorage(HuTaoConfig.Configuration.HangfireContext)
+            .UsePostgreSqlStorage(x => x.UseNpgsqlConnection(HuTaoConfig.Configuration.HangfireContext))
             .UseRecommendedSerializerSettings();
 
         await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
