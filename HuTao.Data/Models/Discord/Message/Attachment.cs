@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
-using Image = HuTao.Data.Models.Discord.Message.IImage;
 
 namespace HuTao.Data.Models.Discord.Message;
 
@@ -12,16 +12,24 @@ public class Attachment : IAttachment, IImage
 
     public Attachment(IAttachment attachment)
     {
-        Id          = attachment.Id;
-        Ephemeral   = attachment.Ephemeral;
-        Size        = attachment.Size;
-        Height      = attachment.Height;
-        Width       = attachment.Width;
-        Filename    = attachment.Filename;
-        ProxyUrl    = attachment.ProxyUrl;
-        Url         = attachment.Url;
-        ContentType = attachment.ContentType;
-        Description = attachment.Description;
+        Id               = attachment.Id;
+        Filename         = attachment.Filename;
+        Size             = attachment.Size;
+        ContentType      = attachment.ContentType;
+        Description      = attachment.Description;
+        Title            = attachment.Title;
+        Url              = attachment.Url;
+        ProxyUrl         = attachment.ProxyUrl;
+        Height           = attachment.Height;
+        Width            = attachment.Width;
+        CreatedAt        = attachment.CreatedAt;
+        Ephemeral        = attachment.Ephemeral;
+        Flags            = attachment.Flags;
+        Duration         = attachment.Duration;
+        Waveform         = attachment.Waveform;
+        WaveformBytes    = attachment.WaveformBytes;
+        ClipCreatedAt    = attachment.ClipCreatedAt;
+        ClipParticipants = attachment.ClipParticipants;
     }
 
     [Key] public Guid AttachmentId { get; set; }
@@ -45,5 +53,21 @@ public class Attachment : IAttachment, IImage
 
     public string? ContentType { get; set; }
 
+    [NotMapped] public double? Duration { get; set; }
+
+    [NotMapped] public string? Waveform { get; set; }
+
+    [NotMapped] public byte[]? WaveformBytes { get; set; }
+
+    public AttachmentFlags Flags { get; set; }
+
+    [NotMapped] public IReadOnlyCollection<IUser>? ClipParticipants { get; set; }
+
+    [NotMapped] public string? Title { get; }
+
+    [NotMapped] public DateTimeOffset? ClipCreatedAt { get; }
+
     public string? Description { get; set; }
+
+    [NotMapped] public DateTimeOffset CreatedAt { get; }
 }
