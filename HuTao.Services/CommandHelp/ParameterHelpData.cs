@@ -34,7 +34,7 @@ public class ParameterHelpData
         {
             { IsEnum: true }                                                   => FromEnum(type),
             _ when type.GetAttribute<NamedArgumentTypeAttribute>() is not null => FromNamedArgumentInfo(type),
-            _                                                                  => Enumerable.Empty<ParameterHelpData>()
+            _                                                                  => []
         };
     });
 

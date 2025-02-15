@@ -70,7 +70,7 @@ internal class RemovableMessageService : IRemovableMessageService
     /// <inheritdoc />
     public Task RegisterRemovableMessageAsync(IUser user, IReadOnlyCollection<EmbedBuilder> embeds,
         Func<IReadOnlyCollection<EmbedBuilder>, Task<IUserMessage>> callback)
-        => RegisterRemovableMessageAsync(new[] { user }, embeds, callback);
+        => RegisterRemovableMessageAsync([user], embeds, callback);
 
     /// <inheritdoc />
     public async Task RegisterRemovableMessageAsync(IUser[] users,

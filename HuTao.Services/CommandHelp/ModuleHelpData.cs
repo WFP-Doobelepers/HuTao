@@ -39,7 +39,7 @@ public class ModuleHelpData
                     .OfType<HelpTagsAttribute>()
                     .SingleOrDefault()
                     ?.Tags
-                ?? Array.Empty<string>()
+                ?? []
         };
 
         return ret;

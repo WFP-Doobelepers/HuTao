@@ -524,8 +524,8 @@ public class LoggingService
         public EmbedLog(
             EmbedBuilder embed, IEnumerable<EmbedBuilder>? embeds = null, string? content = null,
             IEnumerable<FileAttachment>? attachments = null) : this(
-            (embeds?.Select(e => e.Build()) ?? Enumerable.Empty<Embed>()).Prepend(embed.Build()),
-            attachments ?? Enumerable.Empty<FileAttachment>())
+            (embeds?.Select(e => e.Build()) ?? []).Prepend(embed.Build()),
+            attachments ?? [])
         {
             if (!string.IsNullOrEmpty(content))
                 Attachments = Attachments.Prepend(Attachment(content)).Take(10);

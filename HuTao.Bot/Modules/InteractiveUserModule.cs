@@ -81,7 +81,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         [CheckCategory(History)] ModerationCategory? category, LogReprimandType[] types)
         => ComponentReprimandsAsync(
             id, InfractionTypeBitwise.Or(types),
-            new[] { category ?? ModerationCategory.None });
+            [category ?? ModerationCategory.None]);
 
     [ComponentInteraction("category:*:*")]
     public async Task ComponentReprimandsAsync(string id, LogReprimandType type,

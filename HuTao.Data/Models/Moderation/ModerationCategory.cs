@@ -23,7 +23,7 @@ public class ModerationCategory : IModerationRules
     {
         Name = name;
         Authorization = options?.ToAuthorizationGroups(AuthorizationScope.All, moderator).ToList()
-            ?? new List<AuthorizationGroup>();
+            ?? [];
     }
 
     public Guid Id { get; set; }

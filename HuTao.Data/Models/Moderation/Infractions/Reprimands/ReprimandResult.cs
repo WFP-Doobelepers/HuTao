@@ -18,7 +18,7 @@ public class ReprimandResult
 
     public ReprimandResult(Reprimand primary) { Primary = primary; }
 
-    public IEnumerable<Reprimand> Secondary { get; } = Enumerable.Empty<Reprimand>();
+    public IEnumerable<Reprimand> Secondary { get; } = [];
 
     public Reprimand Last => Secondary.LastOrDefault() ?? Primary;
 

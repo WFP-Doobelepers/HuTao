@@ -18,15 +18,15 @@ namespace HuTao.Services.Moderation;
 public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceivedNotification>
 {
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
-    private static readonly IReadOnlyCollection<string> BlacklistedExtensions = new[]
-    {
+    private static readonly IReadOnlyCollection<string> BlacklistedExtensions =
+    [
         ".7z", ".application", ".bat", ".bin", ".cmd", ".com", ".com", ".cpl", ".dll", ".doc", ".docm", ".dotm", ".exe",
         ".gadget", ".hta", ".inf", ".inf1", ".ins", ".inx", ".isu", ".jar", ".job", ".js", ".jse", ".lnk", ".msc",
         ".msh", ".msh1", ".msh1xml", ".msh2", ".msh2xml", ".mshxml", ".msi", ".msp", ".paf", ".pasc2", ".pdb", ".pif",
         ".potm", ".ppam", ".ppsm", ".ppt", ".pptm", ".ps1", ".ps1xml", ".ps2", ".ps2xml", ".psc1", ".rar", ".reg",
         ".rgs", ".sb", ".scf", ".scr", ".sct", ".sh", ".shb", ".shs", ".sldn", ".u3p", ".vbe", ".vbs", ".vbscript",
         ".ws", ".wsc", ".wsf", ".wsh", ".xlam", ".xls", ".xlsm", ".xltm", ".zip"
-    };
+    ];
 
     private readonly HuTaoContext _db;
     private readonly ModerationService _moderation;

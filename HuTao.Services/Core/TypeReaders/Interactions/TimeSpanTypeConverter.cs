@@ -12,7 +12,7 @@ public class TimeSpanTypeConverter : ComponentTypeConverter<TimeSpan?>
     ///     TimeSpan try parse formats.
     /// </summary>
     private static readonly string[] Formats =
-    {
+    [
         "%d'd'%h'h'%m'm'%s's'", // 4d3h2m1s
         "%d'd'%h'h'%m'm'",      // 4d3h2m
         "%d'd'%h'h'%s's'",      // 4d3h  1s
@@ -28,7 +28,7 @@ public class TimeSpanTypeConverter : ComponentTypeConverter<TimeSpan?>
         "%m'm'%s's'",           //     2m1s
         "%m'm'",                //     2m
         "%s's'"                 //       1s
-    };
+    ];
 
     public override Task<TypeConverterResult> ReadAsync(
         IInteractionContext context, IComponentInteractionData option, IServiceProvider services)

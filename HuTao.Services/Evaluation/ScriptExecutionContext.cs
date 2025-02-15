@@ -18,43 +18,41 @@ public record Globals(ConsoleLikeStringWriter Console, Context Context, IService
 public class ScriptExecutionContext
 {
     private static readonly List<string> DefaultImports =
-        new()
-        {
-            "Discord",
-            "Discord.Commands",
-            "Discord.Interactions",
-            "Discord.Webhook",
-            "Discord.WebSocket",
-            "Humanizer",
-            "Humanizer.Localisation",
-            "Microsoft.Extensions.DependencyInjection",
-            "Newtonsoft.Json",
-            "Newtonsoft.Json.Linq",
-            "System",
-            "System.Collections",
-            "System.Collections.Concurrent",
-            "System.Collections.Immutable",
-            "System.Collections.Generic",
-            "System.Linq",
-            "System.Linq.Expressions",
-            "System.Net",
-            "System.Net.Http",
-            "System.Numerics",
-            "System.Text",
-            "System.Text.RegularExpressions",
-            "System.Threading",
-            "System.Threading.Tasks",
-            "System.Text.Json"
-        };
+    [
+        "Discord",
+        "Discord.Commands",
+        "Discord.Interactions",
+        "Discord.Webhook",
+        "Discord.WebSocket",
+        "Humanizer",
+        "Humanizer.Localisation",
+        "Microsoft.Extensions.DependencyInjection",
+        "Newtonsoft.Json",
+        "Newtonsoft.Json.Linq",
+        "System",
+        "System.Collections",
+        "System.Collections.Concurrent",
+        "System.Collections.Immutable",
+        "System.Collections.Generic",
+        "System.Linq",
+        "System.Linq.Expressions",
+        "System.Net",
+        "System.Net.Http",
+        "System.Numerics",
+        "System.Text",
+        "System.Text.RegularExpressions",
+        "System.Threading",
+        "System.Threading.Tasks",
+        "System.Text.Json"
+    ];
 
     private static readonly List<Assembly> BotAssemblies =
-        new()
-        {
-            Assembly.GetEntryAssembly()!,
-            typeof(HuTaoContext).Assembly,
-            typeof(ScriptExecutionContext).Assembly,
-            typeof(DiscordWebhookClient).Assembly
-        };
+    [
+        Assembly.GetEntryAssembly()!,
+        typeof(HuTaoContext).Assembly,
+        typeof(ScriptExecutionContext).Assembly,
+        typeof(DiscordWebhookClient).Assembly
+    ];
 
     private static readonly IEnumerable<string> AssemblyImports = BotAssemblies
         .SelectMany(a => a.GetTypes())
@@ -76,9 +74,9 @@ public class ScriptExecutionContext
 
     public string Code { get; set; }
 
-    private HashSet<Assembly> References { get; } = new(AssemblyReferences);
+    private HashSet<Assembly> References { get; } = [..AssemblyReferences];
 
-    private HashSet<string> Imports { get; } = new(DefaultImports.Concat(AssemblyImports));
+    private HashSet<string> Imports { get; } = [..DefaultImports.Concat(AssemblyImports)];
 
     public bool TryAddReferenceAssembly(Assembly? assembly)
     {

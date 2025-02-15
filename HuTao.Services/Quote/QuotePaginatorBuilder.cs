@@ -5,7 +5,7 @@ namespace HuTao.Services.Quote;
 
 public class QuotePaginatorBuilder : PaginatorBuilder<QuotePaginator, QuotePaginatorBuilder>
 {
-    internal List<QuotedPage> QuotedPages { get; } = new();
+    internal List<QuotedPage> QuotedPages { get; } = [];
 
     public override QuotePaginator Build() => new(this);
 

@@ -27,15 +27,15 @@ public static class ReflectionExtensions
     private static readonly DictionaryCache<(Enum, Type), Attribute?> EnumAttributeCache =
         new(GetAttributeFromEnum);
 
-    private static readonly IEnumerable<Type> EnumerableTypes = new[]
-    {
+    private static readonly IEnumerable<Type> EnumerableTypes =
+    [
         typeof(IEnumerable<>),
         typeof(ICollection<>),
         typeof(IReadOnlyCollection<>),
         typeof(List<>),
         typeof(IList<>),
         typeof(IReadOnlyList<>)
-    };
+    ];
 
     private static readonly ConditionalWeakTable<object, ConcurrentDictionary<string, object>> WeakCache = new();
 

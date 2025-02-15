@@ -7,7 +7,7 @@ namespace HuTao.Services.Image.ColorQuantization;
 
 public sealed class Octree
 {
-    private readonly HashSet<OctreeNode> _leaves = new();
+    private readonly HashSet<OctreeNode> _leaves = [];
 
     private OctreeNode Root { get; } = new();
 

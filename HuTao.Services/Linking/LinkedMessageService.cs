@@ -160,7 +160,7 @@ public class LinkingService
         var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
         var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
         var embeds = new List<EmbedBuilder>()
-            .Concat(template?.GetEmbedBuilders() ?? Enumerable.Empty<EmbedBuilder>())
+            .Concat(template?.GetEmbedBuilders() ?? [])
             .Concat(roles);
 
         if (dmUser)

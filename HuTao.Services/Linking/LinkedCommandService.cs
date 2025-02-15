@@ -183,7 +183,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         if (template?.IsLive ?? false)
             await _db.UpdateAsync(template, context.Guild);
 
-        var embeds = template?.GetEmbedBuilders().ToList() ?? new List<EmbedBuilder>();
+        var embeds = template?.GetEmbedBuilders().ToList() ?? [];
         var roleTemplates = command.Roles.ToArray();
 
         var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
