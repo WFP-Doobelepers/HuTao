@@ -15,7 +15,7 @@ public class EnumerableTypeReader<TResult> : TypeReader
         StringSplitOptions splitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
     {
         _typeReader   = typeReader;
-        _separators   = separators ?? new[] { ",", " ", "\r\n", "\r", "\n" };
+        _separators   = separators ?? [",", " ", "\r\n", "\r", "\n"];
         _splitOptions = splitOptions;
     }
 

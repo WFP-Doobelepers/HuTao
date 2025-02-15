@@ -87,7 +87,7 @@ public static class DbSetExtensions
 
     public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
         CancellationToken cancellationToken = default)
-        where T : class => dbSet.FindAsync(new[] { key }, cancellationToken);
+        where T : class => dbSet.FindAsync([key], cancellationToken);
 
     public static void TryRemove<T>(this DbContext context, T? entity)
     {
@@ -120,7 +120,7 @@ public static class DbSetExtensions
         {
             await UserSemaphore.WaitAsync(cancellationToken);
 
-            var userEntity = await set.FindAsync(new object[] { user, guild }, cancellationToken);
+            var userEntity = await set.FindAsync([user, guild], cancellationToken);
             return userEntity ?? set.Add(new GuildUserEntity(user, guild)).Entity;
         }
         finally

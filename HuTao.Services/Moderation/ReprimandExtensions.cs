@@ -377,12 +377,12 @@ public static class ReprimandExtensions
     public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
         => (reprimand.Guild ??
-            await db.FindAsync<GuildEntity>(new object[] { reprimand.GuildId }, cancellationToken))!;
+            await db.FindAsync<GuildEntity>([reprimand.GuildId], cancellationToken))!;
 
     public static async ValueTask<GuildUserEntity> GetUserAsync(this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
         => (reprimand.User ??
-            await db.FindAsync<GuildUserEntity>(new object[] { reprimand.UserId, reprimand.GuildId },
+            await db.FindAsync<GuildUserEntity>([reprimand.UserId, reprimand.GuildId],
                 cancellationToken))!;
 
     public static async ValueTask<T?> GetTriggerAsync<T>(this Reprimand reprimand, DbContext db,
@@ -392,7 +392,7 @@ public static class ReprimandExtensions
             return trigger;
 
         if (reprimand.TriggerId is not null)
-            return await db.FindAsync<T>(new object[] { reprimand.TriggerId }, cancellationToken);
+            return await db.FindAsync<T>([reprimand.TriggerId], cancellationToken);
 
         return null;
     }

@@ -37,7 +37,7 @@ public static class ModerationExclusionExtensions
         => rules.Exclusions<UserMentionExclusion>(configuration);
 
     private static IEnumerable<ModerationExclusion> Exclusions(IEnumerable<ModerationExclusion>? exclusions)
-        => exclusions ?? Enumerable.Empty<ModerationExclusion>();
+        => exclusions ?? [];
 
     private static IEnumerable<T> Exclusions<T>(
         this ModerationRules? rules, AutoConfiguration? configuration) where T : ModerationExclusion

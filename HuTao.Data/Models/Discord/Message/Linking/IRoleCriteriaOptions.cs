@@ -16,5 +16,5 @@ public interface IRoleCriteriaOptions
     public IEnumerable<RoleCriterion> Denied => ToCriteria(DeniedRoles);
 
     private static IEnumerable<RoleCriterion> ToCriteria(IEnumerable<IRole>? roles)
-        => roles?.Select(r => new RoleCriterion(r)) ?? Enumerable.Empty<RoleCriterion>();
+        => roles?.Select(r => new RoleCriterion(r)) ?? [];
 }

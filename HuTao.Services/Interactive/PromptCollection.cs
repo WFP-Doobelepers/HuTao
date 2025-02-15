@@ -15,11 +15,11 @@ public partial class PromptCollection<T> : IPromptCriteria where T : notnull
         ErrorMessage = errorMessage;
         Module       = module;
         Services     = services;
-        Criteria = new ICriterion<IMessage>[]
-        {
+        Criteria =
+        [
             new EnsureSourceChannelCriterion(),
             new EnsureSourceUserCriterion()
-        };
+        ];
     }
 
     public int Timeout { get; set; } = 30;
@@ -28,7 +28,7 @@ public partial class PromptCollection<T> : IPromptCriteria where T : notnull
 
     public IServiceProvider? Services { get; }
 
-    public List<Prompt<T>> Prompts { get; } = new();
+    public List<Prompt<T>> Prompts { get; } = [];
 
     public SocketCommandContext Context => Module.Context;
 

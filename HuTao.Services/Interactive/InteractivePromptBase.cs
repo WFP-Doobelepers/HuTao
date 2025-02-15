@@ -53,7 +53,7 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
             .WithDescription(content)
             .WithColor(promptOptions?.Color ??
                 await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
-            .WithFields(promptOptions?.Fields ?? Enumerable.Empty<EmbedFieldBuilder>());
+            .WithFields(promptOptions?.Fields ?? []);
 
         if (!promptOptions?.IsRequired ?? false)
             embed.WithFooter($"Reply '{Optional.SkipString}' if you don't need this.");

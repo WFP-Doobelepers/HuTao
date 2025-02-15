@@ -108,11 +108,11 @@ public class ModerationExclusionsOptions : ICriteriaOptions
     public async Task<ICollection<ModerationExclusion>> GetExclusionsAsync(HuTaoContext db, AutoConfiguration? config)
     {
         var criteria = this.ToCriteria();
-        var links = Links ?? Enumerable.Empty<Link>();
-        var emojis = await db.TrackEmotesAsync(Emojis ?? Enumerable.Empty<IEmote>()).ToListAsync();
-        var invites = await db.Guilds.TrackGuildsAsync(Invites ?? Enumerable.Empty<IInvite>()).ToListAsync();
-        var roles = await db.Roles.TrackRolesAsync(RoleMentions ?? Enumerable.Empty<IRole>()).ToListAsync();
-        var users = await db.Users.TrackUsersAsync(UserMentions ?? Enumerable.Empty<IGuildUser>()).ToListAsync();
+        var links = Links ?? [];
+        var emojis = await db.TrackEmotesAsync(Emojis ?? []).ToListAsync();
+        var invites = await db.Guilds.TrackGuildsAsync(Invites ?? []).ToListAsync();
+        var roles = await db.Roles.TrackRolesAsync(RoleMentions ?? []).ToListAsync();
+        var users = await db.Users.TrackUsersAsync(UserMentions ?? []).ToListAsync();
 
         return new IEnumerable<ModerationExclusion>[]
         {

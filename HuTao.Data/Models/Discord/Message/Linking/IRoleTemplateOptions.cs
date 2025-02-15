@@ -19,5 +19,5 @@ public interface IRoleTemplateOptions
             .Concat(GetRoleTemplate(ToggleRoles, RoleBehavior.Toggle));
 
     private static IEnumerable<RoleTemplate> GetRoleTemplate(IEnumerable<IRole>? roles, RoleBehavior behavior)
-        => roles?.Select(r => new RoleTemplate(r, behavior)) ?? Enumerable.Empty<RoleTemplate>();
+        => roles?.Select(r => new RoleTemplate(r, behavior)) ?? [];
 }

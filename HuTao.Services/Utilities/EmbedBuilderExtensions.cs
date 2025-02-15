@@ -119,7 +119,7 @@ public static class EmbedBuilderExtensions
         this IReadOnlyCollection<IAttachment> attachments,
         EmbedBuilderOptions options)
     {
-        if (!attachments.Any()) return Enumerable.Empty<EmbedBuilder>();
+        if (!attachments.Any()) return [];
 
         var description = string.Join(Environment.NewLine, attachments.Select(GetDetails));
         var footer = string.Join(Environment.NewLine, attachments.Select(Footer));

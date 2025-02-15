@@ -30,7 +30,7 @@ public class AutoModerationBehavior :
         = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
 
     private static readonly TimeSpan CacheExpiration = TimeSpan.FromHours(1);
-    private static readonly char[] Separators = { ' ', '\r', '\n' };
+    private static readonly char[] Separators = [' ', '\r', '\n'];
     private readonly DiscordSocketClient _client;
     private readonly HuTaoContext _db;
     private readonly IMemoryCache _cache;
