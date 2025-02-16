@@ -20,7 +20,7 @@ public class RequireTeamMemberAttribute : PreconditionAttribute
         var application = await context.Client.GetApplicationInfoAsync().ConfigureAwait(false);
 
         if (context.User.Id == application.Owner.Id
-            || application.Team.OwnerUserId == application.Owner.Id
+            || context.User.Id == application.Team.OwnerUserId
             || application.Team.TeamMembers.Any(t => context.User.Id == t.User.Id))
             return PreconditionResult.FromSuccess();
 
