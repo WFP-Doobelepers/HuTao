@@ -21,12 +21,8 @@ namespace HuTao.Bot.Modules.Logging;
 [Alias("logs", "logging")]
 [Summary("Manages logging exclusions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class LoggingExclusionsModule : InteractiveEntity<Criterion>
+public class LoggingExclusionsModule(HuTaoContext db) : InteractiveEntity<Criterion>
 {
-    private readonly HuTaoContext _db;
-
-    public LoggingExclusionsModule(HuTaoContext db) { _db = db; }
-
     protected virtual string Title => "Censor Exclusions";
 
     [Command("exclude")]
@@ -37,7 +33,7 @@ public class LoggingExclusionsModule : InteractiveEntity<Criterion>
         var collection = await GetCollectionAsync();
         collection.AddCriteria(exclusions);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         var embed = new EmbedBuilder()
             .WithTitle("Logging exclusions added")
@@ -63,7 +59,7 @@ public class LoggingExclusionsModule : InteractiveEntity<Criterion>
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.LoggingRules ??= new LoggingRules();
         return guild.LoggingRules.LoggingExclusions;
     }

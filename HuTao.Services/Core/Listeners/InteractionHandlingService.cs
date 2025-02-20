@@ -17,43 +17,25 @@ using Microsoft.Extensions.Logging;
 
 namespace HuTao.Services.Core.Listeners;
 
-public class InteractionHandlingService :
-    INotificationHandler<InteractionCreatedNotification>,
-    INotificationHandler<ReadyNotification>
+public class InteractionHandlingService(
+    DiscordSocketClient discord, HuTaoContext db, InteractionService commands,
+    ILogger<InteractionHandlingService> log, IServiceProvider services)
+    : INotificationHandler<InteractionCreatedNotification>,
+      INotificationHandler<ReadyNotification>
 {
-    private readonly DiscordSocketClient _discord;
-    private readonly HuTaoContext _db;
-    private readonly ILogger<InteractionHandlingService> _log;
-    private readonly InteractionService _commands;
-    private readonly IServiceProvider _services;
-
-    public InteractionHandlingService(
-        DiscordSocketClient discord,
-        HuTaoContext db,
-        InteractionService commands,
-        ILogger<InteractionHandlingService> log,
-        IServiceProvider services)
-    {
-        _discord  = discord;
-        _db       = db;
-        _commands = commands;
-        _log      = log;
-        _services = services;
-    }
-
     public async Task Handle(InteractionCreatedNotification notification, CancellationToken cancellationToken)
     {
         var interaction = notification.Interaction;
 
-        var context = new SocketInteractionContext(_discord, interaction);
-        if (context.User is IGuildUser user) await _db.Users.TrackUserAsync(user, cancellationToken);
-        await _commands.ExecuteCommandAsync(context, _services);
+        var context = new SocketInteractionContext(discord, interaction);
+        if (context.User is IGuildUser user) await db.Users.TrackUserAsync(user, cancellationToken);
+        await commands.ExecuteCommandAsync(context, services);
     }
 
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
     {
 #if DEBUG
-        await _commands.RegisterCommandsToGuildAsync(HuTaoConfig.Configuration.Guild);
+        await commands.RegisterCommandsToGuildAsync(HuTaoConfig.Configuration.Guild);
 #else
         var guildCommands = Array.Empty<ApplicationCommandProperties>();
         await _discord.Rest.BulkOverwriteGuildCommands(guildCommands, HuTaoConfig.Configuration.Guild);
@@ -63,27 +45,27 @@ public class InteractionHandlingService :
 
     public async Task InitializeAsync()
     {
-        _commands.AutocompleteCommandExecuted += CommandExecutedAsync;
-        _commands.ComponentCommandExecuted    += CommandExecutedAsync;
-        _commands.ContextCommandExecuted      += CommandExecutedAsync;
-        _commands.ModalCommandExecuted        += CommandExecutedAsync;
-        _commands.SlashCommandExecuted        += CommandExecutedAsync;
+        commands.AutocompleteCommandExecuted += CommandExecutedAsync;
+        commands.ComponentCommandExecuted    += CommandExecutedAsync;
+        commands.ContextCommandExecuted      += CommandExecutedAsync;
+        commands.ModalCommandExecuted        += CommandExecutedAsync;
+        commands.SlashCommandExecuted        += CommandExecutedAsync;
 
-        _commands.AddUserTypeReader<IUser>();
-        _commands.AddUserTypeReader<SocketUser>();
-        _commands.AddUserTypeReader<RestUser>();
+        commands.AddUserTypeReader<IUser>();
+        commands.AddUserTypeReader<SocketUser>();
+        commands.AddUserTypeReader<RestUser>();
 
-        _commands.AddUserTypeReader<IGuildUser>();
-        _commands.AddUserTypeReader<SocketGuildUser>();
-        _commands.AddUserTypeReader<RestGuildUser>();
+        commands.AddUserTypeReader<IGuildUser>();
+        commands.AddUserTypeReader<SocketGuildUser>();
+        commands.AddUserTypeReader<RestGuildUser>();
 
-        _commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
-        _commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
+        commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
+        commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
 
-        _commands.AddComponentTypeConverter<ModerationCategory>(new CategoryComponentTypeConverter());
-        _commands.AddComponentTypeConverter<TimeSpan>(new TimeSpanTypeConverter());
+        commands.AddComponentTypeConverter<ModerationCategory>(new CategoryComponentTypeConverter());
+        commands.AddComponentTypeConverter<TimeSpan>(new TimeSpanTypeConverter());
 
-        await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        await commands.AddModulesAsync(Assembly.GetEntryAssembly(), services);
     }
 
     private async Task CommandExecutedAsync(
@@ -93,7 +75,7 @@ public class InteractionHandlingService :
 
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
-            _log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
+            log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
                 result.Error, result.ErrorReason, command.Name,
                 context.User, context.Channel, context.Guild);
 

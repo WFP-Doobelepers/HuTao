@@ -17,12 +17,8 @@ using static Discord.EmbedFieldBuilder;
 
 namespace HuTao.Services.Evaluation;
 
-public class EvaluationService
+public class EvaluationService(IServiceProvider services)
 {
-    private readonly IServiceProvider _services;
-
-    public EvaluationService(IServiceProvider services) { _services = services; }
-
     public static EmbedBuilder BuildEmbed(Context context, EvaluationResult result)
     {
         var returnValue = JsonSerializer.Serialize(result.ReturnValue, EvaluationResult.SerializerOptions);
@@ -70,7 +66,7 @@ public class EvaluationService
         var console = new StringBuilder();
         await using var writer = new ConsoleLikeStringWriter(console);
 
-        var globals = new Globals(writer, context, _services);
+        var globals = new Globals(writer, context, services);
         var execution = new ScriptExecutionContext(code);
 
         sw.Start();

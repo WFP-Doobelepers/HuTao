@@ -23,7 +23,7 @@ namespace HuTao.Bot.Modules.Logging;
 [Alias("logs", "logging")]
 [Summary("Logging configuration.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class LoggingModule : ModuleBase<SocketCommandContext>
+public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 {
     public enum LoggingChannelContext
     {
@@ -38,10 +38,6 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         Moderator,
         Public
     }
-
-    private readonly HuTaoContext _db;
-
-    public LoggingModule(HuTaoContext db) { _db = db; }
 
     [Command("appeal")]
     [Summary("Show the appeal message on a reprimand type.")]
@@ -60,7 +56,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
             config.ShowAppealOnReprimands ??= LogReprimandType.None;
             var reprimands = config.ShowAppealOnReprimands.Value.SetValue(type, showAppeal);
             config.ShowAppealOnReprimands = reprimands;
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {config.ShowAppealOnReprimands.Humanize()}");
@@ -81,7 +77,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
             rules.SilentReprimands ??= LogReprimandType.None;
             rules.SilentReprimands =   rules.SilentReprimands.Value.SetValue(type, isSilent);
 
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {rules.SilentReprimands.Humanize()}");
@@ -104,7 +100,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         var config = await GetConfigAsync(category, context);
         config.AppealMessage = message;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
@@ -132,11 +128,11 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
         bool? reUpload = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.LoggingRules ??= new LoggingRules();
 
         guild.LoggingRules.UploadAttachments = reUpload ?? !guild.LoggingRules.UploadAttachments;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"Current value: {guild.LoggingRules.UploadAttachments}");
     }
@@ -152,7 +148,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         var config = await GetConfigAsync(category, context);
         config.ChannelId = channel.Id;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"Current value: {config.MentionChannel()}");
     }
@@ -174,7 +170,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         {
             config.Options ??= ModerationLogOptions.None;
             config.Options =   config.Options.Value.SetValue(type, state);
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {config.Options.Humanize()}");
@@ -189,7 +185,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         if (!types.Any()) return;
 
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.LoggingRules ??= new LoggingRules();
 
         var rules = guild.LoggingRules.LoggingChannels;
@@ -216,7 +212,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         {
             config.LogReprimands ??= LogReprimandType.None;
             config.LogReprimands =   config.LogReprimands.Value.SetValue(type, state);
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {config.LogReprimands.Humanize()}");
@@ -237,7 +233,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         {
             config.LogReprimandStatus ??= LogReprimandStatus.None;
             config.LogReprimandStatus =   config.LogReprimandStatus.Value.SetValue(type, state);
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         await ReplyAsync($"Current value: {config.LogReprimandStatus.Humanize()}");
@@ -253,7 +249,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetLoggingAsync(category);
         rules.HistoryReprimands = type;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
     }
@@ -268,7 +264,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetLoggingAsync(category);
         rules.IgnoreDuplicates = state ?? !rules.IgnoreDuplicates;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"New value: {rules.IgnoreDuplicates}");
     }
@@ -283,7 +279,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     {
         var rules = await GetLoggingAsync(category);
         rules.SummaryReprimands = type;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"New value: {rules.SummaryReprimands.Humanize()}");
     }
@@ -292,7 +288,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
         IChannel? channel, IEnumerable<T> types,
         ICollection<EnumChannel<T>> collection) where T : Enum
     {
-        _db.RemoveRange(collection.Where(rule => types.Contains(rule.Type)));
+        db.RemoveRange(collection.Where(rule => types.Contains(rule.Type)));
 
         if (channel is not null)
         {
@@ -302,7 +298,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
             }
         }
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task<IChannelEntity> GetConfigAsync(ModerationCategory? category, LoggingChannelContext context)
@@ -320,7 +316,7 @@ public class LoggingModule : ModuleBase<SocketCommandContext>
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
     {
         if (category is not null) return category;
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationRules ??= new ModerationRules();
     }
 

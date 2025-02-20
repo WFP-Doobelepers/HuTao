@@ -18,19 +18,9 @@ using HuTao.Services.Utilities;
 namespace HuTao.Bot.Modules.Moderation;
 
 [RequireContext(ContextType.Guild)]
-public class InteractiveModerationModule : InteractionModuleBase<SocketInteractionContext>
+public class InteractiveModerationModule(AuthorizationService auth, ModerationService moderation, HuTaoContext db)
+    : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly AuthorizationService _auth;
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public InteractiveModerationModule(AuthorizationService auth, ModerationService moderation, HuTaoContext db)
-    {
-        _auth       = auth;
-        _moderation = moderation;
-        _db         = db;
-    }
-
     [SlashCommand("ban", "Ban a user from the current guild.")]
     public async Task BanAsync(
         [RequireHigherRole] IUser user, uint deleteDays = 0,
@@ -47,7 +37,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         }
 
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryBanAsync(deleteDays, length, details);
+        var result = await moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
             await FollowupAsync("Failed to ban user.");
@@ -66,7 +56,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryHardMuteAsync(length, details);
+        var result = await moderation.TryHardMuteAsync(length, details);
 
         if (result is null)
         {
@@ -89,7 +79,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryKickAsync(details);
+        var result = await moderation.TryKickAsync(details);
 
         if (result is null)
             await FollowupAsync("Failed to kick user.");
@@ -108,7 +98,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryMuteAsync(length, details);
+        var result = await moderation.TryMuteAsync(length, details);
 
         if (result is null)
         {
@@ -123,7 +113,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     public Task MuteListAsync(
         [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
-        => _moderation.SendMuteListAsync(Context, category, ephemeral);
+        => moderation.SendMuteListAsync(Context, category, ephemeral);
 
     [SlashCommand("mute-menu", "Open a menu to mute a user from the current guild.")]
     public Task MuteMenuAsync([RequireHigherRole] IGuildUser user)
@@ -138,7 +128,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, note, category, ephemeral);
-        await _moderation.NoteAsync(details);
+        await moderation.NoteAsync(details);
     }
 
     [SlashCommand("note-menu", "Open a menu to note a user from the current guild.")]
@@ -154,7 +144,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        await _moderation.NoticeAsync(details);
+        await moderation.NoticeAsync(details);
     }
 
     [SlashCommand("notice-menu", "Open a menu to notice a user from the current guild.")]
@@ -164,7 +154,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     [SlashCommand("say", "Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Send)]
     public Task SayAsync(string message, ITextChannel? channel = null)
-        => _moderation.SendMessageAsync(Context, channel, message);
+        => moderation.SendMessageAsync(Context, channel, message);
 
     [SlashCommand("slowmode", "Set a slowmode in the channel.")]
     [RequireBotPermission(ChannelPermission.ManageChannels)]
@@ -182,7 +172,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var template = guild.ModerationTemplates
             .FirstOrDefault(t => name.Equals(t.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -192,14 +182,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
             return;
         }
 
-        if (!await _auth.IsAuthorizedAsync(Context, template.Scope))
+        if (!await auth.IsAuthorizedAsync(Context, template.Scope))
         {
             await FollowupAsync("You don't have permission to use this template.");
             return;
         }
 
         var details = await GetDetailsAsync(user, template.Reason, template.Category, ephemeral);
-        var result = await _moderation.ReprimandAsync(template, details);
+        var result = await moderation.ReprimandAsync(template, details);
 
         if (result is null)
             await FollowupAsync("Failed to use the template.");
@@ -214,7 +204,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryUnbanAsync(details);
+        var result = await moderation.TryUnbanAsync(details);
 
         if (result is null)
             await FollowupAsync("This user has no ban logs. Forced unban.");
@@ -229,7 +219,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        var result = await _moderation.TryUnmuteAsync(details);
+        var result = await moderation.TryUnmuteAsync(details);
 
         if (!result)
             await FollowupAsync("Unmute failed.");
@@ -244,7 +234,7 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     {
         await DeferAsync(ephemeral);
         var details = await GetDetailsAsync(user, reason, category, ephemeral);
-        await _moderation.WarnAsync(amount, details);
+        await moderation.WarnAsync(amount, details);
     }
 
     [SlashCommand("warn-menu", "Open a menu to warn a user from the current guild.")]
@@ -321,14 +311,14 @@ public class InteractiveModerationModule : InteractionModuleBase<SocketInteracti
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category, bool ephemeral)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
         var details = new ReprimandDetails(
             Context, user, reason, variables,
             category: category, ephemeral: ephemeral);
 
-        await _db.Users.TrackUserAsync(details);
-        await _db.SaveChangesAsync();
+        await db.Users.TrackUserAsync(details);
+        await db.SaveChangesAsync();
 
         return details;
     }

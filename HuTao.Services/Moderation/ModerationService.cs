@@ -32,25 +32,16 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Moderation;
 
-public class ModerationService : ExpirableService<ExpirableReprimand>
+public class ModerationService(
+    IMemoryCache cache,
+    HuTaoContext db,
+    AuthorizationService auth,
+    DiscordSocketClient client,
+    InteractiveService interactive,
+    ModerationLoggingService logging)
+    : ExpirableService<ExpirableReprimand>(cache, db)
 {
-    private readonly AuthorizationService _auth;
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-    private readonly InteractiveService _interactive;
-    private readonly ModerationLoggingService _logging;
-
-    public ModerationService(
-        IMemoryCache cache, HuTaoContext db,
-        AuthorizationService auth, DiscordSocketClient client,
-        InteractiveService interactive, ModerationLoggingService logging) : base(cache, db)
-    {
-        _auth        = auth;
-        _client      = client;
-        _db          = db;
-        _interactive = interactive;
-        _logging     = logging;
-    }
+    private readonly HuTaoContext _db = db;
 
     public async Task ConfigureHardMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role,
         bool skipPermissions)
@@ -133,7 +124,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
             async Task<ReprimandDetails> GetModified(IUserEntity r)
             {
-                var user = await _client.Rest.GetUserAsync(r.UserId);
+                var user = await client.Rest.GetUserAsync(r.UserId);
                 return new ReprimandDetails(user, moderator, "[Deleted Trigger]");
             }
         }
@@ -153,7 +144,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
     public async Task SendMessageAsync(Context context, ITextChannel? channel, string message)
     {
-        var ephemeral = await _auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Ephemeral);
+        var ephemeral = await auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Ephemeral);
         channel ??= (ITextChannel) context.Channel;
         if (context.User is not IGuildUser user)
             await context.ReplyAsync("You must be a guild user to use this command.");
@@ -189,10 +180,10 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         await (context switch
         {
-            CommandContext command => _interactive.SendPaginatorAsync(paginator, command.Channel),
+            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel),
 
             InteractionContext { Interaction: SocketInteraction interaction }
-                => _interactive.SendPaginatorAsync(paginator, interaction, ephemeral: ephemeral,
+                => interactive.SendPaginatorAsync(paginator, interaction, ephemeral: ephemeral,
                     responseType: InteractionResponseType.DeferredChannelMessageWithSource),
 
             _ => throw new ArgumentOutOfRangeException(nameof(context), context, "Invalid context.")
@@ -556,7 +547,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private async Task ExpireBanAsync(ExpirableReprimand ban, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        var guild = _client.GetGuild(ban.GuildId);
+        var guild = client.GetGuild(ban.GuildId);
         _ = guild.RemoveBanAsync(ban.UserId);
 
         await ExpireReprimandAsync(ban, status, cancellationToken, details);
@@ -567,8 +558,8 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     {
         if (details is null)
         {
-            var guild = _client.GetGuild(reprimand.GuildId);
-            var user = await _client.Rest.GetUserAsync(reprimand.UserId);
+            var guild = client.GetGuild(reprimand.GuildId);
+            var user = await client.Rest.GetUserAsync(reprimand.UserId);
 
             details = new ReprimandDetails(user, guild.CurrentUser, $"[Reprimand {status}]");
         }
@@ -580,7 +571,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private async Task ExpireRolesAsync(RoleReprimand roles, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        var guild = (IGuild) _client.GetGuild(roles.GuildId);
+        var guild = (IGuild) client.GetGuild(roles.GuildId);
 
         var user = await guild.GetUserAsync(roles.UserId);
         if (user is not null)
@@ -609,7 +600,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         reprimand.ModifiedAction = details;
 
         await _db.SaveChangesAsync(cancellationToken);
-        await _logging.PublishReprimandAsync(reprimand, details, cancellationToken);
+        await logging.PublishReprimandAsync(reprimand, details, cancellationToken);
     }
 
     private async Task<bool> EndMuteAsync(IGuildUser? user, ILength? mute, IModerationRules? rules)
@@ -652,7 +643,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
     private async Task<bool> ExpireMuteAsync(Mute mute, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
-        var guild = (IGuild) _client.GetGuild(mute.GuildId);
+        var guild = (IGuild) client.GetGuild(mute.GuildId);
         var user = await guild.GetUserAsync(mute.UserId);
 
         var result = await EndMuteAsync(user, mute, mute.Category);
@@ -730,7 +721,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
 
         return trigger is not null && uniqueTrigger
             ? await TriggerReprimandAsync(trigger, result, secondary, cancellationToken)
-            : await _logging.PublishReprimandAsync(result, secondary, cancellationToken);
+            : await logging.PublishReprimandAsync(result, secondary, cancellationToken);
     }
 
     private async Task<ReprimandResult> TriggerReprimandAsync(
@@ -747,7 +738,7 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
         }, cancellationToken);
 
         return secondary is null
-            ? await _logging.PublishReprimandAsync(result, details, cancellationToken)
+            ? await logging.PublishReprimandAsync(result, details, cancellationToken)
             : new ReprimandResult(secondary.Last, result);
     }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,29 +22,19 @@ using static HuTao.Data.Models.Moderation.Auto.Configurations.DuplicateConfigura
 
 namespace HuTao.Services.Moderation;
 
-public class AutoModerationBehavior :
-    INotificationHandler<MessageReceivedNotification>,
-    INotificationHandler<MessageUpdatedNotification>
+public class AutoModerationBehavior(
+    DiscordSocketClient client,
+    HuTaoContext db,
+    IMemoryCache cache,
+    ModerationService moderation)
+    : INotificationHandler<MessageReceivedNotification>,
+      INotificationHandler<MessageUpdatedNotification>
 {
     private const StringSplitOptions SplitOptions
         = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
 
     private static readonly TimeSpan CacheExpiration = TimeSpan.FromHours(1);
     private static readonly char[] Separators = [' ', '\r', '\n'];
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-    private readonly ModerationService _moderation;
-
-    public AutoModerationBehavior(
-        DiscordSocketClient client, HuTaoContext db,
-        IMemoryCache cache, ModerationService moderation)
-    {
-        _client     = client;
-        _db         = db;
-        _cache      = cache;
-        _moderation = moderation;
-    }
 
     public Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
         => ProcessMessage(notification.Message, cancellationToken);
@@ -53,14 +43,14 @@ public class AutoModerationBehavior :
         => ProcessMessage(notification.NewMessage, cancellationToken);
 
     private ConcurrentDictionary<ulong, IUserMessage> MessageDictionary(IGuildUser user)
-        => _cache.GetOrCreate($"{nameof(MessageDictionary)}.{user.Guild.Id}.{user.Id}", e =>
+        => cache.GetOrCreate($"{nameof(MessageDictionary)}.{user.Guild.Id}.{user.Id}", e =>
         {
             e.SlidingExpiration = CacheExpiration;
             return new ConcurrentDictionary<ulong, IUserMessage>();
         }) ?? throw new InvalidOperationException("Cache returned null");
 
     private ConcurrentQueue<ulong> MessageQueue(IGuildUser user)
-        => _cache.GetOrCreate($"{nameof(MessageQueue)}.{user.Guild.Id}.{user.Id}", e =>
+        => cache.GetOrCreate($"{nameof(MessageQueue)}.{user.Guild.Id}.{user.Id}", e =>
         {
             e.SlidingExpiration = CacheExpiration;
             return new ConcurrentQueue<ulong>();
@@ -77,7 +67,7 @@ public class AutoModerationBehavior :
 
         if (IsUserCooldown()) return;
 
-        var rules = await _db.Guilds.GetRulesAsync(user.Guild, _cache, cancellationToken);
+        var rules = await db.Guilds.GetRulesAsync(user.Guild, cache, cancellationToken);
         if (rules is null) return;
 
         if (rules.Exclusions.OfType<CriterionExclusion>().Any(c => c.Criterion.Judge(channel, user))
@@ -152,7 +142,7 @@ public class AutoModerationBehavior :
                 {
                     var exclusions = rules.InviteExclusions(config);
                     return await RegexUtilities.Invite.Matches(m.Content).ToAsyncEnumerable()
-                        .SelectAwait(async i => await _cache.GetInviteAsync(_client, i.Groups["code"].Value))
+                        .SelectAwait(async i => await cache.GetInviteAsync(client, i.Groups["code"].Value))
                         .Where(i => i is not null && exclusions.All(e => !e.Judge(i)))
                         .CountAsync(cancellationToken);
                 })) return;
@@ -246,7 +236,7 @@ public class AutoModerationBehavior :
 
         async Task<bool> Reprimand<T>(AutoConfiguration config, ICollection<T> messages) where T : Result
         {
-            var semaphore = _cache.GetOrCreate($"{nameof(Reprimand)}.{user.Guild.Id}", e =>
+            var semaphore = cache.GetOrCreate($"{nameof(Reprimand)}.{user.Guild.Id}", e =>
             {
                 e.SlidingExpiration = CacheExpiration;
                 return new SemaphoreSlim(1, 1);
@@ -263,15 +253,15 @@ public class AutoModerationBehavior :
 
                 var cooldown = config.Category?.AutoReprimandCooldown ?? rules.AutoReprimandCooldown;
                 if (cooldown is not null && cooldown > TimeSpan.Zero)
-                    _cache.Set($"{nameof(IsUserCooldown)}.{user.Id}", DateTimeOffset.Now, cooldown.Value);
+                    cache.Set($"{nameof(IsUserCooldown)}.{user.Id}", DateTimeOffset.Now, cooldown.Value);
                 if (config.Cooldown is not null && config.Cooldown > TimeSpan.Zero)
-                    _cache.Set($"{nameof(IsUserCooldown)}.{user.Id}", DateTimeOffset.Now, config.Cooldown.Value);
+                    cache.Set($"{nameof(IsUserCooldown)}.{user.Id}", DateTimeOffset.Now, config.Cooldown.Value);
 
                 var delete = messages.Where(m => m.Count > 0).Select(m => m.Message).ToList();
                 var length = config.Category?.FilteredExpiryLength ?? rules.FilteredExpiryLength;
                 var details = GetDetails(config, (uint) messages.Sum(m => m.Count));
 
-                return await _moderation.AutoReprimandAsync(delete, length, details, cancellationToken) is not null;
+                return await moderation.AutoReprimandAsync(delete, length, details, cancellationToken) is not null;
             }
             finally
             {
@@ -279,9 +269,9 @@ public class AutoModerationBehavior :
             }
         }
 
-        bool IsUserCooldown() => _cache.TryGetValue($"{nameof(IsUserCooldown)}.{user.Id}", out _);
+        bool IsUserCooldown() => cache.TryGetValue($"{nameof(IsUserCooldown)}.{user.Id}", out _);
 
-        bool IsConfigCooldown(Trigger config) => _cache.TryGetValue($"{config.Id}.{user.Id}", out _);
+        bool IsConfigCooldown(Trigger config) => cache.TryGetValue($"{config.Id}.{user.Id}", out _);
 
         ReprimandDetails GetDetails(AutoConfiguration config, uint count) => new(
             message.Author, channel.Guild.CurrentUser, Trigger: config, Category: config.Category,

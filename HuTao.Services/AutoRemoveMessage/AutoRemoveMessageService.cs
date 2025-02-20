@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,12 +60,9 @@ public interface IRemovableMessageService
 }
 
 /// <inheritdoc />
-internal class RemovableMessageService : IRemovableMessageService
+internal class RemovableMessageService(IMediator mediator) : IRemovableMessageService
 {
     private const string FooterReactMessage = "React with ❌ to remove this embed.";
-    private readonly IMediator _mediator;
-
-    public RemovableMessageService(IMediator mediator) { _mediator = mediator; }
 
     /// <inheritdoc />
     public Task RegisterRemovableMessageAsync(IUser user, IReadOnlyCollection<EmbedBuilder> embeds,
@@ -83,12 +80,12 @@ internal class RemovableMessageService : IRemovableMessageService
         ModifyFirstEmbed(embeds);
 
         var msg = await callback(embeds);
-        await _mediator.Publish(new RemovableMessageSentNotification(msg, users));
+        await mediator.Publish(new RemovableMessageSentNotification(msg, users));
     }
 
     /// <inheritdoc />
     public void UnregisterRemovableMessage(IMessage message)
-        => _mediator.Publish(new RemovableMessageRemovedNotification(message));
+        => mediator.Publish(new RemovableMessageRemovedNotification(message));
 
     private static void ModifyFirstEmbed(IEnumerable<EmbedBuilder> embeds)
     {

@@ -28,17 +28,9 @@ namespace HuTao.Bot.Modules.Censors;
 [Group("censor")]
 [Alias("censors")]
 [Summary("Manages censors and what action will be done to the user who triggers them.")]
-public class CensorModule : InteractiveTrigger<Censor>
+public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrigger<Censor>
 {
     private const string PatternSummary = "The .NET flavor regex pattern to be used.";
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public CensorModule(HuTaoContext db, IMemoryCache cache)
-    {
-        _db    = db;
-        _cache = cache;
-    }
 
     [Command("ban")]
     [Summary("A censor that deletes the message and also bans the user.")]
@@ -153,7 +145,7 @@ public class CensorModule : InteractiveTrigger<Censor>
     [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     public async Task TestCensorAsync([Remainder] string word)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
         var matches = guild.ModerationRules.Triggers.OfType<Censor>()
             .Where(c => c.Regex().IsMatch(word)).ToList();
@@ -185,14 +177,14 @@ public class CensorModule : InteractiveTrigger<Censor>
 
     protected override async Task<ICollection<Censor>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
         return guild.ModerationRules.Triggers.OfType<Censor>().ToList();
     }
 
     private async Task AddCensor(Censor censor, ICriteriaOptions? options)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
 
         if (options is not null)
             censor.Exclusions = options.ToCriteria();
@@ -200,8 +192,8 @@ public class CensorModule : InteractiveTrigger<Censor>
         guild.ModerationRules ??= new ModerationRules();
         guild.ModerationRules.Triggers.Add(censor.WithModerator(Context));
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
     }
 
     private async Task ReplyCensorAsync(Censor censor)

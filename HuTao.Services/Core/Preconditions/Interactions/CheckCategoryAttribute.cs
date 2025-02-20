@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
@@ -8,11 +8,9 @@ using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Services.Core.Preconditions.Interactions;
 
-public class CheckCategoryAttribute : ParameterPreconditionAttribute
+public class CheckCategoryAttribute(AuthorizationScope scope) : ParameterPreconditionAttribute
 {
-    private readonly AuthorizationScope _scope;
-
-    public CheckCategoryAttribute(AuthorizationScope scope) { _scope = scope | AuthorizationScope.All; }
+    private readonly AuthorizationScope _scope = scope | AuthorizationScope.All;
 
     public override async Task<PreconditionResult> CheckRequirementsAsync(
         IInteractionContext context, IParameterInfo parameterInfo,

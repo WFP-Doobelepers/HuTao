@@ -1,15 +1,10 @@
-﻿using System;
+using System;
 using Discord;
 using MediatR;
 
 namespace HuTao.Services.AutoRemoveMessage;
 
-public class RemovableMessageRemovedNotification : INotification
+public class RemovableMessageRemovedNotification(IMessage message) : INotification
 {
-    public RemovableMessageRemovedNotification(IMessage message)
-    {
-        Message = message ?? throw new ArgumentNullException(nameof(message));
-    }
-
-    public IMessage Message { get; }
+    public IMessage Message { get; } = message ?? throw new ArgumentNullException(nameof(message));
 }

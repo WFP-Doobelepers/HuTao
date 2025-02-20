@@ -5,15 +5,10 @@ using Discord.Commands;
 namespace HuTao.Data.Models.Discord;
 
 /// <inheritdoc cref="ICommandContext" />
-public class CommandContext : Context, ICommandContext
+public class CommandContext(ICommandContext context)
+    : Context(context.Client, context.Guild, context.Channel, context.User), ICommandContext
 {
-    public CommandContext(ICommandContext context)
-        : base(context.Client, context.Guild, context.Channel, context.User)
-    {
-        Message = context.Message;
-    }
-
-    public IUserMessage Message { get; }
+    public IUserMessage Message { get; } = context.Message;
 
     public override async Task ReplyAsync(
         string? message = null, bool isTTS = false, Embed? embed = null, RequestOptions? options = null,

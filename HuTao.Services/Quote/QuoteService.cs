@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -25,22 +25,12 @@ public interface IQuoteService
         IEnumerable<JumpMessage> jumpUrls);
 }
 
-public class QuoteService : IQuoteService
+public class QuoteService(DiscordSocketClient client, LoggingService logging, HuTaoContext db)
+    : IQuoteService
 {
     private const EmbedBuilderOptions QuoteOptions =
         EmbedBuilderOptions.EnlargeThumbnails |
         EmbedBuilderOptions.ReplaceAnimations;
-
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-    private readonly LoggingService _logging;
-
-    public QuoteService(DiscordSocketClient client, LoggingService logging, HuTaoContext db)
-    {
-        _client  = client;
-        _logging = logging;
-        _db      = db;
-    }
 
     public async Task<Paginator?> GetPaginatorAsync(Context context, SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls)
@@ -72,15 +62,15 @@ public class QuoteService : IQuoteService
             {
                 if (context.User is not IGuildUser guildUser) continue;
 
-                var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
-                var logging = guild.LoggingRules?.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
-                if (logging is null) continue;
+                var guild = await db.Guilds.TrackGuildAsync(context.Guild);
+                var logging1 = guild.LoggingRules?.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
+                if (logging1 is null) continue;
 
-                var channel = await context.Guild.GetTextChannelAsync(logging.ChannelId);
+                var channel = await context.Guild.GetTextChannelAsync(logging1.ChannelId);
                 var permissions = guildUser.GetPermissions(channel);
                 if (!permissions.ViewChannel) continue;
 
-                var log = await _logging.GetLatestMessage(jump.GuildId, jump.ChannelId, jump.MessageId);
+                var log = await logging.GetLatestMessage(jump.GuildId, jump.ChannelId, jump.MessageId);
                 if (log is null || log.Guild.Id != context.Guild.Id) continue;
 
                 builder.AddPage(new QuotedPage(
@@ -114,16 +104,16 @@ public class QuoteService : IQuoteService
         var embed = new EmbedBuilder()
             .WithColor(Color.Red)
             .AddContent(message.Content)
-            .WithUserAsAuthor(await message.GetUserAsync(_client), AuthorOptions.IncludeId)
+            .WithUserAsAuthor(await message.GetUserAsync(client), AuthorOptions.IncludeId)
             .WithTimestamp(message.Timestamp)
             .AddJumpLink(message, executingUser);
 
         if (message.ReferencedMessageId is not null)
         {
-            var reply = await _logging.GetLatestMessage(
+            var reply = await logging.GetLatestMessage(
                 message.GuildId, message.ChannelId,
                 message.ReferencedMessageId.Value);
-            var replyUser = await _logging.GetUserAsync(reply);
+            var replyUser = await logging.GetUserAsync(reply);
 
             embed.WithMessageReference(message, reply, replyUser);
         }

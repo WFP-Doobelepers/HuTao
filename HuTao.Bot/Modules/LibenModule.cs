@@ -31,24 +31,15 @@ using static HuTao.Services.TimeTracking.GenshinTimeTrackingService;
 
 namespace HuTao.Bot.Modules;
 
-public class GenshinRegisterModule : ModuleBase<SocketCommandContext>
+public class GenshinRegisterModule(IMemoryCache cache, InteractionService commands) : ModuleBase<SocketCommandContext>
 {
-    private readonly IMemoryCache _cache;
-    private readonly InteractionService _commands;
-
-    public GenshinRegisterModule(IMemoryCache cache, InteractionService commands)
-    {
-        _cache    = cache;
-        _commands = commands;
-    }
-
     [Command("liben register")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task RegisterCommandsAsync(ITextChannel? channel = null)
     {
-        var modules = _commands.Modules.Where(m => m.DontAutoRegister).ToArray();
-        await _commands.AddModulesToGuildAsync(Context.Guild, false, modules);
-        _cache.Set($"{nameof(LibenModule)}.Channel.{Context.Guild.Id}", channel ?? Context.Channel as ITextChannel);
+        var modules = commands.Modules.Where(m => m.DontAutoRegister).ToArray();
+        await commands.AddModulesToGuildAsync(Context.Guild, false, modules);
+        cache.Set($"{nameof(LibenModule)}.Channel.{Context.Guild.Id}", channel ?? Context.Channel as ITextChannel);
 
         await ReplyAsync("Registered commands");
     }
@@ -56,9 +47,13 @@ public class GenshinRegisterModule : ModuleBase<SocketCommandContext>
 
 [DontAutoRegister]
 [Discord.Interactions.Group("liben", "Marvelous Merchandise Commands")]
-public class LibenModule :
-    InteractionModuleBase<SocketInteractionContext>,
-    INotificationHandler<MessageReceivedNotification>
+public class LibenModule(
+    DiscordSocketClient client,
+    HttpClient http,
+    IMemoryCache cache,
+    InteractiveService interactive)
+    : InteractionModuleBase<SocketInteractionContext>,
+      INotificationHandler<MessageReceivedNotification>
 {
     private const string EventImage = "https://pbs.twimg.com/media/FR1JQa-aUAA_rAo.png";
     private const string LibenImage = "https://static.wikia.nocookie.net/gensin-impact/images/1/10/NPC_Liben.png";
@@ -97,51 +92,36 @@ public class LibenModule :
             .AppendLine()
             .AppendLine($"You can also type out {Format.Bold(Format.Code("/liben"))} to get started.").ToString());
 
-    private readonly IMemoryCache _cache;
-    private readonly InteractiveService _interactive;
-
-    private readonly DiscordSocketClient _client;
-    private readonly HttpClient _http;
     private ulong? _guildId;
 
-    public LibenModule(
-        DiscordSocketClient client, HttpClient http,
-        IMemoryCache cache, InteractiveService interactive)
-    {
-        _client      = client;
-        _http        = http;
-        _cache       = cache;
-        _interactive = interactive;
-    }
+    protected SemaphoreSlim ExpiredSemaphore => cache.GetOrCreate(ExpiredSemaphoreKey, _ => new SemaphoreSlim(1, 1))!;
 
-    protected SemaphoreSlim ExpiredSemaphore => _cache.GetOrCreate(ExpiredSemaphoreKey, _ => new SemaphoreSlim(1, 1))!;
-
-    protected SemaphoreSlim Semaphore => _cache.GetOrCreate(SemaphoreKey, _ => new SemaphoreSlim(1, 1))!;
+    protected SemaphoreSlim Semaphore => cache.GetOrCreate(SemaphoreKey, _ => new SemaphoreSlim(1, 1))!;
 
     private bool IsBottom
     {
-        get => _cache.GetOrCreate(IsBottomKey, _ => false);
-        set => _cache.Set(IsBottomKey, value);
+        get => cache.GetOrCreate(IsBottomKey, _ => false);
+        set => cache.Set(IsBottomKey, value);
     }
 
     private CancellationTokenSource TokenSource
     {
-        get => _cache.GetOrCreate(TokenSourceKey, _ => new CancellationTokenSource())!;
-        set => _cache.Set(TokenSourceKey, value);
+        get => cache.GetOrCreate(TokenSourceKey, _ => new CancellationTokenSource())!;
+        set => cache.Set(TokenSourceKey, value);
     }
 
     private ConcurrentDictionary<(ulong Id, Element Element), Looking> LookingUsers
-        => _cache.GetOrCreate(LookingKey, _ => new ConcurrentDictionary<(ulong, Element), Looking>())!;
+        => cache.GetOrCreate(LookingKey, _ => new ConcurrentDictionary<(ulong, Element), Looking>())!;
 
     private ConcurrentDictionary<ulong, Box> CachedBoxes
-        => _cache.GetOrCreate(BoxKey, _ => new ConcurrentDictionary<ulong, Box>())!;
+        => cache.GetOrCreate(BoxKey, _ => new ConcurrentDictionary<ulong, Box>())!;
 
-    private IMessageChannel? Channel => _cache.Get<IMessageChannel?>(ChannelKey);
+    private IMessageChannel? Channel => cache.Get<IMessageChannel?>(ChannelKey);
 
     private IUserMessage? LastMessage
     {
-        get => _cache.Get<IUserMessage?>(LastMessageKey);
-        set => _cache.Set(LastMessageKey, value);
+        get => cache.Get<IUserMessage?>(LastMessageKey);
+        set => cache.Set(LastMessageKey, value);
     }
 
     private string BoxKey => $"{nameof(LibenModule)}.{nameof(CachedBoxes)}.{GuildId}";
@@ -338,7 +318,7 @@ public class LibenModule :
     [Services.Core.Preconditions.Interactions.RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task ImportAsync(Attachment attachment)
     {
-        var stream = await _http.GetStreamAsync(attachment.Url);
+        var stream = await http.GetStreamAsync(attachment.Url);
         var data = await JsonSerializer.DeserializeAsync<Export>(stream);
         if (data is null)
         {
@@ -349,8 +329,8 @@ public class LibenModule :
         var looking = data.Looking.ToDictionary(l => (l.User.Id, l.Type));
         var boxes = data.Boxes.ToDictionary(b => b.Id);
 
-        _cache.Set(LookingKey, new ConcurrentDictionary<(ulong Id, Element Element), Looking>(looking));
-        _cache.Set(BoxKey, new ConcurrentDictionary<ulong, Box>(boxes));
+        cache.Set(LookingKey, new ConcurrentDictionary<(ulong Id, Element Element), Looking>(looking));
+        cache.Set(BoxKey, new ConcurrentDictionary<ulong, Box>(boxes));
         await RespondAsync("Imported data", ephemeral: true);
     }
 
@@ -409,7 +389,7 @@ public class LibenModule :
             .WithDefaultEmotes()
             .WithPages(boxes);
 
-        await _interactive.SendPaginatorAsync(paginator.Build(), Context.Interaction,
+        await interactive.SendPaginatorAsync(paginator.Build(), Context.Interaction,
             responseType: InteractionResponseType.ChannelMessageWithSource,
             ephemeral: true,
             messageAction: Components);
@@ -586,17 +566,17 @@ public class LibenModule :
     [Services.Core.Preconditions.Interactions.RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task UnregisterCommandsAsync()
     {
-        _cache.Remove(BoxKey);
-        _cache.Remove(ExpiredSemaphoreKey);
-        _cache.Remove(IsBottomKey);
-        _cache.Remove(LastMessageKey);
-        _cache.Remove(LookingKey);
-        _cache.Remove(SemaphoreKey);
-        _cache.Remove(TokenSourceKey);
-        _cache.Remove(ChannelKey);
+        cache.Remove(BoxKey);
+        cache.Remove(ExpiredSemaphoreKey);
+        cache.Remove(IsBottomKey);
+        cache.Remove(LastMessageKey);
+        cache.Remove(LookingKey);
+        cache.Remove(SemaphoreKey);
+        cache.Remove(TokenSourceKey);
+        cache.Remove(ChannelKey);
 
         var empty = Array.Empty<ApplicationCommandProperties>();
-        await _client.Rest.BulkOverwriteGuildCommands(empty, Context.Guild.Id);
+        await client.Rest.BulkOverwriteGuildCommands(empty, Context.Guild.Id);
         await RespondAsync("Unregistered commands", ephemeral: true);
     }
 
@@ -635,7 +615,7 @@ public class LibenModule :
             .AppendLine($"Added: {box.Added.Humanize()}")
             .ToString());
 
-    private SocketGuild GetGuild() => Context?.Guild ?? _client.GetGuild(GuildId);
+    private SocketGuild GetGuild() => Context?.Guild ?? client.GetGuild(GuildId);
 
     private async Task RefreshAsync()
     {
@@ -663,7 +643,7 @@ public class LibenModule :
                 {
                     CachedBoxes.Remove(box.Key, out var removed);
                     if (removed is null) continue;
-                    var user = await _client.GetUserAsync(removed.User.Id);
+                    var user = await client.GetUserAsync(removed.User.Id);
                     var dm = await user.CreateDMChannelAsync();
                     await dm.SendMessageAsync("Your box was removed automatically after 30 minutes.",
                         embed: GetEmbed(removed).Build());

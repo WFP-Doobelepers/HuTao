@@ -24,19 +24,9 @@ namespace HuTao.Bot.Modules.Linking;
 [Name("Custom Commands")]
 [Summary("Create custom commands")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
+public class LinkedCommandModule(HuTaoContext db, CommandService commands, LinkedCommandService linked)
+    : InteractiveEntity<LinkedCommand>
 {
-    private readonly CommandService _commands;
-    private readonly HuTaoContext _db;
-    private readonly LinkedCommandService _linked;
-
-    public LinkedCommandModule(HuTaoContext db, CommandService commands, LinkedCommandService linked)
-    {
-        _commands = commands;
-        _linked   = linked;
-        _db       = db;
-    }
-
     [Command("create")]
     [Alias("add", "learn")]
     [Summary("Creates a new custom command.")]
@@ -96,29 +86,29 @@ public class LinkedCommandModule : InteractiveEntity<LinkedCommand>
 
     protected override async Task RemoveEntityAsync(LinkedCommand entity)
     {
-        await _linked.DeleteAsync(entity);
-        await _linked.RefreshCommandsAsync(Context.Guild);
+        await linked.DeleteAsync(entity);
+        await linked.RefreshCommandsAsync(Context.Guild);
     }
 
     protected override async Task<ICollection<LinkedCommand>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.LinkedCommands;
     }
 
     private async Task AddCommandAsync(LinkedCommand command)
     {
-        if (_commands.Search(Context, command.Name).IsSuccess)
+        if (commands.Search(Context, command.Name).IsSuccess)
             throw new InvalidOperationException("A command with that name already exists.");
 
-        var commands = await GetCollectionAsync();
-        var existing = commands.FirstOrDefault(t => t.Name.Equals(command.Name, StringComparison.OrdinalIgnoreCase));
+        var commands1 = await GetCollectionAsync();
+        var existing = commands1.FirstOrDefault(t => t.Name.Equals(command.Name, StringComparison.OrdinalIgnoreCase));
         if (existing is not null) await RemoveEntityAsync(existing);
 
-        commands.Add(command);
+        commands1.Add(command);
 
-        await _db.SaveChangesAsync();
-        await _linked.RefreshCommandsAsync(Context.Guild);
+        await db.SaveChangesAsync();
+        await linked.RefreshCommandsAsync(Context.Guild);
 
         var embed = EntityViewer(command)
             .WithColor(Color.Green)

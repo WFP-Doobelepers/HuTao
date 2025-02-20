@@ -12,47 +12,44 @@ using static HuTao.Data.Models.Authorization.AuthorizationScope;
 
 namespace HuTao.Bot.Modules;
 
-public class InteractiveUserModule : InteractionModuleBase<SocketInteractionContext>
+public class InteractiveUserModule(UserService user) : InteractionModuleBase<SocketInteractionContext>
 {
     private static readonly GenericBitwise<LogReprimandType> InfractionTypeBitwise = new();
-    private readonly UserService _user;
-
-    public InteractiveUserModule(UserService user) { _user = user; }
 
     [SlashCommand("avatar", "Get the avatar of the user.")]
     [RequireAuthorization(User)]
     public async Task SlashAvatarAsync(
-        [Summary(description: "The user to show")] IUser user,
+        [Summary(description: "The user to show")] IUser user1,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
-        => await _user.ReplyAvatarAsync(Context, user, ephemeral);
+        => await user.ReplyAvatarAsync(Context, user1, ephemeral);
 
     [SlashCommand("history", "View a history of a user's infractions")]
     public async Task SlashHistoryAsync(
-        [Summary(description: "The user to show history of")] IUser user,
+        [Summary(description: "The user to show history of")] IUser user1,
         [Summary(description: "Leave empty to show warnings and notices")]
         LogReprimandType type = LogReprimandType.None,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(History)]
         ModerationCategory? category = null,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
-        => await _user.ReplyHistoryAsync(Context, category, type, user, false, ephemeral);
+        => await user.ReplyHistoryAsync(Context, category, type, user1, false, ephemeral);
 
     [SlashCommand("user", "Views the information of a user")]
     [RequireAuthorization(User)]
     public async Task SlashInformationAsync(
-        [Summary(description: "The user to show")] IUser user,
+        [Summary(description: "The user to show")] IUser user1,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
-        => await _user.ReplyUserAsync(Context, user, ephemeral);
+        => await user.ReplyUserAsync(Context, user1, ephemeral);
 
     [SlashCommand("whois", "Views the information of a user")]
     [RequireAuthorization(User)]
     public async Task SlashWhoIsAsync(
-        [Summary(description: "The user to show")] IUser user,
+        [Summary(description: "The user to show")] IUser user1,
         [Summary(description: "False to let other users see the message")]
         bool ephemeral = false)
-        => await _user.ReplyUserAsync(Context, user, ephemeral);
+        => await user.ReplyUserAsync(Context, user1, ephemeral);
 
     [UserCommand("Show Avatar")]
     [RequireAuthorization(User)]
@@ -88,7 +85,7 @@ public class InteractiveUserModule : InteractionModuleBase<SocketInteractionCont
         [CheckCategory(History)] ModerationCategory[] categories)
     {
         var category = categories.FirstOrDefault();
-        var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
-        await _user.ReplyHistoryAsync(Context, category, type, user, true);
+        var user1 = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
+        await user.ReplyHistoryAsync(Context, category, type, user1, true);
     }
 }

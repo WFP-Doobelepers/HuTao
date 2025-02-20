@@ -1,16 +1,10 @@
-﻿using Discord;
+using Discord;
 
 namespace HuTao.Services.AutoRemoveMessage;
 
-public class RemovableMessage
+public class RemovableMessage(IMessage message, IUser[] users)
 {
-    public RemovableMessage(IMessage message, IUser[] users)
-    {
-        Message = message;
-        Users   = users;
-    }
+    public IMessage Message { get; set; } = message;
 
-    public IMessage Message { get; set; }
-
-    public IUser[] Users { get; set; }
+    public IUser[] Users { get; set; } = users;
 }

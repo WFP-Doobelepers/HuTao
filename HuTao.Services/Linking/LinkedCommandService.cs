@@ -24,28 +24,17 @@ using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
 namespace HuTao.Services.Linking;
 
-public class LinkedCommandService : INotificationHandler<ReadyNotification>
+public class LinkedCommandService(
+    CommandErrorHandler error,
+    CommandService commands,
+    DiscordSocketClient client,
+    IMemoryCache cache,
+    HuTaoContext db)
+    : INotificationHandler<ReadyNotification>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly CommandService _commands;
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public LinkedCommandService(
-        CommandErrorHandler error, CommandService commands,
-        DiscordSocketClient client, IMemoryCache cache, HuTaoContext db)
-    {
-        _error    = error;
-        _commands = commands;
-        _client   = client;
-        _cache    = cache;
-        _db       = db;
-    }
-
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
     {
-        foreach (var guild in _db.Guilds.ToList())
+        foreach (var guild in db.Guilds.ToList())
         {
             await AddCommandsAsync(guild);
         }
@@ -53,17 +42,17 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
 
     public async Task DeleteAsync(LinkedCommand command)
     {
-        _db.Remove(command);
-        _db.TryRemove(command.Message);
-        _db.TryRemove(command.Authorization);
-        _db.RemoveRange(command.Roles);
+        db.Remove(command);
+        db.TryRemove(command.Message);
+        db.TryRemove(command.Authorization);
+        db.RemoveRange(command.Roles);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task RefreshCommandsAsync(IGuild guild)
     {
-        var guildEntity = await _db.Guilds.TrackGuildAsync(guild);
+        var guildEntity = await db.Guilds.TrackGuildAsync(guild);
         await AddCommandsAsync(guildEntity);
     }
 
@@ -71,10 +60,10 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
     {
         if (command.Cooldown is null) return null;
 
-        if (_cache.TryGetValue<DateTimeOffset>(command.Id, out var lastRun))
+        if (cache.TryGetValue<DateTimeOffset>(command.Id, out var lastRun))
             return lastRun;
 
-        _cache.Set(command.Id, DateTimeOffset.UtcNow, command.Cooldown.Value);
+        cache.Set(command.Id, DateTimeOffset.UtcNow, command.Cooldown.Value);
         return null;
     }
 
@@ -111,10 +100,10 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         if (guild.LinkedCommands.Count is 0)
             return;
 
-        if (_client.GetGuild(guild.Id) is not { } socketGuild)
+        if (client.GetGuild(guild.Id) is not { } socketGuild)
             return;
 
-        await _commands.CreateModuleAsync(string.Empty, m =>
+        await commands.CreateModuleAsync(string.Empty, m =>
         {
             m.WithName($"Custom Commands for {socketGuild.Name}");
             m.AddAttributes(new HiddenFromHelpAttribute());
@@ -148,7 +137,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
     {
         await context.DeferAsync();
 
-        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(context.Guild);
         var command = guild.LinkedCommands.FirstOrDefault(c => c.Id == id);
         if (command is null)
             return;
@@ -164,7 +153,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
         if (lastRun is not null)
         {
             var message = $"Please wait {(lastRun + command.Cooldown).Humanize()} before using this command.";
-            await _error.AssociateError(context, message);
+            await error.AssociateError(context, message);
             return;
         }
 
@@ -181,7 +170,7 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
 
         var template = command.Message;
         if (template?.IsLive ?? false)
-            await _db.UpdateAsync(template, context.Guild);
+            await db.UpdateAsync(template, context.Guild);
 
         var embeds = template?.GetEmbedBuilders().ToList() ?? [];
         var roleTemplates = command.Roles.ToArray();
@@ -221,18 +210,16 @@ public class LinkedCommandService : INotificationHandler<ReadyNotification>
 
     private async Task RemoveModuleAsync(GuildEntity guild)
     {
-        var module = _commands.Modules.FirstOrDefault(m => m.Preconditions
+        var module = commands.Modules.FirstOrDefault(m => m.Preconditions
             .Any(a => a is GuildCommandAttribute g && g.GuildId == guild.Id));
 
         if (module is not null)
-            await _commands.RemoveModuleAsync(module);
+            await commands.RemoveModuleAsync(module);
     }
 
-    private class GuildCommandAttribute : PreconditionAttribute
+    private class GuildCommandAttribute(ulong guildId) : PreconditionAttribute
     {
-        public GuildCommandAttribute(ulong guildId) { GuildId = guildId; }
-
-        public ulong GuildId { get; }
+        public ulong GuildId { get; } = guildId;
 
         public override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command,
             IServiceProvider services) => context.Guild.Id == GuildId

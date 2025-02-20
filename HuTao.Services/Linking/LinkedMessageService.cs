@@ -15,17 +15,8 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Linking;
 
-public class LinkingService
+public class LinkingService(IMemoryCache cache, HuTaoContext db)
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public LinkingService(IMemoryCache cache, HuTaoContext db)
-    {
-        _cache = cache;
-        _db    = db;
-    }
-
     public static async IAsyncEnumerable<EmbedBuilder> ApplyRoleTemplatesAsync(
         IUser user, ICollection<RoleTemplate> templates)
     {
@@ -55,26 +46,26 @@ public class LinkingService
 
     public async Task DeleteAsync(LinkedButton button)
     {
-        var rows = _db.Set<ActionRow>();
+        var rows = db.Set<ActionRow>();
         var row = await rows.FirstOrDefaultAsync(r => r.Components.All(c => c == button.Button));
 
-        _db.TryRemove(button);
-        _db.TryRemove(row);
+        db.TryRemove(button);
+        db.TryRemove(row);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(MessageTemplate template)
     {
-        _db.TryRemove(template);
-        await _db.SaveChangesAsync();
+        db.TryRemove(template);
+        await db.SaveChangesAsync();
     }
 
     public async Task SendMessageAsync(IInteractionContext context, Guid id)
     {
         if (GetLastRun(context, id) is not null) return;
 
-        var button = await _db.Set<LinkedButton>().FindAsync(id);
+        var button = await db.Set<LinkedButton>().FindAsync(id);
         if (button is null || button.Guild.Id != context.Guild.Id) return;
 
         await SendMessageAsync(
@@ -88,7 +79,7 @@ public class LinkingService
         if (message.Channel is not IGuildChannel channel)
             return null;
 
-        var guild = await _db.Guilds.TrackGuildAsync(channel.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(channel.Guild);
 
         var components = message.Components.Cast<ActionRowComponent>();
         var rows = components.Select(r => new ActionRow(r)).ToList();
@@ -99,21 +90,21 @@ public class LinkingService
         var component = rows.AddComponent(linked.Button, options.Row);
         await message.ModifyAsync(m => m.Components = component.ToBuilder().Build());
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         return linked;
     }
 
     public async Task<LinkedButton?> LinkTemplateAsync(
         Context context, MessageTemplate template, ILinkedButtonOptions options)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 
         var builder = GetButtonBuilder(options);
         var linked = GetButton(guild, new LinkedButton(builder, options));
 
         template.Components.AddComponent(linked.Button, options.Row).ToBuilder().Build();
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         return linked;
     }
 
@@ -132,17 +123,17 @@ public class LinkingService
     private DateTimeOffset? GetLastRun(IInteractionContext context, Guid id)
     {
         var key = $"{context.User.Id}.{id}";
-        if (_cache.TryGetValue<DateTimeOffset>(key, out var lastRun))
+        if (cache.TryGetValue<DateTimeOffset>(key, out var lastRun))
             return lastRun;
 
-        _cache.Set(key, DateTimeOffset.UtcNow, TimeSpan.FromSeconds(15));
+        cache.Set(key, DateTimeOffset.UtcNow, TimeSpan.FromSeconds(15));
         return null;
     }
 
     private LinkedButton GetButton(GuildEntity guild, LinkedButton button)
     {
         guild.LinkedButtons.Add(button);
-        _db.UpdateRange(guild.LinkedButtons);
+        db.UpdateRange(guild.LinkedButtons);
 
         if (button.Button.Style is not ButtonStyle.Link)
             button.Button.CustomId = $"linked:{button.Id}";
@@ -155,7 +146,7 @@ public class LinkingService
     {
         if (!dmUser) await context.DeferAsync();
         if (template?.IsLive ?? false)
-            await _db.UpdateAsync(template, context.Guild);
+            await db.UpdateAsync(template, context.Guild);
 
         var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
         var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();

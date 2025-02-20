@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -42,17 +42,8 @@ public interface IImageService
     ValueTask<Color> GetDominantColorAsync(Uri location);
 }
 
-public sealed class ImageService : IImageService
+public sealed class ImageService(IHttpClientFactory httpClientFactory, IMemoryCache cache) : IImageService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMemoryCache _cache;
-
-    public ImageService(IHttpClientFactory httpClientFactory, IMemoryCache cache)
-    {
-        _httpClientFactory = httpClientFactory;
-        _cache             = cache;
-    }
-
     /// <inheritdoc />
     public Color GetDominantColor(byte[] imageBytes)
     {
@@ -100,13 +91,13 @@ public sealed class ImageService : IImageService
     {
         var key = GetKey(location);
 
-        if (_cache.TryGetValue(key, out Color color))
+        if (cache.TryGetValue(key, out Color color))
             return color;
 
         try
         {
-            var imageBytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(location);
-            return _cache.Set(key, GetDominantColor(imageBytes), TimeSpan.FromHours(1));
+            var imageBytes = await httpClientFactory.CreateClient().GetByteArrayAsync(location);
+            return cache.Set(key, GetDominantColor(imageBytes), TimeSpan.FromHours(1));
         }
         catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound)
         {

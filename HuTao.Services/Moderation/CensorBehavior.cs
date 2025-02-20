@@ -16,23 +16,12 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Moderation;
 
-public class CensorBehavior :
-    INotificationHandler<MessageReceivedNotification>,
-    INotificationHandler<MessageUpdatedNotification>,
-    INotificationHandler<UserJoinedNotification>,
-    INotificationHandler<GuildMemberUpdatedNotification>
+public class CensorBehavior(HuTaoContext db, IMemoryCache cache, ModerationService moderation)
+    : INotificationHandler<MessageReceivedNotification>,
+      INotificationHandler<MessageUpdatedNotification>,
+      INotificationHandler<UserJoinedNotification>,
+      INotificationHandler<GuildMemberUpdatedNotification>
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-    private readonly ModerationService _moderation;
-
-    public CensorBehavior(HuTaoContext db, IMemoryCache cache, ModerationService moderation)
-    {
-        _db         = db;
-        _cache      = cache;
-        _moderation = moderation;
-    }
-
     public Task Handle(GuildMemberUpdatedNotification notification, CancellationToken cancellationToken)
         => ProcessUser(notification.NewMember, cancellationToken);
 
@@ -54,11 +43,11 @@ public class CensorBehavior :
                 Channel: ITextChannel channel
             }) return;
 
-        var rules = await _db.Guilds.GetRulesAsync(channel.Guild, _cache, cancellationToken);
+        var rules = await db.Guilds.GetRulesAsync(channel.Guild, cache, cancellationToken);
         if (rules is null || rules.CensorExclusions.Any(e => e.Judge(channel, user)))
             return;
 
-        await _db.Users.TrackUserAsync(user, cancellationToken);
+        await db.Users.TrackUserAsync(user, cancellationToken);
         var currentUser = await channel.Guild.GetCurrentUserAsync();
 
         var censors = rules.Triggers.OfType<Censor>().Where(c => c.IsActive).ToList()
@@ -71,7 +60,7 @@ public class CensorBehavior :
                 user, currentUser, "[Censor Triggered]",
                 censor, Category: censor.Category);
 
-            await _moderation.CensorAsync(message, Length(censor), details, cancellationToken);
+            await moderation.CensorAsync(message, Length(censor), details, cancellationToken);
         }
 
         await ProcessUser(user, cancellationToken);
@@ -83,11 +72,11 @@ public class CensorBehavior :
     {
         if (user.IsBot) return;
 
-        var rules = await _db.Guilds.GetRulesAsync(user.Guild, _cache, cancellationToken);
+        var rules = await db.Guilds.GetRulesAsync(user.Guild, cache, cancellationToken);
         if (rules is null || rules.CensorExclusions.Any(e => e.Judge(null, user)))
             return;
 
-        await _db.Users.TrackUserAsync(user, cancellationToken);
+        await db.Users.TrackUserAsync(user, cancellationToken);
         var currentUser = await user.Guild.GetCurrentUserAsync();
 
         if (string.IsNullOrWhiteSpace(rules.NameReplacement)) return;
@@ -106,7 +95,7 @@ public class CensorBehavior :
                 user, currentUser, "[Nickname Censor Triggered]",
                 censor, Category: censor.Category);
 
-            var result = await _moderation.CensorNameAsync(
+            var result = await moderation.CensorNameAsync(
                 user.Nickname, rules.NameReplacement,
                 Length(censor), details, cancellationToken);
 
@@ -121,7 +110,7 @@ public class CensorBehavior :
                 user, currentUser, "[Username Censor Triggered]",
                 censor, Category: censor.Category);
 
-            var result = await _moderation.CensorNameAsync(
+            var result = await moderation.CensorNameAsync(
                 user.Username, rules.NameReplacement,
                 Length(censor), details, cancellationToken);
 

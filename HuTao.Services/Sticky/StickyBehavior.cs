@@ -9,27 +9,18 @@ using MediatR;
 
 namespace HuTao.Services.Sticky;
 
-public class StickyBehavior : INotificationHandler<MessageReceivedNotification>
+public class StickyBehavior(StickyService sticky, HuTaoContext db) : INotificationHandler<MessageReceivedNotification>
 {
-    private readonly HuTaoContext _db;
-    private readonly StickyService _sticky;
-
-    public StickyBehavior(StickyService sticky, HuTaoContext db)
-    {
-        _sticky = sticky;
-        _db     = db;
-    }
-
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
         if (notification.Message.Channel is not ITextChannel channel || notification.Message.Author.IsBot)
             return;
 
-        var guild = await _db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
+        var guild = await db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
 
-        var sticky = guild.StickyMessages.FirstOrDefault(m => m.ChannelId == channel.Id && m.IsActive);
-        if (sticky is null) return;
+        var sticky1 = guild.StickyMessages.FirstOrDefault(m => m.ChannelId == channel.Id && m.IsActive);
+        if (sticky1 is null) return;
 
-        await _sticky.SendStickyMessage(sticky, channel);
+        await sticky.SendStickyMessage(sticky1, channel);
     }
 }

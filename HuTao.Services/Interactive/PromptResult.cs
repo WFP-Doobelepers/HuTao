@@ -1,21 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Discord.Commands;
 
 namespace HuTao.Services.Interactive;
 
-public class PromptResult
+public class PromptResult(string question, object? userResponse)
 {
-    public PromptResult(string question, object? userResponse)
-    {
-        Question     = question;
-        UserResponse = userResponse;
-    }
+    public object? UserResponse { get; } = userResponse;
 
-    public object? UserResponse { get; }
-
-    public string Question { get; }
+    public string Question { get; } = question;
 
     public T As<T>()
     {

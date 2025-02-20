@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,17 +19,9 @@ using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 namespace HuTao.Bot.Modules.Moderation;
 
 [Group("category")]
-public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
+public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db)
+    : InteractiveEntity<ModerationCategory>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-
-    public ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db)
-    {
-        _error = error;
-        _db    = db;
-    }
-
     [Command("add")]
     [Summary("Add a new moderation category.")]
     public async Task AddModerationCategoryAsync(string name, ModerationCategoryOptions? options = null)
@@ -50,7 +42,7 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
         }
 
         collection.Add(category);
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         await ReplyAsync(embed: EntityViewer(category).WithColor(Color.Green).Build());
     }
 
@@ -62,13 +54,13 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
     {
         if (category == ModerationCategory.All)
         {
-            await _error.AssociateError(Context, "You cannot set the default category to `All`.");
+            await error.AssociateError(Context, "You cannot set the default category to `All`.");
             return;
         }
 
-        var user = await _db.Users.TrackUserAsync(Context.User, Context.Guild);
+        var user = await db.Users.TrackUserAsync(Context.User, Context.Guild);
         user.DefaultCategory = category == ModerationCategory.None ? null : category;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
     }
@@ -89,7 +81,7 @@ public class ModerationCategoryModule : InteractiveEntity<ModerationCategory>
 
     protected override async Task<ICollection<ModerationCategory>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationCategories;
     }
 

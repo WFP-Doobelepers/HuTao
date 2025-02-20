@@ -27,19 +27,9 @@ namespace HuTao.Bot.Modules.Moderation;
 [Alias("triggers")]
 [Summary("Reprimand triggers.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
+public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
+    : InteractiveTrigger<ReprimandTrigger>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
-    {
-        _error      = error;
-        _db         = db;
-        _moderation = moderation;
-    }
-
     [Command("ban")]
     public async Task BanTriggerAsync(TriggerSource source,
         uint deleteDays = 0, TimeSpan? length = null,
@@ -83,7 +73,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     {
         if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
         {
-            await _error.AssociateError(Context, "No roles specified.");
+            await error.AssociateError(Context, "No roles specified.");
             return;
         }
 
@@ -110,11 +100,11 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
         if (trigger is null)
         {
-            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
             return;
         }
 
-        var reprimands = await _db.Set<Reprimand>().AsAsyncEnumerable()
+        var reprimands = await db.Set<Reprimand>().AsAsyncEnumerable()
             .Where(r => r.TriggerId == trigger.Id)
             .ToListAsync();
 
@@ -138,20 +128,20 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
 
     protected override async Task RemoveEntityAsync(ReprimandTrigger entity)
     {
-        var triggerHasReprimand = _db.Set<Reprimand>()
+        var triggerHasReprimand = db.Set<Reprimand>()
             .Any(r => r.TriggerId == entity.Id);
 
         if (triggerHasReprimand)
             entity.IsActive = false;
         else
-            await _moderation.DeleteTriggerAsync(entity, (IGuildUser) Context.User, false);
+            await moderation.DeleteTriggerAsync(entity, (IGuildUser) Context.User, false);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     protected override async Task<ICollection<ReprimandTrigger>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         return rules.Triggers.OfType<ReprimandTrigger>().ToList();
@@ -160,7 +150,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
     private async Task TryAddTriggerAsync(
         ReprimandAction action, TriggerSource source, ITrigger? options)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         var trigger = new ReprimandTrigger(options, source, action);
@@ -174,7 +164,7 @@ public class ReprimandTriggersModule : InteractiveTrigger<ReprimandTrigger>
         if (existing is not null) await RemoveEntityAsync(existing);
 
         rules.Triggers.Add(trigger.WithModerator(Context));
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         var embed = EntityViewer(trigger).WithColor(Color.Green);
         await ReplyAsync(embed: embed.Build());

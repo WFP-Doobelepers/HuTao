@@ -19,19 +19,9 @@ namespace HuTao.Bot.Modules.Linking;
 [Group("button")]
 [Name("Button Linking")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class LinkedButtonModule : InteractiveEntity<LinkedButton>
+public class LinkedButtonModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
+    : InteractiveEntity<LinkedButton>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-    private readonly LinkingService _linking;
-
-    public LinkedButtonModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
-    {
-        _error   = error;
-        _linking = linking;
-        _db      = db;
-    }
-
     [Command("link")]
     [Summary("Links a message to another message using a button.")]
     public async Task LinkAsync(
@@ -43,10 +33,10 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
         [Remainder] LinkedMessageOptions options)
     {
         var message = await GetMessageAsync(link, options.Channel);
-        var button = await _linking.LinkMessageAsync(message, options);
+        var button = await linking.LinkMessageAsync(message, options);
 
         if (button is null)
-            await _error.AssociateError(Context.Message, "Provide a Message/URL in your button and an Emote/Label.");
+            await error.AssociateError(Context.Message, "Provide a Message/URL in your button and an Emote/Label.");
         else
             await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
@@ -90,11 +80,11 @@ public class LinkedButtonModule : InteractiveEntity<LinkedButton>
 
     protected override string Id(LinkedButton entity) => entity.Id.ToString();
 
-    protected override Task RemoveEntityAsync(LinkedButton entity) => _linking.DeleteAsync(entity);
+    protected override Task RemoveEntityAsync(LinkedButton entity) => linking.DeleteAsync(entity);
 
     protected override async Task<ICollection<LinkedButton>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.LinkedButtons;
     }
 

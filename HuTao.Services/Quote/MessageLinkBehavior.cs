@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -18,27 +18,14 @@ using MessageExtensions = HuTao.Services.Utilities.MessageExtensions;
 
 namespace HuTao.Services.Quote;
 
-public class MessageLinkBehavior :
-    INotificationHandler<MessageReceivedNotification>
+public class MessageLinkBehavior(
+    AuthorizationService auth,
+    CommandErrorHandler error,
+    DiscordSocketClient discordClient,
+    InteractiveService interactive,
+    IQuoteService quoteService)
+    : INotificationHandler<MessageReceivedNotification>
 {
-    private readonly AuthorizationService _auth;
-    private readonly CommandErrorHandler _error;
-    private readonly DiscordSocketClient _discordClient;
-    private readonly InteractiveService _interactive;
-    private readonly IQuoteService _quoteService;
-
-    public MessageLinkBehavior(
-        AuthorizationService auth, CommandErrorHandler error,
-        DiscordSocketClient discordClient, InteractiveService interactive,
-        IQuoteService quoteService)
-    {
-        _auth          = auth;
-        _error         = error;
-        _discordClient = discordClient;
-        _interactive   = interactive;
-        _quoteService  = quoteService;
-    }
-
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
         => await OnMessageReceivedAsync(notification.Message, cancellationToken);
 
@@ -47,8 +34,8 @@ public class MessageLinkBehavior :
         if (message is not SocketUserMessage { Author.IsBot: false } source) return;
         if (message.Content?.StartsWith(HuTaoConfig.Configuration.Prefix) ?? true) return;
 
-        var context = (Context) new SocketCommandContext(_discordClient, source);
-        if (!await _auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
+        var context = (Context) new SocketCommandContext(discordClient, source);
+        if (!await auth.IsAuthorizedAsync(context, AuthorizationScope.Quote, cancellationToken))
             return;
 
         try
@@ -57,7 +44,7 @@ public class MessageLinkBehavior :
         }
         catch (HttpException ex)
         {
-            await _error.AssociateError(context, ex.Message);
+            await error.AssociateError(context, ex.Message);
         }
     }
 
@@ -68,13 +55,13 @@ public class MessageLinkBehavior :
         var urls = MessageExtensions.GetJumpMessages(source.Content).ToList();
         if (!urls.Any()) return;
 
-        var paginator = await _quoteService.GetPaginatorAsync(context, source, urls);
+        var paginator = await quoteService.GetPaginatorAsync(context, source, urls);
         if (paginator is null) return;
 
         var page = await paginator.GetOrLoadCurrentPageAsync() as QuotedPage;
         if (MessageExtensions.IsJumpUrls(source.Content)) _ = source.DeleteAsync();
 
-        await _interactive.SendPaginatorAsync(paginator, source.Channel,
+        await interactive.SendPaginatorAsync(paginator, source.Channel,
             cancellationToken: cancellationToken,
             messageAction: m => MessageAction(m, page?.Quote));
     }

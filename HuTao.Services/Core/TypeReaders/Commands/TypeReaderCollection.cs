@@ -6,19 +6,15 @@ using Discord.Commands;
 
 namespace HuTao.Services.Core.TypeReaders.Commands;
 
-public class TypeReaderCollection : TypeReader
+public class TypeReaderCollection(IEnumerable<TypeReader> readers) : TypeReader
 {
-    private readonly IEnumerable<TypeReader> _readers;
-
-    public TypeReaderCollection(IEnumerable<TypeReader> readers) { _readers = readers; }
-
     public override async Task<TypeReaderResult> ReadAsync(
         ICommandContext context, string input, IServiceProvider services)
     {
         var success = new List<TypeReaderValue>();
         var errors = new List<TypeReaderResult>();
 
-        foreach (var reader in _readers)
+        foreach (var reader in readers)
         {
             var result = await reader.ReadAsync(context, input, services);
             if (result.Error is not null)

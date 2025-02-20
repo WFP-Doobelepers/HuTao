@@ -21,12 +21,8 @@ namespace HuTao.Bot.Modules.Moderation;
 [Summary(
     "Reprimand templates are a way to quickly reprimand a user using a template. They are executed using the `template` command.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
+public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<ModerationTemplate>
 {
-    private readonly HuTaoContext _db;
-
-    public ModerationTemplatesModule(HuTaoContext db) { _db = db; }
-
     [Command("ban")]
     public async Task BanTemplateAsync(string name, BanTemplateOptions options)
     {
@@ -103,20 +99,20 @@ public class ModerationTemplatesModule : InteractiveEntity<ModerationTemplate>
 
     protected override async Task<ICollection<ModerationTemplate>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationTemplates;
     }
 
     private async Task AddTemplateAsync(string name, ReprimandAction action, ITemplateOptions options)
     {
         var template = new ModerationTemplate(name, action, options);
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
 
         var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name == template.Name);
         if (existing is not null) await RemoveEntityAsync(existing);
 
         guild.ModerationTemplates.Add(template);
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         var embed = EntityViewer(template)
             .WithColor(Color.Green)

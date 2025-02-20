@@ -9,10 +9,8 @@ namespace HuTao.Services.Evaluation;
 [SuppressMessage("ReSharper", "UnusedParameter.Global")]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
-public class ConsoleLikeStringWriter : StringWriter
+public class ConsoleLikeStringWriter(StringBuilder builder) : StringWriter(builder)
 {
-    public ConsoleLikeStringWriter(StringBuilder builder) : base(builder) { }
-
     public ConsoleKeyInfo ReadKey() => new('z', ConsoleKey.Z, false, false, false);
 
     public ConsoleKeyInfo ReadKey(bool z)

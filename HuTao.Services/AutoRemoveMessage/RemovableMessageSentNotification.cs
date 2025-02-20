@@ -1,18 +1,12 @@
-﻿using System;
+using System;
 using Discord;
 using MediatR;
 
 namespace HuTao.Services.AutoRemoveMessage;
 
-public class RemovableMessageSentNotification : INotification
+public class RemovableMessageSentNotification(IMessage message, IUser[] users) : INotification
 {
-    public RemovableMessageSentNotification(IMessage message, IUser[] users)
-    {
-        Message = message ?? throw new ArgumentNullException(nameof(message));
-        Users   = users ?? throw new ArgumentNullException(nameof(users));
-    }
+    public IMessage Message { get; } = message ?? throw new ArgumentNullException(nameof(message));
 
-    public IMessage Message { get; }
-
-    public IUser[] Users { get; }
+    public IUser[] Users { get; } = users ?? throw new ArgumentNullException(nameof(users));
 }

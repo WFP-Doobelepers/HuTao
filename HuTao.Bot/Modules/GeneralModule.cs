@@ -9,18 +9,14 @@ using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
 namespace HuTao.Bot.Modules;
 
-public class GeneralModule : ModuleBase<SocketCommandContext>
+public class GeneralModule(EvaluationService evaluation) : ModuleBase<SocketCommandContext>
 {
-    private readonly EvaluationService _evaluation;
-
-    public GeneralModule(EvaluationService evaluation) { _evaluation = evaluation; }
-
     [Command("eval")]
     [RequireTeamMember]
     public async Task EvalAsync([Remainder] string code)
     {
         var context = new CommandContext(Context);
-        var result = await _evaluation.EvaluateAsync(context, code);
+        var result = await evaluation.EvaluateAsync(context, code);
 
         var embed = EvaluationService.BuildEmbed(context, result);
         await ReplyAsync(embed: embed.Build());

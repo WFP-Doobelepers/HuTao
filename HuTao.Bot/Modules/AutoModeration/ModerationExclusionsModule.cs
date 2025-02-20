@@ -20,24 +20,15 @@ namespace HuTao.Bot.Modules.AutoModeration;
 
 [Name("Auto Moderation Exclusions")]
 [Group("auto")]
-public class ModerationExclusionsModule : InteractiveEntity<ModerationExclusion>
+public class ModerationExclusionsModule(HuTaoContext db, IMemoryCache cache) : InteractiveEntity<ModerationExclusion>
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public ModerationExclusionsModule(HuTaoContext db, IMemoryCache cache)
-    {
-        _db    = db;
-        _cache = cache;
-    }
-
     [Command("exclude")]
     [Alias("ignore")]
     [Summary("Add an exclusion to the auto-moderation system.")]
     public async Task ExcludeAsync(ModerationExclusionsOptions options)
     {
-        await AddEntitiesAsync(await options.GetExclusionsAsync(_db, options.Configuration));
-        _cache.InvalidateCaches(Context.Guild);
+        await AddEntitiesAsync(await options.GetExclusionsAsync(db, options.Configuration));
+        cache.InvalidateCaches(Context.Guild);
     }
 
     [Command("include")]
@@ -62,7 +53,7 @@ public class ModerationExclusionsModule : InteractiveEntity<ModerationExclusion>
 
     protected override async Task<ICollection<ModerationExclusion>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
 
         return guild.ModerationRules.Exclusions;

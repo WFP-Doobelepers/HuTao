@@ -17,19 +17,9 @@ namespace HuTao.Bot.Modules.Linking;
 [Group("message")]
 [Name("Message Template Linking")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
+public class MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
+    : InteractiveEntity<MessageTemplate>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-    private readonly LinkingService _linking;
-
-    public MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, LinkingService linking)
-    {
-        _error   = error;
-        _linking = linking;
-        _db      = db;
-    }
-
     [Command("link")]
     [Summary("Links a message to another message template using a button.")]
     public async Task LinkAsync(
@@ -39,10 +29,10 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
         var template = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (template is null) return;
 
-        var button = await _linking.LinkTemplateAsync(Context, template, options);
+        var button = await linking.LinkTemplateAsync(Context, template, options);
 
         if (button is null)
-            await _error.AssociateError(Context.Message, "Provide a Message/URL in your button and an Emote/Label.");
+            await error.AssociateError(Context.Message, "Provide a Message/URL in your button and an Emote/Label.");
         else
             await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
@@ -62,11 +52,11 @@ public class MessageTemplateModule : InteractiveEntity<MessageTemplate>
 
     protected override string Id(MessageTemplate entity) => entity.Id.ToString();
 
-    protected override Task RemoveEntityAsync(MessageTemplate entity) => _linking.DeleteAsync(entity);
+    protected override Task RemoveEntityAsync(MessageTemplate entity) => linking.DeleteAsync(entity);
 
     protected override async Task<ICollection<MessageTemplate>> GetCollectionAsync()
     {
-        var templates = _db.Set<MessageTemplate>();
+        var templates = db.Set<MessageTemplate>();
         var channels = Context.Guild.Channels.Select(c => c.Id);
         return await templates.Where(t => channels.Contains(t.ChannelId)).ToListAsync();
     }

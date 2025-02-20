@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -16,16 +16,12 @@ public static class Optional
         message?.Content.Equals(SkipString, StringComparison.OrdinalIgnoreCase) ?? true;
 }
 
-public class OptionalTypeReader : TypeReader
+public class OptionalTypeReader(TypeReader reader) : TypeReader
 {
-    private readonly TypeReader _reader;
-
-    public OptionalTypeReader(TypeReader reader) { _reader = reader; }
-
     public override async Task<TypeReaderResult> ReadAsync(
         ICommandContext context, string input, IServiceProvider services)
     {
-        var result = await _reader.ReadAsync(context, input, services);
+        var result = await reader.ReadAsync(context, input, services);
 
         return result.IsSuccess || input.IsSkipped()
             ? TypeReaderResult.FromSuccess(result)

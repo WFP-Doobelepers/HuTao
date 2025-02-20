@@ -22,20 +22,11 @@ using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus
 namespace HuTao.Bot.Modules.Moderation;
 
 [Group("reprimand", "Reprimand management commands")]
-public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
+public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService auth, ModerationService moderation)
+    : InteractionEntity<Reprimand>
 {
     private const AuthorizationScope Scope = All | Modify;
     private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
-    private readonly AuthorizationService _auth;
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public InteractiveReprimandsModule(HuTaoContext db, AuthorizationService auth, ModerationService moderation)
-    {
-        _auth       = auth;
-        _db         = db;
-        _moderation = moderation;
-    }
 
     [SlashCommand("pardon", "Pardon a reprimand, this would mean they are not counted towards triggers.")]
     public async Task PardonReprimandAsync(
@@ -46,7 +37,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         await DeferAsync(ephemeral);
         var reprimand = await TryFindEntityAsync(id);
         await ModifyReprimandAsync(reprimand, ephemeral, (r, d, t)
-            => _moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
+            => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
     [SlashCommand("default-category", "Sets the default category for reprimands.")]
@@ -62,9 +53,9 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             return;
         }
 
-        var user = await _db.Users.TrackUserAsync(Context.User, Context.Guild);
+        var user = await db.Users.TrackUserAsync(Context.User, Context.Guild);
         user.DefaultCategory = category == ModerationCategory.None ? null : category;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync($"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
     }
@@ -77,7 +68,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
     {
         await DeferAsync(ephemeral);
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, ephemeral, _moderation.UpdateReprimandAsync, reason);
+        await ModifyReprimandAsync(reprimand, ephemeral, moderation.UpdateReprimandAsync, reason);
     }
 
     [SlashCommand("history", "Views the entire reprimand history of the server.")]
@@ -106,7 +97,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             return;
         }
 
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
         if (!authorized)
             await RespondAsync(NotAuthorizedMessage, ephemeral: true);
         else
@@ -146,17 +137,17 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
     protected override async Task RemoveEntityAsync(Reprimand entity, bool ephemeral)
     {
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
         else
-            await ModifyReprimandAsync(entity, ephemeral, _moderation.DeleteReprimandAsync);
+            await ModifyReprimandAsync(entity, ephemeral, moderation.DeleteReprimandAsync);
     }
 
     protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ReprimandHistory;
     }
 
@@ -164,7 +155,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
         Reprimand? reprimand, bool ephemeral,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
 
         if (!authorized)
             await FollowupAsync(NotAuthorizedMessage, ephemeral: true);
@@ -172,7 +163,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
         else
         {
-            var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+            var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
             var variables = guild.ModerationRules?.Variables;
             var user = await ((IDiscordClient) Context.Client).GetUserAsync(reprimand.UserId);
             var details = new ReprimandDetails(
@@ -185,7 +176,7 @@ public class InteractiveReprimandsModule : InteractionEntity<Reprimand>
 
     private async Task UpdateReprimandAsync<T>(string customId, string id) where T : ReprimandModal
     {
-        var reprimand = _db.Set<Reprimand>().FirstOrDefault(r => r.Id.ToString() == id);
+        var reprimand = db.Set<Reprimand>().FirstOrDefault(r => r.Id.ToString() == id);
         if (reprimand is null)
         {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);

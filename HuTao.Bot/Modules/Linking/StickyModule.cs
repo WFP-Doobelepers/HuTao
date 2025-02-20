@@ -18,17 +18,8 @@ namespace HuTao.Bot.Modules.Linking;
 [Name("Sticky Messages")]
 [Group("sticky")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class StickyModule : InteractiveEntity<StickyMessage>
+public class StickyModule(CommandErrorHandler error, StickyService sticky) : InteractiveEntity<StickyMessage>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly StickyService _sticky;
-
-    public StickyModule(CommandErrorHandler error, StickyService sticky)
-    {
-        _error  = error;
-        _sticky = sticky;
-    }
-
     [Command("add")]
     [RequireContext(ContextType.Guild)]
     public async Task AddStickyMessage(
@@ -39,10 +30,10 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     {
         var channel = options?.Channel ?? (ITextChannel) Context.Channel;
         var template = new MessageTemplate(message, options);
-        var sticky = new StickyMessage(template, channel, options);
+        var sticky1 = new StickyMessage(template, channel, options);
 
-        await _sticky.AddAsync(sticky, (IGuildChannel) Context.Channel);
-        await _sticky.SendStickyMessage(sticky, channel);
+        await sticky.AddAsync(sticky1, (IGuildChannel) Context.Channel);
+        await sticky.SendStickyMessage(sticky1, channel);
     }
 
     [Command("disable")]
@@ -50,12 +41,12 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     public async Task DisableStickyMessageAsync(
         [Summary("The ID of the sticky message to disable.")] string id)
     {
-        var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
-        if (sticky == null)
-            await _error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
+        var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
+        if (sticky1 == null)
+            await error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
         else
         {
-            await _sticky.DisableAsync(sticky);
+            await sticky.DisableAsync(sticky1);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
     }
@@ -64,12 +55,12 @@ public class StickyModule : InteractiveEntity<StickyMessage>
     public async Task EnableStickyMessageAsync(
         [Summary("The ID of the sticky message to enable.")] string id)
     {
-        var sticky = await TryFindEntityAsync(id, await GetCollectionAsync());
-        if (sticky == null)
-            await _error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
+        var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
+        if (sticky1 == null)
+            await error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
         else
         {
-            await _sticky.EnableAsync(sticky, (IGuildChannel) Context.Channel);
+            await sticky.EnableAsync(sticky1, (IGuildChannel) Context.Channel);
             await Context.Message.AddReactionAsync(new Emoji("✅"));
         }
     }
@@ -99,10 +90,10 @@ public class StickyModule : InteractiveEntity<StickyMessage>
 
     protected override string Id(StickyMessage entity) => entity.Id.ToString();
 
-    protected override Task RemoveEntityAsync(StickyMessage entity) => _sticky.DeleteAsync(entity);
+    protected override Task RemoveEntityAsync(StickyMessage entity) => sticky.DeleteAsync(entity);
 
     protected override Task<ICollection<StickyMessage>> GetCollectionAsync()
-        => _sticky.GetStickyMessages(Context.Guild);
+        => sticky.GetStickyMessages(Context.Guild);
 
     [NamedArgumentType]
     public class StickyMessageOptions : IMessageTemplateOptions, IStickyMessageOptions

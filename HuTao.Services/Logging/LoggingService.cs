@@ -30,21 +30,9 @@ using Attachment = HuTao.Data.Models.Discord.Message.Attachment;
 
 namespace HuTao.Services.Logging;
 
-public class LoggingService
+public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoContext db, IMemoryCache cache)
 {
     private const EmbedBuilderOptions LogEmbedOptions = UseProxy | EnlargeThumbnails | ReplaceAnimations;
-    private readonly DiscordSocketClient _client;
-    private readonly HttpClient _http;
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public LoggingService(DiscordSocketClient client, HttpClient http, HuTaoContext db, IMemoryCache cache)
-    {
-        _client = client;
-        _http   = http;
-        _db     = db;
-        _cache  = cache;
-    }
 
     public async Task LogAsync(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
@@ -77,7 +65,7 @@ public class LoggingService
         if (reactor is not IGuildUser { IsBot: false } guildUser) return;
 
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
-        var userEntity = await _db.Users.TrackUserAsync(guildUser, cancellationToken);
+        var userEntity = await db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
         await PublishLogAsync(log, LogType.ReactionAdded, channel.Guild, cancellationToken);
     }
@@ -148,7 +136,7 @@ public class LoggingService
     }
 
     public async Task<IUser?> GetUserAsync<T>(T? log) where T : IMessageEntity
-        => log is null ? null : await ((IDiscordClient) _client).GetUserAsync(log.UserId);
+        => log is null ? null : await ((IDiscordClient) client).GetUserAsync(log.UserId);
 
     public ValueTask<MessageLog?> GetLatestMessage(
         ulong guildId, ulong channelId, ulong messageId,
@@ -160,7 +148,7 @@ public class LoggingService
             cancellationToken);
 
     private IEnumerable<MessageLog> GetLatestMessages(IGuildChannel channel, IEnumerable<ulong> messageIds)
-        => _db.Set<MessageLog>()
+        => db.Set<MessageLog>()
             .Where(m => m.GuildId == channel.Guild.Id)
             .Where(m => m.ChannelId == channel.Id)
             .Where(m => m.UpdatedLog == null)
@@ -169,7 +157,7 @@ public class LoggingService
 
     private async Task PublishLogAsync(DeleteDetails details, CancellationToken cancellationToken)
     {
-        var guildEntity = await _db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
+        var guildEntity = await db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
         var options = guildEntity.LoggingRules?.UploadAttachments is true
             ? LogEmbedOptions | UploadAttachments
             : LogEmbedOptions;
@@ -248,7 +236,7 @@ public class LoggingService
 
         log.Embeds      = embedsEqual ? log.Embeds : embeds;
         log.Attachments = attachmentsEqual ? log.Attachments : attachments;
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         return message.Content == log.Content && embedsEqual && attachmentsEqual;
     }
@@ -263,7 +251,7 @@ public class LoggingService
             .AppendLine("# Message Bulk Deleted")
             .AppendLine($"- Created: {log.LogDate} {log.LogDate.Humanize()}")
             .AppendLine($"- Message Count: {logs.Count}")
-            .Append(await logs.GetDetailsAsync(_client));
+            .Append(await logs.GetDetailsAsync(client));
 
         return new EmbedLog(embed, content: content.ToString());
     }
@@ -302,7 +290,7 @@ public class LoggingService
         var files = options.HasFlag(UploadAttachments)
             ? await log.Attachments.ToAsyncEnumerable()
                 .Select(a => (Url: options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url, Name: a.Filename))
-                .SelectAwait(async a => new FileAttachment(await _http.GetStreamAsync(a.Url), a.Name))
+                .SelectAwait(async a => new FileAttachment(await http.GetStreamAsync(a.Url), a.Name))
                 .ToListAsync()
             : Enumerable.Empty<FileAttachment>();
 
@@ -417,14 +405,14 @@ public class LoggingService
 
     private async Task<IEnumerable<Criterion>> GetExclusionsAsync(IGuild guild, CancellationToken cancellationToken)
     {
-        var rules = await _db.Guilds.GetLoggingAsync(guild, _cache, cancellationToken);
+        var rules = await db.Guilds.GetLoggingAsync(guild, cache, cancellationToken);
         return rules?.LoggingExclusions ?? Enumerable.Empty<Criterion>();
     }
 
     private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
         CancellationToken cancellationToken)
     {
-        var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
+        var guildEntity = await db.Guilds.TrackGuildAsync(guild, cancellationToken);
 
         var channel = guildEntity.LoggingRules?.LoggingChannels.FirstOrDefault(r => r.Type == type);
         if (channel is null) return null;
@@ -435,8 +423,8 @@ public class LoggingService
     private async Task<MessageDeleteLog> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
         CancellationToken cancellationToken)
     {
-        var deleted = _db.Add(new MessageDeleteLog(message, details)).Entity;
-        await _db.SaveChangesAsync(cancellationToken);
+        var deleted = db.Add(new MessageDeleteLog(message, details)).Entity;
+        await db.SaveChangesAsync(cancellationToken);
 
         return deleted;
     }
@@ -446,7 +434,7 @@ public class LoggingService
         CancellationToken cancellationToken)
     {
         oldLog.UpdatedLog = await LogMessageAsync(user, message, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         return oldLog;
     }
@@ -454,10 +442,10 @@ public class LoggingService
     private async Task<MessageLog> LogMessageAsync(IGuildUser user, IUserMessage message,
         CancellationToken cancellationToken)
     {
-        var userEntity = await _db.Users.TrackUserAsync(user, cancellationToken);
+        var userEntity = await db.Users.TrackUserAsync(user, cancellationToken);
 
-        var log = _db.Add(new MessageLog(userEntity, message)).Entity;
-        await _db.SaveChangesAsync(cancellationToken);
+        var log = db.Add(new MessageLog(userEntity, message)).Entity;
+        await db.SaveChangesAsync(cancellationToken);
 
         return log;
     }
@@ -466,8 +454,8 @@ public class LoggingService
         IGuildChannel channel, ActionDetails? details,
         CancellationToken cancellationToken)
     {
-        var deleted = _db.Add(new MessagesDeleteLog(messages, channel, details)).Entity;
-        await _db.SaveChangesAsync(cancellationToken);
+        var deleted = db.Add(new MessagesDeleteLog(messages, channel, details)).Entity;
+        await db.SaveChangesAsync(cancellationToken);
 
         return deleted;
     }
@@ -475,11 +463,11 @@ public class LoggingService
     private async Task<ReactionDeleteLog> LogDeletionAsync(SocketReaction reaction, ActionDetails? details,
         CancellationToken cancellationToken)
     {
-        var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
+        var emote = await db.TrackEmoteAsync(reaction.Emote, cancellationToken);
         var deleted = new ReactionDeleteLog(emote, reaction, details);
 
-        _db.Add(deleted);
-        await _db.SaveChangesAsync(cancellationToken);
+        db.Add(deleted);
+        await db.SaveChangesAsync(cancellationToken);
 
         return deleted;
     }
@@ -487,16 +475,16 @@ public class LoggingService
     private async Task<ReactionLog?> LogReactionAsync(GuildUserEntity user, SocketReaction reaction,
         CancellationToken cancellationToken)
     {
-        var emote = await _db.TrackEmoteAsync(reaction.Emote, cancellationToken);
+        var emote = await db.TrackEmoteAsync(reaction.Emote, cancellationToken);
 
-        var log = _db.Add(new ReactionLog(user, reaction, emote)).Entity;
-        await _db.SaveChangesAsync(cancellationToken);
+        var log = db.Add(new ReactionLog(user, reaction, emote)).Entity;
+        await db.SaveChangesAsync(cancellationToken);
 
         return log;
     }
 
     private async ValueTask<IUserMessage> GetMessageAsync(Cacheable<IUserMessage, ulong> cached)
-        => await _cache.GetOrCreateAsync(cached.Id, async cacheEntry =>
+        => await cache.GetOrCreateAsync(cached.Id, async cacheEntry =>
         {
             cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(1);
             return await cached.GetOrDownloadAsync();
@@ -504,7 +492,7 @@ public class LoggingService
 
     private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
         CancellationToken cancellationToken) where T : class, ILog
-        => await _db.Set<T>().AsQueryable()
+        => await db.Set<T>().AsQueryable()
             .OrderByDescending(l => l.LogDate)
             .FirstOrDefaultAsync(filter, cancellationToken);
 

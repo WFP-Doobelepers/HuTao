@@ -31,19 +31,9 @@ namespace HuTao.Bot.Modules.Configuration;
 [Name("Configuration")]
 [Summary("Bot Configurations.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class ConfigureModule : ModuleBase<SocketCommandContext>
+public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationService moderation)
+    : ModuleBase<SocketCommandContext>
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-    private readonly ModerationService _moderation;
-
-    public ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationService moderation)
-    {
-        _db         = db;
-        _cache      = cache;
-        _moderation = moderation;
-    }
-
     [Command("censor nicknames")]
     [Alias("censor nickname")]
     [Summary("Whether nicknames should be censored. You must set `name replacement` for this to take effect.")]
@@ -54,8 +44,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.CensorNicknames = shouldCensor ?? !rules.CensorNicknames;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         await ReplyAsync($"New value: {rules.CensorNicknames}");
     }
@@ -70,8 +60,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.CensorUsernames = shouldCensor ?? !rules.CensorUsernames;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         await ReplyAsync($"New value: {rules.CensorUsernames}");
     }
@@ -86,8 +76,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.AutoReprimandCooldown = length;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Auto moderation cooldown has been disabled.");
@@ -104,8 +94,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.NoticeExpiryLength = length;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Auto-pardon of notices has been disabled.");
@@ -122,8 +112,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.WarningExpiryLength = length;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Auto-pardon of warnings has been disabled.");
@@ -141,8 +131,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.ReplaceMutes = shouldReplace ?? !rules.ReplaceMutes;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         await ReplyAsync($"New value: {rules.ReplaceMutes}");
     }
@@ -156,8 +146,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.CensoredExpiryLength = length;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Censor expiry has been disabled.");
@@ -174,8 +164,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.FilteredExpiryLength = length;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
             await ReplyAsync("Filter expiry has been disabled.");
@@ -193,8 +183,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
-        await _moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
-        _cache.InvalidateCaches(Context.Guild);
+        await moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
             await ReplyAsync("Mute role has been configured.");
@@ -212,8 +202,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
-        await _moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
-        _cache.InvalidateCaches(Context.Guild);
+        await moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
             await ReplyAsync("Mute role has been configured.");
@@ -231,8 +221,8 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
         var rules = await GetRulesAsync(category);
         rules.NameReplacement = replacement;
 
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         if (replacement is null)
             await ReplyAsync("Name replacement has been disabled.");
@@ -247,13 +237,13 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             "Mention, ID, or name of the hub voice channel that the user can join to create a new voice chat.")]
         IVoiceChannel hubVoiceChannel, VoiceChatOptions? options = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
 
         if (hubVoiceChannel.CategoryId is null)
             return;
 
         if (guild.VoiceChatRules is not null)
-            _db.Remove(guild.VoiceChatRules);
+            db.Remove(guild.VoiceChatRules);
 
         guild.VoiceChatRules = new VoiceChatRules
         {
@@ -266,7 +256,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
             ShowJoinLeave          = options?.ShowJoinLeave ?? true
         };
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         var embed = new EmbedBuilder()
             .WithTitle("Voice Chat settings")
@@ -286,7 +276,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     [Summary("View the current settings.")]
     public async Task ViewSettingsAsync(ModerationCategory? category = null)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = await GetRulesAsync(category);
 
         var mod = rules.Logging;
@@ -394,7 +384,7 @@ public class ConfigureModule : ModuleBase<SocketCommandContext>
     private async Task<IModerationRules> GetRulesAsync(ModerationCategory? category)
     {
         if (category is not null) return category;
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationRules ??= new ModerationRules();
     }
 

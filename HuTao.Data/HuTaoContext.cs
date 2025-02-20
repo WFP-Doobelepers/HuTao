@@ -1,4 +1,4 @@
-﻿using HuTao.Data.Models.Criteria;
+using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Components;
 using HuTao.Data.Models.Discord.Reaction;
@@ -14,10 +14,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HuTao.Data;
 
-public class HuTaoContext : DbContext
+public class HuTaoContext(DbContextOptions<HuTaoContext> options) : DbContext(options)
 {
-    public HuTaoContext(DbContextOptions<HuTaoContext> options) : base(options) { }
-
     public DbSet<AttachmentConfiguration> AttachmentConfigurations { get; init; } = null!;
 
     public DbSet<Ban> BanHistory { get; init; } = null!;

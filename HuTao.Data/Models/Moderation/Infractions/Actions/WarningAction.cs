@@ -1,8 +1,6 @@
 namespace HuTao.Data.Models.Moderation.Infractions.Actions;
 
-public class WarningAction : ReprimandAction, IWarning
+public class WarningAction(uint count) : ReprimandAction, IWarning
 {
-    public WarningAction(uint count) { Count = count; }
-
-    public uint Count { get; set; }
+    public uint Count { get; set; } = count;
 }

@@ -6,17 +6,13 @@ using MediatR;
 
 namespace HuTao.Bot.Behaviors;
 
-public class ReactionLoggingBehavior :
-    INotificationHandler<ReactionAddedNotification>,
-    INotificationHandler<ReactionRemovedNotification>
+public class ReactionLoggingBehavior(LoggingService logging)
+    : INotificationHandler<ReactionAddedNotification>,
+      INotificationHandler<ReactionRemovedNotification>
 {
-    private readonly LoggingService _logging;
-
-    public ReactionLoggingBehavior(LoggingService logging) { _logging = logging; }
-
     public Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
-        => _logging.LogAsync(notification, cancellationToken);
+        => logging.LogAsync(notification, cancellationToken);
 
     public Task Handle(ReactionRemovedNotification notification, CancellationToken cancellationToken)
-        => _logging.LogAsync(notification, cancellationToken);
+        => logging.LogAsync(notification, cancellationToken);
 }

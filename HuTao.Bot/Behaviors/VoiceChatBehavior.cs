@@ -16,19 +16,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HuTao.Bot.Behaviors;
 
-public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification>
+public class VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
+    : INotificationHandler<UserVoiceStateNotification>
 {
     private static readonly Regex VcRegex = new(@"^VC([ ]|-)(?<i>[0-9]+)$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private readonly HuTaoContext _db;
-    private readonly ICommandHelpService _commandHelp;
-
-    public VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
-    {
-        _commandHelp = commandHelp;
-        _db          = db;
-    }
 
     private static ConcurrentDictionary<ulong, CancellationTokenSource> PurgeTasks { get; } = new();
 
@@ -38,10 +30,10 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
         if (notification.User.IsBot || notification.User.IsWebhook || notification.User is not SocketGuildUser user)
             return;
 
-        await _db.Users.TrackUserAsync(user, cancellationToken);
+        await db.Users.TrackUserAsync(user, cancellationToken);
 
         var guild = user.Guild;
-        var rules = await _db.Set<VoiceChatRules>().AsQueryable()
+        var rules = await db.Set<VoiceChatRules>().AsQueryable()
             .FirstOrDefaultAsync(r => r.GuildId == guild.Id, cancellationToken);
 
         if (rules is null)
@@ -89,7 +81,7 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                 var deny = new OverwritePermissions(viewChannel: PermValue.Deny);
                 await chat.AddPermissionOverwriteAsync(guild.EveryoneRole, deny);
 
-                if (_commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
+                if (commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
                 {
                     var embed = await paginated.Build().GetOrLoadCurrentPageAsync();
                     var message = await chat.SendMessageAsync(embeds: embed.GetEmbedArray());
@@ -107,8 +99,8 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
 
                 rules.VoiceChats.Add(voiceChat);
 
-                _db.Update(rules);
-                await _db.SaveChangesAsync(cancellationToken);
+                db.Update(rules);
+                await db.SaveChangesAsync(cancellationToken);
 
                 await user.ModifyAsync(u => u.Channel = voice);
             }
@@ -155,8 +147,8 @@ public class VoiceChatBehavior : INotificationHandler<UserVoiceStateNotification
                         _ = voiceChannel?.DeleteAsync();
                         _ = textChannel?.DeleteAsync();
 
-                        _db.Remove(voiceChat);
-                        await _db.SaveChangesAsync(cancellationToken);
+                        db.Remove(voiceChat);
+                        await db.SaveChangesAsync(cancellationToken);
                     }, tokenSource.Token);
 
                     PurgeTasks.TryAdd(oldChannel.Id, tokenSource);

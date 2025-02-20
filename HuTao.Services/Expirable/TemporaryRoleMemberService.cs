@@ -10,17 +10,10 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Expirable;
 
-public class TemporaryRoleMemberService : ExpirableService<TemporaryRoleMember>
+public class TemporaryRoleMemberService(IMemoryCache cache, HuTaoContext db, DiscordSocketClient client)
+    : ExpirableService<TemporaryRoleMember>(cache, db)
 {
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-
-    public TemporaryRoleMemberService(IMemoryCache cache, HuTaoContext db, DiscordSocketClient client)
-        : base(cache, db)
-    {
-        _client = client;
-        _db     = db;
-    }
+    private readonly HuTaoContext _db = db;
 
     public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length,
         CancellationToken cancellationToken = default)
@@ -39,7 +32,7 @@ public class TemporaryRoleMemberService : ExpirableService<TemporaryRoleMember>
     protected override async Task OnExpiredEntity(TemporaryRoleMember temporary,
         CancellationToken cancellationToken)
     {
-        IGuild guild = _client.GetGuild(temporary.GuildId);
+        IGuild guild = client.GetGuild(temporary.GuildId);
         if (guild is null) return;
         
         var role = guild.GetRole(temporary.RoleId);

@@ -8,11 +8,9 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Services.Quote;
 
-public class QuotePaginator : Paginator
+public class QuotePaginator(QuotePaginatorBuilder builder) : Paginator(builder)
 {
-    private readonly IReadOnlyCollection<IPage> _pages;
-
-    public QuotePaginator(QuotePaginatorBuilder builder) : base(builder) { _pages = builder.QuotedPages; }
+    private readonly IReadOnlyCollection<IPage> _pages = builder.QuotedPages;
 
     public override int MaxPageIndex => _pages.Count - 1;
 

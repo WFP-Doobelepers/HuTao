@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,22 +15,14 @@ namespace HuTao.Bot.Modules;
 [Name("Help")]
 [Group("help")]
 [Summary("Provides commands for helping users to understand how to interact with the bot.")]
-public sealed class HelpModule : ModuleBase
+public sealed class HelpModule(ICommandHelpService commandHelpService, InteractiveService interactive)
+    : ModuleBase
 {
-    private readonly ICommandHelpService _commandHelpService;
-    private readonly InteractiveService _interactive;
-
-    public HelpModule(ICommandHelpService commandHelpService, InteractiveService interactive)
-    {
-        _commandHelpService = commandHelpService;
-        _interactive        = interactive;
-    }
-
     [Command]
     [Summary("Prints a neat list of all commands.")]
     public async Task HelpAsync()
     {
-        var modules = _commandHelpService.GetModuleHelpData()
+        var modules = commandHelpService.GetModuleHelpData()
             .OrderBy(d => d.Name)
             .Select(d => Format.Bold(Format.Code(d.Name)));
 
@@ -82,7 +74,7 @@ public sealed class HelpModule : ModuleBase
     {
         var tokenSource = new CancellationTokenSource();
         var dm = await Context.User.CreateDMChannelAsync();
-        var modules = _commandHelpService
+        var modules = commandHelpService
             .GetModuleHelpData()
             .OrderBy(x => x.Name);
 
@@ -92,8 +84,8 @@ public sealed class HelpModule : ModuleBase
             {
                 try
                 {
-                    var paginator = _commandHelpService.GetEmbedForModule(module);
-                    await _interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm,
+                    var paginator = commandHelpService.GetEmbedForModule(module);
+                    await interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm,
                         resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
                 }
                 catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
@@ -124,9 +116,9 @@ public sealed class HelpModule : ModuleBase
     {
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-        if (_commandHelpService.TryGetEmbed(query, type, out var paginated))
+        if (commandHelpService.TryGetEmbed(query, type, out var paginated))
         {
-            await _interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
+            await interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
                 resetTimeoutOnInput: true);
         }
         else

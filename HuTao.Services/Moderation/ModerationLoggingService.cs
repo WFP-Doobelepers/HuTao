@@ -40,18 +40,14 @@ public record LogConfig<T>(T? Config, T Template) where T : ModerationLogConfig
     public ulong ChannelId => Config is ModerationLogChannelConfig config ? config.ChannelId : default;
 }
 
-public class ModerationLoggingService
+public class ModerationLoggingService(HuTaoContext db)
 {
-    private readonly HuTaoContext _db;
-
-    public ModerationLoggingService(HuTaoContext db) { _db = db; }
-
     public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var reprimand = result.Last;
         var buttons = reprimand.ToComponentBuilder().Build();
-        var guild = await reprimand.GetGuildAsync(_db, cancellationToken);
+        var guild = await reprimand.GetGuildAsync(db, cancellationToken);
 
         var commandLog = GetConfig(r => r?.CommandLog, DefaultCommandLogConfig);
         var userLog = GetConfig(r => r?.UserLog, DefaultUserLogConfig);
@@ -180,7 +176,7 @@ public class ModerationLoggingService
             embed.AddItemsIntoFields("Reason", reasons.ToArray(), " ");
         }
 
-        var count = await reprimand.CountUserReprimandsAsync(_db, cancellationToken);
+        var count = await reprimand.CountUserReprimandsAsync(db, cancellationToken);
         if (options.HasFlag(ShowActive)) embed.AddField("Active", count.Active, true);
         if (options.HasFlag(ShowTotal)) embed.AddField("Total", count.Total, true);
 
@@ -189,7 +185,7 @@ public class ModerationLoggingService
 
         if (options.HasFlag(ShowTrigger))
         {
-            var trigger = await reprimand.GetTriggerAsync<Trigger>(_db, cancellationToken);
+            var trigger = await reprimand.GetTriggerAsync<Trigger>(db, cancellationToken);
             if (trigger is not null)
             {
                 embed
@@ -229,7 +225,7 @@ public class ModerationLoggingService
 
         if (options.HasFlag(ShowActive))
         {
-            var count = await secondary.CountUserReprimandsAsync(_db, cancellationToken);
+            var count = await secondary.CountUserReprimandsAsync(db, cancellationToken);
             embed.AddField($"{secondary.GetTitle(showId)} [{count.Active}/{count.Total}]", message);
         }
         else

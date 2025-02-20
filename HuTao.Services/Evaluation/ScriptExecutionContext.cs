@@ -15,7 +15,7 @@ namespace HuTao.Services.Evaluation;
 
 public record Globals(ConsoleLikeStringWriter Console, Context Context, IServiceProvider Services);
 
-public class ScriptExecutionContext
+public class ScriptExecutionContext(string code)
 {
     private static readonly List<string> DefaultImports =
     [
@@ -63,8 +63,6 @@ public class ScriptExecutionContext
         .CurrentDomain.GetAssemblies()
         .Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location));
 
-    public ScriptExecutionContext(string code) { Code = Regex.Replace(code, @"```\w*", string.Empty); }
-
     public ScriptOptions Options =>
         ScriptOptions.Default
             .WithLanguageVersion(LanguageVersion.Preview)
@@ -72,7 +70,7 @@ public class ScriptExecutionContext
             .WithImports(Imports)
             .WithReferences(References);
 
-    public string Code { get; set; }
+    public string Code { get; set; } = Regex.Replace(code, @"```\w*", string.Empty);
 
     private HashSet<Assembly> References { get; } = [..AssemblyReferences];
 

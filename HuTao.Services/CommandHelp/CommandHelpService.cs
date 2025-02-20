@@ -62,12 +62,9 @@ public interface ICommandHelpService
 }
 
 /// <inheritdoc />
-internal class CommandHelpService : ICommandHelpService
+internal class CommandHelpService(CommandService commandService) : ICommandHelpService
 {
-    private readonly CommandService _commandService;
     private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
-
-    public CommandHelpService(CommandService commandService) { _commandService = commandService; }
 
     public bool TryGetEmbed(string query, HelpDataType queries, out StaticPaginatorBuilder message)
     {
@@ -119,7 +116,7 @@ internal class CommandHelpService : ICommandHelpService
     /// <inheritdoc />
     public IReadOnlyCollection<ModuleHelpData> GetModuleHelpData()
         => LazyInitializer.EnsureInitialized(ref _cachedHelpData, () =>
-            _commandService.Modules
+            commandService.Modules
                 .Where(x => !x.Attributes.Any(attr => attr is HiddenFromHelpAttribute))
                 .Select(ModuleHelpData.FromModuleInfo)
                 .ToArray());

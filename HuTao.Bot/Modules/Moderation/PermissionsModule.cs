@@ -27,19 +27,9 @@ namespace HuTao.Bot.Modules.Moderation;
 [Alias("perms", "perm")]
 [Summary("Manages guild permissions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
+public class PermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db)
+    : InteractiveEntity<AuthorizationGroup>
 {
-    private readonly AuthorizationService _auth;
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-
-    public PermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db)
-    {
-        _auth  = auth;
-        _error = error;
-        _db    = db;
-    }
-
     [Command("add")]
     [Summary(
         "Add a permission for a specific scope. At least one rule option must be filled. " +
@@ -50,7 +40,7 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         var rules = options.ToCriteria();
         if (rules.Count == 0)
         {
-            await _error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
+            await error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
             return;
         }
 
@@ -90,8 +80,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
         var results = await prompts.GetAnswersAsync();
 
         var moderator = (IGuildUser) Context.User;
-        _ = await _db.Users.TrackUserAsync(moderator);
-        var guild = await _auth.AutoConfigureGuild(Context.Guild);
+        _ = await db.Users.TrackUserAsync(moderator);
+        var guild = await auth.AutoConfigureGuild(Context.Guild);
 
         guild.AuthorizationGroups.AddRules(AuthorizationScope.All, moderator, AccessType.Allow, JudgeType.Any,
             new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin)));
@@ -100,8 +90,8 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
             moderator, AccessType.Allow, JudgeType.Any,
             new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator)));
 
-        _db.Update(guild);
-        await _db.SaveChangesAsync();
+        db.Update(guild);
+        await db.SaveChangesAsync();
 
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
@@ -126,16 +116,16 @@ public class PermissionsModule : InteractiveEntity<AuthorizationGroup>
 
     protected override async Task RemoveEntityAsync(AuthorizationGroup entity)
     {
-        if (entity.Action is not null) _db.Remove(entity.Action);
-        _db.RemoveRange(entity.Collection);
-        _db.Remove(entity);
+        if (entity.Action is not null) db.Remove(entity.Action);
+        db.RemoveRange(entity.Collection);
+        db.Remove(entity);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     protected override async Task<ICollection<AuthorizationGroup>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.AuthorizationGroups;
     }
 

@@ -10,10 +10,8 @@ using Serilog;
 
 namespace HuTao.Services.Core.Listeners;
 
-public class HuTaoMediator : Mediator
+public class HuTaoMediator(IServiceProvider provider) : Mediator(provider)
 {
-    public HuTaoMediator(IServiceProvider provider) : base(provider) { }
-
     protected override Task PublishCore(
         IEnumerable<NotificationHandlerExecutor> handlers,
         INotification notification, CancellationToken cancellationToken)

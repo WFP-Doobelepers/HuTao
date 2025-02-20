@@ -11,31 +11,23 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Core.Listeners;
 
-public class CommandErrorHandler :
-    INotificationHandler<ReactionAddedNotification>,
-    INotificationHandler<ReactionRemovedNotification>
+public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemoryCache memoryCache)
+    : INotificationHandler<ReactionAddedNotification>,
+      INotificationHandler<ReactionRemovedNotification>
 {
     private const string AssociatedErrorsKey = nameof(CommandErrorHandler) + ".AssociatedErrors";
     private const string ErrorRepliesKey = nameof(CommandErrorHandler) + ".ErrorReplies";
     private const string Emoji = "⚠";
-    private readonly DiscordSocketClient _discordSocketClient;
     private readonly IEmote _emote = new Emoji(Emoji);
-    private readonly IMemoryCache _memoryCache;
-
-    public CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemoryCache memoryCache)
-    {
-        _discordSocketClient = discordSocketClient;
-        _memoryCache         = memoryCache;
-    }
 
     //This relates user messages with errors
     private ConcurrentDictionary<ulong, string> AssociatedErrors =>
-        _memoryCache.GetOrCreate(AssociatedErrorsKey, _ => new ConcurrentDictionary<ulong, string>())
+        memoryCache.GetOrCreate(AssociatedErrorsKey, _ => new ConcurrentDictionary<ulong, string>())
         ?? throw new InvalidOperationException($"Cache returned null for {nameof(AssociatedErrors)}");
 
     //This relates user messages to messages containing errors
     private ConcurrentDictionary<ulong, ulong> ErrorReplies =>
-        _memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>())
+        memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>())
         ?? throw new InvalidOperationException($"Cache returned null for {nameof(ErrorReplies)}");
 
     public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
@@ -119,7 +111,7 @@ public class CommandErrorHandler :
             // If we know what user added the reaction, remove their and our reaction otherwise just remove ours.
             if (reaction.User.IsSpecified) await originalMessage.RemoveReactionAsync(_emote, reaction.User.Value);
 
-            await originalMessage.RemoveReactionAsync(_emote, _discordSocketClient.CurrentUser);
+            await originalMessage.RemoveReactionAsync(_emote, discordSocketClient.CurrentUser);
         }
     }
 }

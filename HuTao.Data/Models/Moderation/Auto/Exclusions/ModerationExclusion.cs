@@ -1,17 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HuTao.Data.Models.Moderation.Auto.Configurations;
 
 namespace HuTao.Data.Models.Moderation.Auto.Exclusions;
 
-public abstract class ModerationExclusion
+public abstract class ModerationExclusion(AutoConfiguration? config = null)
 {
-    protected ModerationExclusion(AutoConfiguration? config = null) { Configuration = config; }
-
     public Guid Id { get; set; }
 
-    public AutoConfiguration? Configuration { get; set; }
+    public AutoConfiguration? Configuration { get; set; } = config;
 }
 
 public static class ModerationExclusionExtensions

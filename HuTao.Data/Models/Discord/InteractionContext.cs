@@ -8,14 +8,9 @@ namespace HuTao.Data.Models.Discord;
 
 /// <inheritdoc cref="IDiscordInteraction" />
 [SuppressMessage("ReSharper", "InconsistentNaming")]
-public class InteractionContext : Context, IInteractionContext, IDiscordInteraction
+public class InteractionContext(IInteractionContext context)
+    : Context(context.Client, context.Guild, context.Channel, context.User), IInteractionContext, IDiscordInteraction
 {
-    public InteractionContext(IInteractionContext context)
-        : base(context.Client, context.Guild, context.Channel, context.User)
-    {
-        Interaction = context.Interaction;
-    }
-
     ulong IDiscordInteraction.Id => Interaction.Id;
 
     ulong IEntity<ulong>.Id => Interaction.Id;
@@ -107,7 +102,7 @@ public class InteractionContext : Context, IInteractionContext, IDiscordInteract
 
     public DateTimeOffset CreatedAt => Interaction.CreatedAt;
 
-    public IDiscordInteraction Interaction { get; }
+    public IDiscordInteraction Interaction { get; } = context.Interaction;
 
     public override Task ReplyAsync(
         string? message = null, bool isTTS = false, Embed? embed = null, RequestOptions? options = null,

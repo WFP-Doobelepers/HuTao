@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Discord.Commands;
 using HuTao.Data.Models.Authorization;
@@ -7,11 +7,9 @@ using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 
 namespace HuTao.Services.Core.Preconditions.Commands;
 
-public class CheckCategoryAttribute : ParameterPreconditionAttribute
+public class CheckCategoryAttribute(AuthorizationScope scope) : ParameterPreconditionAttribute
 {
-    private readonly AuthorizationScope _scope;
-
-    public CheckCategoryAttribute(AuthorizationScope scope) { _scope = scope | AuthorizationScope.All; }
+    private readonly AuthorizationScope _scope = scope | AuthorizationScope.All;
 
     public override async Task<PreconditionResult> CheckPermissionsAsync(
         ICommandContext context, ParameterInfo parameter,

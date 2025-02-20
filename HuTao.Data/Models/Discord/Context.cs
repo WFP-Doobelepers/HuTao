@@ -7,35 +7,27 @@ using Discord.Interactions;
 namespace HuTao.Data.Models.Discord;
 
 [SuppressMessage("ReSharper", "InconsistentNaming")]
-public abstract class Context
+public abstract class Context(IDiscordClient client, IGuild guild, IMessageChannel channel, IUser user)
 {
-    protected Context(IDiscordClient client, IGuild guild, IMessageChannel channel, IUser user)
-    {
-        Client  = client;
-        Guild   = guild;
-        Channel = channel;
-        User    = user;
-    }
-
     /// <summary>
     ///     Gets the <see cref="T:Discord.IDiscordClient" /> that the context is executed with.
     /// </summary>
-    public IDiscordClient Client { get; }
+    public IDiscordClient Client { get; } = client;
 
     /// <summary>
     ///     Gets the <see cref="T:Discord.IGuild" /> that the context is executed in.
     /// </summary>
-    public IGuild Guild { get; }
+    public IGuild Guild { get; } = guild;
 
     /// <summary>
     ///     Gets the <see cref="T:Discord.IMessageChannel" /> that the context is executed in.
     /// </summary>
-    public IMessageChannel Channel { get; }
+    public IMessageChannel Channel { get; } = channel;
 
     /// <summary>
     ///     Gets the <see cref="T:Discord.IUser" /> who executed the context.
     /// </summary>
-    public IUser User { get; }
+    public IUser User { get; } = user;
 
     /// <inheritdoc cref="IDiscordInteraction.DeferAsync" />
     public virtual Task DeferAsync(bool ephemeral = false, RequestOptions? options = null) => Task.CompletedTask;

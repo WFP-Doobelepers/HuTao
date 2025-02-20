@@ -21,23 +21,13 @@ using static Discord.InteractionResponseType;
 
 namespace HuTao.Services.Moderation;
 
-public class UserService
+public class UserService(
+    AuthorizationService auth,
+    IImageService image,
+    InteractiveService interactive,
+    HuTaoContext db)
 {
     private const AuthorizationScope Scope = AuthorizationScope.All | AuthorizationScope.History;
-    private readonly AuthorizationService _auth;
-    private readonly HuTaoContext _db;
-    private readonly IImageService _image;
-    private readonly InteractiveService _interactive;
-
-    public UserService(
-        AuthorizationService auth, IImageService image,
-        InteractiveService interactive, HuTaoContext db)
-    {
-        _auth        = auth;
-        _image       = image;
-        _interactive = interactive;
-        _db          = db;
-    }
 
     public async Task ReplyAvatarAsync(Context context, IUser user, bool ephemeral = false)
     {
@@ -47,7 +37,7 @@ public class UserService
         var embed = new EmbedBuilder()
             .WithUserAsAuthor(user, AuthorOptions.IncludeId)
             .WithImageUrl(avatar)
-            .WithColor(await _image.GetAvatarColor(user))
+            .WithColor(await image.GetAvatarColor(user))
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
         if (user is IGuildUser guild)
@@ -66,8 +56,8 @@ public class UserService
     {
         await context.DeferAsync(ephemeral);
 
-        var userEntity = await _db.Users.TrackUserAsync(user, context.Guild);
-        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+        var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(context.Guild);
         category ??= userEntity.DefaultCategory ?? ModerationCategory.None;
 
         if (type is LogReprimandType.None)
@@ -84,7 +74,7 @@ public class UserService
         var reprimands = history
             .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
             .Prepend(GetReprimands(userEntity, category)
-                .WithColor(await _image.GetAvatarColor(user))
+                .WithColor(await image.GetAvatarColor(user))
                 .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
 
         var pages = reprimands.Chunk(4)
@@ -98,11 +88,11 @@ public class UserService
 
         await (context switch
         {
-            CommandContext command => _interactive.SendPaginatorAsync(paginator, command.Channel,
+            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel,
                 messageAction: Components),
 
             InteractionContext { Interaction: SocketInteraction interaction }
-                => _interactive.SendPaginatorAsync(paginator, interaction,
+                => interactive.SendPaginatorAsync(paginator, interaction,
                     ephemeral: ephemeral,
                     responseType: update ? DeferredUpdateMessage : DeferredChannelMessageWithSource,
                     messageAction: Components),
@@ -268,10 +258,10 @@ public class UserService
     private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(Context context, IUser user)
     {
         var isAuthorized =
-            await _auth.IsAuthorizedAsync(context, Scope) ||
-            await _auth.IsCategoryAuthorizedAsync(context, Scope);
+            await auth.IsAuthorizedAsync(context, Scope) ||
+            await auth.IsCategoryAuthorizedAsync(context, Scope);
 
-        var userEntity = await _db.Users.FindAsync(user.Id, context.Guild.Id);
+        var userEntity = await db.Users.FindAsync(user.Id, context.Guild.Id);
         var guildUser = user as SocketGuildUser;
 
         var embeds = new List<EmbedBuilder>();
@@ -303,7 +293,7 @@ public class UserService
                 if (guildUser.TimedOutUntil is not null)
                     embed.AddField("Timeout", guildUser.TimedOutUntil.Humanize());
 
-                var mute = await _db.GetActive<Mute>(guildUser);
+                var mute = await db.GetActive<Mute>(guildUser);
                 if (mute is not null) embed.AddField("Muted", mute.ExpireAt.Humanize(), true);
             }
         }
@@ -323,9 +313,9 @@ public class UserService
 
     private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
     {
-        var auth = await _auth.IsAuthorizedAsync(context, Scope);
-        var category = await _auth.IsCategoryAuthorizedAsync(context, Scope);
-        return auth || category
+        var auth1 = await auth.IsAuthorizedAsync(context, Scope);
+        var category = await auth.IsCategoryAuthorizedAsync(context, Scope);
+        return auth1 || category
             ? new ComponentBuilder()
                 .WithSelectMenu(HistoryMenu(user))
                 .WithSelectMenu(ReprimandMenu(user))

@@ -21,17 +21,8 @@ namespace HuTao.Bot.Modules.Censors;
 [Alias("censors")]
 [Summary("Manages censor exclusions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class CensorExclusionsModule : InteractiveEntity<Criterion>
+public class CensorExclusionsModule(HuTaoContext db, IMemoryCache cache) : InteractiveEntity<Criterion>
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public CensorExclusionsModule(HuTaoContext db, IMemoryCache cache)
-    {
-        _db    = db;
-        _cache = cache;
-    }
-
     protected virtual string Title => "Censor Exclusions";
 
     [Command("exclude")]
@@ -40,7 +31,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
     public async Task ExcludeAsync(Exclusions exclusions)
     {
         await AddEntitiesAsync(exclusions.ToCriteria());
-        _cache.InvalidateCaches(Context.Guild);
+        cache.InvalidateCaches(Context.Guild);
     }
 
     [Command("include")]
@@ -48,7 +39,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
     protected override async Task RemoveEntityAsync(string id)
     {
         await base.RemoveEntityAsync(id);
-        _cache.InvalidateCaches(Context.Guild);
+        cache.InvalidateCaches(Context.Guild);
     }
 
     [Command("exclusions")]
@@ -66,7 +57,7 @@ public class CensorExclusionsModule : InteractiveEntity<Criterion>
 
     protected override async Task<ICollection<Criterion>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
         return guild.ModerationRules.CensorExclusions;
     }

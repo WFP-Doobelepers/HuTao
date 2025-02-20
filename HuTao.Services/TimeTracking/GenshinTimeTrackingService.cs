@@ -17,7 +17,7 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Services.TimeTracking;
 
-public class GenshinTimeTrackingService
+public class GenshinTimeTrackingService(DiscordSocketClient client, HuTaoContext db)
 {
     public enum ServerRegion
     {
@@ -28,14 +28,6 @@ public class GenshinTimeTrackingService
     }
 
     private static readonly RequestOptions RequestOptions = new() { Timeout = 15 };
-    private readonly DiscordSocketClient _client;
-    private readonly HuTaoContext _db;
-
-    public GenshinTimeTrackingService(DiscordSocketClient client, HuTaoContext db)
-    {
-        _client = client;
-        _db     = db;
-    }
 
     private static Dictionary<ServerRegion, (string Name, int Offset)> ServerOffsets { get; } = new()
     {
@@ -135,18 +127,18 @@ public class GenshinTimeTrackingService
 
     private async Task RemoveTrackingAsync(ulong guildId)
     {
-        var guild = await _db.Guilds.FindByIdAsync(guildId);
+        var guild = await db.Guilds.FindByIdAsync(guildId);
         if (guild?.GenshinRules?.ServerStatus is null) return;
 
         RecurringJob.RemoveIfExists(guild.GenshinRules.ServerStatus.Id.ToString());
 
         guild.GenshinRules.ServerStatus = null;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task RemoveTrackingAsync(ulong guildId, ServerRegion region)
     {
-        var guild = await _db.Guilds.FindByIdAsync(guildId);
+        var guild = await db.Guilds.FindByIdAsync(guildId);
         var rules = guild?.GenshinRules;
         if (rules is null) return;
 
@@ -162,8 +154,8 @@ public class GenshinTimeTrackingService
         if (tracking is null) return;
         RecurringJob.RemoveIfExists(tracking.Id.ToString());
 
-        _db.Remove(tracking);
-        await _db.SaveChangesAsync();
+        db.Remove(tracking);
+        await db.SaveChangesAsync();
     }
 
     private async Task TrackRegionAsync(IGuildChannel channel, ServerRegion region)
@@ -183,7 +175,7 @@ public class GenshinTimeTrackingService
     {
         try
         {
-            return _client.GetGuild(guildId) as IGuild ?? await _client.Rest.GetGuildAsync(guildId);
+            return client.GetGuild(guildId) as IGuild ?? await client.Rest.GetGuildAsync(guildId);
         }
         catch (HttpException e) when (e.DiscordCode is DiscordErrorCode.MissingPermissions)
         {

@@ -5,12 +5,8 @@ using HuTao.Services.Linking;
 
 namespace HuTao.Bot.Modules.Linking;
 
-public class InteractiveMessagesModule : InteractionModuleBase<SocketInteractionContext>
+public class InteractiveMessagesModule(LinkingService linking) : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly LinkingService _linking;
-
-    public InteractiveMessagesModule(LinkingService linking) { _linking = linking; }
-
     [ComponentInteraction("linked:*")]
-    public async Task ViewTemplateAsync(string id) => await _linking.SendMessageAsync(Context, new Guid(id));
+    public async Task ViewTemplateAsync(string id) => await linking.SendMessageAsync(Context, new Guid(id));
 }

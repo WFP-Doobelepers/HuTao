@@ -12,17 +12,8 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Services.Sticky;
 
-public class StickyService
+public class StickyService(IMemoryCache cache, HuTaoContext db)
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public StickyService(IMemoryCache cache, HuTaoContext db)
-    {
-        _cache = cache;
-        _db    = db;
-    }
-
     public async Task AddAsync(StickyMessage sticky, IGuildChannel channel)
     {
         var messages = await GetStickyMessages(channel.Guild);
@@ -31,25 +22,25 @@ public class StickyService
         if (sticky.IsActive)
             await EnableAsync(sticky, channel);
         else
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(StickyMessage sticky)
     {
         var template = sticky.Template;
 
-        _cache.Remove(template.Id);
+        cache.Remove(template.Id);
 
-        _db.TryRemove(template);
-        _db.Remove(sticky);
+        db.TryRemove(template);
+        db.Remove(sticky);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task DisableAsync(StickyMessage sticky)
     {
         sticky.IsActive = false;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task EnableAsync(StickyMessage sticky, IGuildChannel channel)
@@ -57,7 +48,7 @@ public class StickyService
         await DisableStickiesAsync(channel);
         sticky.IsActive = true;
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task SendStickyMessage(StickyMessage sticky, ITextChannel channel)
@@ -66,7 +57,7 @@ public class StickyService
         if (!ShouldResendSticky(sticky, out var details)) return;
 
         if (sticky.Template.IsLive)
-            await _db.UpdateAsync(template, channel.Guild);
+            await db.UpdateAsync(template, channel.Guild);
 
         while (details.Messages.TryTake(out var message))
         {
@@ -91,13 +82,13 @@ public class StickyService
 
     public async Task<ICollection<StickyMessage>> GetStickyMessages(IGuild guild)
     {
-        var entity = await _db.Guilds.TrackGuildAsync(guild);
+        var entity = await db.Guilds.TrackGuildAsync(guild);
         return entity.StickyMessages;
     }
 
     private bool ShouldResendSticky(StickyMessage sticky, out StickyMessageDetails details)
     {
-        details = _cache.GetOrCreate(sticky.Id, e =>
+        details = cache.GetOrCreate(sticky.Id, e =>
         {
             e.SlidingExpiration = TimeSpan.FromDays(1);
             return new StickyMessageDetails();

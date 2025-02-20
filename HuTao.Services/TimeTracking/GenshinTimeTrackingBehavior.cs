@@ -7,23 +7,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HuTao.Services.TimeTracking;
 
-public class GenshinTimeTrackingBehavior : INotificationHandler<ReadyNotification>
+public class GenshinTimeTrackingBehavior(GenshinTimeTrackingService tracking, HuTaoContext db)
+    : INotificationHandler<ReadyNotification>
 {
-    private readonly GenshinTimeTrackingService _tracking;
-    private readonly HuTaoContext _db;
-
-    public GenshinTimeTrackingBehavior(GenshinTimeTrackingService tracking, HuTaoContext db)
-    {
-        _tracking = tracking;
-        _db       = db;
-    }
-
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
     {
-        var guilds = await _db.Guilds.ToListAsync(cancellationToken);
+        var guilds = await db.Guilds.ToListAsync(cancellationToken);
         foreach (var guild in guilds)
         {
-            await _tracking.TrackGenshinTime(guild);
+            await tracking.TrackGenshinTime(guild);
         }
     }
 }

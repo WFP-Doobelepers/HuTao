@@ -16,12 +16,10 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 ///     A <see cref="TypeReader" /> for parsing objects implementing <see cref="IUser" />.
 /// </summary>
 /// <typeparam name="T">The type to be checked; must implement <see cref="IUser" />.</typeparam>
-public class UserTypeReader<T> : TypeReader where T : class, IUser
+public class UserTypeReader<T>(CacheMode cacheMode = CacheMode.AllowDownload) : TypeReader
+    where T : class, IUser
 {
-    private readonly CacheMode _cacheMode;
     private HuTaoContext _db = null!;
-
-    public UserTypeReader(CacheMode cacheMode = CacheMode.AllowDownload) { _cacheMode = cacheMode; }
 
     public override async Task<TypeReaderResult> ReadAsync(
         ICommandContext context, string input, IServiceProvider services)
@@ -34,14 +32,14 @@ public class UserTypeReader<T> : TypeReader where T : class, IUser
         {
             if (context.Guild is not null)
             {
-                var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
+                var guildUser = await context.Guild.GetUserAsync(id, cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, guildUser, id);
 
                 await AddResultAsync(results, user, 1.00f);
             }
             else
             {
-                var channelUser = await context.Channel.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
+                var channelUser = await context.Channel.GetUserAsync(id, cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, channelUser, id);
 
                 await AddResultAsync(results, user, 1.00f);
@@ -53,14 +51,14 @@ public class UserTypeReader<T> : TypeReader where T : class, IUser
         {
             if (context.Guild is not null)
             {
-                var guildUser = await context.Guild.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
+                var guildUser = await context.Guild.GetUserAsync(id, cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, guildUser, id);
 
                 await AddResultAsync(results, user, 0.90f);
             }
             else
             {
-                var channelUser = await context.Channel.GetUserAsync(id, _cacheMode).ConfigureAwait(false);
+                var channelUser = await context.Channel.GetUserAsync(id, cacheMode).ConfigureAwait(false);
                 var user = await GetUserAsync(context.Client, channelUser, id);
 
                 await AddResultAsync(results, user, 0.90f);
@@ -77,7 +75,7 @@ public class UserTypeReader<T> : TypeReader where T : class, IUser
                 if (ushort.TryParse(input[(index + 1)..], out var discriminator))
                 {
                     var users = await context.Guild
-                        .SearchUsersAsync(username, mode: _cacheMode)
+                        .SearchUsersAsync(username, mode: cacheMode)
                         .ConfigureAwait(false);
 
                     foreach (var user in users
@@ -91,7 +89,7 @@ public class UserTypeReader<T> : TypeReader where T : class, IUser
             else
             {
                 var search = await context.Guild
-                    .SearchUsersAsync(input, mode: _cacheMode)
+                    .SearchUsersAsync(input, mode: cacheMode)
                     .ConfigureAwait(false);
 
                 // By Username (0.5-0.6)
@@ -127,6 +125,6 @@ public class UserTypeReader<T> : TypeReader where T : class, IUser
     private async Task<T?> GetUserAsync(IDiscordClient client, IUser? user, ulong id)
     {
         if (user is T result) return result;
-        return await client.GetUserAsync(id, _cacheMode) as T;
+        return await client.GetUserAsync(id, cacheMode) as T;
     }
 }

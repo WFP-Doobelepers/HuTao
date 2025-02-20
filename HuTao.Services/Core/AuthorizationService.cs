@@ -19,12 +19,8 @@ using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Services.Core;
 
-public class AuthorizationService
+public class AuthorizationService(HuTaoContext db)
 {
-    private readonly HuTaoContext _db;
-
-    public AuthorizationService(HuTaoContext db) { _db = db; }
-
     public static bool IsAuthorized(Context context, ICollection<AuthorizationGroup> groups, bool seed = false)
     {
         if (context.User.Id == HuTaoConfig.Configuration.Owner)
@@ -47,7 +43,7 @@ public class AuthorizationService
     {
         if (category is null)
         {
-            var user = await _db.Users.TrackUserAsync(context.User, context.Guild, cancellationToken);
+            var user = await db.Users.TrackUserAsync(context.User, context.Guild, cancellationToken);
             category = user.DefaultCategory ?? ModerationCategory.None;
         }
 
@@ -58,7 +54,7 @@ public class AuthorizationService
 
     public async Task<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope, object? value)
     {
-        var user = await _db.Users.TrackUserAsync(context.User, context.Guild);
+        var user = await db.Users.TrackUserAsync(context.User, context.Guild);
         value ??= user.DefaultCategory ?? ModerationCategory.None;
 
         return await (value switch
@@ -97,7 +93,7 @@ public class AuthorizationService
         auth.AddRules(
             AuthorizationScope.All, await guild.GetCurrentUserAsync(),
             AccessType.Allow, JudgeType.Any, permission);
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         return guildEntity;
     }
@@ -122,8 +118,8 @@ public class AuthorizationService
 
     private async Task<GuildEntity> GetGuildAsync(IGuild guild, CancellationToken cancellationToken = default)
     {
-        var guildEntity = await _db.Guilds.TrackGuildAsync(guild, cancellationToken);
-        await _db.Users.TrackUserAsync(await guild.GetCurrentUserAsync(), cancellationToken);
+        var guildEntity = await db.Guilds.TrackGuildAsync(guild, cancellationToken);
+        await db.Users.TrackUserAsync(await guild.GetCurrentUserAsync(), cancellationToken);
 
         return guildEntity;
     }

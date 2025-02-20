@@ -15,7 +15,8 @@ using MediatR;
 
 namespace HuTao.Services.Moderation;
 
-public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceivedNotification>
+public class SuspiciousAttachmentBehavior(ModerationService moderation, HuTaoContext db)
+    : INotificationHandler<MessageReceivedNotification>
 {
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
     private static readonly IReadOnlyCollection<string> BlacklistedExtensions =
@@ -28,15 +29,6 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
         ".ws", ".wsc", ".wsf", ".wsh", ".xlam", ".xls", ".xlsm", ".xltm", ".zip"
     ];
 
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public SuspiciousAttachmentBehavior(ModerationService moderation, HuTaoContext db)
-    {
-        _moderation = moderation;
-        _db         = db;
-    }
-
     public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
     {
         var message = notification.Message;
@@ -47,7 +39,7 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
             || message.Channel is not ITextChannel channel)
             return;
 
-        var guildEntity = await _db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
+        var guildEntity = await db.Guilds.TrackGuildAsync(channel.Guild, cancellationToken);
         if (cancellationToken.IsCancellationRequested || guildEntity.ModerationRules is null)
             return;
 
@@ -69,6 +61,6 @@ public class SuspiciousAttachmentBehavior : INotificationHandler<MessageReceived
         var details = new ReprimandDetails(user, currentUser, reason.ToString());
         var length = guildEntity.ModerationRules.CensoredExpiryLength;
 
-        await _moderation.CensorAsync(message, length, details, cancellationToken);
+        await moderation.CensorAsync(message, length, details, cancellationToken);
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -17,12 +17,8 @@ namespace HuTao.Bot.Modules.Moderation;
 [Name("Moderation Variables")]
 [Summary("Manage variables for moderation")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class ModerationVariablesModule : InteractiveEntity<ModerationVariable>
+public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<ModerationVariable>
 {
-    private readonly HuTaoContext _db;
-
-    public ModerationVariablesModule(HuTaoContext db) { _db = db; }
-
     [Command("add")]
     [Summary("Add a new moderation variable.")]
     public async Task AddPermissionAsync(
@@ -38,7 +34,7 @@ public class ModerationVariablesModule : InteractiveEntity<ModerationVariable>
         [Remainder]
         string value)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         var existing = rules.Variables.FirstOrDefault(v => v.Name == name);
@@ -51,7 +47,7 @@ public class ModerationVariablesModule : InteractiveEntity<ModerationVariable>
         var variable = new ModerationVariable(name, value);
         rules.Variables.Add(variable);
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         await ReplyAsync(embed: EntityViewer(variable).WithColor(Color.Green)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested).Build());
     }
@@ -78,13 +74,13 @@ public class ModerationVariablesModule : InteractiveEntity<ModerationVariable>
 
     protected override async Task RemoveEntityAsync(ModerationVariable entity)
     {
-        _db.Remove(entity);
-        await _db.SaveChangesAsync();
+        db.Remove(entity);
+        await db.SaveChangesAsync();
     }
 
     protected override async Task<ICollection<ModerationVariable>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         return rules.Variables;

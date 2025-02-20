@@ -11,24 +11,16 @@ using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Bot.Modules;
 
-public class InteractiveGeneralModule : InteractionModuleBase<SocketInteractionContext>
+public class InteractiveGeneralModule(AuthorizationService auth, EvaluationService evaluation)
+    : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly AuthorizationService _auth;
-    private readonly EvaluationService _evaluation;
-
-    public InteractiveGeneralModule(AuthorizationService auth, EvaluationService evaluation)
-    {
-        _auth       = auth;
-        _evaluation = evaluation;
-    }
-
     [SlashCommand("eval", "Evaluate C# code")]
     [RequireTeamMember]
     public async Task EvalAsync([Remainder] string code)
     {
         await DeferAsync(true);
         var context = new InteractionContext(Context);
-        var result = await _evaluation.EvaluateAsync(context, code);
+        var result = await evaluation.EvaluateAsync(context, code);
 
         var embed = EvaluationService.BuildEmbed(context, result);
         await FollowupAsync(embed: embed.Build(), ephemeral: true);
@@ -47,7 +39,7 @@ public class InteractiveGeneralModule : InteractionModuleBase<SocketInteractionC
 
         var permissions = user.GetPermissions(channel);
         if (!permissions.ManageMessages &&
-            !await _auth.IsAuthorizedAsync(Context, AuthorizationScope.Purge | AuthorizationScope.All))
+            !await auth.IsAuthorizedAsync(Context, AuthorizationScope.Purge | AuthorizationScope.All))
         {
             await FollowupAsync("You do not have permission to delete messages.", ephemeral: true);
             return;

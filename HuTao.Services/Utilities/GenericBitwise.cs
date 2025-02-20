@@ -7,18 +7,10 @@ namespace HuTao.Services.Utilities;
 
 public class GenericBitwise<T> where T : Enum
 {
-    private readonly Func<T, T, T> _and;
-    private readonly Func<T, T, T> _or;
-    private readonly Func<T, T, T> _xor;
-    private readonly Func<T, T> _not;
-
-    public GenericBitwise()
-    {
-        _and = And().Compile();
-        _not = Not().Compile();
-        _or  = Or().Compile();
-        _xor = Xor().Compile();
-    }
+    private readonly Func<T, T, T> _and = And().Compile();
+    private readonly Func<T, T, T> _or = Or().Compile();
+    private readonly Func<T, T, T> _xor = Xor().Compile();
+    private readonly Func<T, T> _not = Not().Compile();
 
     public T All()
     {

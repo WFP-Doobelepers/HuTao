@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,17 +23,8 @@ namespace HuTao.Bot.Modules.AutoModeration;
 [Group("auto")]
 [Name("Auto Moderation")]
 [Summary("Manage Auto Moderation rules and what action will be done to the user who triggers them.")]
-public class AutoModerationModule : InteractiveTrigger<AutoConfiguration>
+public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrigger<AutoConfiguration>
 {
-    private readonly HuTaoContext _db;
-    private readonly IMemoryCache _cache;
-
-    public AutoModerationModule(HuTaoContext db, IMemoryCache cache)
-    {
-        _db    = db;
-        _cache = cache;
-    }
-
     [Command("ban")]
     [Summary("A filter that bans the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
@@ -147,7 +138,7 @@ public class AutoModerationModule : InteractiveTrigger<AutoConfiguration>
 
     protected override async Task<ICollection<AutoConfiguration>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.ModerationRules ??= new ModerationRules();
 
         return guild.ModerationRules.Triggers.OfType<AutoConfiguration>().ToList();
@@ -170,15 +161,15 @@ public class AutoModerationModule : InteractiveTrigger<AutoConfiguration>
 
     private async Task AddConfigurationAsync(AutoConfiguration configuration)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         configuration.Length = configuration.Length.Clamp(1.Seconds(), 1.Hours());
         configuration.Amount = Math.Clamp(configuration.Amount, 1, 100);
 
         rules.Triggers.Add(configuration.WithModerator(Context));
-        await _db.SaveChangesAsync();
-        _cache.InvalidateCaches(Context.Guild);
+        await db.SaveChangesAsync();
+        cache.InvalidateCaches(Context.Guild);
 
         await ReplyAsync(embed: EntityViewer(configuration).WithColor(Color.Green)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested).Build());

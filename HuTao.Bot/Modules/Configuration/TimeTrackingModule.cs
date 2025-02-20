@@ -17,19 +17,9 @@ namespace HuTao.Bot.Modules.Configuration;
 [Group("time")]
 [Summary("Time tracking module.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class TimeTrackingModule : ModuleBase<SocketCommandContext>
+public class TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingService time, HuTaoContext db)
+    : ModuleBase<SocketCommandContext>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly GenshinTimeTrackingService _time;
-    private readonly HuTaoContext _db;
-
-    public TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingService time, HuTaoContext db)
-    {
-        _error = error;
-        _time  = time;
-        _db    = db;
-    }
-
     [Command("genshin")]
     public async Task GenshinAsync(ITextChannel channel)
     {
@@ -45,17 +35,17 @@ public class TimeTrackingModule : ModuleBase<SocketCommandContext>
         if (message.Channel is SocketGuildChannel channel
             && channel.Guild.Id != Context.Guild.Id)
         {
-            await _error.AssociateError(Context.Message, "Invalid message.");
+            await error.AssociateError(Context.Message, "Invalid message.");
             return;
         }
 
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         guild.GenshinRules ??= new GenshinTimeTrackingRules();
 
         var serverStatus = guild.GenshinRules.ServerStatus;
         if (serverStatus is not null)
         {
-            var removed = _db.Remove(serverStatus).Entity;
+            var removed = db.Remove(serverStatus).Entity;
             RecurringJob.RemoveIfExists(removed.Id.ToString());
         }
 
@@ -66,8 +56,8 @@ public class TimeTrackingModule : ModuleBase<SocketCommandContext>
             MessageId = message.Id
         };
 
-        await _db.SaveChangesAsync();
-        await _time.TrackGenshinTime(guild);
+        await db.SaveChangesAsync();
+        await time.TrackGenshinTime(guild);
 
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }

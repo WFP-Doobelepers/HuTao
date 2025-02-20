@@ -22,24 +22,15 @@ namespace HuTao.Bot.Modules.Moderation;
 
 [Name("Reprimand Modification")]
 [Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
-public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
+public class ModifyReprimandsModule(
+    CommandErrorHandler error,
+    HuTaoContext db,
+    AuthorizationService auth,
+    ModerationService moderation)
+    : InteractiveEntity<Reprimand>
 {
     private const AuthorizationScope Scope = All | Modify;
     private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
-    private readonly AuthorizationService _auth;
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public ModifyReprimandsModule(
-        CommandErrorHandler error, HuTaoContext db,
-        AuthorizationService auth, ModerationService moderation)
-    {
-        _auth       = auth;
-        _error      = error;
-        _db         = db;
-        _moderation = moderation;
-    }
 
     [Command("pardon")]
     [Alias("hide")]
@@ -48,7 +39,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     {
         var reprimand = await TryFindEntityAsync(id);
         await ModifyReprimandAsync(reprimand, (r, d, t)
-            => _moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
+            => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
     [Command("update")]
@@ -56,7 +47,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
     public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
     {
         var reprimand = await TryFindEntityAsync(id);
-        await ModifyReprimandAsync(reprimand, _moderation.UpdateReprimandAsync, reason);
+        await ModifyReprimandAsync(reprimand, moderation.UpdateReprimandAsync, reason);
     }
 
     [Priority(1)]
@@ -80,13 +71,13 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
         var reprimand = await TryFindEntityAsync(id);
         if (reprimand == null)
         {
-            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
             return;
         }
 
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
         if (!authorized)
-            await _error.AssociateError(Context, NotAuthorizedMessage);
+            await error.AssociateError(Context, NotAuthorizedMessage);
         else
         {
             await ReplyAsync(
@@ -106,29 +97,29 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
 
         if (!authorized)
-            await _error.AssociateError(Context.Message, NotAuthorizedMessage);
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
         else
-            await ModifyReprimandAsync(entity, _moderation.DeleteReprimandAsync);
+            await ModifyReprimandAsync(entity, moderation.DeleteReprimandAsync);
     }
 
     protected override async Task<ICollection<Reprimand>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ReprimandHistory;
     }
 
     private async Task ModifyReprimandAsync(Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await _auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
+        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
 
         if (!authorized)
-            await _error.AssociateError(Context.Message, NotAuthorizedMessage);
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
         else if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
-            await _error.AssociateError(Context.Message, EmptyMatchMessage);
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
         else
         {
             var user = await Context.Client.GetUserAsync(reprimand.UserId);
@@ -140,7 +131,7 @@ public class ModifyReprimandsModule : InteractiveEntity<Reprimand>
 
     private async Task<ReprimandDetails> GetDetailsAsync(IUser user, string? reason)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
         return new ReprimandDetails(Context, user, reason, variables);
     }

@@ -21,23 +21,13 @@ namespace HuTao.Bot.Modules.Moderation;
 [Name("Moderation")]
 [Summary("Guild moderation commands.")]
 [RequireContext(ContextType.Guild)]
-public class ModerationModule : ModuleBase<SocketCommandContext>
+public class ModerationModule(
+    AuthorizationService auth,
+    CommandErrorHandler error,
+    ModerationService moderation,
+    HuTaoContext db)
+    : ModuleBase<SocketCommandContext>
 {
-    private readonly AuthorizationService _auth;
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-    private readonly ModerationService _moderation;
-
-    public ModerationModule(
-        AuthorizationService auth, CommandErrorHandler error,
-        ModerationService moderation, HuTaoContext db)
-    {
-        _auth       = auth;
-        _error      = error;
-        _moderation = moderation;
-        _db         = db;
-    }
-
     [Command("ban")]
     [Summary("Ban a user from the current guild.")]
     public async Task BanAsync(
@@ -48,15 +38,15 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     {
         if (deleteDays > 7)
         {
-            await _error.AssociateError(Context.Message, "Failed to ban user. Delete Days cannot be greater than 7.");
+            await error.AssociateError(Context.Message, "Failed to ban user. Delete Days cannot be greater than 7.");
             return;
         }
 
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryBanAsync(deleteDays, length, details);
+        var result = await moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
-            await _error.AssociateError(Context.Message, "Failed to ban user.");
+            await error.AssociateError(Context.Message, "Failed to ban user.");
     }
 
     [Priority(-1)]
@@ -127,11 +117,11 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryHardMuteAsync(length, details);
+        var result = await moderation.TryHardMuteAsync(length, details);
 
         if (result is null)
         {
-            await _error.AssociateError(Context.Message, "Failed to mute user. " +
+            await error.AssociateError(Context.Message, "Failed to mute user. " +
                 "Either the user is already muted or there is no hard mute role configured. " +
                 "Configure the mute role by running the 'configure hard mute' command.");
         }
@@ -198,10 +188,10 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryKickAsync(details);
+        var result = await moderation.TryKickAsync(details);
 
         if (result is null)
-            await _error.AssociateError(Context.Message, "Failed to kick user.");
+            await error.AssociateError(Context.Message, "Failed to kick user.");
     }
 
     [Priority(-1)]
@@ -244,11 +234,11 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryMuteAsync(length, details);
+        var result = await moderation.TryMuteAsync(length, details);
 
         if (result is null)
         {
-            await _error.AssociateError(Context.Message, "Failed to mute user. " +
+            await error.AssociateError(Context.Message, "Failed to mute user. " +
                 "Either the user is already muted or there is no mute role configured. " +
                 "Configure the mute role by running the 'configure mute' command.");
         }
@@ -314,7 +304,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Summary("View active mutes on the current guild.")]
     [RequireAuthorization(AuthorizationScope.History)]
     public Task MuteListAsync(ModerationCategory? category = null)
-        => _moderation.SendMuteListAsync(Context, category, false);
+        => moderation.SendMuteListAsync(Context, category, false);
 
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
@@ -323,7 +313,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? note = null)
     {
         var details = await GetDetailsAsync(user, note, category);
-        await _moderation.NoteAsync(details);
+        await moderation.NoteAsync(details);
     }
 
     [Priority(-1)]
@@ -365,7 +355,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        await _moderation.NoticeAsync(details);
+        await moderation.NoticeAsync(details);
     }
 
     [Priority(-1)]
@@ -404,7 +394,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Summary("Make the bot send a message to the specified channel")]
     [RequireAuthorization(AuthorizationScope.Send)]
     public Task SayAsync(ITextChannel? channel, [Remainder] string message)
-        => _moderation.SendMessageAsync(Context, channel, message);
+        => moderation.SendMessageAsync(Context, channel, message);
 
     [Command("say")]
     [HiddenFromHelp]
@@ -435,7 +425,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     [Summary("Run a configured moderation template")]
     public async Task TemplateAsync(string name, [RequireHigherRole] params IUser[] users)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var template = guild.ModerationTemplates
             .FirstOrDefault(t => name.Equals(t.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -445,9 +435,9 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
             return;
         }
 
-        if (!await _auth.IsAuthorizedAsync(Context, template.Scope))
+        if (!await auth.IsAuthorizedAsync(Context, template.Scope))
         {
-            await _error.AssociateError(Context.Message, "You don't have permission to use this template.");
+            await error.AssociateError(Context.Message, "You don't have permission to use this template.");
             return;
         }
 
@@ -455,7 +445,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         foreach (var user in users.DistinctBy(u => u.Id))
         {
             var details = await GetDetailsAsync(user, template.Reason, null);
-            var result = await _moderation.ReprimandAsync(template, details);
+            var result = await moderation.ReprimandAsync(template, details);
 
             if (result is null) failed.Add(user);
         }
@@ -470,10 +460,10 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryUnbanAsync(details);
+        var result = await moderation.TryUnbanAsync(details);
 
         if (result is null)
-            await _error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
+            await error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
     }
 
     [Priority(-1)]
@@ -514,10 +504,10 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        var result = await _moderation.TryUnmuteAsync(details);
+        var result = await moderation.TryUnmuteAsync(details);
 
         if (!result)
-            await _error.AssociateError(Context.Message, "Unmute failed.");
+            await error.AssociateError(Context.Message, "Unmute failed.");
     }
 
     [Priority(-1)]
@@ -558,7 +548,7 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         uint amount = 1, [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
-        await _moderation.WarnAsync(amount, details);
+        await moderation.WarnAsync(amount, details);
     }
 
     [Priority(-1)]
@@ -644,12 +634,12 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
     private async Task<ReprimandDetails> GetDetailsAsync(
         IUser user, string? reason, ModerationCategory? category)
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
         var details = new ReprimandDetails(Context, user, reason, variables, category: category);
 
-        await _db.Users.TrackUserAsync(details);
-        await _db.SaveChangesAsync();
+        await db.Users.TrackUserAsync(details);
+        await db.SaveChangesAsync();
 
         return details;
     }

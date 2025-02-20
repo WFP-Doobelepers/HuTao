@@ -15,17 +15,13 @@ namespace HuTao.Bot.Modules;
 [Name("Voice")]
 [Group("voice")]
 [Summary("Commands to manage voice chats.")]
-public class VoiceChatModule : ModuleBase<SocketCommandContext>
+public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 {
-    private readonly HuTaoContext _db;
-
-    public VoiceChatModule(HuTaoContext db) { _db = db; }
-
     [Command("ban")]
     [Summary("Ban someone from your current VC.")]
     public async Task BanAsync(IGuildUser user)
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
@@ -54,7 +50,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Claim this VC as yours. Only works if there are no other people in the VC.")]
     public async Task ClaimAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null)
@@ -79,7 +75,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
             new OverwritePermissions(manageChannel: PermValue.Allow, muteMembers: PermValue.Allow));
 
         voiceChat.UserId = Context.User.Id;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync("VC successfully claimed.");
     }
@@ -89,7 +85,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Clean up unused Voice Chats.")]
     public async Task CleanAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         if (guild.VoiceChatRules is null)
             return;
 
@@ -105,12 +101,12 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
 
         await foreach (var link in empty)
         {
-            _db.Remove(link.Rules);
+            db.Remove(link.Rules);
             _ = link.VoiceChannel?.DeleteAsync();
             _ = link.VoiceChat?.DeleteAsync();
         }
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
     }
 
@@ -118,7 +114,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Hide the VC from everyone. This denies view permission for everyone.")]
     public async Task HideAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id)
@@ -135,7 +131,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Kick someone from your VC.")]
     public async Task KickAsync(IGuildUser user)
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
@@ -157,7 +153,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Add a user limit to your VC.")]
     public async Task LimitAsync(uint? limit = null)
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id)
@@ -177,7 +173,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
         " Leaving won't give you permission back unless you're the owner.")]
     public async Task LockAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id)
@@ -196,7 +192,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Show the current owner of the VC.")]
     public async Task OwnerAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null)
@@ -210,7 +206,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Reveals the VC from everyone. This sets the inherit permission on the everyone role.")]
     public async Task RevealAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id)
@@ -227,7 +223,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Transfer ownership to someone else.")]
     public async Task TransferAsync(IGuildUser user, IVoiceChannel? channel)
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => channel != null
                 ? vc.VoiceChannelId == channel.Id
                 : vc.TextChannelId == Context.Channel.Id);
@@ -255,7 +251,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
             muteMembers: PermValue.Allow));
 
         voiceChat.UserId = user.Id;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         await ReplyAsync(
             "Voice chat ownership successfully transferred " +
@@ -266,7 +262,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Unban someone from your current VC.")]
     public async Task UnbanAsync(IGuildUser user)
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
@@ -287,7 +283,7 @@ public class VoiceChatModule : ModuleBase<SocketCommandContext>
     [Summary("Unlocks the VC.")]
     public async Task UnlockAsync()
     {
-        var voiceChat = await _db.Set<VoiceChatLink>().AsQueryable()
+        var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
             .FirstOrDefaultAsync(vc => vc.TextChannelId == Context.Channel.Id);
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id)

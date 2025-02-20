@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -27,17 +27,8 @@ public record Authorization(ModerationCategory Category, AuthorizationGroup Grou
 [Alias("catperms", "catperm")]
 [Summary("Manages category permissions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class CategoryPermissionsModule : InteractiveEntity<Authorization>
+public class CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext db) : InteractiveEntity<Authorization>
 {
-    private readonly CommandErrorHandler _error;
-    private readonly HuTaoContext _db;
-
-    public CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext db)
-    {
-        _error = error;
-        _db    = db;
-    }
-
     [Command("add")]
     [Summary(
         "Add a permission for a specific scope. At least one rule option must be filled. " +
@@ -48,7 +39,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
         var rules = options.ToCriteria();
         if (rules.Count == 0)
         {
-            await _error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
+            await error.AssociateError(Context.Message, "You must provide at least one restricting permission.");
             return;
         }
 
@@ -56,7 +47,7 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
         var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
         category.Authorization.Add(group.WithModerator(moderator));
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         await Context.Message.AddReactionAsync(new Emoji("✅"));
     }
 
@@ -80,14 +71,14 @@ public class CategoryPermissionsModule : InteractiveEntity<Authorization>
 
     protected override async Task RemoveEntityAsync(Authorization authorization)
     {
-        _db.TryRemove(authorization.Group);
-        _db.RemoveRange(authorization.Group.Collection);
-        await _db.SaveChangesAsync();
+        db.TryRemove(authorization.Group);
+        db.RemoveRange(authorization.Group.Collection);
+        await db.SaveChangesAsync();
     }
 
     protected override async Task<ICollection<Authorization>> GetCollectionAsync()
     {
-        var guild = await _db.Guilds.TrackGuildAsync(Context.Guild);
+        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationCategories
             .SelectMany(category => category.Authorization
                 .Select(auth => new Authorization(category, auth))
