@@ -463,6 +463,23 @@ public class ModerationModule : ModuleBase<SocketCommandContext>
         if (failed.Count > 0) await ReplyAsync($"Failed to run template on {failed.Count} {failed.Humanize()}.");
     }
 
+    [Command("timeout")]
+    [Summary("Timeout a user from the current guild.")]
+    [RequireAuthorization(AuthorizationScope.Timeout)]
+    public async Task TimeoutAsync([RequireHigherRole] IGuildUser user,
+        TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        var details = await GetDetailsAsync(user, reason, category);
+        var result = await _moderation.TryMuteAsync(length, details);
+
+        if (result is null)
+        {
+            await _error.AssociateError(Context.Message, "Failed to timeout user.");
+        }
+    }
+
     [Command("unban")]
     [Summary("Unban a user from the current guild.")]
     public async Task UnbanAsync(IUser user,

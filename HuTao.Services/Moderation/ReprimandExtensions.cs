@@ -21,6 +21,7 @@ using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Timeout = HuTao.Data.Models.Moderation.Infractions.Reprimands.Timeout;
 
 namespace HuTao.Services.Moderation;
 
@@ -100,6 +101,7 @@ public static class ReprimandExtensions
             Note          => Color.Blue,
             Notice        => Color.Gold,
             RoleReprimand => Color.Orange,
+            Timeout       => Color.Orange,
             Warning       => Color.Gold,
 
             _ => throw new ArgumentOutOfRangeException(
@@ -214,6 +216,7 @@ public static class ReprimandExtensions
             Note            => $"{status} note to {mention}.",
             Notice          => $"{status} notice to {mention}.",
             RoleReprimand r => $"{status} roles to {mention} for {r.GetLength()}: {((IRoleReprimand) r).Humanized}",
+            Timeout t       => $"{status} timeout to {mention} for {t.GetLength()}.",
             Warning w       => $"{status} warn to {mention} {w.Count} times.",
 
             _ => throw new ArgumentOutOfRangeException(
@@ -246,6 +249,7 @@ public static class ReprimandExtensions
             Note          => nameof(Note),
             Notice        => nameof(Notice),
             RoleReprimand => nameof(RoleReprimand),
+            Timeout       => nameof(Timeout),
             Warning       => nameof(Warning),
 
             _ => throw new ArgumentOutOfRangeException(
@@ -361,6 +365,7 @@ public static class ReprimandExtensions
             Note          => Count<Note>(),
             Notice        => Count<Notice>(),
             RoleReprimand => Count<RoleReprimand>(),
+            Timeout       => Count<Timeout>(),
             Warning       => user.WarningCount(reprimand.Category),
 
             _ => throw new ArgumentOutOfRangeException(

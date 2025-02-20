@@ -29,6 +29,7 @@ using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Timeout = HuTao.Data.Models.Moderation.Infractions.Reprimands.Timeout;
 
 namespace HuTao.Services.Moderation;
 
@@ -494,6 +495,41 @@ public class ModerationService : ExpirableService<ExpirableReprimand>
             await _db.SaveChangesAsync(cancellationToken);
 
             return await PublishReprimandAsync(mute, details, cancellationToken);
+        }
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+        {
+            return null;
+        }
+    }
+
+    public async Task<ReprimandResult?> TryTimeoutAsync(TimeSpan length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await details.GetUserAsync();
+        if (user is null) return null;
+
+        var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
+        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
+
+        var muteRole = details.Category?.MuteRoleId ?? guildEntity.ModerationRules?.MuteRoleId;
+        if (muteRole is null) return null;
+
+        if (activeMute is not null)
+        {
+            var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
+            if (!replace) return null;
+
+            await ExpireReprimandAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
+        }
+
+        try
+        {
+            await user.SetTimeOutAsync(length);
+
+            var timeout = _db.Add(new Timeout(length, details)).Entity;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return await PublishReprimandAsync(timeout, details, cancellationToken);
         }
         catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
         {
