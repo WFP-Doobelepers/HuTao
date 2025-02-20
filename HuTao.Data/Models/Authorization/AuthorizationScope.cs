@@ -51,6 +51,6 @@ public enum AuthorizationScope
 
     [Description("Allows using the role module.")]
     Roles = 1 << 17,
-    
+
     HardMute = 1 << 18
 }

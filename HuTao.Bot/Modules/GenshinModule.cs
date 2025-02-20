@@ -532,7 +532,8 @@ public class GenshinModule
 
     private class RequireAllowedUserCommandAttribute : CPreconditionAttribute
     {
-        public override async Task<CPreconditionResult> CheckPermissionsAsync(ICommandContext context,
+        public override async Task<CPreconditionResult> CheckPermissionsAsync(
+            ICommandContext context,
             CommandInfo command, IServiceProvider services)
         {
             if (context.User is not IGuildUser user)

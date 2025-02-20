@@ -42,7 +42,7 @@ public class Image : IImage, IEquatable<Image>
     public string Url { get; init; } = null!;
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Image other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Image other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Height, Width, ProxyUrl, Url);

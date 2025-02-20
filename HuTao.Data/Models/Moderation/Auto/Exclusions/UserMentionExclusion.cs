@@ -20,9 +20,9 @@ public class UserMentionExclusion : ModerationExclusion, IGuildUserEntity, IJudg
     [Column(nameof(GuildId))]
     public ulong GuildId { get; set; }
 
-    public bool Judge(ulong userId) => UserId == userId;
-
     public ulong UserId { get; set; }
+
+    public bool Judge(ulong userId) => UserId == userId;
 }
 
 public class UserExclusionConfiguration : IEntityTypeConfiguration<UserMentionExclusion>

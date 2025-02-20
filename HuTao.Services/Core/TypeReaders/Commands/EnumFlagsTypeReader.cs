@@ -15,7 +15,8 @@ public class EnumFlagsTypeReader<T>(
 {
     public EnumFlagsTypeReader() : this(true, ", ") { }
 
-    public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
+    public override Task<TypeReaderResult> ReadAsync(
+        ICommandContext context, string input,
         IServiceProvider services)
     {
         var enums = input.Split(separator, splitOptions)

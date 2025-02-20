@@ -53,7 +53,8 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
 
     protected async Task PagedViewAsync(IEnumerable<T> collection) => await PagedViewAsync(collection, EntityViewer);
 
-    protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
+    protected async Task PagedViewAsync<TEntity>(
+        IEnumerable<TEntity> collection,
         Func<TEntity, EmbedBuilder> entityViewer)
     {
         var pages = collection

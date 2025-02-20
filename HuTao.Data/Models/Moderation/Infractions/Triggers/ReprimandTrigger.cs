@@ -10,17 +10,18 @@ public class ReprimandTrigger : Trigger, ITriggerAction
     protected ReprimandTrigger() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public ReprimandTrigger(ITrigger? options, TriggerSource source,
+    public ReprimandTrigger(
+        ITrigger? options, TriggerSource source,
         ReprimandAction reprimand) : base(options)
     {
         Source    = source;
         Reprimand = reprimand;
     }
 
+    public TriggerSource Source { get; set; }
+
     [Column(nameof(ITriggerAction.ReprimandId))]
     public Guid? ReprimandId { get; set; }
-
-    public TriggerSource Source { get; set; }
 
     public virtual ReprimandAction? Reprimand { get; set; }
 }

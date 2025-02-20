@@ -34,7 +34,7 @@ public class Video : IEquatable<Video>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Video other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Video other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Height, Width, Url);

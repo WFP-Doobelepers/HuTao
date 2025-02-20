@@ -39,9 +39,9 @@ public class Link : IEquatable<Link>, IEquatable<string>, IEquatable<Uri>
         return obj switch
         {
             Uri uri => uri == Uri
-                || (Uri.Host == uri.Host
-                    && (Uri.AbsolutePath == uri.AbsolutePath
-                        || Uri.AbsolutePath == "/")),
+                || Uri.Host == uri.Host
+                && (Uri.AbsolutePath == uri.AbsolutePath
+                    || Uri.AbsolutePath == "/"),
             Link link  => Equals(link),
             string str => Equals(str),
             _          => false

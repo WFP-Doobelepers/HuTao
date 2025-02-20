@@ -32,8 +32,8 @@ public static class EmbedBuilderExtensions
 
     internal static ComponentBuilder WithQuotedMessage(this ComponentBuilder builder, QuotedMessage? quote)
     {
-        if (quote?.Context is { User: IGuildUser user, Guild: SocketGuild guild } 
-            && guild.GetTextChannel(quote.ChannelId) is IGuildChannel channel 
+        if (quote?.Context is { User: IGuildUser user, Guild: SocketGuild guild }
+            && guild.GetTextChannel(quote.ChannelId) is IGuildChannel channel
             && user.GetPermissions(channel).ManageMessages)
         {
             return builder

@@ -15,7 +15,8 @@ public class TemporaryRoleService(IMemoryCache cache, HuTaoContext db, DiscordSo
 {
     private readonly HuTaoContext _db = db;
 
-    public async Task CreateTemporaryRoleAsync(IRole role, TimeSpan length,
+    public async Task CreateTemporaryRoleAsync(
+        IRole role, TimeSpan length,
         CancellationToken cancellationToken = default)
     {
         var guild = await _db.Guilds.TrackGuildAsync(role.Guild, cancellationToken);

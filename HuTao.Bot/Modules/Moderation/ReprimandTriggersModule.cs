@@ -31,7 +31,8 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
     : InteractiveTrigger<ReprimandTrigger>
 {
     [Command("ban")]
-    public async Task BanTriggerAsync(TriggerSource source,
+    public async Task BanTriggerAsync(
+        TriggerSource source,
         uint deleteDays = 0, TimeSpan? length = null,
         TriggerOptions? options = null)
     {
@@ -47,7 +48,8 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
     }
 
     [Command("mute")]
-    public async Task MuteTriggerAsync(TriggerSource source,
+    public async Task MuteTriggerAsync(
+        TriggerSource source,
         TimeSpan? length = null, TriggerOptions? options = null)
     {
         var action = new MuteAction(length);
@@ -93,8 +95,10 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
     [Command("reprimands")]
     [Alias("history")]
     [Summary("Shows associated reprimands of this trigger.")]
-    protected async Task ViewAssociatedReprimandsAsync(string id,
-        [Summary("Leave empty to show everything.")] LogReprimandType type = LogReprimandType.All)
+    protected async Task ViewAssociatedReprimandsAsync(
+        string id,
+        [Summary("Leave empty to show everything.")]
+        LogReprimandType type = LogReprimandType.All)
     {
         var trigger = await TryFindEntityAsync(id);
 

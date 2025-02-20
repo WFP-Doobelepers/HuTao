@@ -33,7 +33,8 @@ public static class ModerationActionExtensions
     public static string GetReason(this IModerationAction action, int length = 256)
         => action.Action?.GetReason(length) ?? "No reason.";
 
-    private static EmbedBuilder WithTimestamp(this EmbedBuilder builder, ModerationAction? action,
+    private static EmbedBuilder WithTimestamp(
+        this EmbedBuilder builder, ModerationAction? action,
         bool useFooter = true)
     {
         if (action is not null) builder.WithTimestamp(action.Date);

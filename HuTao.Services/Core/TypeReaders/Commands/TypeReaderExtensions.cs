@@ -22,7 +22,8 @@ public static class TypeReaderExtensions
         commands.AddTypeReader<IReadOnlyCollection<TResult>>(reader);
     }
 
-    public static void AddGuildTypeReader<TGuild>(this CommandService commands,
+    public static void AddGuildTypeReader<TGuild>(
+        this CommandService commands,
         CacheMode cacheMode = CacheMode.AllowDownload) where TGuild : class, IGuild
     {
         commands.AddTypeReader<TGuild>(new GuildTypeReader<TGuild>(cacheMode));
@@ -41,7 +42,8 @@ public static class TypeReaderExtensions
     public static void AddTypeReaders<TResult>(this CommandService commands, IEnumerable<TypeReader> readers)
         => commands.AddTypeReader<TResult>(new TypeReaderCollection(readers));
 
-    public static void AddUserTypeReader<TUser>(this CommandService commands,
+    public static void AddUserTypeReader<TUser>(
+        this CommandService commands,
         CacheMode cacheMode = CacheMode.AllowDownload) where TUser : class, IUser
     {
         commands.AddTypeReader<TUser>(new UserTypeReader<TUser>(cacheMode));

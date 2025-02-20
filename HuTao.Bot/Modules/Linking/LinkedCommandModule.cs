@@ -31,7 +31,8 @@ public class LinkedCommandModule(HuTaoContext db, CommandService commands, Linke
     [Alias("add", "learn")]
     [Summary("Creates a new custom command.")]
     public async Task LinkAsync(
-        [Summary("The name of the custom command.")] string name,
+        [Summary("The name of the custom command.")]
+        string name,
         [Remainder] LinkedCommandOptions options)
     {
         var command = new LinkedCommand(name, options, (IGuildUser) Context.User);

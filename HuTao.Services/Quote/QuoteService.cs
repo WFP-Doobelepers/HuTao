@@ -20,7 +20,8 @@ public record QuotedMessage(Context Context, ulong ChannelId, ulong MessageId, u
 
 public interface IQuoteService
 {
-    Task<Paginator?> GetPaginatorAsync(Context context,
+    Task<Paginator?> GetPaginatorAsync(
+        Context context,
         SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls);
 }
@@ -32,7 +33,8 @@ public class QuoteService(DiscordSocketClient client, LoggingService logging, Hu
         EmbedBuilderOptions.EnlargeThumbnails |
         EmbedBuilderOptions.ReplaceAnimations;
 
-    public async Task<Paginator?> GetPaginatorAsync(Context context, SocketMessage source,
+    public async Task<Paginator?> GetPaginatorAsync(
+        Context context, SocketMessage source,
         IEnumerable<JumpMessage> jumpUrls)
     {
         var mention = source.MentionedUsers.Any() ? AllowedMentions.All : AllowedMentions.None;
@@ -63,7 +65,8 @@ public class QuoteService(DiscordSocketClient client, LoggingService logging, Hu
                 if (context.User is not IGuildUser guildUser) continue;
 
                 var guild = await db.Guilds.TrackGuildAsync(context.Guild);
-                var logging1 = guild.LoggingRules?.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
+                var logging1
+                    = guild.LoggingRules?.LoggingChannels.FirstOrDefault(l => l.Type is LogType.MessageDeleted);
                 if (logging1 is null) continue;
 
                 var channel = await context.Guild.GetTextChannelAsync(logging1.ChannelId);

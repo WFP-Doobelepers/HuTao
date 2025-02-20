@@ -7,7 +7,8 @@ namespace HuTao.Services.Interactive.TypeReaders;
 
 public static class TypeReaderExtensions
 {
-    public static EnumTryParseTypeReader<T> AsTypeReader<T>(this EnumTryParseDelegate<T> tryParse,
+    public static EnumTryParseTypeReader<T> AsTypeReader<T>(
+        this EnumTryParseDelegate<T> tryParse,
         bool ignoreCase = true) where T : struct, Enum =>
         new(ignoreCase);
 

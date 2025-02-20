@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -22,7 +21,8 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
     public PromptCollection<T> CreatePromptCollection<T>(string? errorMessage = null)
         where T : notnull => new(this, errorMessage);
 
-    internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(string question,
+    internal async Task<(SocketMessage? response, IUserMessage message)> Prompt(
+        string question,
         IUserMessage? message, PromptOptions? promptOptions)
     {
         message = await ModifyOrSendMessage(question, message, promptOptions);
@@ -45,7 +45,8 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
         return (response.Value, message);
     }
 
-    internal async Task<IUserMessage> ModifyOrSendMessage(string content,
+    internal async Task<IUserMessage> ModifyOrSendMessage(
+        string content,
         IUserMessage? message, PromptOptions? promptOptions)
     {
         var embed = new EmbedBuilder()

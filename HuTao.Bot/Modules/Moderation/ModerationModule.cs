@@ -33,7 +33,8 @@ public class ModerationModule(
     public async Task BanAsync(
         [RequireHigherRole] IUser user,
         uint deleteDays = 0, TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+        [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         if (deleteDays > 7)
@@ -71,7 +72,8 @@ public class ModerationModule(
     public async Task BanAsync(
         [RequireHigherRole] IEnumerable<IUser> users,
         uint deleteDays = 0, TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+        [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -111,9 +113,11 @@ public class ModerationModule(
 
     [Command("hardmute")]
     [Summary("Hard Mute a user from the current guild.")]
-    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.HardMute)] ModerationCategory? category = null,
+        [CheckCategory(AuthorizationScope.HardMute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -131,7 +135,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("hardmute")]
     [RequireAuthorization(AuthorizationScope.HardMute)]
-    public Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+    public Task HardMuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, [Remainder] string? reason = null)
         => HardMuteAsync(user, length, null, reason);
 
@@ -145,8 +150,10 @@ public class ModerationModule(
     [Priority(-3)]
     [HiddenFromHelp]
     [Command("hardmute")]
-    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.HardMute)] ModerationCategory? category = null,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.HardMute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -159,7 +166,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("hardmute")]
     [RequireAuthorization(AuthorizationScope.HardMute)]
-    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         TimeSpan? length = null, [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -172,7 +180,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("hardmute")]
     [RequireAuthorization(AuthorizationScope.HardMute)]
-    public async Task HardMuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -183,8 +192,10 @@ public class ModerationModule(
 
     [Command("kick")]
     [Summary("Kick a user from the current guild.")]
-    public async Task KickAsync([RequireHigherRole] IGuildUser user,
-        [CheckCategory(AuthorizationScope.Kick)] ModerationCategory? category = null,
+    public async Task KickAsync(
+        [RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Kick)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -204,8 +215,10 @@ public class ModerationModule(
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("kick")]
-    public async Task KickAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
-        [CheckCategory(AuthorizationScope.Kick)] ModerationCategory? category = null,
+    public async Task KickAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Kick)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -228,9 +241,11 @@ public class ModerationModule(
 
     [Command("mute")]
     [Summary("Mute a user from the current guild.")]
-    public async Task MuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task MuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+        [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -248,7 +263,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("mute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task MuteAsync([RequireHigherRole] IGuildUser user,
+    public Task MuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, [Remainder] string? reason = null)
         => MuteAsync(user, length, null, reason);
 
@@ -262,8 +278,10 @@ public class ModerationModule(
     [Priority(-3)]
     [HiddenFromHelp]
     [Command("mute")]
-    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
-        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+    public async Task MuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users, TimeSpan? length = null,
+        [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -276,7 +294,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("mute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+    public async Task MuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         TimeSpan? length = null, [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -289,7 +308,8 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("mute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public async Task MuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
+    public async Task MuteAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -308,8 +328,10 @@ public class ModerationModule(
 
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
-    public async Task NoteAsync([RequireHigherRole] IUser user,
-        [CheckCategory(AuthorizationScope.Note)] ModerationCategory? category = null,
+    public async Task NoteAsync(
+        [RequireHigherRole] IUser user,
+        [CheckCategory(AuthorizationScope.Note)]
+        ModerationCategory? category = null,
         [Remainder] string? note = null)
     {
         var details = await GetDetailsAsync(user, note, category);
@@ -326,8 +348,10 @@ public class ModerationModule(
     [Priority(-2)]
     [Command("note")]
     [Summary("Add a note to several users. Comma separated.")]
-    public async Task NoteAsync([RequireHigherRole] IEnumerable<IUser> users,
-        [CheckCategory(AuthorizationScope.Note)] ModerationCategory? category = null,
+    public async Task NoteAsync(
+        [RequireHigherRole] IEnumerable<IUser> users,
+        [CheckCategory(AuthorizationScope.Note)]
+        ModerationCategory? category = null,
         [Remainder] string? note = null)
     {
         foreach (var user in users)
@@ -350,8 +374,10 @@ public class ModerationModule(
 
     [Command("notice")]
     [Summary("Add a notice to a user. This counts as a minor warning.")]
-    public async Task NoticeAsync([RequireHigherRole] IGuildUser user,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public async Task NoticeAsync(
+        [RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -368,8 +394,10 @@ public class ModerationModule(
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("notice")]
-    public async Task NoticeAsync([RequireHigherRole] IEnumerable<IGuildUser> users,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public async Task NoticeAsync(
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -421,7 +449,8 @@ public class ModerationModule(
     public Task SlowmodeAsync(ITextChannel? channel = null, TimeSpan? length = null) => SlowmodeAsync(length, channel);
 
     [Priority(-1)]
-    [Command("template")] [Alias("t")]
+    [Command("template")]
+    [Alias("t")]
     [Summary("Run a configured moderation template")]
     public async Task TemplateAsync(string name, [RequireHigherRole] params IUser[] users)
     {
@@ -455,8 +484,10 @@ public class ModerationModule(
 
     [Command("unban")]
     [Summary("Unban a user from the current guild.")]
-    public async Task UnbanAsync(IUser user,
-        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+    public async Task UnbanAsync(
+        IUser user,
+        [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -475,8 +506,10 @@ public class ModerationModule(
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("unban")]
-    public async Task UnbanAsync(IEnumerable<IUser> users,
-        [CheckCategory(AuthorizationScope.Ban)] ModerationCategory? category = null,
+    public async Task UnbanAsync(
+        IEnumerable<IUser> users,
+        [CheckCategory(AuthorizationScope.Ban)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -499,8 +532,10 @@ public class ModerationModule(
 
     [Command("unmute")]
     [Summary("Unmute a user from the current guild.")]
-    public async Task UnmuteAsync(IGuildUser user,
-        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+    public async Task UnmuteAsync(
+        IGuildUser user,
+        [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -519,8 +554,10 @@ public class ModerationModule(
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("unmute")]
-    public async Task UnmuteAsync(IEnumerable<IGuildUser> users,
-        [CheckCategory(AuthorizationScope.Mute)] ModerationCategory? category = null,
+    public async Task UnmuteAsync(
+        IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Mute)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -543,8 +580,10 @@ public class ModerationModule(
 
     [Command("warn")]
     [Summary("Warn a user from the current guild.")]
-    public async Task WarnAsync([RequireHigherRole] IGuildUser user,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public async Task WarnAsync(
+        [RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         uint amount = 1, [Remainder] string? reason = null)
     {
         var details = await GetDetailsAsync(user, reason, category);
@@ -554,16 +593,20 @@ public class ModerationModule(
     [Priority(-1)]
     [HiddenFromHelp]
     [Command("warn")]
-    public Task WarnAsync([RequireHigherRole] IGuildUser user, uint amount = 1,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public Task WarnAsync(
+        [RequireHigherRole] IGuildUser user, uint amount = 1,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
         => WarnAsync(user, category, amount, reason);
 
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("warn")]
-    public Task WarnAsync([RequireHigherRole] IGuildUser user,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public Task WarnAsync(
+        [RequireHigherRole] IGuildUser user,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
         => WarnAsync(user, category, 1, reason);
 
@@ -584,8 +627,10 @@ public class ModerationModule(
     [Priority(-5)]
     [HiddenFromHelp]
     [Command("warn")]
-    public async Task WarnAsync(IEnumerable<IGuildUser> users, uint amount = 1,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public async Task WarnAsync(
+        IEnumerable<IGuildUser> users, uint amount = 1,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)
@@ -597,8 +642,10 @@ public class ModerationModule(
     [Priority(-6)]
     [HiddenFromHelp]
     [Command("warn")]
-    public async Task WarnAsync(IEnumerable<IGuildUser> users,
-        [CheckCategory(AuthorizationScope.Warning)] ModerationCategory? category = null,
+    public async Task WarnAsync(
+        IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Warning)]
+        ModerationCategory? category = null,
         [Remainder] string? reason = null)
     {
         foreach (var user in users)

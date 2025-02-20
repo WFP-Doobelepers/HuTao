@@ -39,7 +39,8 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
     protected async Task PagedViewAsync(IEnumerable<T> collection, bool ephemeral = false)
         => await PagedViewAsync(collection, EntityViewer, ephemeral);
 
-    protected async Task PagedViewAsync<TEntity>(IEnumerable<TEntity> collection,
+    protected async Task PagedViewAsync<TEntity>(
+        IEnumerable<TEntity> collection,
         Func<TEntity, EmbedBuilder> entityViewer, bool ephemeral = false)
     {
         var pages = collection

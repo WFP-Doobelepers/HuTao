@@ -141,7 +141,8 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
         return button;
     }
 
-    private async Task SendMessageAsync(Context context, MessageTemplate? template,
+    private async Task SendMessageAsync(
+        Context context, MessageTemplate? template,
         ICollection<RoleTemplate> templates, bool isEphemeral, bool dmUser)
     {
         if (!dmUser) await context.DeferAsync();

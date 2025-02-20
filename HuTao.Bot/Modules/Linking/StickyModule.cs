@@ -39,7 +39,8 @@ public class StickyModule(CommandErrorHandler error, StickyService sticky) : Int
     [Command("disable")]
     [RequireContext(ContextType.Guild)]
     public async Task DisableStickyMessageAsync(
-        [Summary("The ID of the sticky message to disable.")] string id)
+        [Summary("The ID of the sticky message to disable.")]
+        string id)
     {
         var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (sticky1 == null)
@@ -53,7 +54,8 @@ public class StickyModule(CommandErrorHandler error, StickyService sticky) : Int
 
     [Command("enable")]
     public async Task EnableStickyMessageAsync(
-        [Summary("The ID of the sticky message to enable.")] string id)
+        [Summary("The ID of the sticky message to enable.")]
+        string id)
     {
         var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (sticky1 == null)

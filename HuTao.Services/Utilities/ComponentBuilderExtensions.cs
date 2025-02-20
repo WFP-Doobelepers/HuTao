@@ -20,7 +20,8 @@ public static class ComponentBuilderExtensions
         return new ComponentBuilder().WithRows(builders);
     }
 
-    public static ICollection<ActionRow> AddComponent(this ICollection<ActionRow> rows, Component component,
+    public static ICollection<ActionRow> AddComponent(
+        this ICollection<ActionRow> rows, Component component,
         int row = 0)
     {
         if (row > MaxActionRowCount)

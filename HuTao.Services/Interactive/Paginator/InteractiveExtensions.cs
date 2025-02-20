@@ -15,7 +15,8 @@ public static class InteractiveExtensions
     public static IEnumerable<PageBuilder> ToPageBuilders(this EmbedBuilder builder, int chunk)
         => builder.Fields.ToList().ToPageBuilders(chunk, builder);
 
-    public static IEnumerable<PageBuilder> ToPageBuilders(this IEnumerable<EmbedFieldBuilder> fields, int chunk,
+    public static IEnumerable<PageBuilder> ToPageBuilders(
+        this IEnumerable<EmbedFieldBuilder> fields, int chunk,
         EmbedBuilder? builder = null)
         => fields.Chunk(chunk).Select(f => f.ToPageBuilder(builder));
 

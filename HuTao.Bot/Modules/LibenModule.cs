@@ -157,7 +157,8 @@ public class LibenModule(
     }
 
     [SlashCommand("add", "Add yourself to the list of marvelous merchandise.")]
-    public async Task AddAsync(Element element, ServerRegion region,
+    public async Task AddAsync(
+        Element element, ServerRegion region,
         [Discord.Interactions.Summary(description: "Your world level. Must be 1-8.")]
         uint worldLevel,
         [Discord.Interactions.Summary(description: "Your UID in the game.")]
@@ -335,7 +336,8 @@ public class LibenModule(
     }
 
     [SlashCommand("list", "List the boxes available")]
-    public async Task ListBoxesAsync(Element element, ServerRegion? region = null,
+    public async Task ListBoxesAsync(
+        Element element, ServerRegion? region = null,
         uint? worldLevel = null)
     {
         if (region is null && Context.User is IGuildUser user)
@@ -428,7 +430,8 @@ public class LibenModule(
     });
 
     [SlashCommand("looking", "Get pinged if someone comes with a box that you need.")]
-    public async Task LookingAsync(Element element, ServerRegion region,
+    public async Task LookingAsync(
+        Element element, ServerRegion region,
         [Discord.Interactions.Summary(description: "Your world level. Must be 1-8.")]
         uint worldLevel,
         [Discord.Interactions.Summary(description: "Force the addition of your notification")]
@@ -737,12 +740,12 @@ public class LibenModule(
         [InputLabel("Enter your UID")]
         public abstract ulong UID { get; set; }
 
-        public string Title => "Marvelous Merchandise";
-
         [RequiredInput(false)]
         [InputLabel("Delete box after... 00h00m")]
         [ModalTextInput("length", TextInputStyle.Short, "30m")]
         public TimeSpan? Length { get; set; }
+
+        public string Title => "Marvelous Merchandise";
     }
 
     public class AmericaModal : LibenModal
@@ -804,7 +807,8 @@ public class Box : IBox
 
     public Box() { }
 
-    public Box(IUser user, ulong id, uint wl, Element element, ServerRegion region,
+    public Box(
+        IUser user, ulong id, uint wl, Element element, ServerRegion region,
         TimeSpan? deleteAfter)
     {
         User       = new BoxUser(user.Id, user.ToString()!);
@@ -815,17 +819,17 @@ public class Box : IBox
         WorldLevel = wl;
     }
 
-    public BoxUser User { get; set; } = null!;
-
     public DateTimeOffset Added { get; set; } = DateTimeOffset.Now;
 
     public DateTimeOffset Expiry { get; set; }
+
+    public ulong Id { get; set; }
+
+    public BoxUser User { get; set; } = null!;
 
     public Element Type { get; set; }
 
     public ServerRegion Region { get; set; }
 
     public uint WorldLevel { get; set; }
-
-    public ulong Id { get; set; }
 }

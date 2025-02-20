@@ -67,7 +67,8 @@ public static class CommandHelpDataExtensions
         return builder;
     }
 
-    private static StringBuilder AppendParameter(this StringBuilder builder,
+    private static StringBuilder AppendParameter(
+        this StringBuilder builder,
         ParameterHelpData parameter, ISet<Type> seenTypes)
     {
         if (!parameter.Options.Any() || seenTypes.Contains(parameter.Type))
@@ -104,7 +105,8 @@ public static class CommandHelpDataExtensions
         return builder;
     }
 
-    private static StringBuilder AppendParameters(this StringBuilder builder,
+    private static StringBuilder AppendParameters(
+        this StringBuilder builder,
         IReadOnlyCollection<ParameterHelpData> parameters)
     {
         if (parameters.Count == 0)
@@ -126,7 +128,8 @@ public static class CommandHelpDataExtensions
         return builder;
     }
 
-    private static StringBuilder AppendSummaries(this StringBuilder builder,
+    private static StringBuilder AppendSummaries(
+        this StringBuilder builder,
         IEnumerable<ParameterHelpData> parameters, bool hideEmpty)
     {
         foreach (var parameter in parameters)

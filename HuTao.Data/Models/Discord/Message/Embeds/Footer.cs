@@ -34,7 +34,7 @@ public class Footer : IEquatable<Footer>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Footer other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Footer other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Text, IconUrl, ProxyUrl);

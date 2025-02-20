@@ -85,7 +85,8 @@ public static class DbSetExtensions
         CancellationToken cancellationToken = default)
         => await set.FindByIdAsync(roleId, cancellationToken) ?? set.Add(new RoleEntity(guildId, roleId)).Entity;
 
-    public static ValueTask<T?> FindByIdAsync<T>(this DbSet<T> dbSet, object key,
+    public static ValueTask<T?> FindByIdAsync<T>(
+        this DbSet<T> dbSet, object key,
         CancellationToken cancellationToken = default)
         where T : class => dbSet.FindAsync([key], cancellationToken);
 

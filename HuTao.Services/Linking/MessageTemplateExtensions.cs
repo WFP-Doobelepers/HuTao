@@ -14,7 +14,8 @@ namespace HuTao.Services.Linking;
 
 public static class MessageTemplateExtensions
 {
-    public static EmbedBuilder WithTemplateDetails(this EmbedBuilder builder,
+    public static EmbedBuilder WithTemplateDetails(
+        this EmbedBuilder builder,
         MessageTemplate template, IGuild guild) => builder
         .WithTitle($"Template: {template.Id}")
         .WithDescription(template.Content)

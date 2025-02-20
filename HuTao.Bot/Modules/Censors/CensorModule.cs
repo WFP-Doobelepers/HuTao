@@ -211,6 +211,15 @@ public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrig
         [HelpSummary("Comma separated regex flags. Defaults to `IgnoreCase`.")]
         public RegexOptions Flags { get; set; } = RegexOptions.IgnoreCase;
 
+        [HelpSummary("The name of the category this will be added to.")]
+        public ModerationCategory? Category { get; set; }
+
+        [HelpSummary("The behavior in which the reprimand of the censor triggers.")]
+        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
+
+        [HelpSummary("The amount of times the censor should be triggered before reprimanding.")]
+        public uint Amount { get; set; } = 1;
+
         [HelpSummary("The permissions that the user must have.")]
         public GuildPermission Permission { get; set; } = GuildPermission.None;
 
@@ -225,14 +234,5 @@ public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrig
 
         [HelpSummary("The way how the criteria is judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;
-
-        [HelpSummary("The name of the category this will be added to.")]
-        public ModerationCategory? Category { get; set; }
-
-        [HelpSummary("The behavior in which the reprimand of the censor triggers.")]
-        public TriggerMode Mode { get; set; } = TriggerMode.Exact;
-
-        [HelpSummary("The amount of times the censor should be triggered before reprimanding.")]
-        public uint Amount { get; set; } = 1;
     }
 }

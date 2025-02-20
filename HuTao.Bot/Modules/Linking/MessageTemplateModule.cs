@@ -23,7 +23,8 @@ public class MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, L
     [Command("link")]
     [Summary("Links a message to another message template using a button.")]
     public async Task LinkAsync(
-        [Summary("The message template to link to.")] string id,
+        [Summary("The message template to link to.")]
+        string id,
         [Remainder] LinkedMessageOptions options)
     {
         var template = await TryFindEntityAsync(id, await GetCollectionAsync());

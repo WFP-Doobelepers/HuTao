@@ -214,7 +214,8 @@ public class UserService(
                     c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
-    private static SelectMenuBuilder HistoryMenu(IUser user,
+    private static SelectMenuBuilder HistoryMenu(
+        IUser user,
         ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
     {
         var types = Enum.GetValues<LogReprimandType>()[1..^1];

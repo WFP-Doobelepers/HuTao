@@ -42,7 +42,8 @@ public record LogConfig<T>(T? Config, T Template) where T : ModerationLogConfig
 
 public class ModerationLoggingService(HuTaoContext db)
 {
-    public async Task<ReprimandResult> PublishReprimandAsync(ReprimandResult result, ReprimandDetails details,
+    public async Task<ReprimandResult> PublishReprimandAsync(
+        ReprimandResult result, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var reprimand = result.Last;
@@ -215,7 +216,8 @@ public class ModerationLoggingService(HuTaoContext db)
         }
     }
 
-    private async Task AddSecondaryAsync(EmbedBuilder embed, Reprimand secondary, ModerationLogOptions options,
+    private async Task AddSecondaryAsync(
+        EmbedBuilder embed, Reprimand secondary, ModerationLogOptions options,
         CancellationToken cancellationToken)
     {
         embed.WithColor(secondary.GetColor());

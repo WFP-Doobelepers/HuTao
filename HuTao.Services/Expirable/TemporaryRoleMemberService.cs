@@ -15,7 +15,8 @@ public class TemporaryRoleMemberService(IMemoryCache cache, HuTaoContext db, Dis
 {
     private readonly HuTaoContext _db = db;
 
-    public async Task AddTemporaryRoleMemberAsync(IGuildUser user, IRole role, TimeSpan length,
+    public async Task AddTemporaryRoleMemberAsync(
+        IGuildUser user, IRole role, TimeSpan length,
         CancellationToken cancellationToken = default)
     {
         await user.AddRoleAsync(role);
@@ -29,12 +30,13 @@ public class TemporaryRoleMemberService(IMemoryCache cache, HuTaoContext db, Dis
         EnqueueExpirableEntity(temporary, cancellationToken);
     }
 
-    protected override async Task OnExpiredEntity(TemporaryRoleMember temporary,
+    protected override async Task OnExpiredEntity(
+        TemporaryRoleMember temporary,
         CancellationToken cancellationToken)
     {
         IGuild guild = client.GetGuild(temporary.GuildId);
         if (guild is null) return;
-        
+
         var role = guild.GetRole(temporary.RoleId);
         var user = await guild.GetUserAsync(temporary.UserId);
 

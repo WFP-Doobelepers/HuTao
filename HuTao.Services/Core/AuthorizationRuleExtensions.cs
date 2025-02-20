@@ -22,7 +22,8 @@ public static class AuthorizationRuleExtensions
         this IEnumerable<T> rules, AuthorizationScope scope) where T : AuthorizationGroup
         => rules.Where(rule => (rule.Scope & scope) != 0 || rule.Scope == AuthorizationScope.All);
 
-    public static void AddRules(this ICollection<AuthorizationGroup> group,
+    public static void AddRules(
+        this ICollection<AuthorizationGroup> group,
         AuthorizationScope scope, IGuildUser moderator,
         AccessType accessType, JudgeType type, params Criterion[] rules)
         => group.Add(new AuthorizationGroup(scope, accessType, type, rules).WithModerator(moderator));

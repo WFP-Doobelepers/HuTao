@@ -34,7 +34,8 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(),
             notification.Reaction);
 
-    public async Task Handle(ReactionRemovedNotification notification,
+    public async Task Handle(
+        ReactionRemovedNotification notification,
         CancellationToken cancellationToken)
         => await ReactionRemoved(notification.Message, await notification.Channel.GetOrDownloadAsync(),
             notification.Reaction);
@@ -56,7 +57,8 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         _                => context.ReplyAsync(error, ephemeral: true)
     };
 
-    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
+    private async Task ReactionAdded(
+        Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
         // Don't trigger if the emoji is wrong, if the user is a bot, or if we've
@@ -86,7 +88,8 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         }
     }
 
-    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
+    private async Task ReactionRemoved(
+        Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
         SocketReaction reaction)
     {
         if (!reaction.User.IsSpecified || reaction.User.Value is null) return;

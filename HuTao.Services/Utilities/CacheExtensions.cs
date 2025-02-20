@@ -25,7 +25,8 @@ public static class CacheExtensions
     public static Task<IInvite?> ParseInviteAsync(this IMemoryCache cache, IDiscordClient client, string input)
         => ParseInviteAsync<IInvite>(cache, client, input);
 
-    public static Task<LoggingRules?> GetLoggingAsync(this DbSet<GuildEntity> set, IGuild guild,
+    public static Task<LoggingRules?> GetLoggingAsync(
+        this DbSet<GuildEntity> set, IGuild guild,
         IMemoryCache cache, CancellationToken cancellationToken = default)
         => cache.GetOrCreateAsync($"{nameof(GetLoggingAsync)}.{guild.Id}", async entry =>
         {

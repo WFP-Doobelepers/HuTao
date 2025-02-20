@@ -88,7 +88,8 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
     [Command("notice expiry")]
     [Summary("Set the time for when a notice is automatically pardoned. This will not affect old cases.")]
     public async Task ConfigureAutoPardonNoticeAsync(
-        [Summary("Leave empty to disable auto pardon of notices.")] TimeSpan? length = null,
+        [Summary("Leave empty to disable auto pardon of notices.")]
+        TimeSpan? length = null,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
@@ -106,7 +107,8 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
     [Command("warning expiry")]
     [Summary("Set the time for when a warning is automatically pardoned. This will not affect old cases.")]
     public async Task ConfigureAutoPardonWarningAsync(
-        [Summary("Leave empty to disable auto pardon of warnings.")] TimeSpan? length = null,
+        [Summary("Leave empty to disable auto pardon of warnings.")]
+        TimeSpan? length = null,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
@@ -140,7 +142,8 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
     [Command("censor expiry")]
     [Summary("Set the time for when a censor is considered. This is used for reprimand triggers.")]
     public async Task ConfigureCensorExpiryAsync(
-        [Summary("Leave empty to disable censor range.")] TimeSpan? length = null,
+        [Summary("Leave empty to disable censor range.")]
+        TimeSpan? length = null,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);
@@ -158,7 +161,8 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
     [Command("auto expiry")]
     [Summary("Set the time for when a filter expires. This is used for reprimand triggers.")]
     public async Task ConfigureFilterExpiryAsync(
-        [Summary("Leave empty to disable filter range.")] TimeSpan? length = null,
+        [Summary("Leave empty to disable filter range.")]
+        TimeSpan? length = null,
         ModerationCategory? category = null)
     {
         var rules = await GetRulesAsync(category);

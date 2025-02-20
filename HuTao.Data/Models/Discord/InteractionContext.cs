@@ -66,7 +66,8 @@ public class InteractionContext(IInteractionContext context)
     public Task<IUserMessage> GetOriginalResponseAsync(RequestOptions? options = null)
         => Interaction.GetOriginalResponseAsync(options);
 
-    public Task<IUserMessage> ModifyOriginalResponseAsync(Action<MessageProperties> func,
+    public Task<IUserMessage> ModifyOriginalResponseAsync(
+        Action<MessageProperties> func,
         RequestOptions? options = null)
         => Interaction.ModifyOriginalResponseAsync(func, options);
 

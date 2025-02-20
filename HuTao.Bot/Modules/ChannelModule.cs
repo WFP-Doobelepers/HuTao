@@ -129,7 +129,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
     [Command("reset")]
     [Summary("Resetting category channel positions.")]
-    public async Task ResetCategoryOfChannel([Summary(
+    public async Task ResetCategoryOfChannel(
+        [Summary(
             "The channel to reset the positions of its parent category. " +
             "If it has no parent category, it will reset the positions of channels without one.")]
         INestedChannel givenChannel)

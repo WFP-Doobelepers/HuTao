@@ -221,7 +221,8 @@ public class LinkedCommandService(
     {
         public ulong GuildId { get; } = guildId;
 
-        public override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command,
+        public override Task<PreconditionResult> CheckPermissionsAsync(
+            ICommandContext context, CommandInfo command,
             IServiceProvider services) => context.Guild.Id == GuildId
             ? Task.FromResult(PreconditionResult.FromSuccess())
             : Task.FromResult(PreconditionResult.FromError("This command is not available in this guild."));

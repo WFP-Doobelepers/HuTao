@@ -30,7 +30,8 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
 
     [SlashCommand("pardon", "Pardon a reprimand, this would mean they are not counted towards triggers.")]
     public async Task PardonReprimandAsync(
-        [Autocomplete(typeof(ReprimandAutocomplete))] string id,
+        [Autocomplete(typeof(ReprimandAutocomplete))]
+        string id,
         string? reason = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -62,7 +63,8 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
 
     [SlashCommand("update", "Update a reprimand's reason.")]
     public async Task UpdateReprimandAsync(
-        [Autocomplete(typeof(ReprimandAutocomplete))] string id,
+        [Autocomplete(typeof(ReprimandAutocomplete))]
+        string id,
         string? reason = null,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -87,7 +89,8 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
 
     [SlashCommand("view", "View the details of the reprimand.")]
     public async Task ViewReprimandAsync(
-        [Autocomplete(typeof(ReprimandAutocomplete))] string id,
+        [Autocomplete(typeof(ReprimandAutocomplete))]
+        string id,
         bool ephemeral = false)
     {
         var reprimand = await TryFindEntityAsync(id);
@@ -111,7 +114,8 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
     [ComponentInteraction("reprimand-delete:*:*", true)]
     [SlashCommand("delete", "Delete a reprimand. This completely removes the data.")]
     protected override Task RemoveEntityAsync(
-        [Autocomplete(typeof(ReprimandAutocomplete))] string id,
+        [Autocomplete(typeof(ReprimandAutocomplete))]
+        string id,
         [RequireEphemeralScope] bool ephemeral = false)
         => base.RemoveEntityAsync(id, ephemeral);
 

@@ -24,7 +24,8 @@ public class EvaluationResult
 
     public EvaluationResult() { }
 
-    public EvaluationResult(string code, ScriptState<object?> state, string consoleOut, TimeSpan executionTime,
+    public EvaluationResult(
+        string code, ScriptState<object?> state, string consoleOut, TimeSpan executionTime,
         TimeSpan compileTime)
     {
         state = state ?? throw new ArgumentNullException(nameof(state));
@@ -69,7 +70,8 @@ public class EvaluationResult
 
     public TimeSpan ExecutionTime { get; set; }
 
-    public static EvaluationResult CreateErrorResult(string code, string consoleOut, TimeSpan compileTime,
+    public static EvaluationResult CreateErrorResult(
+        string code, string consoleOut, TimeSpan compileTime,
         ImmutableArray<Diagnostic> compileErrors)
     {
         var ex = new CompilationErrorException(string.Join("\n", compileErrors.Select(a => a.GetMessage())),

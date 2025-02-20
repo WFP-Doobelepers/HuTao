@@ -34,7 +34,7 @@ public class Field : IEquatable<Field>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Field other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Field other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Inline, Name, Value);

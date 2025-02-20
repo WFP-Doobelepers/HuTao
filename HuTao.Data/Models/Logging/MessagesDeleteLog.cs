@@ -14,7 +14,8 @@ public class MessagesDeleteLog : DeleteLog, IChannelEntity, IGuildEntity
     protected MessagesDeleteLog() { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    public MessagesDeleteLog(IEnumerable<IMessageEntity> messages, IGuildChannel channel,
+    public MessagesDeleteLog(
+        IEnumerable<IMessageEntity> messages, IGuildChannel channel,
         ActionDetails? details) : base(details)
     {
         ChannelId = channel.Id;

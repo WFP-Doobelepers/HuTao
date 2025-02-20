@@ -92,9 +92,6 @@ public abstract class AutoConfiguration : Trigger, ITriggerAction
         Reprimand      = reprimand;
     }
 
-    [Column(nameof(ReprimandId))]
-    public Guid? ReprimandId { get; set; }
-
     public bool DeleteMessages { get; set; }
 
     public bool Global { get; set; }
@@ -108,6 +105,9 @@ public abstract class AutoConfiguration : Trigger, ITriggerAction
     public TimeSpan Length { get; set; }
 
     public TimeSpan? Cooldown { get; set; }
+
+    [Column(nameof(ReprimandId))]
+    public Guid? ReprimandId { get; set; }
 
     public virtual ReprimandAction? Reprimand { get; set; }
 }

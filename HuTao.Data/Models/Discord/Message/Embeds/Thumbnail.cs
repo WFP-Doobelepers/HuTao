@@ -42,7 +42,7 @@ public class Thumbnail : IImage, IEquatable<Thumbnail>
     public string Url { get; init; } = null!;
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Thumbnail other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Thumbnail other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Height, Width, ProxyUrl, Url);

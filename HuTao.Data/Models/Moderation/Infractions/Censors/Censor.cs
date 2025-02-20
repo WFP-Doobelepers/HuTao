@@ -24,9 +24,6 @@ public class Censor : Trigger, ICensor, ITriggerAction
         Silent  = options?.Silent ?? false;
     }
 
-    [Column(nameof(ITriggerAction.ReprimandId))]
-    public Guid? ReprimandId { get; set; }
-
     public bool Silent { get; set; }
 
     public virtual ICollection<Criterion> Exclusions { get; set; } = new List<Criterion>();
@@ -34,6 +31,9 @@ public class Censor : Trigger, ICensor, ITriggerAction
     public RegexOptions Options { get; set; }
 
     public string Pattern { get; set; } = null!;
+
+    [Column(nameof(ITriggerAction.ReprimandId))]
+    public Guid? ReprimandId { get; set; }
 
     public virtual ReprimandAction? Reprimand { get; set; }
 }

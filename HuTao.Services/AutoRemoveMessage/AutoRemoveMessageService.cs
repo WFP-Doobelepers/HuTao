@@ -28,7 +28,8 @@ public interface IRemovableMessageService
     /// <returns>
     ///     A <see cref="Task" /> that will complete when the operation completes.
     /// </returns>
-    Task RegisterRemovableMessageAsync(IUser user,
+    Task RegisterRemovableMessageAsync(
+        IUser user,
         IReadOnlyCollection<EmbedBuilder> embeds,
         Func<IReadOnlyCollection<EmbedBuilder>, Task<IUserMessage>> callback);
 
@@ -48,7 +49,8 @@ public interface IRemovableMessageService
     /// <returns>
     ///     A <see cref="Task" /> that will complete when the operation completes.
     /// </returns>
-    Task RegisterRemovableMessageAsync(IUser[] users,
+    Task RegisterRemovableMessageAsync(
+        IUser[] users,
         IReadOnlyCollection<EmbedBuilder> embeds,
         Func<IReadOnlyCollection<EmbedBuilder>, Task<IUserMessage>> callback);
 
@@ -65,12 +67,14 @@ internal class RemovableMessageService(IMediator mediator) : IRemovableMessageSe
     private const string FooterReactMessage = "React with ❌ to remove this embed.";
 
     /// <inheritdoc />
-    public Task RegisterRemovableMessageAsync(IUser user, IReadOnlyCollection<EmbedBuilder> embeds,
+    public Task RegisterRemovableMessageAsync(
+        IUser user, IReadOnlyCollection<EmbedBuilder> embeds,
         Func<IReadOnlyCollection<EmbedBuilder>, Task<IUserMessage>> callback)
         => RegisterRemovableMessageAsync([user], embeds, callback);
 
     /// <inheritdoc />
-    public async Task RegisterRemovableMessageAsync(IUser[] users,
+    public async Task RegisterRemovableMessageAsync(
+        IUser[] users,
         IReadOnlyCollection<EmbedBuilder> embeds,
         Func<IReadOnlyCollection<EmbedBuilder>, Task<IUserMessage>> callback)
     {

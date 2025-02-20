@@ -26,11 +26,11 @@ public class TemporaryRole : IRoleEntity, IExpirable, IModerationAction
 
     public DateTimeOffset? ExpireAt { get; set; }
 
-    public ulong GuildId { get; set; }
-
     public TimeSpan? Length { get; set; }
 
     public virtual ModerationAction? Action { get; set; } = null!;
+
+    public ulong GuildId { get; set; }
 
     public ulong RoleId { get; set; }
 }

@@ -16,15 +16,18 @@ public static class EnumExtensions
     public static GuildPermissions ToGuildPermissions(this IEnumerable<GuildPermission> permissions)
         => new((uint) GuildPermissionBitwise.Or(permissions));
 
-    public static LogReprimandStatus SetValue(this LogReprimandStatus options, LogReprimandStatus flag,
+    public static LogReprimandStatus SetValue(
+        this LogReprimandStatus options, LogReprimandStatus flag,
         bool? state)
         => LogReprimandStatusBitwise.SetValue(options, flag, state);
 
-    public static LogReprimandType SetValue(this LogReprimandType options, LogReprimandType flag,
+    public static LogReprimandType SetValue(
+        this LogReprimandType options, LogReprimandType flag,
         bool? state)
         => LogReprimandTypeBitwise.SetValue(options, flag, state);
 
-    public static ModerationLogOptions SetValue(this ModerationLogOptions options, ModerationLogOptions flag,
+    public static ModerationLogOptions SetValue(
+        this ModerationLogOptions options, ModerationLogOptions flag,
         bool? state)
         => ModerationLogOptionsBitwise.SetValue(options, flag, state);
 

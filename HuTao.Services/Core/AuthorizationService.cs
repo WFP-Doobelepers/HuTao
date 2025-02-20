@@ -81,7 +81,8 @@ public class AuthorizationService(HuTaoContext db)
         }
     }
 
-    public async Task<GuildEntity> AutoConfigureGuild(IGuild guild,
+    public async Task<GuildEntity> AutoConfigureGuild(
+        IGuild guild,
         CancellationToken cancellationToken = default)
     {
         var guildEntity = await GetGuildAsync(guild, cancellationToken);
@@ -98,15 +99,18 @@ public class AuthorizationService(HuTaoContext db)
         return guildEntity;
     }
 
-    public ValueTask<bool> IsAuthorizedAsync(SocketCommandContext context, AuthorizationScope scope,
+    public ValueTask<bool> IsAuthorizedAsync(
+        SocketCommandContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
         => IsAuthorizedAsync(new CommandContext(context), scope, cancellationToken);
 
-    public ValueTask<bool> IsAuthorizedAsync(SocketInteractionContext context, AuthorizationScope scope,
+    public ValueTask<bool> IsAuthorizedAsync(
+        SocketInteractionContext context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
         => IsAuthorizedAsync(new InteractionContext(context), scope, cancellationToken);
 
-    public async ValueTask<bool> IsAuthorizedAsync(Context context, AuthorizationScope scope,
+    public async ValueTask<bool> IsAuthorizedAsync(
+        Context context, AuthorizationScope scope,
         CancellationToken cancellationToken = default)
     {
         var rules = await AutoConfigureGuild(context.Guild, cancellationToken);

@@ -8,9 +8,9 @@ namespace HuTao.Services.Utilities;
 public class GenericBitwise<T> where T : Enum
 {
     private readonly Func<T, T, T> _and = And().Compile();
+    private readonly Func<T, T> _not = Not().Compile();
     private readonly Func<T, T, T> _or = Or().Compile();
     private readonly Func<T, T, T> _xor = Xor().Compile();
-    private readonly Func<T, T> _not = Not().Compile();
 
     public T All()
     {

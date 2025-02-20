@@ -60,9 +60,9 @@ public class AutoModerationBehavior(
     {
         if (source is not IUserMessage
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: SocketTextChannel channel
+                Channel     : SocketTextChannel channel
             } message) return;
 
         if (IsUserCooldown()) return;
@@ -240,7 +240,8 @@ public class AutoModerationBehavior(
             {
                 e.SlidingExpiration = CacheExpiration;
                 return new SemaphoreSlim(1, 1);
-            }) ?? throw new InvalidOperationException($"Cache entry was null for {nameof(AutoModerationBehavior)}.{nameof(Reprimand)}");
+            }) ?? throw new InvalidOperationException(
+                $"Cache entry was null for {nameof(AutoModerationBehavior)}.{nameof(Reprimand)}");
 
             try
             {

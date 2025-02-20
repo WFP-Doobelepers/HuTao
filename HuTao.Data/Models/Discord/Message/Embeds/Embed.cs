@@ -85,7 +85,7 @@ public class Embed : IEquatable<Embed>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Embed other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Embed other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

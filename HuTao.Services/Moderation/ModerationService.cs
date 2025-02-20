@@ -43,7 +43,8 @@ public class ModerationService(
 {
     private readonly HuTaoContext _db = db;
 
-    public async Task ConfigureHardMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role,
+    public async Task ConfigureHardMuteRoleAsync(
+        IModerationRules rules, IGuild guild, IRole? role,
         bool skipPermissions)
     {
         role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.MuteRoleId);
@@ -91,7 +92,8 @@ public class ModerationService(
         }
     }
 
-    public async Task DeleteReprimandAsync(Reprimand reprimand, ReprimandDetails? details,
+    public async Task DeleteReprimandAsync(
+        Reprimand reprimand, ReprimandDetails? details,
         CancellationToken cancellationToken = default)
     {
         if (reprimand is ExpirableReprimand expirable)
@@ -166,8 +168,8 @@ public class ModerationService(
             .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
-                and not ReprimandStatus.Pardoned
-                and not ReprimandStatus.Deleted)
+            and not ReprimandStatus.Pardoned
+            and not ReprimandStatus.Deleted)
             .Where(r => category is null || r.Category?.Id == category.Id);
 
         var builders = history
@@ -238,7 +240,8 @@ public class ModerationService(
         await _db.SaveChangesAsync();
     }
 
-    public async Task TryExpireReprimandAsync(Reprimand reprimand, ReprimandStatus status,
+    public async Task TryExpireReprimandAsync(
+        Reprimand reprimand, ReprimandStatus status,
         ReprimandDetails? details = null, CancellationToken cancellationToken = default)
         => await (reprimand switch
         {
@@ -250,11 +253,13 @@ public class ModerationService(
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
         });
 
-    public Task UpdateReprimandAsync(Reprimand reprimand, ReprimandDetails details,
+    public Task UpdateReprimandAsync(
+        Reprimand reprimand, ReprimandDetails details,
         CancellationToken cancellationToken = default)
         => UpdateReprimandAsync(reprimand, ReprimandStatus.Updated, details, cancellationToken);
 
-    public async Task<Ban?> TryUnbanAsync(ReprimandDetails details,
+    public async Task<Ban?> TryUnbanAsync(
+        ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
@@ -266,7 +271,8 @@ public class ModerationService(
         return activeBan;
     }
 
-    public async Task<bool> TryUnmuteAsync(ReprimandDetails details,
+    public async Task<bool> TryUnmuteAsync(
+        ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var mute = await _db.GetActive<Mute>(details, cancellationToken);
@@ -350,11 +356,13 @@ public class ModerationService(
         return await PublishReprimandAsync(censored, details, cancellationToken);
     }
 
-    public Task<ReprimandResult?> ReprimandAsync(ModerationTemplate template, ReprimandDetails details,
+    public Task<ReprimandResult?> ReprimandAsync(
+        ModerationTemplate template, ReprimandDetails details,
         CancellationToken cancellationToken = default)
         => ReprimandAsync(template.Action, details, cancellationToken);
 
-    public async Task<ReprimandResult?> TryBanAsync(uint? deleteDays, TimeSpan? length, ReprimandDetails details,
+    public async Task<ReprimandResult?> TryBanAsync(
+        uint? deleteDays, TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var activeBan = await _db.GetActive<Ban>(details, cancellationToken);
@@ -380,7 +388,8 @@ public class ModerationService(
         }
     }
 
-    public async Task<ReprimandResult?> TryHardMuteAsync(TimeSpan? length, ReprimandDetails details,
+    public async Task<ReprimandResult?> TryHardMuteAsync(
+        TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var user = await details.GetUserAsync();
@@ -433,7 +442,8 @@ public class ModerationService(
         }
     }
 
-    public async Task<ReprimandResult?> TryKickAsync(ReprimandDetails details,
+    public async Task<ReprimandResult?> TryKickAsync(
+        ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         try
@@ -455,7 +465,8 @@ public class ModerationService(
         }
     }
 
-    public async Task<ReprimandResult?> TryMuteAsync(TimeSpan? length, ReprimandDetails details,
+    public async Task<ReprimandResult?> TryMuteAsync(
+        TimeSpan? length, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var user = await details.GetUserAsync();
@@ -492,7 +503,8 @@ public class ModerationService(
         }
     }
 
-    public async Task<ReprimandResult> NoteAsync(ReprimandDetails details,
+    public async Task<ReprimandResult> NoteAsync(
+        ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var note = _db.Add(new Note(details)).Entity;
@@ -501,7 +513,8 @@ public class ModerationService(
         return await PublishReprimandAsync(note, details, cancellationToken);
     }
 
-    public async Task<ReprimandResult> NoticeAsync(ReprimandDetails details,
+    public async Task<ReprimandResult> NoticeAsync(
+        ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var guild = await details.GetGuildAsync(_db, cancellationToken);
@@ -514,7 +527,8 @@ public class ModerationService(
         return await PublishReprimandAsync(notice, details, cancellationToken);
     }
 
-    public async Task<ReprimandResult> WarnAsync(uint amount, ReprimandDetails details,
+    public async Task<ReprimandResult> WarnAsync(
+        uint amount, ReprimandDetails details,
         CancellationToken cancellationToken = default)
     {
         var guild = await details.GetGuildAsync(_db, cancellationToken);
@@ -544,7 +558,8 @@ public class ModerationService(
         return source is not null;
     }
 
-    private async Task ExpireBanAsync(ExpirableReprimand ban, ReprimandStatus status,
+    private async Task ExpireBanAsync(
+        ExpirableReprimand ban, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
         var guild = client.GetGuild(ban.GuildId);
@@ -553,7 +568,8 @@ public class ModerationService(
         await ExpireReprimandAsync(ban, status, cancellationToken, details);
     }
 
-    private async Task ExpireReprimandAsync(ExpirableReprimand reprimand, ReprimandStatus status,
+    private async Task ExpireReprimandAsync(
+        ExpirableReprimand reprimand, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
         if (details is null)
@@ -568,7 +584,8 @@ public class ModerationService(
         await UpdateReprimandAsync(reprimand, status, details, cancellationToken);
     }
 
-    private async Task ExpireRolesAsync(RoleReprimand roles, ReprimandStatus status,
+    private async Task ExpireRolesAsync(
+        RoleReprimand roles, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
         var guild = (IGuild) client.GetGuild(roles.GuildId);
@@ -592,7 +609,8 @@ public class ModerationService(
         await ExpireReprimandAsync(roles, status, cancellationToken, details);
     }
 
-    private async Task UpdateReprimandAsync(Reprimand reprimand,
+    private async Task UpdateReprimandAsync(
+        Reprimand reprimand,
         ReprimandStatus status, ReprimandDetails details,
         CancellationToken cancellationToken)
     {
@@ -640,7 +658,8 @@ public class ModerationService(
         return true;
     }
 
-    private async Task<bool> ExpireMuteAsync(Mute mute, ReprimandStatus status,
+    private async Task<bool> ExpireMuteAsync(
+        Mute mute, ReprimandStatus status,
         CancellationToken cancellationToken, ReprimandDetails? details = null)
     {
         var guild = (IGuild) client.GetGuild(mute.GuildId);
@@ -652,7 +671,8 @@ public class ModerationService(
         return result;
     }
 
-    private async Task<ReprimandResult?> CensorReprimandAsync(ReprimandDetails details,
+    private async Task<ReprimandResult?> CensorReprimandAsync(
+        ReprimandDetails details,
         Censored censored, Censor censor, CancellationToken cancellationToken)
     {
         var count = await censored.CountAsync(censor, _db, cancellationToken);
@@ -666,7 +686,8 @@ public class ModerationService(
         }, cancellationToken);
     }
 
-    private async Task<ReprimandResult?> ReprimandAsync(ReprimandAction? reprimand, ReprimandDetails details,
+    private async Task<ReprimandResult?> ReprimandAsync(
+        ReprimandAction? reprimand, ReprimandDetails details,
         CancellationToken cancellationToken) => reprimand switch
     {
         BanAction b      => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
@@ -707,7 +728,8 @@ public class ModerationService(
         }
     }
 
-    private async Task<ReprimandResult> PublishReprimandAsync<T>(T reprimand, ReprimandDetails details,
+    private async Task<ReprimandResult> PublishReprimandAsync<T>(
+        T reprimand, ReprimandDetails details,
         CancellationToken cancellationToken) where T : Reprimand
     {
         if (reprimand is ExpirableReprimand expirable)
@@ -742,7 +764,8 @@ public class ModerationService(
             : new ReprimandResult(secondary.Last, result);
     }
 
-    private async Task<ReprimandTrigger?> GetCountTriggerAsync(Reprimand reprimand, uint count,
+    private async Task<ReprimandTrigger?> GetCountTriggerAsync(
+        Reprimand reprimand, uint count,
         TriggerSource source, CancellationToken cancellationToken)
     {
         var user = await reprimand.GetUserAsync(_db, cancellationToken);

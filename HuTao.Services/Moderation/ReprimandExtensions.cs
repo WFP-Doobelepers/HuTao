@@ -322,19 +322,21 @@ public static class ReprimandExtensions
         return new RoleTemplateResult(added, removed);
     }
 
-    public static async Task<T?> GetActive<T>(this DbContext db, ReprimandDetails details,
+    public static async Task<T?> GetActive<T>(
+        this DbContext db, ReprimandDetails details,
         CancellationToken cancellationToken = default) where T : ExpirableReprimand
     {
         var entities = await db.Set<T>()
             .Where(r => r.UserId == details.User.Id && r.GuildId == details.Guild.Id)
             .Where(r => details.Category == null
-                || (r.Category != null && r.Category.Id == details.Category.Id))
+                || r.Category != null && r.Category.Id == details.Category.Id)
             .ToListAsync(cancellationToken);
 
         return entities.FirstOrDefault(m => m.IsActive());
     }
 
-    public static async Task<T?> GetActive<T>(this DbContext db, IGuildUser user,
+    public static async Task<T?> GetActive<T>(
+        this DbContext db, IGuildUser user,
         CancellationToken cancellationToken = default) where T : ExpirableReprimand
     {
         var entities = await db.Set<T>()
@@ -370,22 +372,26 @@ public static class ReprimandExtensions
         (long Active, long Total) Count<T>() where T : Reprimand => user.HistoryCount<T>(reprimand.Category);
     }
 
-    public static ValueTask<GuildEntity> GetGuildAsync(this ReprimandDetails details, HuTaoContext db,
+    public static ValueTask<GuildEntity> GetGuildAsync(
+        this ReprimandDetails details, HuTaoContext db,
         CancellationToken cancellationToken)
         => db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
 
-    public static async ValueTask<GuildEntity> GetGuildAsync(this Reprimand reprimand, DbContext db,
+    public static async ValueTask<GuildEntity> GetGuildAsync(
+        this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
         => (reprimand.Guild ??
             await db.FindAsync<GuildEntity>([reprimand.GuildId], cancellationToken))!;
 
-    public static async ValueTask<GuildUserEntity> GetUserAsync(this Reprimand reprimand, DbContext db,
+    public static async ValueTask<GuildUserEntity> GetUserAsync(
+        this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default)
         => (reprimand.User ??
             await db.FindAsync<GuildUserEntity>([reprimand.UserId, reprimand.GuildId],
                 cancellationToken))!;
 
-    public static async ValueTask<T?> GetTriggerAsync<T>(this Reprimand reprimand, DbContext db,
+    public static async ValueTask<T?> GetTriggerAsync<T>(
+        this Reprimand reprimand, DbContext db,
         CancellationToken cancellationToken = default) where T : Trigger
     {
         if (reprimand.Trigger is T trigger)

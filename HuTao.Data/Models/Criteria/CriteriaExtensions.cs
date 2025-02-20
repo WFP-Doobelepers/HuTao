@@ -18,8 +18,9 @@ public static class CriteriaExtensions
             _             => throw new ArgumentOutOfRangeException(nameof(type), type, "Invalid judge type.")
         };
 
-    public static bool Judge<T>(this IEnumerable<IJudge<T>> criteria, IEnumerable<T> targets, JudgeType type = JudgeType
-        .Any)
+    public static bool Judge<T>(
+        this IEnumerable<IJudge<T>> criteria, IEnumerable<T> targets, JudgeType type = JudgeType
+            .Any)
         => type switch
         {
             JudgeType.Any => criteria.Any(c => targets.Any(c.Judge)),
@@ -30,11 +31,13 @@ public static class CriteriaExtensions
     public static bool None<T>(this IEnumerable<IJudge<T>> criteria, T target, JudgeType type = JudgeType.Any)
         => !criteria.Judge(target, type);
 
-    public static bool None<T>(this IEnumerable<IJudge<T>> criteria, IEnumerable<T> targets,
+    public static bool None<T>(
+        this IEnumerable<IJudge<T>> criteria, IEnumerable<T> targets,
         JudgeType type = JudgeType.Any)
         => !criteria.Judge(targets, type);
 
-    public static ICollection<Criterion> AddCriteria(this ICollection<Criterion> collection,
+    public static ICollection<Criterion> AddCriteria(
+        this ICollection<Criterion> collection,
         ICriteriaOptions options)
     {
         var channels = options.Channels?.Where(c => c is ICategoryChannel or ITextChannel);
@@ -58,7 +61,8 @@ public static class CriteriaExtensions
         => options.ToCriteria().Select(criteria
             => new AuthorizationGroup(scope, type: options.JudgeType, rules: criteria).WithModerator(moderator));
 
-    private static ICollection<Criterion> AddCriteria<T>(this ICollection<Criterion> collection,
+    private static ICollection<Criterion> AddCriteria<T>(
+        this ICollection<Criterion> collection,
         IEnumerable<T>? source, Func<T, Criterion> func)
     {
         if (source is null)

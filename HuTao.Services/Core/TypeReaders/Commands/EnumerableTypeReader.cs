@@ -13,7 +13,8 @@ public class EnumerableTypeReader<TResult>(
 {
     private readonly string[] _separators = separators ?? [",", " ", "\r\n", "\r", "\n"];
 
-    public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
+    public override async Task<TypeReaderResult> ReadAsync(
+        ICommandContext context, string input,
         IServiceProvider services)
     {
         var results = await input

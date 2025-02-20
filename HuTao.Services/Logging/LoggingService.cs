@@ -38,9 +38,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
     {
         if (notification.Message is not IUserMessage
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: INestedChannel channel
+                Channel     : INestedChannel channel
             } message) return;
 
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
@@ -52,9 +52,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         var message = await GetMessageAsync(notification.Message);
         if (message is not
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: INestedChannel channel
+                Channel     : INestedChannel channel
             }) return;
 
         var reaction = notification.Reaction;
@@ -75,9 +75,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         var message = await GetMessageAsync(notification.Message);
         if (message is not
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: INestedChannel channel
+                Channel     : INestedChannel channel
             }) return;
 
         var reaction = notification.Reaction;
@@ -108,9 +108,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
     {
         if (notification.NewMessage is not IUserMessage
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: INestedChannel channel
+                Channel     : INestedChannel channel
             } message) return;
 
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
@@ -189,7 +189,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         if (log is null || channel is null) return;
         var message = await channel.SendFilesAsync(log.Attachments, embeds: log.Embeds.Take(10).ToArray());
         foreach (var chunk in log.Embeds.Skip(10).Chunk(10))
+        {
             await message.ReplyAsync(embeds: chunk.ToArray());
+        }
     }
 
     private static async Task<ActionDetails?> TryGetAuditLogDetails(IMessage? message, IGuild guild)
@@ -409,7 +411,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return rules?.LoggingExclusions ?? Enumerable.Empty<Criterion>();
     }
 
-    private async Task<IMessageChannel?> GetLoggingChannelAsync(LogType type, IGuild guild,
+    private async Task<IMessageChannel?> GetLoggingChannelAsync(
+        LogType type, IGuild guild,
         CancellationToken cancellationToken)
     {
         var guildEntity = await db.Guilds.TrackGuildAsync(guild, cancellationToken);
@@ -420,7 +423,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return await guild.GetTextChannelAsync(channel.ChannelId);
     }
 
-    private async Task<MessageDeleteLog> LogDeletionAsync(IMessageEntity message, ActionDetails? details,
+    private async Task<MessageDeleteLog> LogDeletionAsync(
+        IMessageEntity message, ActionDetails? details,
         CancellationToken cancellationToken)
     {
         var deleted = db.Add(new MessageDeleteLog(message, details)).Entity;
@@ -429,7 +433,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return deleted;
     }
 
-    private async Task<MessageLog?> LogMessageAsync(IGuildUser user,
+    private async Task<MessageLog?> LogMessageAsync(
+        IGuildUser user,
         IUserMessage message, MessageLog oldLog,
         CancellationToken cancellationToken)
     {
@@ -439,7 +444,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return oldLog;
     }
 
-    private async Task<MessageLog> LogMessageAsync(IGuildUser user, IUserMessage message,
+    private async Task<MessageLog> LogMessageAsync(
+        IGuildUser user, IUserMessage message,
         CancellationToken cancellationToken)
     {
         var userEntity = await db.Users.TrackUserAsync(user, cancellationToken);
@@ -450,7 +456,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return log;
     }
 
-    private async Task<MessagesDeleteLog> LogDeletionAsync(IEnumerable<MessageLog> messages,
+    private async Task<MessagesDeleteLog> LogDeletionAsync(
+        IEnumerable<MessageLog> messages,
         IGuildChannel channel, ActionDetails? details,
         CancellationToken cancellationToken)
     {
@@ -460,7 +467,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return deleted;
     }
 
-    private async Task<ReactionDeleteLog> LogDeletionAsync(SocketReaction reaction, ActionDetails? details,
+    private async Task<ReactionDeleteLog> LogDeletionAsync(
+        SocketReaction reaction, ActionDetails? details,
         CancellationToken cancellationToken)
     {
         var emote = await db.TrackEmoteAsync(reaction.Emote, cancellationToken);
@@ -472,7 +480,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         return deleted;
     }
 
-    private async Task<ReactionLog?> LogReactionAsync(GuildUserEntity user, SocketReaction reaction,
+    private async Task<ReactionLog?> LogReactionAsync(
+        GuildUserEntity user, SocketReaction reaction,
         CancellationToken cancellationToken)
     {
         var emote = await db.TrackEmoteAsync(reaction.Emote, cancellationToken);
@@ -490,7 +499,8 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
             return await cached.GetOrDownloadAsync();
         }) ?? throw new InvalidOperationException($"Cached message {cached.Id} not found.");
 
-    private async ValueTask<T?> GetLatestLogAsync<T>(Expression<Func<T, bool>> filter,
+    private async ValueTask<T?> GetLatestLogAsync<T>(
+        Expression<Func<T, bool>> filter,
         CancellationToken cancellationToken) where T : class, ILog
         => await db.Set<T>().AsQueryable()
             .OrderByDescending(l => l.LogDate)

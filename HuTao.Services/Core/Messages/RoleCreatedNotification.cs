@@ -1,5 +1,4 @@
-﻿#nullable enable
-using Discord.WebSocket;
+﻿using Discord.WebSocket;
 using MediatR;
 
 namespace HuTao.Services.Core.Messages;

@@ -38,9 +38,9 @@ public class CensorBehavior(HuTaoContext db, IMemoryCache cache, ModerationServi
     {
         if (message is not IUserMessage
             {
-                Author: IGuildUser user,
+                Author      : IGuildUser user,
                 Author.IsBot: false,
-                Channel: ITextChannel channel
+                Channel     : ITextChannel channel
             }) return;
 
         var rules = await db.Guilds.GetRulesAsync(channel.Guild, cache, cancellationToken);

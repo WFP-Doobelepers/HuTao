@@ -82,11 +82,11 @@ public class MessageLog : ILog, IMessageEntity
 
     public ulong? ReferencedMessageId { get; set; }
 
+    public DateTimeOffset LogDate { get; set; }
+
     public ulong ChannelId { get; set; }
 
     public ulong GuildId { get; set; }
-
-    public DateTimeOffset LogDate { get; set; }
 
     public ulong MessageId { get; set; }
 

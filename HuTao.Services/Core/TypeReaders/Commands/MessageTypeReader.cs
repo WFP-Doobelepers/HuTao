@@ -13,7 +13,8 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 public class MessageTypeReader<T> : TypeReader where T : class, IMessage
 {
     /// <inheritdoc />
-    public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
+    public override async Task<TypeReaderResult> ReadAsync(
+        ICommandContext context, string input,
         IServiceProvider services)
     {
         if (!ulong.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out var id))

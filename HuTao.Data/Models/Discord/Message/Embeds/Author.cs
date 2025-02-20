@@ -38,7 +38,7 @@ public class Author : IEquatable<Author>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || (obj is Author other && Equals(other));
+    public override bool Equals(object? obj) => ReferenceEquals(this, obj) || obj is Author other && Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Name, IconUrl, ProxyIconUrl, Url);

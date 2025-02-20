@@ -48,7 +48,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => RespondModMenuAsync(user, LogReprimandType.Ban);
 
     [SlashCommand("hardmute", "Hard Mute a user from the current guild.")]
-    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
@@ -90,7 +91,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => RespondModMenuAsync(user, LogReprimandType.Kick);
 
     [SlashCommand("mute", "Mute a user from the current guild.")]
-    public async Task MuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task MuteAsync(
+        [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
@@ -111,7 +113,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     [SlashCommand("mutelist", "View active mutes on the current guild.")]
     [RequireAuthorization(AuthorizationScope.History)]
     public Task MuteListAsync(
-        [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
+        [Autocomplete(typeof(CategoryAutocomplete))]
+        ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false)
         => moderation.SendMuteListAsync(Context, category, ephemeral);
 
@@ -167,7 +170,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
     [SlashCommand("template", "Run a configured moderation template")]
     public async Task TemplateAsync(
-        [Autocomplete(typeof(TemplateAutocomplete))] string name,
+        [Autocomplete(typeof(TemplateAutocomplete))]
+        string name,
         [RequireHigherRole] IUser user,
         [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -242,37 +246,43 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => RespondModMenuAsync(user, LogReprimandType.Warning);
 
     [ModalInteraction("ban:*")]
-    public async Task BanAsync([RequireHigherRole] IUser user,
+    public async Task BanAsync(
+        [RequireHigherRole] IUser user,
         [CheckCategory(AuthorizationScope.Ban)] [RequireEphemeralScope]
         BanModal modal)
         => await BanAsync(user, modal.DeleteDays, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ModalInteraction("hardMute:*")]
-    public async Task HardMuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task HardMuteAsync(
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.HardMute)] [RequireEphemeralScope]
         HardMuteModal modal)
         => await HardMuteAsync(user, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ModalInteraction("kick:*")]
-    public async Task KickAsync([RequireHigherRole] IGuildUser user,
+    public async Task KickAsync(
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Kick)] [RequireEphemeralScope]
         KickModal modal)
         => await KickAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ModalInteraction("mute:*")]
-    public async Task MuteAsync([RequireHigherRole] IGuildUser user,
+    public async Task MuteAsync(
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Mute)] [RequireEphemeralScope]
         MuteModal modal)
         => await MuteAsync(user, modal.Length, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ModalInteraction("note:*")]
-    public async Task NoteAsync([RequireHigherRole] IUser user,
+    public async Task NoteAsync(
+        [RequireHigherRole] IUser user,
         [CheckCategory(AuthorizationScope.Note)] [RequireEphemeralScope]
         NoteModal modal)
         => await NoteAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ModalInteraction("notice:*")]
-    public async Task NoticeAsync([RequireHigherRole] IGuildUser user,
+    public async Task NoticeAsync(
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
         NoticeModal modal)
         => await NoticeAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
@@ -287,7 +297,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [ModalInteraction("warn:*")]
-    public async Task WarnAsync([RequireHigherRole] IGuildUser user,
+    public async Task WarnAsync(
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Warning)] [RequireEphemeralScope]
         WarningModal modal)
         => await WarnAsync(user, modal.Amount, modal.Reason, modal.Category, modal.Ephemeral);

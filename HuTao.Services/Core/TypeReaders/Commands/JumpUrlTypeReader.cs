@@ -10,7 +10,8 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class JumpUrlTypeReader<T> : TypeReader where T : IMessage
 {
-    public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
+    public override async Task<TypeReaderResult> ReadAsync(
+        ICommandContext context, string input,
         IServiceProvider services)
     {
         var jump = MessageExtensions.GetJumpMessage(input);

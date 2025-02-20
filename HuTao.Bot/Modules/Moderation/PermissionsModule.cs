@@ -160,7 +160,8 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
         [HelpSummary("Set `allow` or `deny` the matched criteria. Defaults to `allow`.")]
         public AccessType AccessType { get; set; } = AccessType.Allow;
 
-        [HelpSummary("The permissions that the user must have.")] public GuildPermission Permission { get; set; }
+        [HelpSummary("The permissions that the user must have.")]
+        public GuildPermission Permission { get; set; }
 
         [HelpSummary("The text or category channels this permission will work on.")]
         public IEnumerable<IGuildChannel>? Channels { get; set; }
@@ -168,7 +169,8 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
         [HelpSummary("The users that are allowed to use the command.")]
         public IEnumerable<IGuildUser>? Users { get; set; }
 
-        [HelpSummary("The roles that the user must have.")] public IEnumerable<IRole>? Roles { get; set; }
+        [HelpSummary("The roles that the user must have.")]
+        public IEnumerable<IRole>? Roles { get; set; }
 
         [HelpSummary("The way how the criteria are judged. Defaults to `Any`.")]
         public JudgeType JudgeType { get; set; } = JudgeType.Any;

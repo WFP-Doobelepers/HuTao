@@ -8,7 +8,8 @@ namespace HuTao.Services.Core.TypeReaders.Commands;
 
 public class HexColorTypeReader : TypeReader
 {
-    public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input,
+    public override Task<TypeReaderResult> ReadAsync(
+        ICommandContext context, string input,
         IServiceProvider services)
     {
         try

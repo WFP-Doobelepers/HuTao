@@ -15,10 +15,10 @@ public class RoleMentionExclusion : ModerationExclusion, IRoleEntity, IJudge<ulo
 
     public virtual RoleEntity Role { get; set; } = null!;
 
+    public bool Judge(ulong roleId) => RoleId == roleId;
+
     [Column(nameof(GuildId))]
     public ulong GuildId { get; set; }
-
-    public bool Judge(ulong roleId) => RoleId == roleId;
 
     public ulong RoleId { get; set; }
 }

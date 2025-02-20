@@ -20,10 +20,14 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
 
     [SlashCommand("crit-compare", "Compare the damage between two crit ratios")]
     public async Task CritCompareAsync(
-        [Summary(description: "Build 1 Crit Rate%")] [MinValue(0)] double critRate1,
-        [Summary(description: "Build 1 Crit Damage%")] [MinValue(0)] double critDamage1,
-        [Summary(description: "Build 2 Crit Rate%")] [MinValue(0)] double critRate2,
-        [Summary(description: "Build 2 Crit Damage%")] [MinValue(0)] double critDamage2)
+        [Summary(description: "Build 1 Crit Rate%")] [MinValue(0)]
+        double critRate1,
+        [Summary(description: "Build 1 Crit Damage%")] [MinValue(0)]
+        double critDamage1,
+        [Summary(description: "Build 2 Crit Rate%")] [MinValue(0)]
+        double critRate2,
+        [Summary(description: "Build 2 Crit Damage%")] [MinValue(0)]
+        double critDamage2)
     {
         static double CritMod(double critRate, double critDamage) => 1 + Math.Min(critRate, 1) * critDamage;
 
@@ -47,9 +51,12 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
 
     [SlashCommand("favonius", "Calculate Favonius proc chance")]
     public async Task FavoniusAsync(
-        [Summary(description: "crit rate%")] [MinValue(0)] double critRate,
-        [Summary(description: "number of hits")] [MinValue(0)] int hitCount,
-        [Summary(description: "refinement level")] Refinement refinementLevel)
+        [Summary(description: "crit rate%")] [MinValue(0)]
+        double critRate,
+        [Summary(description: "number of hits")] [MinValue(0)]
+        int hitCount,
+        [Summary(description: "refinement level")]
+        Refinement refinementLevel)
     {
         var chance = 1 - Math.Pow(1 - Math.Min(critRate, 100) / 100 * (.5 + (int) refinementLevel * .1), hitCount);
         var embed = new EmbedBuilder()

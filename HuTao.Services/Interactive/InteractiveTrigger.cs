@@ -16,7 +16,8 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 
     [Command("delete")]
     [Summary("Deletes a trigger by ID. Associated reprimands will be deleted.")]
-    protected async Task DeleteTriggerAsync(string id,
+    protected async Task DeleteTriggerAsync(
+        string id,
         [Summary("Silently delete the reprimands in case there are too many.")]
         bool silent = false)
     {
@@ -49,7 +50,8 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
     [Summary("Toggles a trigger by ID. Associated reprimands will be kept.")]
     protected async Task ToggleEntityAsync(
         [Summary("The ID of the trigger.")] string id,
-        [Summary("Leave empty to toggle the state.")] bool? state = null)
+        [Summary("Leave empty to toggle the state.")]
+        bool? state = null)
     {
         var collection = await GetCollectionAsync();
         var entity = await TryFindEntityAsync(id, collection);

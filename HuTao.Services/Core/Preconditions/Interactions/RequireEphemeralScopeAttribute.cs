@@ -28,7 +28,7 @@ public class RequireEphemeralScopeAttribute : ParameterPreconditionAttribute
             _ => throw new ArgumentException(
                 $"{nameof(value)} must be a boolean or implement {nameof(IEphemeral)}")
         };
-        
+
         if (ephemeral is false) return PreconditionResult.FromSuccess();
 
         var auth = services.GetRequiredService<AuthorizationService>();

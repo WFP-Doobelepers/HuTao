@@ -7,6 +7,5 @@ public class BanAction(uint deleteDays, TimeSpan? length) : ReprimandAction, IBa
 {
     public uint DeleteDays { get; set; } = deleteDays;
 
-    [Column(nameof(ILength.Length))]
-    public TimeSpan? Length { get; set; } = length;
+    [Column(nameof(ILength.Length))] public TimeSpan? Length { get; set; } = length;
 }

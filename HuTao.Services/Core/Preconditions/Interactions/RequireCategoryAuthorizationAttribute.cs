@@ -14,7 +14,8 @@ public class RequireCategoryAuthorizationAttribute : PreconditionAttribute
 
     public RequireCategoryAuthorizationAttribute(AuthorizationScope scopes) { _scopes |= scopes; }
 
-    public override async Task<PreconditionResult> CheckRequirementsAsync(IInteractionContext context,
+    public override async Task<PreconditionResult> CheckRequirementsAsync(
+        IInteractionContext context,
         ICommandInfo commandInfo, IServiceProvider services)
     {
         var auth = services.GetRequiredService<AuthorizationService>();

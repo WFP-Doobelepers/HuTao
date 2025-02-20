@@ -181,7 +181,8 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
     public async Task ConfigureLoggingChannelAsync(
         [Summary("The type of log event to configure. Comma separated.")]
         IReadOnlyCollection<LogType> types,
-        [Summary("Leave empty to disable these events.")] ITextChannel? channel = null)
+        [Summary("Leave empty to disable these events.")]
+        ITextChannel? channel = null)
     {
         if (!types.Any()) return;
 
@@ -202,7 +203,8 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
     public async Task ConfigureLoggingChannelAsync(
         [Summary("The context in which the appeal message will show.")]
         LoggingContext context,
-        [Summary("The type of reprimand to configure.")] LogReprimandType type,
+        [Summary("The type of reprimand to configure.")]
+        LogReprimandType type,
         [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
         bool? state = null,
         ModerationCategory? category = null)
@@ -223,7 +225,8 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
     public async Task ConfigureLoggingChannelAsync(
         [Summary("The context in which the appeal message will show.")]
         LoggingContext context,
-        [Summary("The type of reprimand status to configure.")] LogReprimandStatus type,
+        [Summary("The type of reprimand status to configure.")]
+        LogReprimandStatus type,
         [Summary("Set to 'true' or 'false'. Leave blank to toggle.")]
         bool? state = null,
         ModerationCategory? category = null)

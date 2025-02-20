@@ -34,11 +34,11 @@ public class ReactionLog : ILog, IReactionEntity
 
     public virtual GuildUserEntity User { get; set; } = null!;
 
+    public DateTimeOffset LogDate { get; set; }
+
     public ulong ChannelId { get; set; }
 
     public ulong GuildId { get; set; }
-
-    public DateTimeOffset LogDate { get; set; }
 
     public ulong MessageId { get; set; }
 

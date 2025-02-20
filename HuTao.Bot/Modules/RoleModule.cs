@@ -33,7 +33,8 @@ public class RoleModule : ModuleBase<SocketCommandContext>
     [Summary("View the information of specified roles.")]
     [RequireAuthorization(AuthorizationScope.Roles)]
     public async Task ViewRolesAsync(
-        [Summary("Leave empty to show all roles.")] params SocketRole[] roles)
+        [Summary("Leave empty to show all roles.")]
+        params SocketRole[] roles)
     {
         var embeds = roles.Select(ViewRoleInfoAsync);
         await ReplyAsync(embeds: embeds.Select(e => e.Build()).ToArray());

@@ -18,7 +18,8 @@ public class MessagesBulkDeletedNotification : INotification
     /// <param name="messages">The value to use for <see cref="Messages" />.</param>
     /// <param name="channel">The value to use for <see cref="Channel" />.</param>
     /// <exception cref="ArgumentNullException">Throws for <paramref name="messages" /> and <paramref name="channel" />.</exception>
-    public MessagesBulkDeletedNotification(IReadOnlyCollection<Cacheable<IMessage, ulong>> messages,
+    public MessagesBulkDeletedNotification(
+        IReadOnlyCollection<Cacheable<IMessage, ulong>> messages,
         Cacheable<IMessageChannel, ulong> channel)
     {
         Messages = messages;

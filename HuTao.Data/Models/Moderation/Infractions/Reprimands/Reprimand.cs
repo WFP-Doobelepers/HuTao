@@ -44,9 +44,9 @@ public abstract class Reprimand : IModerationAction, IGuildUserEntity
 
     public ulong GuildId { get; set; }
 
-    public virtual ModerationAction? Action { get; set; }
-
     public ulong UserId { get; set; }
+
+    public virtual ModerationAction? Action { get; set; }
 
     public static implicit operator ReprimandResult(Reprimand reprimand) => new(reprimand);
 }

@@ -14,7 +14,8 @@ public class HuTaoConfig
 
     public static BotConfig Configuration { get; } =
 #if DEBUG
-        Secrets.GetSection(nameof(Debug)).Get<BotConfig>() ?? throw new InvalidOperationException($"{nameof(Debug)} config is null");
+        Secrets.GetSection(nameof(Debug)).Get<BotConfig>()
+        ?? throw new InvalidOperationException($"{nameof(Debug)} config is null");
 #else
         Secrets.GetSection(nameof(Release)).Get<BotConfig>() ?? throw new InvalidOperationException($"{nameof(Release)} config is null");
 #endif

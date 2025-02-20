@@ -47,7 +47,8 @@ public static class EmbedBuilderExtensions
             || embed.Image is not null
             || embed.Thumbnail is not null;
 
-    public static EmbedAuthorBuilder WithGuildAsAuthor(this EmbedAuthorBuilder embed, IGuild guild,
+    public static EmbedAuthorBuilder WithGuildAsAuthor(
+        this EmbedAuthorBuilder embed, IGuild guild,
         AuthorOptions authorOptions = AuthorOptions.None)
     {
         var name = guild.Name;
@@ -63,15 +64,18 @@ public static class EmbedBuilderExtensions
     public static EmbedBuilder AddContent(this EmbedBuilder embed, string? content)
         => string.IsNullOrWhiteSpace(content) ? embed : embed.WithDescription(content);
 
-    public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
+    public static EmbedBuilder AddItemsIntoFields<T>(
+        this EmbedBuilder builder, string title,
         IEnumerable<T>? items, Func<T, string> selector, string? separator = null) =>
         builder.AddItemsIntoFields(title, items?.Select(selector), separator);
 
-    public static EmbedBuilder AddItemsIntoFields<T>(this EmbedBuilder builder, string title,
+    public static EmbedBuilder AddItemsIntoFields<T>(
+        this EmbedBuilder builder, string title,
         IEnumerable<T>? items, Func<T, int, string> selector, string? separator = null) =>
         builder.AddItemsIntoFields(title, items?.Select(selector), separator);
 
-    public static EmbedBuilder AddItemsIntoFields(this EmbedBuilder builder, string title,
+    public static EmbedBuilder AddItemsIntoFields(
+        this EmbedBuilder builder, string title,
         IEnumerable<string>? items, string? separator = null)
     {
         if (items is null) return builder;
@@ -93,7 +97,8 @@ public static class EmbedBuilderExtensions
         ThumbnailUrl = embed.GetImages(options).Thumbnail
     };
 
-    public static EmbedBuilder WithGuildAsAuthor(this EmbedBuilder embed, IGuild? guild,
+    public static EmbedBuilder WithGuildAsAuthor(
+        this EmbedBuilder embed, IGuild? guild,
         AuthorOptions authorOptions = AuthorOptions.None)
     {
         if (guild is null) return embed;
@@ -105,7 +110,8 @@ public static class EmbedBuilderExtensions
         return embed.WithEntityAsAuthor(guild, name, guild.IconUrl, authorOptions);
     }
 
-    public static EmbedBuilder WithUserAsAuthor(this EmbedBuilder embed, IUser? user,
+    public static EmbedBuilder WithUserAsAuthor(
+        this EmbedBuilder embed, IUser? user,
         AuthorOptions authorOptions = AuthorOptions.None, ushort size = 128)
     {
         var username = user?.GetFullUsername() ?? "Unknown";
@@ -191,7 +197,8 @@ public static class EmbedBuilderExtensions
         IconUrl = options.HasFlag(UseProxy) ? author.ProxyIconUrl : author.IconUrl
     };
 
-    private static EmbedAuthorBuilder WithEntityAsAuthor(this EmbedAuthorBuilder embed, IEntity<ulong> entity,
+    private static EmbedAuthorBuilder WithEntityAsAuthor(
+        this EmbedAuthorBuilder embed, IEntity<ulong> entity,
         string name, string iconUrl, AuthorOptions authorOptions)
     {
         if (authorOptions.HasFlag(AuthorOptions.IncludeId))
@@ -200,7 +207,8 @@ public static class EmbedBuilderExtensions
         return embed.WithName(name).WithIconUrl(iconUrl);
     }
 
-    private static EmbedBuilder AddIntoFields(this EmbedBuilder builder, string title,
+    private static EmbedBuilder AddIntoFields(
+        this EmbedBuilder builder, string title,
         IReadOnlyCollection<string> items)
     {
         if (!items.Any()) return builder;
@@ -214,7 +222,8 @@ public static class EmbedBuilderExtensions
         return builder;
     }
 
-    private static EmbedBuilder WithEntityAsAuthor(this EmbedBuilder embed, IEntity<ulong>? entity,
+    private static EmbedBuilder WithEntityAsAuthor(
+        this EmbedBuilder embed, IEntity<ulong>? entity,
         string name, string? iconUrl, AuthorOptions authorOptions)
     {
         if (authorOptions.HasFlag(AuthorOptions.IncludeId))
@@ -266,7 +275,8 @@ public static class EmbedBuilderExtensions
         return new EmbedImages(image, thumbnail);
     }
 
-    private static IEnumerable<string> SplitItemsIntoChunks(this IEnumerable<string> items,
+    private static IEnumerable<string> SplitItemsIntoChunks(
+        this IEnumerable<string> items,
         int maxLength = EmbedFieldBuilder.MaxFieldValueLength, string? separator = null)
     {
         var sb = new StringBuilder(0, maxLength);
@@ -297,10 +307,10 @@ public static class EmbedBuilderExtensions
         => options.HasFlag(UseProxy) ? image?.ProxyUrl : image?.Url;
 
     private static string? ReplaceAnimation(string? url)
-        => string.IsNullOrEmpty(url)     ? null :
+        => string.IsNullOrEmpty(url) ? null :
             TryTenor(url, out var tenor) ? tenor :
             TryGiphy(url, out var giphy) ? giphy :
-                                           url;
+            url;
 
     private record EmbedImages(string? Image, string? Thumbnail);
 }

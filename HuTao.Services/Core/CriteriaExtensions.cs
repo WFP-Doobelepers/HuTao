@@ -10,7 +10,7 @@ namespace HuTao.Services.Core;
 public static class CriteriaExtensions
 {
     public static bool Judge(this Criterion rule, Context context)
-        => context is { User: IGuildUser user, Channel: INestedChannel channel } 
+        => context is { User: IGuildUser user, Channel: INestedChannel channel }
             && Judge(rule, channel, user);
 
     public static bool Judge(this Criterion rule, INestedChannel? channel, IGuildUser? user) => rule switch
