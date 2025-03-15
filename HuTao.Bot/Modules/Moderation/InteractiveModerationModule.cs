@@ -199,6 +199,43 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             await FollowupAsync("Failed to use the template.");
     }
 
+    [SlashCommand("timeout", "Timeout a user from the current guild.")]
+    public async Task TimeoutAsync(
+        [RequireHigherRole] IGuildUser user,
+        TimeSpan length,
+        string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Timeout)]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
+    {
+        await DeferAsync(ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var result = await moderation.TryTimeoutAsync(length, details);
+
+        if (result is null)
+            await FollowupAsync("Failed to timeout user.");
+    }
+
+    [SlashCommand("timeout-menu", "Open a menu to timeout a user from the current guild.")]
+    public Task TimeoutMenuAsync([RequireHigherRole] IGuildUser user)
+        => RespondModMenuAsync(user, LogReprimandType.Timeout);
+
+    [SlashCommand("untimeout", "Remove timeout from a user in the current guild.")]
+    public async Task UnTimeoutAsync(
+        IGuildUser user,
+        string? reason = null,
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Timeout)]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
+    {
+        await DeferAsync(ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var result = await moderation.TryUntimeoutAsync(details);
+
+        if (!result)
+            await FollowupAsync("Failed to remove timeout from user.");
+    }
+
     [SlashCommand("unban", "Unban a user from the current guild.")]
     public async Task UnbanAsync(
         IUser user, string? reason = null,
@@ -287,6 +324,24 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         NoticeModal modal)
         => await NoticeAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
 
+    [ModalInteraction("timeout:*")]
+    public async Task TimeoutModalAsync(string userId, TimeoutModal modal)
+    {
+        var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(userId));
+        if (user is not IGuildUser guildUser)
+        {
+            await FollowupAsync("User not found in guild.");
+            return;
+        }
+
+        var length = modal.Length?.Clamp(TimeSpan.FromMinutes(1), TimeSpan.FromDays(28)) ?? TimeSpan.FromDays(28);
+        var details = await GetDetailsAsync(user, modal.Reason, modal.Category, modal.Ephemeral);
+        var result = await moderation.TryTimeoutAsync(length, details);
+
+        if (result is null)
+            await FollowupAsync("Failed to timeout user.");
+    }
+
     [ComponentInteraction("mod-menu:*")]
     public async Task RespondModMenuAsync(IUser user, LogReprimandType[] options)
     {
@@ -304,19 +359,19 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => await WarnAsync(user, modal.Amount, modal.Reason, modal.Category, modal.Ephemeral);
 
     private Task ReprimandWithModalAsync<T>(IUser user, string id) where T : ReprimandModal
-        => Context.Interaction.RespondWithModalAsync<T>(id, modifyModal: m => m.WithTitle($"{m.Title} {user}"));
+        => Context.Interaction.RespondWithModalAsync<T>($"{id}:{user.Id}", modifyModal: m => m.WithTitle($"{m.Title} {user}"));
 
     private async Task RespondModMenuAsync(IUser user, LogReprimandType type) => await (type switch
     {
-        LogReprimandType.Ban      => ReprimandWithModalAsync<BanModal>(user, $"ban:{user.Id}"),
-        LogReprimandType.Kick     => ReprimandWithModalAsync<KickModal>(user, $"kick:{user.Id}"),
-        LogReprimandType.Mute     => ReprimandWithModalAsync<MuteModal>(user, $"mute:{user.Id}"),
-        LogReprimandType.Note     => ReprimandWithModalAsync<NoteModal>(user, $"note:{user.Id}"),
-        LogReprimandType.Notice   => ReprimandWithModalAsync<NoticeModal>(user, $"notice:{user.Id}"),
-        LogReprimandType.Warning  => ReprimandWithModalAsync<WarningModal>(user, $"warn:{user.Id}"),
-        LogReprimandType.HardMute => ReprimandWithModalAsync<HardMuteModal>(user, $"hardMute:{user.Id}"),
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(type), type, "Invalid Mod Menu option.")
+        LogReprimandType.Ban      => ReprimandWithModalAsync<BanModal>(user, "ban"),
+        LogReprimandType.HardMute => ReprimandWithModalAsync<HardMuteModal>(user, "hardMute"),
+        LogReprimandType.Kick     => ReprimandWithModalAsync<KickModal>(user, "kick"),
+        LogReprimandType.Mute     => ReprimandWithModalAsync<MuteModal>(user, "mute"),
+        LogReprimandType.Note     => ReprimandWithModalAsync<NoteModal>(user, "note"),
+        LogReprimandType.Notice   => ReprimandWithModalAsync<NoticeModal>(user, "notice"),
+        LogReprimandType.Warning  => ReprimandWithModalAsync<WarningModal>(user, "warn"),
+        LogReprimandType.Timeout  => ReprimandWithModalAsync<TimeoutModal>(user, "timeout"),
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Invalid reprimand type.")
     });
 
     private async Task<ReprimandDetails> GetDetailsAsync(
@@ -403,5 +458,10 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [InputLabel("Delete amount of days")]
         [ModalTextInput("delete", maxLength: 1, initValue: "0")]
         public uint DeleteDays { get; set; }
+    }
+
+    public class TimeoutModal : ExpirableReprimandModal
+    {
+        public override string Title => "Timeout User";
     }
 }

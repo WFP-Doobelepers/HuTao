@@ -10,9 +10,17 @@ public enum AuthorizationScope
 
     [Description("All permissions. Dangerous!")]
     All = 1 << 0,
+
+    [Description("Allows warning users.")]
     Warning = 1 << 1,
+
+    [Description("Allows muting users.")]
     Mute = 1 << 2,
+
+    [Description("Allows kicking users.")]
     Kick = 1 << 3,
+
+    [Description("Allows banning users.")]
     Ban = 1 << 4,
 
     [Description("Allows configuration of settings.")]
@@ -52,5 +60,9 @@ public enum AuthorizationScope
     [Description("Allows using the role module.")]
     Roles = 1 << 17,
 
-    HardMute = 1 << 18
+    [Description("Removes all the roles of a users before muting them.")]
+    HardMute = 1 << 18,
+
+    [Description("Allows using the timeout command.")]
+    Timeout = 1 << 19,
 }

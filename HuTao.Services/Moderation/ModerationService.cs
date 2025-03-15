@@ -29,6 +29,7 @@ using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Timeout = HuTao.Data.Models.Moderation.Infractions.Reprimands.Timeout;
 
 namespace HuTao.Services.Moderation;
 
@@ -248,6 +249,7 @@ public class ModerationService(
             Ban ban              => ExpireBanAsync(ban, status, cancellationToken, details),
             Mute mute            => ExpireMuteAsync(mute, status, cancellationToken, details),
             RoleReprimand role   => ExpireRolesAsync(role, status, cancellationToken, details),
+            Timeout timeout      => ExpireTimeoutAsync(timeout, status, cancellationToken, details),
             ExpirableReprimand e => ExpireReprimandAsync(e, status, cancellationToken, details),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(reprimand), reprimand, "Reprimand is not expirable.")
@@ -279,6 +281,16 @@ public class ModerationService(
         return mute is not null
             ? await ExpireMuteAsync(mute, ReprimandStatus.Pardoned, cancellationToken, details)
             : await EndMuteAsync(await details.GetUserAsync(), null, details.Category);
+    }
+
+    public async Task<bool> TryUntimeoutAsync(
+        ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var timeout = await _db.GetActive<Timeout>(details, cancellationToken);
+        return timeout is not null
+            ? await ExpireTimeoutAsync(timeout, ReprimandStatus.Pardoned, cancellationToken, details)
+            : await EndTimeoutAsync(await details.GetUserAsync());
     }
 
     public async Task<ReprimandResult?> AutoReprimandAsync(
@@ -503,6 +515,42 @@ public class ModerationService(
         }
     }
 
+    public async Task<ReprimandResult?> TryTimeoutAsync(
+        TimeSpan length, ReprimandDetails details,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await details.GetUserAsync();
+        if (user is null) return null;
+
+        var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
+        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
+
+        var muteRole = details.Category?.MuteRoleId ?? guildEntity.ModerationRules?.MuteRoleId;
+        if (muteRole is null) return null;
+
+        if (activeMute is not null)
+        {
+            var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
+            if (!replace) return null;
+
+            await ExpireReprimandAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
+        }
+
+        try
+        {
+            await user.SetTimeOutAsync(length);
+
+            var timeout = _db.Add(new Timeout(length, details)).Entity;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return await PublishReprimandAsync(timeout, details, cancellationToken);
+        }
+        catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
+        {
+            return null;
+        }
+    }
+
     public async Task<ReprimandResult> NoteAsync(
         ReprimandDetails details,
         CancellationToken cancellationToken = default)
@@ -667,6 +715,28 @@ public class ModerationService(
 
         var result = await EndMuteAsync(user, mute, mute.Category);
         await ExpireReprimandAsync(mute, status, cancellationToken, details);
+
+        return result;
+    }
+
+    private async Task<bool> EndTimeoutAsync(IGuildUser? user)
+    {
+        if (user?.TimedOutUntil is null) return false;
+
+        await user.RemoveTimeOutAsync();
+
+        return true;
+    }
+
+    private async Task<bool> ExpireTimeoutAsync(
+        ExpirableReprimand timeout, ReprimandStatus status,
+        CancellationToken cancellationToken, ReprimandDetails? details = null)
+    {
+        var guild = (IGuild) client.GetGuild(timeout.GuildId);
+        var user = await guild.GetUserAsync(timeout.UserId);
+
+        var result = await EndTimeoutAsync(user);
+        await ExpireReprimandAsync(timeout, status, cancellationToken, details);
 
         return result;
     }
