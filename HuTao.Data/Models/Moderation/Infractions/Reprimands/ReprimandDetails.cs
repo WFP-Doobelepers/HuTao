@@ -40,8 +40,8 @@ public record ReprimandDetails(
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 
-    public RequestOptions ToRequestOptions() => new()
+    public RequestOptions RequestOptions => new()
     {
-        AuditLogReason = Reason
+        AuditLogReason = $"[{Moderator.Username}]: {(string.IsNullOrWhiteSpace(Reason) ? "No reason provided" : Reason)}",
     };
 }

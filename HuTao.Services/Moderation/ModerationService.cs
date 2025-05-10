@@ -523,22 +523,19 @@ public class ModerationService(
         if (user is null) return null;
 
         var guildEntity = await _db.Guilds.TrackGuildAsync(user.Guild, cancellationToken);
-        var activeMute = await _db.GetActive<Mute>(details, cancellationToken);
+        var activeTimeout = await _db.GetActive<Timeout>(details, cancellationToken);
 
-        var muteRole = details.Category?.MuteRoleId ?? guildEntity.ModerationRules?.MuteRoleId;
-        if (muteRole is null) return null;
-
-        if (activeMute is not null)
+        if (activeTimeout is not null)
         {
             var replace = details.Category?.ReplaceMutes ?? guildEntity.ModerationRules?.ReplaceMutes ?? false;
             if (!replace) return null;
 
-            await ExpireReprimandAsync(activeMute, ReprimandStatus.Pardoned, cancellationToken, details);
+            await ExpireReprimandAsync(activeTimeout, ReprimandStatus.Pardoned, cancellationToken, details);
         }
 
         try
         {
-            await user.SetTimeOutAsync(length);
+            await user.SetTimeOutAsync(length, details.RequestOptions);
 
             var timeout = _db.Add(new Timeout(length, details)).Entity;
             await _db.SaveChangesAsync(cancellationToken);

@@ -45,7 +45,11 @@ public class Bot
             .AddLogging(l => l.AddSerilog())
             .AddHttpClient().AddMemoryCache().AddHangfireServer()
             .AddDbContext<HuTaoContext>(ContextOptions)
-            .AddMediatR(c => c.RegisterServicesFromAssemblies(typeof(HuTaoMediator).Assembly, typeof(Bot).Assembly))
+            .AddMediatR(c =>
+            {
+                c.MediatorImplementationType = typeof(HuTaoMediator);
+                c.RegisterServicesFromAssemblies(typeof(HuTaoMediator).Assembly, typeof(Bot).Assembly);
+            })
             .AddSingleton(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = HuTaoConfig.Configuration.AlwaysDownloadUsers,
