@@ -14,10 +14,10 @@ public static class ComponentBuilderExtensions
     public static ComponentBuilder ToBuilder(this IEnumerable<ActionRow> rows)
     {
         var builders = rows
-            .Select(r => r.Components.Select(c => c.ToComponent()))
+            .Select(r => r.Components.Select(c => c.ToBuilder()))
             .Select(c => new ActionRowBuilder().WithComponents(c.ToList()));
 
-        return new ComponentBuilder().WithRows(builders);
+        return new ComponentBuilderV2().WithComponents(builders);
     }
 
     public static ICollection<ActionRow> AddComponent(
@@ -40,7 +40,7 @@ public static class ComponentBuilderExtensions
 
     public static ModalBuilder UpdateTextInput(this ModalBuilder modal, string customId, Action<TextInputBuilder> input)
     {
-        var components = modal.Components.ActionRows.SelectMany(r => r.Components).OfType<TextInputComponent>();
+        var components = modal.Components.ActionRows.SelectMany(r => r.Components).OfType<TextInputBuilder>();
         var component = components.First(c => c.CustomId == customId);
 
         var builder = new TextInputBuilder
@@ -56,10 +56,10 @@ public static class ComponentBuilderExtensions
 
         input(builder);
 
-        foreach (var row in modal.Components.ActionRows.Where(row => row.Components.Any(c => c.CustomId == customId)))
+        foreach (var row in modal.Components.ActionRows.Where(row => row.Components.OfType<IInteractableComponentBuilder>().Any(c => c.CustomId == customId)))
         {
-            row.Components.RemoveAll(c => c.CustomId == customId);
-            row.AddComponent(builder.Build());
+            row.Components.RemoveAll(c => c is IInteractableComponentBuilder interactable && interactable.CustomId == customId);
+            row.AddComponent(builder);
         }
 
         return modal;
@@ -86,10 +86,12 @@ public static class ComponentBuilderExtensions
         Emote.TryParse(e, out var emote) ? emote :
         Emoji.TryParse(e, out var emoji) ? emoji : null;
 
-    private static IMessageComponent ToComponent(this Component component) => component switch
+    private static IMessageComponent ToComponent(this Component component) => component.ToBuilder().Build();
+
+    private static IMessageComponentBuilder ToBuilder(this Component component) => component switch
     {
-        Button button   => button.ToBuilder().Build(),
-        SelectMenu menu => menu.ToBuilder().Build(),
+        Button button   => button.ToBuilder(),
+        SelectMenu menu => menu.ToBuilder(),
         _               => throw new ArgumentOutOfRangeException(nameof(component))
     };
 
