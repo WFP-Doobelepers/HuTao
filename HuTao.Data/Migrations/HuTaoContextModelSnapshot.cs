@@ -1898,6 +1898,18 @@ namespace HuTao.Data.Migrations
                     b.HasDiscriminator().HasValue("RoleAction");
                 });
 
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.TimeoutAction", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Actions.ReprimandAction");
+
+                    b.Property<TimeSpan?>("Length")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("interval")
+                        .HasColumnName("Length");
+
+                    b.HasDiscriminator().HasValue("TimeoutAction");
+                });
+
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Actions.WarningAction", b =>
                 {
                     b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Actions.ReprimandAction");
@@ -2100,6 +2112,13 @@ namespace HuTao.Data.Migrations
                     b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Reprimands.ExpirableReprimand");
 
                     b.HasDiscriminator().HasValue("RoleReprimand");
+                });
+
+            modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Timeout", b =>
+                {
+                    b.HasBaseType("HuTao.Data.Models.Moderation.Infractions.Reprimands.ExpirableReprimand");
+
+                    b.HasDiscriminator().HasValue("Timeout");
                 });
 
             modelBuilder.Entity("HuTao.Data.Models.Moderation.Infractions.Reprimands.Warning", b =>

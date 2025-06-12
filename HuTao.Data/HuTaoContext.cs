@@ -110,6 +110,10 @@ public class HuTaoContext(DbContextOptions<HuTaoContext> options) : DbContext(op
 
     public DbSet<TimeTracking> TimeTrackingRules { get; init; } = null!;
 
+    public DbSet<Timeout> TimeoutHistory { get; init; } = null!;
+
+    public DbSet<TimeoutAction> TimeoutActions { get; init; } = null!;
+
     public DbSet<UserCriterion> UserCriteria { get; init; } = null!;
 
     public DbSet<UserMentionExclusion> UserExclusions { get; set; } = null!;

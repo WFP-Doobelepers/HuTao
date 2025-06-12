@@ -482,6 +482,83 @@ public class ModerationModule(
         if (failed.Count > 0) await ReplyAsync($"Failed to run template on {failed.Count} {failed.Humanize()}.");
     }
 
+    [Command("timeout")]
+    [Summary("Timeout a user from the current guild.")]
+    public async Task TimeoutAsync(
+        [RequireHigherRole] IGuildUser user,
+        TimeSpan length,
+        [CheckCategory(AuthorizationScope.Timeout)]
+        ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        var details = await GetDetailsAsync(user, reason, category);
+        var result = await moderation.TryTimeoutAsync(length, details);
+
+        if (result is null)
+            await error.AssociateError(Context.Message, "Failed to timeout user.");
+    }
+
+    [Priority(-1)]
+    [HiddenFromHelp]
+    [Command("timeout")]
+    [RequireAuthorization(AuthorizationScope.Timeout)]
+    public Task TimeoutAsync(
+        [RequireHigherRole] IGuildUser user,
+        TimeSpan length,
+        [Remainder] string? reason = null)
+        => TimeoutAsync(user, length, null, reason);
+
+    [Command("untimeout")]
+    [Summary("Remove timeout from a user in the current guild.")]
+    public async Task UntimeoutAsync(
+        IGuildUser user,
+        [CheckCategory(AuthorizationScope.Timeout)]
+        ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        var details = await GetDetailsAsync(user, reason, category);
+        var result = await moderation.TryUntimeoutAsync(details);
+
+        if (!result)
+            await error.AssociateError(Context.Message, "Failed to remove timeout from user.");
+    }
+
+    [Priority(-1)]
+    [HiddenFromHelp]
+    [Command("untimeout")]
+    [RequireAuthorization(AuthorizationScope.Timeout)]
+    public Task UntimeoutAsync(
+        IGuildUser user,
+        [Remainder] string? reason = null)
+        => UntimeoutAsync(user, null, reason);
+
+    [Priority(-2)]
+    [HiddenFromHelp]
+    [Command("untimeout")]
+    public async Task UntimeoutAsync(
+        IEnumerable<IGuildUser> users,
+        [CheckCategory(AuthorizationScope.Timeout)]
+        ModerationCategory? category = null,
+        [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UntimeoutAsync(user, category, reason);
+        }
+    }
+
+    [Priority(-3)]
+    [HiddenFromHelp]
+    [Command("untimeout")]
+    [RequireAuthorization(AuthorizationScope.Timeout)]
+    public async Task UntimeoutAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    {
+        foreach (var user in users)
+        {
+            await UntimeoutAsync(user, null, reason);
+        }
+    }
+
     [Command("unban")]
     [Summary("Unban a user from the current guild.")]
     public async Task UnbanAsync(

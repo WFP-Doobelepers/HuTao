@@ -39,4 +39,9 @@ public record ReprimandDetails(
                 variable.Value, RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1)));
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
+
+    public RequestOptions RequestOptions => new()
+    {
+        AuditLogReason = $"[{Moderator.Username}]: {(string.IsNullOrWhiteSpace(Reason) ? "No reason provided" : Reason)}",
+    };
 }
