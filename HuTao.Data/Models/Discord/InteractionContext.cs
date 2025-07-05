@@ -97,6 +97,8 @@ public class InteractionContext(IInteractionContext context)
 
     public GuildPermissions Permissions => Interaction.Permissions;
 
+    public ulong AttachmentSizeLimit => Interaction.AttachmentSizeLimit;
+
     public ulong? ChannelId => Interaction.ChannelId;
 
     public ulong? GuildId => Interaction.GuildId;

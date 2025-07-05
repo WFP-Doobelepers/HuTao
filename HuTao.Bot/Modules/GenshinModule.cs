@@ -407,7 +407,7 @@ public class GenshinModule
         }
     }
 
-    public class GenshinCommands(DiscordSocketClient client) : ModuleBase<SocketCommandContext>
+    public class GenshinCommands : ModuleBase<SocketCommandContext>
     {
         [Command("genshin allow")]
         [RequireAllowedUserCommand]
@@ -590,23 +590,23 @@ public class GenshinModule
     {
         [InputLabel("Version")]
         [ModalTextInput("version", TextInputStyle.Short, "e.g. 5.1", maxLength: 10)]
-        public string Version { get; set; }
+        public string Version { get; set; } = null!;
 
         [InputLabel("Version Color (Hex)")]
         [ModalTextInput("versionColor", TextInputStyle.Short, "e.g. 0xfeef5f", maxLength: 10)]
-        public string VersionColor { get; set; }
+        public string VersionColor { get; set; } = null!;
 
         [InputLabel("Code Expiry")]
         [ModalTextInput("codeExpiry", TextInputStyle.Short, "e.g. 9/28/2024 12:00 PM +8", maxLength: 30)]
-        public string CodeExpiry { get; set; }
+        public string CodeExpiry { get; set; } = null!;
 
         [InputLabel("Livestream Start")]
         [ModalTextInput("livestreamStart", TextInputStyle.Short, "e.g. 9/27/2024 8:00 PM +8", maxLength: 30)]
-        public string LivestreamStart { get; set; }
+        public string LivestreamStart { get; set; } = null!;
 
         [InputLabel("Maintenance Start")]
         [ModalTextInput("maintenanceStart", TextInputStyle.Short, "e.g. 10/9/2024 6:00 AM +8", maxLength: 30)]
-        public string MaintenanceStart { get; set; }
+        public string MaintenanceStart { get; set; } = null!;
 
         // Setting the CustomId to be matched by the ModalInteraction handler.
         public string Title => "Modify Genshin Settings";
