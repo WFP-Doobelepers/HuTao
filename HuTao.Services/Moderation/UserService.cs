@@ -6,6 +6,7 @@ using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
 using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
@@ -69,62 +70,161 @@ public class UserService(
 
         var history = guild.ReprimandHistory
             .Where(r => r.UserId == user.Id)
-            .OfType(type).OfCategory(category);
+            .OfType(type).OfCategory(category)
+            .OrderByDescending(r => r.Action?.Date)
+            .ToList();
 
-        var reprimands = history
-            .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
-            .Prepend(GetReprimands(userEntity, category)
-                .WithColor(await image.GetAvatarColor(user))
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
+        // For now, use a simple Components V2 display (will be enhanced with pagination later)
+        var components = BuildHistoryComponentsV2(user, userEntity, history.Take(5).ToList(), guild, context);
 
-        var pages = reprimands.Chunk(4)
-            .Select(builders =>
-            {
-                builders.First().WithUserAsAuthor(user, AuthorOptions.IncludeId);
-                return new MultiEmbedPageBuilder().WithBuilders(builders);
-            });
-
-        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
-
-        await (context switch
-        {
-            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel,
-                messageAction: Components),
-
-            InteractionContext { Interaction: SocketInteraction interaction }
-                => interactive.SendPaginatorAsync(paginator, interaction,
-                    ephemeral: ephemeral,
-                    responseType: update ? DeferredUpdateMessage : DeferredChannelMessageWithSource,
-                    messageAction: Components),
-
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(context), context, "Invalid context.")
-        });
-
-        void Components(IUserMessage message)
-        {
-            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(user, category, type));
-            if (guild.ModerationCategories.Any())
-                components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
-
-            components.WithSelectMenu(ReprimandMenu(user));
-
-            _ = message switch
-            {
-                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components.Build()),
-                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components.Build()),
-                _                        => message.ModifyAsync(r => r.Components = components.Build())
-            };
-        }
-
-        ComponentBuilder GetMessageComponents(IMessage message)
-        {
-            var components = ComponentBuilder.FromMessage(message);
-            components.ActionRows?.RemoveAll(row => row.Components.Any(c => c.Type is ComponentType.SelectMenu));
-
-            return components;
-        }
+        await context.ReplyAsync(components: components, ephemeral: ephemeral);
     }
+
+    private MessageComponent BuildHistoryComponentsV2(
+        IUser user, GuildUserEntity userEntity, List<Reprimand> history,
+        GuildEntity guild, Context context)
+    {
+        // Build Components V2 interface using the new Discord.Net API
+        var components = new ComponentBuilderV2()
+            // User header section with "View Member" button
+            .WithSection(
+                [new TextDisplayBuilder($"# <@{user.Id}> History")],
+                ButtonBuilder.CreateLinkButton("View Member",
+                    $"discord://-/guilds/{guild.Id}/settings/members"))
+
+            // User info container with avatar thumbnail and reprimand counts
+            .WithContainer(new ContainerBuilder()
+                .WithSection([
+                    new TextDisplayBuilder($"<@{user.Id}> ({user.Id})"),
+                    new TextDisplayBuilder(BuildUserInfoText(user, userEntity))
+                ], new ThumbnailBuilder(user.GetDefiniteAvatarUrl(4096))))
+
+            // Main separator
+            .WithSeparator(new SeparatorBuilder()
+                .WithSpacing(SeparatorSpacingSize.Large)
+                .WithIsDivider(true));
+
+        // Add reprimand containers or empty message
+        if (!history.Any())
+        {
+            components.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("No reprimands found matching the current filter."));
+        }
+        else
+        {
+            foreach (var reprimand in history)
+            {
+                components.WithContainer(BuildReprimandContainer(reprimand));
+            }
+        }
+
+        // Filter dropdown at bottom
+        components.WithActionRow([CreateFilterSelectMenu(user)])
+            // Footer
+            .WithTextDisplay($"-# Requested by @{context.User.Username}");
+
+        return components.Build();
+    }
+
+    private string BuildUserInfoText(IUser user, GuildUserEntity userEntity)
+    {
+        var createdText = $"Created <t:{user.CreatedAt.ToUnixTimeSeconds()}:R> <t:{user.CreatedAt.ToUnixTimeSeconds()}:f>";
+        var joinedText = userEntity.JoinedAt != null
+            ? $"Joined   <t:{((DateTimeOffset) userEntity.JoinedAt).ToUnixTimeSeconds()}:R> <t:{((DateTimeOffset) userEntity.JoinedAt).ToUnixTimeSeconds()}:f>"
+            : "Joined   Unknown";
+
+        // Build reprimand counts similar to the Python example
+        var reprimandCounts = new List<string>();
+
+        // Get counts for each reprimand type
+        var warningCount = userEntity.WarningCount(null);
+        var noticeCount = userEntity.HistoryCount<Notice>(null);
+        var banCount = userEntity.HistoryCount<Ban>(null);
+        var kickCount = userEntity.HistoryCount<Kick>(null);
+        var noteCount = userEntity.HistoryCount<Note>(null);
+        var muteCount = userEntity.HistoryCount<Mute>(null);
+        var censoredCount = userEntity.HistoryCount<Censored>(null);
+
+        reprimandCounts.Add($"-# - Warning {warningCount.Active}/{warningCount.Total} [{warningCount.Active}/{warningCount.Total}]");
+        reprimandCounts.Add($"-# - Notice {noticeCount.Active}/{noticeCount.Total} [{noticeCount.Active}/{noticeCount.Total}]");
+        reprimandCounts.Add($"-# - Ban {banCount.Active}/{banCount.Total} [{banCount.Active}/{banCount.Total}]");
+        reprimandCounts.Add($"-# - Kick {kickCount.Active}/{kickCount.Total} [{kickCount.Active}/{kickCount.Total}]");
+        reprimandCounts.Add($"-# - Note {noteCount.Active}/{noteCount.Total} [{noteCount.Active}/{noteCount.Total}]");
+        reprimandCounts.Add($"-# - Mute {muteCount.Active}/{muteCount.Total} [{muteCount.Active}/{muteCount.Total}]");
+        reprimandCounts.Add($"-# - Censored {censoredCount.Active}/{censoredCount.Total} [{censoredCount.Active}/{censoredCount.Total}]");
+
+        return $"{createdText}\n{joinedText}\n\n{string.Join("\n", reprimandCounts)}";
+    }
+
+    private ContainerBuilder BuildReprimandContainer(Reprimand reprimand)
+    {
+        var container = new ContainerBuilder();
+
+        // Get reprimand ID (first 8 characters for display)
+        var shortId = reprimand.Id.ToString()[..8];
+        var reprimandType = GetReprimandDisplayName(reprimand);
+
+        // Reprimand header section with edit button
+        container.WithSection(
+            [new TextDisplayBuilder($"### {reprimandType} • [{shortId}]\n-# <@{reprimand.Action?.Moderator?.Id ?? 0}> <t:{((DateTimeOffset?) reprimand.Action?.Date)?.ToUnixTimeSeconds() ?? 0}:d> <t:{((DateTimeOffset?) reprimand.Action?.Date)?.ToUnixTimeSeconds() ?? 0}:t> • <t:{((DateTimeOffset?) reprimand.Action?.Date)?.ToUnixTimeSeconds() ?? 0}:R>\n{reprimand.Action?.Reason ?? "No reason provided"}")],
+            new ButtonBuilder("", $"hist-edit:{reprimand.Id}", ButtonStyle.Secondary,
+                emote: new Emoji("✏️")));
+
+        // Add separator for additional notes if they exist
+        if (!string.IsNullOrEmpty(reprimand.Action?.AdditionalInformation))
+        {
+            container.WithSeparator(new SeparatorBuilder()
+                .WithSpacing(SeparatorSpacingSize.Small)
+                .WithIsDivider(true));
+
+            container.WithTextDisplay($"-# {reprimand.Action.AdditionalInformation}");
+        }
+
+        // Add media gallery if there are attachments (placeholder for now)
+        // This would need to be implemented based on how attachments are stored in your system
+        // container.WithMediaGallery(BuildMediaGallery(reprimand));
+
+        // Add action dropdown for this reprimand
+        container.WithActionRow([
+            new SelectMenuBuilder($"hist-action:{reprimand.Id}", [
+                new SelectMenuOptionBuilder("Forgive", $"forgive-{reprimand.Id}", emoji: new Emoji("➖")),
+                new SelectMenuOptionBuilder("Delete", $"delete-{reprimand.Id}", emoji: new Emoji("🗑️"))
+            ])
+            .WithPlaceholder("Action...")
+            .WithMinValues(1)
+            .WithMaxValues(1)
+        ]);
+
+        return container;
+    }
+
+
+
+    private string GetReprimandDisplayName(Reprimand reprimand)
+    {
+        var typeName = reprimand.GetType().Name;
+        // TODO: Add counting logic to show "3rd Warning", "2nd Ban", etc.
+        return typeName;
+    }
+
+    private SelectMenuBuilder CreateFilterSelectMenu(IUser user)
+    {
+        return new SelectMenuBuilder("hist-filter", [
+            new SelectMenuOptionBuilder("All", "all"),
+            new SelectMenuOptionBuilder("Ban", "ban"),
+            new SelectMenuOptionBuilder("Kick", "kick"),
+            new SelectMenuOptionBuilder("Mute", "mute"),
+            new SelectMenuOptionBuilder("Warning", "warning"),
+            new SelectMenuOptionBuilder("Note", "note")
+        ])
+        .WithPlaceholder("Filter...")
+        .WithMinValues(1)
+        .WithMaxValues(6);
+    }
+
+
+
+
 
     public async Task ReplyUserAsync(Context context, IUser user, bool ephemeral = false)
     {

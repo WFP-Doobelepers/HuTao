@@ -12,7 +12,7 @@ public class ActionRow
 
     public ActionRow(ActionRowComponent row) : this(row.Components) { }
 
-    public ActionRow(ActionRowBuilder row) : this(row.Components) { }
+    public ActionRow(ActionRowBuilder row) : this(row.Build().Components) { }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     private ActionRow(IEnumerable<IMessageComponent> components)

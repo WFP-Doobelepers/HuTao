@@ -24,20 +24,20 @@ public class InteractionContext(IInteractionContext context)
     public Task RespondAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false, bool ephemeral = false,
         AllowedMentions? allowedMentions = null, MessageComponent? components = null, Embed? embed = null,
-        RequestOptions? options = null, PollProperties? poll = null)
+        RequestOptions? options = null, PollProperties? poll = null, MessageFlags flags = MessageFlags.None)
         => Interaction.RespondAsync(
             text, embeds, isTTS, ephemeral,
             allowedMentions, components, embed,
-            options, poll);
+            options, poll, flags);
 
     public Task RespondWithFilesAsync(
         IEnumerable<FileAttachment> attachments, string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null, MessageFlags flags = MessageFlags.None)
         => Interaction.RespondWithFilesAsync(
             attachments, text, embeds, isTTS,
             ephemeral, allowedMentions, components,
-            embed, options, poll);
+            embed, options, poll, flags);
 
     public Task RespondWithModalAsync(Modal modal, RequestOptions? options = null)
         => Interaction.RespondWithModalAsync(modal, options);
@@ -48,20 +48,20 @@ public class InteractionContext(IInteractionContext context)
     public async Task<IUserMessage> FollowupAsync(
         string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null, MessageFlags flags = MessageFlags.None)
         => await Interaction.FollowupAsync(
             text, embeds, isTTS,
             ephemeral, allowedMentions, components,
-            embed, options, poll);
+            embed, options, poll, flags);
 
     public Task<IUserMessage> FollowupWithFilesAsync(
         IEnumerable<FileAttachment> attachments, string? text = null, Embed[]? embeds = null, bool isTTS = false,
         bool ephemeral = false, AllowedMentions? allowedMentions = null, MessageComponent? components = null,
-        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null)
+        Embed? embed = null, RequestOptions? options = null, PollProperties? poll = null, MessageFlags flags = MessageFlags.None)
         => Interaction.FollowupWithFilesAsync(
             attachments, text, embeds, isTTS,
             ephemeral, allowedMentions, components,
-            embed, options, poll);
+            embed, options, poll, flags);
 
     public Task<IUserMessage> GetOriginalResponseAsync(RequestOptions? options = null)
         => Interaction.GetOriginalResponseAsync(options);

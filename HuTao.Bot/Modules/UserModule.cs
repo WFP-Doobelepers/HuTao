@@ -1,6 +1,8 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Preconditions.Commands;
