@@ -79,12 +79,8 @@ public class InteractiveUserModule(UserService userService) : InteractionModuleB
 
     [ComponentInteraction("reprimand:*:*")]
     public Task ComponentReprimandsAsync(
-        string id,
-        [CheckCategory(History)] ModerationCategory? category,
-        LogReprimandType[] types)
-        => ComponentReprimandsAsync(
-            id, InfractionTypeBitwise.Or(types),
-            [category ?? ModerationCategory.None]);
+        string id, [CheckCategory(History)] ModerationCategory category, LogReprimandType[] types)
+        => ComponentReprimandsAsync(id, InfractionTypeBitwise.Or(types), [category]);
 
     [ComponentInteraction("category:*:*")]
     public async Task ComponentReprimandsAsync(
