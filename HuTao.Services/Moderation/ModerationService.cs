@@ -758,15 +758,16 @@ public class ModerationService(
         ReprimandAction? reprimand, ReprimandDetails details,
         CancellationToken cancellationToken) => reprimand switch
     {
-        BanAction b      => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
-        KickAction       => await TryKickAsync(details, cancellationToken),
-        HardMuteAction t => await TryHardMuteAsync(t.Length, details, cancellationToken),
-        MuteAction m     => await TryMuteAsync(m.Length, details, cancellationToken),
-        RoleAction r     => await TryApplyRolesAsync(r.Roles, r.Length, details, cancellationToken),
-        WarningAction w  => await WarnAsync(w.Count, details, cancellationToken),
-        NoticeAction     => await NoticeAsync(details, cancellationToken),
-        NoteAction       => await NoteAsync(details, cancellationToken),
-        _                => null
+        BanAction b       => await TryBanAsync(b.DeleteDays, b.Length, details, cancellationToken),
+        KickAction        => await TryKickAsync(details, cancellationToken),
+        HardMuteAction t  => await TryHardMuteAsync(t.Length, details, cancellationToken),
+        MuteAction m      => await TryMuteAsync(m.Length, details, cancellationToken),
+        TimeoutAction to  => await TryTimeoutAsync(to.Length ?? TimeSpan.FromDays(28), details, cancellationToken),
+        RoleAction r      => await TryApplyRolesAsync(r.Roles, r.Length, details, cancellationToken),
+        WarningAction w   => await WarnAsync(w.Count, details, cancellationToken),
+        NoticeAction      => await NoticeAsync(details, cancellationToken),
+        NoteAction        => await NoteAsync(details, cancellationToken),
+        _                 => null
     };
 
     private async Task<ReprimandResult?> TryApplyRolesAsync(

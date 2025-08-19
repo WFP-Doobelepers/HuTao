@@ -191,6 +191,7 @@ public static class ReprimandExtensions
                 LogReprimandType.Role     => reprimands.OfType<RoleReprimand>(),
                 LogReprimandType.HardMute => reprimands.OfType<HardMute>(),
                 LogReprimandType.Filtered => reprimands.OfType<Filtered>(),
+                LogReprimandType.Timeout  => reprimands.OfType<Timeout>(),
                 _                         => Enumerable.Empty<Reprimand>()
             });
     }
