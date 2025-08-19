@@ -11,13 +11,15 @@ public class QuotedPage : IPage
 {
     internal QuotedPage(QuotedMessage quote, MultiEmbedPageBuilder builder)
     {
-        Quote            = quote;
-        Text             = builder.Text;
-        IsTTS            = builder.IsTTS;
-        AllowedMentions  = builder.AllowedMentions;
-        MessageReference = builder.MessageReference;
-        Stickers         = builder.Stickers;
-        EmbedArray       = builder.Builders;
+        Quote              = quote;
+        Text               = builder.Text;
+        IsTTS              = builder.IsTTS;
+        AllowedMentions    = builder.AllowedMentions;
+        MessageReference   = builder.MessageReference;
+        Stickers           = builder.Stickers;
+        EmbedArray         = builder.Builders;
+        MessageFlags       = builder.MessageFlags;
+        AttachmentsFactory = builder.AttachmentsFactory;
     }
 
     public IEnumerable<EmbedBuilder> EmbedArray { get; set; }
@@ -35,6 +37,8 @@ public class QuotedPage : IPage
     public IReadOnlyCollection<Embed> Embeds => EmbedArray.Select(e => e.Build()).ToArray();
 
     public IReadOnlyCollection<ISticker> Stickers { get; }
+
+    public MessageFlags? MessageFlags { get; set; }
 
     public MessageReference? MessageReference { get; }
 
