@@ -59,7 +59,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
 
     [RequireUserPermission(GuildPermission.ManageRoles, Group = nameof(RoleModule))]
     [RequireAuthorization(AuthorizationScope.ManageRoles, Group = nameof(RoleModule))]
-    public class AuthorizedRoleModule(TemporaryRoleMemberService member, TemporaryRoleService role)
+    public class AuthorizedRoleModule(TemporaryRoleMemberService memberService, TemporaryRoleService roleService)
         : ModuleBase<SocketCommandContext>
     {
         [Command("add")]
@@ -114,7 +114,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         [Summary("Puts a member into a temporary role.")]
         public async Task AddTemporaryRoleMemberAsync(IGuildUser user, [RequireHierarchy] IRole role, TimeSpan length)
         {
-            await member.AddTemporaryRoleMemberAsync(user, role, length);
+            await memberService.AddTemporaryRoleMemberAsync(user, role, length);
             var embed = new EmbedBuilder()
                 .WithDescription(new StringBuilder()
                     .AppendLine($"Temporarily added {role.Mention} to {user.Mention}.")
@@ -222,16 +222,16 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         [Command("temporary convert")]
         [Alias("tempconvert")]
         [Summary("Converts a role into a temporary role.")]
-        public async Task TemporaryRoleConvertAsync([RequireHierarchy] IRole role1, TimeSpan length)
+        public async Task TemporaryRoleConvertAsync([RequireHierarchy] IRole role, TimeSpan length)
         {
-            await role.CreateTemporaryRoleAsync(role1, length);
+            await roleService.CreateTemporaryRoleAsync(role, length);
 
             var embed = new EmbedBuilder()
                 .WithTitle("Temporary Role")
                 .WithDescription($"Created a temporary role that will expire {length.ToDiscordTimestamp()}")
-                .AddField("Role", role1.Mention, true)
-                .AddField("Mentionable", role1.IsMentionable, true)
-                .AddField("Hoisted", role1.IsHoisted, true)
+                .AddField("Role", role.Mention, true)
+                .AddField("Mentionable", role.IsMentionable, true)
+                .AddField("Hoisted", role.IsHoisted, true)
                 .WithCurrentTimestamp()
                 .WithUserAsAuthor(Context.Message.Author, AuthorOptions.Requested | AuthorOptions.UseFooter);
 
