@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
@@ -22,8 +24,9 @@ using static Discord.InteractionResponseType;
 namespace HuTao.Services.Moderation;
 
 public class UserService(
-    AuthorizationService auth,
+    AuthorizationService authService,
     IImageService image,
+    IReprimandHistoryImageService historyImage,
     InteractiveService interactive,
     HuTaoContext db)
 {
@@ -71,11 +74,19 @@ public class UserService(
             .Where(r => r.UserId == user.Id)
             .OfType(type).OfCategory(category);
 
+        using var imageStream = await historyImage.GenerateHistoryImageAsync(userEntity, category);
+        var imageBytes = imageStream.ToArray();
+
+        var reprimandEmbed = new EmbedBuilder()
+            .WithImageUrl("attachment://reprimand_history.png")
+            .WithColor(await image.GetAvatarColor(user))
+            .WithUserAsAuthor(user, AuthorOptions.IncludeId);
+
+        var historyAttachment = new FileAttachment(new MemoryStream(imageBytes), "reprimand_history.png");
         var reprimands = history
-            .OrderByDescending(r => r.Action?.Date).Select(r => r.ToEmbedBuilder(true))
-            .Prepend(GetReprimands(userEntity, category)
-                .WithColor(await image.GetAvatarColor(user))
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail));
+            .OrderByDescending(r => r.Action?.Date)
+            .Select(r => r.ToEmbedBuilder(true))
+            .Prepend(reprimandEmbed).ToArray();
 
         var pages = reprimands.Chunk(4)
             .Select(builders =>
@@ -103,18 +114,17 @@ public class UserService(
 
         void Components(IUserMessage message)
         {
-            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(user, category, type));
+            var components = GetMessageComponents(message).WithSelectMenu(HistoryMenu(userEntity, category, type));
             if (guild.ModerationCategories.Any())
                 components.WithSelectMenu(CategoryMenu(user, guild.ModerationCategories, category, type));
 
             components.WithSelectMenu(ReprimandMenu(user));
 
-            _ = message switch
+            message.ModifyAsync(r =>
             {
-                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components.Build()),
-                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components.Build()),
-                _                        => message.ModifyAsync(r => r.Components = components.Build())
-            };
+                r.Components  = components.Build();
+                r.Attachments = new[] { historyAttachment };
+            });
         }
 
         ComponentBuilder GetMessageComponents(IMessage message)
@@ -137,7 +147,7 @@ public class UserService(
         await context.ReplyAsync(components: components, embeds: embeds, ephemeral: ephemeral);
     }
 
-    private static EmbedBuilder GetReprimands(GuildUserEntity user, ModerationCategory? category)
+    private static EmbedBuilder GetReprimandsFallback(GuildUserEntity user, ModerationCategory? category)
     {
         var rules = category?.Logging?.SummaryReprimands
             ?? user.Guild.ModerationRules?.Logging?.SummaryReprimands
@@ -214,14 +224,14 @@ public class UserService(
                     c.Name, c.Name, isDefault: selected?.Name == c.Name))
                 .ToList());
 
-    private static SelectMenuBuilder HistoryMenu(
-        IUser user,
-        ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
+    private static SelectMenuBuilder HistoryMenu(GuildUserEntity userEntity, ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
     {
+        category ??= userEntity.DefaultCategory ?? ModerationCategory.None;
+
         var types = Enum.GetValues<LogReprimandType>()[1..^1];
 
         var menu = new SelectMenuBuilder()
-            .WithCustomId($"reprimand:{user.Id}:{category?.Name}")
+            .WithCustomId($"reprimand:{userEntity.Id}:{category.Name}")
             .WithPlaceholder("View History")
             .WithMinValues(1).WithMaxValues(types.Length);
 
@@ -259,10 +269,10 @@ public class UserService(
     private async Task<IEnumerable<EmbedBuilder>> GetUserAsync(Context context, IUser user)
     {
         var isAuthorized =
-            await auth.IsAuthorizedAsync(context, Scope) ||
-            await auth.IsCategoryAuthorizedAsync(context, Scope);
+            await authService.IsAuthorizedAsync(context, Scope) ||
+            await authService.IsCategoryAuthorizedAsync(context, Scope);
 
-        var userEntity = await db.Users.FindAsync(user.Id, context.Guild.Id);
+        var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
         var guildUser = user as SocketGuildUser;
 
         var embeds = new List<EmbedBuilder>();
@@ -314,11 +324,13 @@ public class UserService(
 
     private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
     {
-        var auth1 = await auth.IsAuthorizedAsync(context, Scope);
-        var category = await auth.IsCategoryAuthorizedAsync(context, Scope);
-        return auth1 || category
+        var auth = await authService.IsAuthorizedAsync(context, Scope);
+        var category = await authService.IsCategoryAuthorizedAsync(context, Scope);
+        var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
+
+        return auth || category
             ? new ComponentBuilder()
-                .WithSelectMenu(HistoryMenu(user))
+                .WithSelectMenu(HistoryMenu(userEntity))
                 .WithSelectMenu(ReprimandMenu(user))
                 .Build()
             : null;
