@@ -24,7 +24,7 @@ public static class UserExtensions
         => user.GetAvatarUrl(size: size) ?? user.GetDefaultAvatarUrl();
 
     public static string GetFullUsername(this IUser user)
-        => $"{user.Username}#{user.Discriminator}";
+        => user.DiscriminatorValue == 0 ? user.Username : $"{user.Username}#{user.Discriminator}";
 
     public static Task<IGuildUser> GetUserAsync(this IGuildUserEntity entity, IGuild guild)
         => guild.GetUserAsync(entity.UserId);
