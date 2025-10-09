@@ -6,6 +6,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using HuTao.Data;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Moderation;
@@ -18,7 +19,8 @@ using Microsoft.Extensions.Logging;
 namespace HuTao.Services.Core.Listeners;
 
 public class InteractionHandlingService(
-    DiscordSocketClient discord, HuTaoContext db, InteractionService commands,
+    DiscordSocketClient discord, HuTaoContext db,
+    InteractionService commands, InteractiveService interactive,
     ILogger<InteractionHandlingService> log, IServiceProvider services)
     : INotificationHandler<InteractionCreatedNotification>,
       INotificationHandler<ReadyNotification>
@@ -26,6 +28,9 @@ public class InteractionHandlingService(
     public async Task Handle(InteractionCreatedNotification notification, CancellationToken cancellationToken)
     {
         var interaction = notification.Interaction;
+
+        if (interactive.IsManaged(interaction))
+            return;
 
         var context = new SocketInteractionContext(discord, interaction);
         if (context.User is IGuildUser user) await db.Users.TrackUserAsync(user, cancellationToken);
@@ -38,8 +43,8 @@ public class InteractionHandlingService(
         await commands.RegisterCommandsToGuildAsync(HuTaoConfig.Configuration.Guild);
 #else
         var guildCommands = Array.Empty<ApplicationCommandProperties>();
-        await _discord.Rest.BulkOverwriteGuildCommands(guildCommands, HuTaoConfig.Configuration.Guild);
-        await _commands.RegisterCommandsGloballyAsync();
+        await discord.Rest.BulkOverwriteGuildCommands(guildCommands, HuTaoConfig.Configuration.Guild);
+        await commands.RegisterCommandsGloballyAsync();
 #endif
     }
 

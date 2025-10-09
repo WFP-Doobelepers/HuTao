@@ -33,6 +33,14 @@ public static class InteractiveExtensions
         .WithActionOnTimeout(ActionOnStop.DisableInput)
         .WithActionOnCancellation(ActionOnStop.DisableInput);
 
+    /// <summary>
+    /// Creates a default ComponentPaginator builder for V2 paginators with interactive components.
+    /// Use this for paginators that need custom buttons, state management, or ComponentsV2 features.
+    /// </summary>
+    public static ComponentPaginatorBuilder CreateDefaultComponentPaginator() => new ComponentPaginatorBuilder()
+        .WithActionOnTimeout(ActionOnStop.DisableInput)
+        .WithActionOnCancellation(ActionOnStop.DisableInput);
+
     public static async Task<T?> TryFindEntityAsync<T>(
         this InteractiveService service, Context context, IEnumerable<T> collection,
         Func<T, EmbedBuilder> builder, Func<T, string> id, string find) where T : class
