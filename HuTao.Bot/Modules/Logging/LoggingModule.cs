@@ -59,7 +59,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {config.ShowAppealOnReprimands.Humanize()}");
+        await ReplyAsync($"Current value: {(config.ShowAppealOnReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Command("silent")]
@@ -80,7 +80,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {rules.SilentReprimands.Humanize()}");
+        await ReplyAsync($"Current value: {(rules.SilentReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Priority(-1)]
@@ -173,7 +173,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {config.Options.Humanize()}");
+        await ReplyAsync($"Current value: {(config.Options ?? ModerationLogOptions.None).Humanize()}");
     }
 
     [Command("event")]
@@ -217,7 +217,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {config.LogReprimands.Humanize()}");
+        await ReplyAsync($"Current value: {(config.LogReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Command("status")]
@@ -239,7 +239,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {config.LogReprimandStatus.Humanize()}");
+        await ReplyAsync($"Current value: {(config.LogReprimandStatus ?? LogReprimandStatus.None).Humanize()}");
     }
 
     [Command("history reprimands")]
@@ -254,7 +254,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         rules.HistoryReprimands = type;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {rules.HistoryReprimands.Humanize()}");
+        await ReplyAsync($"New value: {(rules.HistoryReprimands is null ? "Default" : rules.HistoryReprimands.Value.Humanize())}");
     }
 
     [Command("ignore duplicates")]
@@ -284,7 +284,7 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         rules.SummaryReprimands = type;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {rules.SummaryReprimands.Humanize()}");
+        await ReplyAsync($"New value: {(rules.SummaryReprimands is null ? "Default" : rules.SummaryReprimands.Value.Humanize())}");
     }
 
     private async Task SetLoggingChannelAsync<T>(

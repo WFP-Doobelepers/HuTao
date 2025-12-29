@@ -8,7 +8,6 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
-using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;

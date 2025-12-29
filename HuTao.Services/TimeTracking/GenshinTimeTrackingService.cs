@@ -9,7 +9,6 @@ using Discord.Net;
 using Discord.WebSocket;
 using Hangfire;
 using Humanizer;
-using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.TimeTracking;
