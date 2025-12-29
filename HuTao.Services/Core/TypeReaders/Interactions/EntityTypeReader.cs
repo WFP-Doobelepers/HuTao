@@ -26,7 +26,9 @@ public abstract class EntityTypeReader<T> : TypeReader<T?> where T : class
         var collection = await GetCollectionAsync(context, services) ?? Enumerable.Empty<T>();
 
         var service = services.GetRequiredService<InteractiveService>();
-        var result = await service.TryFindEntityAsync(context, collection, EntityViewer, Id, option);
+        var result = await service.TryFindEntityV2Async(context, collection, EntityViewer, Id, option,
+            ephemeral: true,
+            timeout: TimeSpan.FromMinutes(2));
 
         return result is not null
             ? TypeConverterResult.FromSuccess(result)
