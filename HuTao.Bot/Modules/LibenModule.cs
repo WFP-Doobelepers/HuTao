@@ -182,7 +182,12 @@ public class LibenModule(
         CachedBoxes[Context.User.Id] = box;
 
         await DeferAsync(true);
-        await ModifyOriginalResponseAsync(m => m.Embed = GetEmbed(box).Build());
+        var components = BuildBoxComponents(box, "✅ Added your box");
+        await ModifyOriginalResponseAsync(m =>
+        {
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
+        });
 
         await RefreshAsync();
         await ReplyFoundAsync(box);
@@ -191,66 +196,96 @@ public class LibenModule(
     [ComponentInteraction("add-interactive:*", true)]
     public async Task AddInteractiveAsync(bool restart)
     {
-        var component = new ComponentBuilder();
-        foreach (var (element, emote) in BoxEmotes)
-        {
-            var name = element.ToString();
-            component.WithButton(name, $"add0:{element}", emote: emote);
-        }
+        const string message = "Hello, I will guide you through adding your box. What element are you adding?";
 
-        const string message = "Hello, I will guide you through the looking process, what element are you adding?";
-        var embed = Liben().WithDescription(message);
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\n{message}")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var buttons = BoxEmotes.Select(kv =>
+            new ButtonBuilder(kv.Key.ToString(), $"add0:{kv.Key}", ButtonStyle.Secondary, emote: kv.Value)).ToList();
+
+        var builder = new ComponentBuilderV2().WithContainer(container);
+        builder.WithActionRow(new ActionRowBuilder().WithComponents(buttons.Take(4)));
+        builder.WithActionRow(new ActionRowBuilder().WithComponents(buttons.Skip(4)));
+
+        var components = builder.Build();
         if (restart)
         {
             await DeferAsync(true);
             await ModifyOriginalResponseAsync(m =>
             {
-                m.Components = component.Build();
-                m.Embed      = embed.Build();
+                m.Components = components;
+                m.Embeds = Array.Empty<Embed>();
             });
         }
         else
         {
             await RespondAsync(
                 ephemeral: true,
-                components: component.Build(),
-                embed: embed.Build());
+                components: components);
         }
     }
 
     [ComponentInteraction("add0:*", true)]
     public async Task AddInteractiveAsync(Element element)
     {
-        var component = new ComponentBuilder();
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\nSo the element is **{element}**. What is your region?")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var row = new ActionRowBuilder();
         foreach (var region in Enum.GetValues<ServerRegion>())
-        {
-            component.WithButton(region.ToString(), $"add1:{element},{region}");
-        }
-        component.WithButton("Restart", "add-interactive:true", ButtonStyle.Danger);
+            row.WithButton(new ButtonBuilder(region.ToString(), $"add1:{element},{region}", ButtonStyle.Secondary));
+
+        row.WithButton(new ButtonBuilder("Restart", "add-interactive:true", ButtonStyle.Danger));
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(row)
+            .Build();
 
         await DeferAsync(true);
         await ModifyOriginalResponseAsync(m =>
         {
-            m.Components = component.Build();
-            m.Embed      = Liben().WithDescription($"So the element is {element}, what is your region?").Build();
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
         });
     }
 
     [ComponentInteraction("add1:*,*", true)]
     public async Task AddInteractiveAsync(Element element, ServerRegion region)
     {
-        var component = new ComponentBuilder();
-        for (var i = 1; i <= 8; i++)
-        {
-            component.WithButton($"{i}", $"add2:{element},{region},{i}");
-        }
-        component.WithButton("Restart", "add-interactive:true", ButtonStyle.Danger);
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\nSo you have **{element}** in **{region}**. What is your world level?")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var first = new ActionRowBuilder();
+        for (var i = 1; i <= 5; i++)
+            first.WithButton(new ButtonBuilder($"{i}", $"add2:{element},{region},{i}", ButtonStyle.Secondary));
+
+        var second = new ActionRowBuilder();
+        for (var i = 6; i <= 8; i++)
+            second.WithButton(new ButtonBuilder($"{i}", $"add2:{element},{region},{i}", ButtonStyle.Secondary));
+        second.WithButton(new ButtonBuilder("Restart", "add-interactive:true", ButtonStyle.Danger));
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(first)
+            .WithActionRow(second)
+            .Build();
 
         await DeferAsync(true);
         await ModifyOriginalResponseAsync(m =>
         {
-            m.Components = component.Build();
-            m.Embed = Liben().WithDescription($"So you have a box of {element} in {region}, what is your WL?").Build();
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
         });
     }
 
@@ -307,8 +342,15 @@ public class LibenModule(
                 CachedBoxes.Remove(box.Key, out _);
             }
 
-            await RespondAsync("Removed your box.", ephemeral: true,
-                embeds: boxes.Take(10).Select(b => GetEmbed(b.Value).Build()).ToArray());
+            var builder = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## ✅ Removed boxes ({boxes.Count})\nFor {MentionUtils.MentionUser(user.Id)}")
+                    .WithAccentColor(0x422a54));
+
+            foreach (var box in boxes.Take(10))
+                builder.WithContainer(BuildBoxContainer(box.Value, "Box removed"));
+
+            await RespondAsync(components: builder.Build(), ephemeral: true);
 
             await RefreshAsync();
         }
@@ -353,66 +395,125 @@ public class LibenModule(
         }
 
         _ = RemoveExpired();
-        var emote = BoxEmotes[element];
-        var embed = new EmbedBuilder()
-            .WithThumbnailUrl($"https://cdn.discordapp.com/emojis/{emote.Id}.png");
 
-        var boxes = CachedBoxes.Values
+        var matches = CachedBoxes.Values
             .Where(b => b.Type == element)
             .Where(b => region is null || b.Region == region)
             .Where(b => (worldLevel ?? 8) >= b.WorldLevel)
             .OrderByDescending(b => b.Added)
-            .Select(GetPage)
-            .ToPageBuilders(10, embed)
             .ToList();
 
-        var add = new ButtonBuilder(
+        var addButton = new ButtonBuilder(
             "Add my box to the list",
             worldLevel is null
                 ? region is null ? $"add0:{element}" : $"add1:{element},{region}"
                 : $"add2:{element},{region},{worldLevel}",
             ButtonStyle.Success);
 
-        var look = new ButtonBuilder(
+        var lookButton = new ButtonBuilder(
             "These boxes do not work for me",
             worldLevel is null
                 ? region is null ? $"look0:true,{element}" : $"look1:true,{element},{region}"
                 : $"look2:true,{element},{region},{worldLevel}",
             ButtonStyle.Danger);
 
-        if (!boxes.Any())
+        if (matches.Count == 0)
         {
-            var components = new ComponentBuilder().WithButton(add).WithButton(look);
-            await RespondAsync("There are no boxes found.", ephemeral: true, components: components.Build());
+            var emote = BoxEmotes[element];
+            var emojiUrl = $"https://cdn.discordapp.com/emojis/{emote.Id}.png";
+
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithSection(
+                        [new TextDisplayBuilder($"## No boxes found\nTry adding your own box or start looking.")],
+                        new ThumbnailBuilder(new UnfurledMediaItemProperties(emojiUrl)))
+                    .WithAccentColor(0x422a54))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton(addButton)
+                    .WithButton(lookButton))
+                .Build();
+
+            await RespondAsync(components: components, ephemeral: true);
             return;
         }
 
-        var paginator = new StaticPaginatorBuilder()
-            .WithDefaultEmotes()
-            .WithPages(boxes);
+        const int boxesPerPage = 6;
+        var pageCount = Math.Max(1, (int)Math.Ceiling((double)matches.Count / boxesPerPage));
 
-        await interactive.SendPaginatorAsync(paginator.Build(), Context.Interaction,
+        var paginator = new ComponentPaginatorBuilder()
+            .WithUsers(Context.User)
+            .WithPageCount(pageCount)
+            .WithPageFactory(GeneratePage)
+            .WithActionOnTimeout(ActionOnStop.DisableInput)
+            .WithActionOnCancellation(ActionOnStop.DeleteMessage)
+            .Build();
+
+        await interactive.SendPaginatorAsync(paginator, Context.Interaction,
             responseType: InteractionResponseType.ChannelMessageWithSource,
             ephemeral: true,
-            messageAction: Components);
+            resetTimeoutOnInput: true);
 
-        void Components(IUserMessage message)
+        IPage GeneratePage(IComponentPaginator p)
         {
-            var components = GetMessageComponents(message).WithButton(add).WithButton(look);
-            _ = message switch
+            var emote = BoxEmotes[element];
+            var emojiUrl = $"https://cdn.discordapp.com/emojis/{emote.Id}.png";
+            var filterLine = region is null && worldLevel is null
+                ? "-# Showing all matches"
+                : $"-# Filters: {(region is null ? "Any region" : region.ToString())} • WL ≤ {(worldLevel ?? 8)}";
+
+            var header = new SectionBuilder()
+                .WithTextDisplay(
+                    $"## {element.Humanize(LetterCasing.Title)} boxes ({matches.Count})\n{filterLine}")
+                .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(emojiUrl)));
+
+            var pageItems = matches
+                .Skip(p.CurrentPageIndex * boxesPerPage)
+                .Take(boxesPerPage)
+                .ToList();
+
+            var container = new ContainerBuilder()
+                .WithSection(header)
+                .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+            for (var i = 0; i < pageItems.Count; i++)
             {
-                RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components.Build()),
-                RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components.Build()),
-                _                        => message.ModifyAsync(r => r.Components = components.Build())
-            };
-        }
+                var box = pageItems[i];
+                var text = new StringBuilder()
+                    .AppendLine($"### `{box.Id}` • WL{box.WorldLevel}")
+                    .AppendLine($"User: {MentionUtils.MentionUser(box.User.Id)} • Region: {box.Region}")
+                    .AppendLine($"Added: <t:{box.Added.ToUnixTimeSeconds()}:R>")
+                    .ToString()
+                    .Trim();
 
-        ComponentBuilder GetMessageComponents(IMessage message)
-        {
-            var components = ComponentBuilder.FromMessage(message);
-            components.ActionRows?.RemoveAll(row => row.Components.Any(c => c.Type is ComponentType.SelectMenu));
+                container.WithSection(new SectionBuilder().WithTextDisplay(text));
 
-            return components;
+                if (i < pageItems.Count - 1)
+                    container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+            }
+
+            container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+            container.WithActionRow(new ActionRowBuilder()
+                .WithButton(new ButtonBuilder(addButton.Label, addButton.CustomId, addButton.Style,
+                    emote: addButton.Emote, isDisabled: p.ShouldDisable()))
+                .WithButton(new ButtonBuilder(lookButton.Label, lookButton.CustomId, lookButton.Style,
+                    emote: lookButton.Emote, isDisabled: p.ShouldDisable())));
+
+            container.WithActionRow(new ActionRowBuilder()
+                .AddPreviousButton(p, "◀", ButtonStyle.Secondary)
+                .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
+                .AddNextButton(p, "▶", ButtonStyle.Secondary)
+                .AddStopButton(p, "Close", ButtonStyle.Danger));
+
+            container
+                .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                .WithTextDisplay($"-# Page {p.CurrentPageIndex + 1} of {p.PageCount}")
+                .WithAccentColor(0x422a54);
+
+            var components = new ComponentBuilderV2().WithContainer(container).Build();
+            return new PageBuilder()
+                .WithComponents(components)
+                .WithAllowedMentions(AllowedMentions.None)
+                .Build();
         }
     }
 
@@ -458,7 +559,12 @@ public class LibenModule(
             LookingUsers[(Context.User.Id, element)] = looking;
 
             await DeferAsync(true);
-            await ModifyOriginalResponseAsync(m => m.Embed = GetEmbed(looking).Build());
+            var components = BuildBoxComponents(looking, "✅ Added your looking status");
+            await ModifyOriginalResponseAsync(m =>
+            {
+                m.Components = components;
+                m.Embeds = Array.Empty<Embed>();
+            });
             await RefreshAsync();
         }
     }
@@ -466,65 +572,96 @@ public class LibenModule(
     [ComponentInteraction("look-interactive:*,*", true)]
     public async Task LookingInteractiveAsync(bool restart, bool force)
     {
-        var component = new ComponentBuilder();
-        foreach (var (element, emote) in BoxEmotes)
-        {
-            component.WithButton(element.ToString(), $"look0:{force},{element}", emote: emote);
-        }
+        const string message = "Hello, I will guide you through finding a box. What element are you looking for?";
 
-        const string message = "Hello, I will guide you through the looking process, what element are you looking for?";
-        var embed = Liben().WithDescription(message);
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\n{message}")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var buttons = BoxEmotes.Select(kv =>
+            new ButtonBuilder(kv.Key.ToString(), $"look0:{force},{kv.Key}", ButtonStyle.Secondary, emote: kv.Value)).ToList();
+
+        var builder = new ComponentBuilderV2().WithContainer(container);
+        builder.WithActionRow(new ActionRowBuilder().WithComponents(buttons.Take(4)));
+        builder.WithActionRow(new ActionRowBuilder().WithComponents(buttons.Skip(4)));
+
+        var components = builder.Build();
         if (restart)
         {
             await DeferAsync();
             await ModifyOriginalResponseAsync(m =>
             {
-                m.Components = component.Build();
-                m.Embed      = embed.Build();
+                m.Components = components;
+                m.Embeds = Array.Empty<Embed>();
             });
         }
         else
         {
             await RespondAsync(
                 ephemeral: true,
-                components: component.Build(),
-                embed: embed.Build());
+                components: components);
         }
     }
 
     [ComponentInteraction("look0:*,*", true)]
     public async Task LookingInteractiveAsync(bool force, Element element)
     {
-        var component = new ComponentBuilder();
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\nSo the element is **{element}**. What is your region?")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var row = new ActionRowBuilder();
         foreach (var region in Enum.GetValues<ServerRegion>())
-        {
-            component.WithButton(region.ToString(), $"look1:{force},{element},{region}");
-        }
-        component.WithButton("Restart", $"look-interactive:true,{force}", ButtonStyle.Danger);
+            row.WithButton(new ButtonBuilder(region.ToString(), $"look1:{force},{element},{region}", ButtonStyle.Secondary));
+
+        row.WithButton(new ButtonBuilder("Restart", $"look-interactive:true,{force}", ButtonStyle.Danger));
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(row)
+            .Build();
 
         await DeferAsync(true);
         await ModifyOriginalResponseAsync(m =>
         {
-            m.Components = component.Build();
-            m.Embed      = Liben().WithDescription($"So the element is {element}, what is your region?").Build();
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
         });
     }
 
     [ComponentInteraction("look1:*,*,*", true)]
     public async Task LookingInteractiveAsync(bool force, Element element, ServerRegion region)
     {
-        var component = new ComponentBuilder();
-        for (var i = 1; i <= 8; i++)
-        {
-            component.WithButton($"{i}", $"look2:{force},{element},{region},{i}");
-        }
-        component.WithButton("Restart", $"look-interactive:true,{force}", ButtonStyle.Danger);
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\nLooking for **{element}** in **{region}**. What is your world level?")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithAccentColor(0x422a54);
+
+        var first = new ActionRowBuilder();
+        for (var i = 1; i <= 5; i++)
+            first.WithButton(new ButtonBuilder($"{i}", $"look2:{force},{element},{region},{i}", ButtonStyle.Secondary));
+
+        var second = new ActionRowBuilder();
+        for (var i = 6; i <= 8; i++)
+            second.WithButton(new ButtonBuilder($"{i}", $"look2:{force},{element},{region},{i}", ButtonStyle.Secondary));
+        second.WithButton(new ButtonBuilder("Restart", $"look-interactive:true,{force}", ButtonStyle.Danger));
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(first)
+            .WithActionRow(second)
+            .Build();
 
         await DeferAsync(true);
         await ModifyOriginalResponseAsync(m =>
         {
-            m.Components = component.Build();
-            m.Embed = Liben().WithDescription($"Looking for a box of {element} in {region}, what is your WL?").Build();
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
         });
     }
 
@@ -559,7 +696,8 @@ public class LibenModule(
     {
         if (CachedBoxes.TryRemove(Context.User.Id, out var box))
         {
-            await RespondAsync("Removed your box.", embed: GetEmbed(box).Build(), ephemeral: true);
+            var components = BuildBoxComponents(box, "✅ Removed your box");
+            await RespondAsync(components: components, ephemeral: true);
             await RefreshAsync();
         }
         else await RespondAsync("You did not have your box added to the list.", ephemeral: true);
@@ -609,6 +747,46 @@ public class LibenModule(
         .WithAuthor("Liben", LibenImage)
         .WithThumbnailUrl(LibenImage);
 
+    private MessageComponent BuildBoxComponents(IBox box, string header)
+        => new ComponentBuilderV2()
+            .WithContainer(BuildBoxContainer(box, header))
+            .Build();
+
+    private ContainerBuilder BuildBoxContainer(IBox box, string header)
+    {
+        var emote = BoxEmotes[box.Type];
+        var emojiUrl = $"https://cdn.discordapp.com/emojis/{emote.Id}.png";
+        var user = GetGuild().GetUser(box.User.Id);
+        var userLine = user is null ? $"{MentionUtils.MentionUser(box.User.Id)}" : $"{user} {user.Mention}";
+
+        var text = new StringBuilder()
+            .AppendLine($"## {header}")
+            .AppendLine($"### {box.Type.Humanize(LetterCasing.Title)}")
+            .AppendLine($"**User:** {userLine}")
+            .AppendLine($"**Region:** {box.Region.Humanize(LetterCasing.Title)}")
+            .AppendLine($"**WL:** {box.WorldLevel}")
+            .ToString()
+            .Trim();
+
+        if (box is Box b)
+        {
+            text += "\n" + new StringBuilder()
+                .AppendLine($"**UID:** `{b.Id}`")
+                .AppendLine($"**Added:** <t:{b.Added.ToUnixTimeSeconds()}:R>")
+                .AppendLine($"**Expires:** <t:{b.Expiry.ToUnixTimeSeconds()}:R>")
+                .ToString()
+                .TrimEnd();
+        }
+
+        var section = new SectionBuilder()
+            .WithTextDisplay(text)
+            .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(emojiUrl)));
+
+        return new ContainerBuilder()
+            .WithSection(section)
+            .WithAccentColor(0x422a54);
+    }
+
     private static EmbedFieldBuilder GetPage(Box box) => new EmbedFieldBuilder()
         .WithName($"{Format.Code($"{box.Id}")} WL{box.WorldLevel}")
         .WithValue(new StringBuilder()
@@ -648,8 +826,9 @@ public class LibenModule(
                     if (removed is null) continue;
                     var user = await client.GetUserAsync(removed.User.Id);
                     var dm = await user.CreateDMChannelAsync();
-                    await dm.SendMessageAsync("Your box was removed automatically after 30 minutes.",
-                        embed: GetEmbed(removed).Build());
+
+                    var components = BuildBoxComponents(removed, "⏱️ Your box expired and was removed");
+                    await dm.SendMessageAsync(components: components);
                 }
                 catch
                 {
@@ -673,14 +852,16 @@ public class LibenModule(
 
         if (found.Any())
         {
-            var buttons = new ComponentBuilder().WithButton(
-                "This box does not work for me",
-                "look-interactive:false,true",
-                ButtonStyle.Danger);
-
             await Context.Channel.SendMessageAsync(
-                $"Someone has appeared with your box {found.Humanize(l => MentionUtils.MentionUser(l.User.Id))}",
-                embed: GetEmbed(box).Build(), components: buttons.Build());
+                components: new ComponentBuilderV2()
+                    .WithContainer(new ContainerBuilder()
+                        .WithTextDisplay($"## Someone has appeared with your box\n{found.Humanize(l => MentionUtils.MentionUser(l.User.Id))}")
+                        .WithAccentColor(0x422a54))
+                    .WithContainer(BuildBoxContainer(box, "Box details"))
+                    .WithActionRow(new ActionRowBuilder().WithButton(
+                        new ButtonBuilder("This box does not work for me", "look-interactive:false,true",
+                            ButtonStyle.Danger)))
+                    .Build());
 
             foreach (var looking in found)
             {
@@ -695,37 +876,59 @@ public class LibenModule(
         TokenSource.Cancel();
         TokenSource = new CancellationTokenSource();
 
-        var component = new ComponentBuilder();
+        var intro = LibenEmbed.Build();
+        var introText = intro.Description ?? "Marvelous Merchandise";
 
-        var row = 0;
-        foreach (var (element, emote) in BoxEmotes)
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Marvelous Merchandise\n{introText}")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(LibenImage)))
+            .WithMediaGallery([
+                new MediaGalleryItemProperties(new UnfurledMediaItemProperties(EventImage), "Event")
+            ])
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay("-# The buttons below show [boxes available | people looking for this]")
+            .WithAccentColor(0x422a54);
+
+        var builder = new ComponentBuilderV2().WithContainer(container);
+
+        foreach (var chunk in BoxEmotes.ToList().Chunk(3))
         {
-            var boxes = CachedBoxes.Values.Count(b => b.Type == element);
-            var looking = LookingUsers.Values.Count(b => b.Type == element);
+            var row = new ActionRowBuilder();
+            foreach (var (element, emote) in chunk)
+            {
+                var boxes = CachedBoxes.Values.Count(b => b.Type == element);
+                var looking = LookingUsers.Values.Count(b => b.Type == element);
 
-            component.WithButton($"Has: {boxes} | Need: {looking}", $"list:{element}",
-                emote: emote,
-                row: row / 3);
-            row++;
+                row.WithButton(new ButtonBuilder(
+                    $"Has: {boxes} | Need: {looking}",
+                    $"list:{element}",
+                    ButtonStyle.Secondary,
+                    emote: emote));
+            }
+
+            builder.WithActionRow(row);
         }
 
-        component
-            .WithButton("I have a...", "add-interactive:false", ButtonStyle.Success, row: row / 3)
-            .WithButton("I need a...", "look-interactive:false,false", ButtonStyle.Success, row: row / 3);
+        builder.WithActionRow(new ActionRowBuilder()
+            .WithButton(new ButtonBuilder("I have a…", "add-interactive:false", ButtonStyle.Success))
+            .WithButton(new ButtonBuilder("I need a…", "look-interactive:false,false", ButtonStyle.Success)));
+
+        var components = builder.Build();
 
         if (LastMessage is not null && IsBottom)
         {
             await LastMessage.ModifyAsync(m =>
             {
-                m.Embed      = LibenEmbed.Build();
-                m.Components = component.Build();
+                m.Components = components;
+                m.Embeds = Array.Empty<Embed>();
             }, new RequestOptions { CancelToken = TokenSource.Token });
         }
         else
         {
             LastMessage?.DeleteAsync();
             LastMessage = await Channel!.SendMessageAsync(
-                embed: LibenEmbed.Build(), components: component.Build(),
+                components: components,
                 options: new RequestOptions { CancelToken = TokenSource.Token });
             IsBottom = true;
         }
