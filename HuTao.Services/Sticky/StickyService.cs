@@ -64,19 +64,41 @@ public class StickyService(IMemoryCache cache, HuTaoContext db)
             _ = message.DeleteAsync();
         }
 
-        var options = template.ReplaceTimestamps ? EmbedBuilderOptions.ReplaceTimestamps : EmbedBuilderOptions.None;
-        var embeds = template.Embeds.Select(e => e.ToBuilder(options));
-        var components = template.Components.ToBuilder();
+        var allowedMentions = template.AllowMentions ? AllowedMentions.All : AllowedMentions.None;
+        var flags = template.SuppressEmbeds ? MessageFlags.SuppressEmbeds : MessageFlags.None;
+
+        var embeds = template.GetEmbedBuilders()
+            .Select(e => e.Build())
+            .ToList();
+
+        const uint defaultAccentColor = 0x9B59FF;
+        var builder = new ComponentBuilderV2();
+
+        if (!string.IsNullOrWhiteSpace(template.Content))
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay(template.Content)
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        foreach (var embed in embeds)
+            builder.WithContainer(embed.ToComponentsV2Container());
+
+        foreach (var row in template.Components.ToActionRowBuilders())
+            builder.WithActionRow(row);
+
+        if (string.IsNullOrWhiteSpace(template.Content) && embeds.Count == 0)
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("-# (empty template)")
+                .WithAccentColor(defaultAccentColor));
+        }
 
         if (details.Token.IsCancellationRequested) return;
         details.Messages.Add(await channel.SendMessageAsync(
-            template.Content,
-            allowedMentions: template.AllowMentions
-                ? AllowedMentions.All
-                : AllowedMentions.None,
-            embeds: embeds.Select(e => e.Build()).ToArray(),
-            components: components.Build(),
-            flags: template.SuppressEmbeds ? MessageFlags.SuppressEmbeds : MessageFlags.None,
+            allowedMentions: allowedMentions,
+            components: builder.Build(),
+            flags: flags,
             options: new RequestOptions { CancelToken = details.Token.Token }));
     }
 
