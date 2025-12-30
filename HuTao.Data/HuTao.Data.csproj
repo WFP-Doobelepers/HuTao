@@ -27,7 +27,7 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-        <PackageReference Include="System.Linq.Async" Version="6.0.1" ExcludeAssets="compile" />
+        <PackageReference Include="System.Linq.Async" Version="7.0.0" ExcludeAssets="compile" />
     </ItemGroup>
 
     <ItemGroup>
