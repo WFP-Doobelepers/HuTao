@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Fergun.Interactive;
-using Humanizer;
+using Fergun.Interactive.Pagination;
 using HuTao.Data;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Interactive.Paginator;
+using HuTao.Services.Utilities;
 
 namespace HuTao.Services.Interactive;
 
@@ -43,21 +44,73 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
         IEnumerable<TEntity> collection,
         Func<TEntity, EmbedBuilder> entityViewer, bool ephemeral = false)
     {
-        var pages = collection
-            .Chunk(ChunkSize)
-            .Select(fields =>
-            {
-                var builders = fields.Select(entityViewer);
-                return new MultiEmbedPageBuilder().WithBuilders(builders);
-            });
+        var items = collection.ToList();
+        if (items.Count == 0)
+        {
+            await FollowupAsync("No results found.", ephemeral: ephemeral);
+            return;
+        }
 
-        var paginated = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages);
+        var chunkSize = ChunkSize;
+        var pageCount = Math.Max(1, (int)Math.Ceiling((double)items.Count / chunkSize));
+
+        var paginator = InteractiveExtensions.CreateDefaultComponentPaginator()
+            .WithUsers(Context.User)
+            .WithPageCount(pageCount)
+            .WithPageFactory(p => GeneratePage(p, items, entityViewer, chunkSize))
+            .Build();
+
         await Interactive.SendPaginatorAsync(
-            paginated.WithUsers(Context.User).Build(),
-            Context.Interaction, ephemeral: ephemeral,
+            paginator,
+            Context.Interaction,
+            ephemeral: ephemeral,
+            timeout: TimeSpan.FromMinutes(10),
+            resetTimeoutOnInput: true,
             responseType: Context.Interaction.HasResponded
                 ? InteractionResponseType.DeferredChannelMessageWithSource
                 : InteractionResponseType.ChannelMessageWithSource);
+    }
+
+    private static IPage GeneratePage<TEntity>(
+        IComponentPaginator p,
+        IReadOnlyList<TEntity> items,
+        Func<TEntity, EmbedBuilder> entityViewer,
+        int chunkSize)
+    {
+        const uint accentColor = 0x9B59FF;
+        const int maxItemChars = 650;
+
+        var pageItems = items
+            .Skip(p.CurrentPageIndex * chunkSize)
+            .Take(chunkSize)
+            .ToList();
+
+        var container = new ContainerBuilder()
+            .WithTextDisplay($"## Results ({items.Count})")
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        for (var i = 0; i < pageItems.Count; i++)
+        {
+            var embed = entityViewer(pageItems[i]).Build();
+            container.WithSection(embed.ToComponentsV2Section(maxItemChars));
+
+            if (i < pageItems.Count - 1)
+                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+        }
+
+        container
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+            .WithActionRow(new ActionRowBuilder()
+                .AddPreviousButton(p, "◀", ButtonStyle.Secondary)
+                .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
+                .AddNextButton(p, "▶", ButtonStyle.Secondary)
+                .AddStopButton(p, "Close", ButtonStyle.Danger))
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay($"-# Page {p.CurrentPageIndex + 1} of {p.PageCount}")
+            .WithAccentColor(accentColor);
+
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+        return new PageBuilder().WithComponents(components).Build();
     }
 
     protected virtual async Task RemoveEntityAsync(string id, bool ephemeral = false)
@@ -92,43 +145,14 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
 
     protected async Task<T?> TryFindEntityAsync(string id, IEnumerable<T>? collection = null)
     {
-        if (id.Length < 2)
-            return null;
-
-        collection ??= await GetCollectionAsync();
-        var filtered = collection
-            .Where(e => IsMatch(e, id))
-            .Take(10).ToList();
-
-        if (filtered.Count <= 1)
-            return filtered.Count == 1 ? filtered.First() : null;
-
-        var embeds = filtered.Zip(filtered.Select(EntityViewer).Select(e => e.Build())).ToList();
-        var options = embeds.Select(f =>
-        {
-            var embed = f.Second;
-            return new SelectMenuOptionBuilder()
-                .WithValue(Id(f.First))
-                .WithLabel(embed.Title.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength))
-                .WithDescription(embed.Description.Truncate(SelectMenuOptionBuilder.MaxDescriptionLength));
-        }).ToList();
-
-        var guid = Guid.NewGuid();
-        var component = new ComponentBuilder()
-            .WithSelectMenu($"select:{guid}", options, "Multiple matches found, select one...")
-            .WithButton("Cancel selection", $"cancel:{guid}", ButtonStyle.Danger, new Emoji("🛑"));
-
-        await FollowupAsync(embeds: embeds.Select(e => e.Second).ToArray(), components: component.Build());
-        var selected = await Interactive.NextMessageComponentAsync(c
-            => c.Data.CustomId == $"select:{guid}"
-            || c.Data.CustomId == $"cancel:{guid}");
-
-        _ = selected.Value?.DeferAsync();
-        _ = selected.Value?.ModifyOriginalResponseAsync(m => m.Components = new ComponentBuilder().Build());
-        return selected.IsSuccess && selected.Value.Data.CustomId == $"select:{guid}"
-            ? filtered.FirstOrDefault(e => IsMatch(e, selected.Value.Data.Values.First()))
-            : null;
-
-        bool IsMatch(T entity, string match) => Id(entity).StartsWith(match, StringComparison.OrdinalIgnoreCase);
+        var ctx = (HuTao.Data.Models.Discord.Context)Context;
+        return await Interactive.TryFindEntityV2Async(
+            ctx,
+            collection ?? await GetCollectionAsync(),
+            EntityViewer,
+            Id,
+            id,
+            ephemeral: true,
+            timeout: TimeSpan.FromMinutes(2));
     }
 }

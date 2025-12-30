@@ -69,6 +69,8 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
         await Moderation.ToggleTriggerAsync(entity, (IGuildUser) Context.User, state);
         Cache.InvalidateCaches(Context.Guild);
 
-        await ReplyAsync(embed: EntityViewer(entity).Build());
+        await ReplyAsync(
+            components: EntityViewer(entity).Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 }
