@@ -118,7 +118,8 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
                 .WithTitle("Appeal Message Set");
         }
 
-        await ReplyAsync(embed: embed.Build());
+        var components = embed.Build().ToComponentsV2Message();
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [Command("attachments")]
