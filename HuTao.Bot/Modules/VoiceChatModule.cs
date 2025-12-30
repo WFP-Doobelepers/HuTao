@@ -42,7 +42,9 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
                 .WithDescription("User has been banned from the channel.")
                 .WithColor(Color.DarkRed);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
     }
 
@@ -145,7 +147,9 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
                 .WithDescription("User has been kicked from the channel.")
                 .WithColor(Color.LightOrange);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
     }
 
@@ -276,7 +280,9 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             .WithDescription("User has been unbanned from the channel.")
             .WithColor(Color.Blue);
 
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("unlock")]
