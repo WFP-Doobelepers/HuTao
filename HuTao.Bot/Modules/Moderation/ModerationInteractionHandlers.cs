@@ -15,6 +15,7 @@ using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core;
 using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Moderation;
+using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -188,7 +189,10 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             if (mute.Category != null)
                 embed.AddField("Category", mute.Category.Name, true);
 
-            await FollowupAsync(embed: embed.Build(), ephemeral: true);
+            await FollowupAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None,
+                ephemeral: true);
         }
         catch (Exception ex)
         {
