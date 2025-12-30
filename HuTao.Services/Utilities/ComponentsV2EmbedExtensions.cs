@@ -53,9 +53,7 @@ public static class ComponentsV2EmbedExtensions
         int maxChars = 3800,
         string? footer = null)
     {
-        var container = new ContainerBuilder()
-            .WithSection(embed.ToComponentsV2Section(maxChars))
-            .WithAccentColor(accentColor ?? embed.Color?.RawValue ?? DefaultAccentColor);
+        var container = embed.ToComponentsV2Container(accentColor, maxChars);
 
         if (!string.IsNullOrWhiteSpace(footer))
         {
@@ -67,6 +65,26 @@ public static class ComponentsV2EmbedExtensions
         return new ComponentBuilderV2()
             .WithContainer(container)
             .Build();
+    }
+
+    public static ContainerBuilder ToComponentsV2Container(
+        this Embed embed,
+        uint? accentColor = null,
+        int maxChars = 3800)
+    {
+        var container = new ContainerBuilder()
+            .WithSection(embed.ToComponentsV2Section(maxChars))
+            .WithAccentColor(accentColor ?? embed.Color?.RawValue ?? DefaultAccentColor);
+
+        var imageUrl = embed.Image?.Url;
+        if (!string.IsNullOrWhiteSpace(imageUrl))
+        {
+            container
+                .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+                .WithMediaGallery([new MediaGalleryItemProperties(new UnfurledMediaItemProperties(imageUrl))]);
+        }
+
+        return container;
     }
 }
 
