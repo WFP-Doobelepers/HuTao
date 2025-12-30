@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Net;
-using Discord.Rest;
 using Discord.WebSocket;
 using Fergun.Interactive;
 using HuTao.Data.Config;
@@ -58,24 +57,10 @@ public class MessageLinkBehavior(
         var paginator = await quoteService.GetPaginatorAsync(context, source, urls);
         if (paginator is null) return;
 
-        var page = await paginator.GetOrLoadCurrentPageAsync() as QuotedPage;
         if (MessageExtensions.IsJumpUrls(source.Content)) _ = source.DeleteAsync();
 
         await interactive.SendPaginatorAsync(paginator, source.Channel,
             cancellationToken: cancellationToken,
-            messageAction: m => MessageAction(m, page?.Quote));
-    }
-
-    private static void MessageAction(IUserMessage message, QuotedMessage? quoted)
-    {
-        if (message.Components.Any() || quoted is null) return;
-        var components = new ComponentBuilder().WithQuotedMessage(quoted).Build();
-
-        _ = message switch
-        {
-            RestInteractionMessage m => m.ModifyAsync(r => r.Components       = components),
-            RestFollowupMessage m    => m.ModifyAsync(r => r.Components       = components),
-            _                        => message.ModifyAsync(r => r.Components = components)
-        };
+            resetTimeoutOnInput: true);
     }
 }
