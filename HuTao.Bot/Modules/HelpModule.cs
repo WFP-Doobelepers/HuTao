@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using HuTao.Data.Config;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Utilities;
@@ -49,7 +50,13 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
             .AddField("Arguments", argumentBuilder.ToString())
             .WithGuildAsAuthor(Context.Guild, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(embed: embed.Build());
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay(embed.Build().ToComponentsV2Text(maxChars: 3800))
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        await ReplyAsync(components: components);
     }
 
     [Command]
@@ -84,7 +91,7 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
             {
                 try
                 {
-                    var paginator = commandHelpService.GetEmbedForModule(module);
+                    var paginator = commandHelpService.GetPaginatorForModule(module);
                     await interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm,
                         resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
                 }
@@ -116,7 +123,7 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
     {
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-        if (commandHelpService.TryGetEmbed(query, type, out var paginated))
+        if (commandHelpService.TryGetPaginator(query, type, out var paginated))
         {
             await interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
                 resetTimeoutOnInput: true);
