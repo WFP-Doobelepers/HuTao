@@ -46,7 +46,10 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
         else
             embed.AddContent("They do the same damage");
 
-        await RespondAsync(embed: embed.Build(), ephemeral: false);
+        await RespondAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None,
+            ephemeral: false);
     }
 
     [SlashCommand("favonius", "Calculate Favonius proc chance")]
@@ -66,6 +69,9 @@ public class TheorycraftingModule : InteractionModuleBase<SocketInteractionConte
             .AddField("Refinement", $"{refinementLevel}", true)
             .AddField("Chance of procing", $"{chance:P}");
 
-        await RespondAsync(embed: embed.Build(), ephemeral: false);
+        await RespondAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None,
+            ephemeral: false);
     }
 }

@@ -569,11 +569,18 @@ public class GenshinModule
             Livestream = Distance(parsedLivestream.ToUnixTimeSeconds(), LivestreamDuration);
 
             // Show completion message with option to configure advanced settings
-            var components = new ComponentBuilder()
-                .WithButton("Configure Advanced Settings", "advanced_settings", ButtonStyle.Secondary);
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay(
+                        "## ✅ Basic settings updated\n" +
+                        "You can now configure advanced settings (maintenance & images) if needed.")
+                    .WithAccentColor(VersionColor))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton(new ButtonBuilder("Configure Advanced Settings", "advanced_settings",
+                        ButtonStyle.Secondary)))
+                .Build();
 
-            await RespondAsync("Basic settings updated successfully! You can now configure advanced settings (maintenance & images) if needed.",
-                components: components.Build(), ephemeral: true);
+            await RespondAsync(components: components, ephemeral: true);
         }
 
         [ComponentInteraction("remove_allowed_role", true)]
@@ -711,7 +718,9 @@ public class GenshinModule
                 .AddField("Users", string.Join(", ", users), true)
                 .AddField("Roles", string.Join(", ", roles), true);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("livestream")]
