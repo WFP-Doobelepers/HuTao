@@ -718,7 +718,9 @@ public class GenshinModule
                 .AddField("Users", string.Join(", ", users), true)
                 .AddField("Roles", string.Join(", ", roles), true);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("livestream")]
