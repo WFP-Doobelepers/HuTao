@@ -7,6 +7,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Evaluation;
+using HuTao.Services.Utilities;
 using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Bot.Modules;
@@ -23,7 +24,8 @@ public class InteractiveGeneralModule(AuthorizationService auth, EvaluationServi
         var result = await evaluation.EvaluateAsync(context, code);
 
         var embed = EvaluationService.BuildEmbed(context, result);
-        await FollowupAsync(embed: embed.Build(), ephemeral: true);
+        var components = embed.Build().ToComponentsV2Message();
+        await FollowupAsync(components: components, allowedMentions: AllowedMentions.None, ephemeral: true);
     }
 
     [ComponentInteraction("delete:*:*")]
