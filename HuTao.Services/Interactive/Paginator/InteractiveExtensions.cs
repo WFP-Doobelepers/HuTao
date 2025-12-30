@@ -165,42 +165,13 @@ public static class InteractiveExtensions
         this InteractiveService service, Context context, IEnumerable<T> collection,
         Func<T, EmbedBuilder> builder, Func<T, string> id, string find) where T : class
     {
-        if (find.Length < 2)
-            return null;
-
-        var filtered = collection
-            .Where(e => IsMatch(e, find))
-            .Take(10).ToList();
-
-        if (filtered.Count <= 1)
-            return filtered.Count == 1 ? filtered.First() : null;
-
-        var embeds = filtered.Zip(filtered.Select(builder).Select(e => e.Build())).ToList();
-        var options = embeds.Select(f =>
-        {
-            var embed = f.Second;
-            return new SelectMenuOptionBuilder()
-                .WithValue(id(f.First))
-                .WithLabel(embed.Title.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength))
-                .WithDescription(embed.Description.Truncate(SelectMenuOptionBuilder.MaxDescriptionLength));
-        }).ToList();
-
-        var guid = Guid.NewGuid();
-        var component = new ComponentBuilder()
-            .WithSelectMenu($"select:{guid}", options, "Multiple matches found, select one...")
-            .WithButton("Cancel selection", $"cancel:{guid}", ButtonStyle.Danger, new Emoji("🛑"));
-
-        await context.ReplyAsync(embeds: embeds.Select(e => e.Second).ToArray(), components: component.Build());
-        var selected = await service.NextMessageComponentAsync(c
-            => c.Data.CustomId == $"select:{guid}"
-            || c.Data.CustomId == $"cancel:{guid}");
-
-        _ = selected.Value?.DeferAsync();
-        _ = selected.Value?.ModifyOriginalResponseAsync(m => m.Components = new ComponentBuilder().Build());
-        return selected.IsSuccess && selected.Value.Data.CustomId == $"select:{guid}"
-            ? filtered.FirstOrDefault(e => IsMatch(e, selected.Value.Data.Values.First()))
-            : null;
-
-        bool IsMatch(T entity, string match) => id(entity).StartsWith(match, StringComparison.OrdinalIgnoreCase);
+        return await service.TryFindEntityV2Async(
+            context,
+            collection,
+            builder,
+            id,
+            find,
+            ephemeral: false,
+            timeout: TimeSpan.FromMinutes(2));
     }
 }
