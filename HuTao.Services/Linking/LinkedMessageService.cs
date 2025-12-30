@@ -150,23 +150,57 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
             await db.UpdateAsync(template, context.Guild);
 
         var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
+        var allowedMentions = template?.AllowMentions ?? false ? AllowedMentions.All : AllowedMentions.None;
         var roles = await ApplyRoleTemplatesAsync(context.User, templates).ToListAsync();
         var embeds = new List<EmbedBuilder>()
             .Concat(template?.GetEmbedBuilders() ?? [])
             .Concat(roles);
 
+        var builtEmbeds = embeds.Select(e => e.Build()).ToList();
+
+        const uint defaultAccentColor = 0x9B59FF;
+        var builder = new ComponentBuilderV2();
+
+        if (!string.IsNullOrWhiteSpace(template?.Content))
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay(template.Content)
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        foreach (var embed in builtEmbeds)
+            builder.WithContainer(embed.ToComponentsV2Container());
+
+        if (template is not null)
+        {
+            foreach (var row in template.Components.ToActionRowBuilders())
+                builder.WithActionRow(row);
+        }
+
+        if (string.IsNullOrWhiteSpace(template?.Content) && builtEmbeds.Count == 0)
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("-# (empty template)")
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        var components = builder.Build();
+
         if (dmUser)
         {
             var dm = await context.User.CreateDMChannelAsync();
-            await dm.SendMessageAsync(template?.Content, flags: flags,
-                embeds: embeds.Select(e => e.Build()).ToArray(),
-                components: template?.Components.ToBuilder().Build());
+            await dm.SendMessageAsync(
+                components: components,
+                allowedMentions: allowedMentions,
+                flags: flags);
         }
         else
         {
-            await context.ReplyAsync(template?.Content, flags: flags,
-                components: template?.Components.ToBuilder().Build(),
-                embeds: embeds.Select(e => e.Build()).ToArray(), ephemeral: isEphemeral);
+            await context.ReplyAsync(
+                flags: flags,
+                components: components,
+                allowedMentions: allowedMentions,
+                ephemeral: isEphemeral);
         }
     }
 }
