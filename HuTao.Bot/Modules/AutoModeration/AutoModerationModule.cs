@@ -171,7 +171,13 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
         await db.SaveChangesAsync();
         cache.InvalidateCaches(Context.Guild);
 
-        await ReplyAsync(embed: EntityViewer(configuration).WithColor(Color.Green)
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested).Build());
+        var embed = EntityViewer(configuration)
+            .WithColor(Color.Green)
+            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 }
