@@ -19,7 +19,9 @@ public class GeneralModule(EvaluationService evaluation) : ModuleBase<SocketComm
         var result = await evaluation.EvaluateAsync(context, code);
 
         var embed = EvaluationService.BuildEmbed(context, result);
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("ping")]
@@ -27,17 +29,29 @@ public class GeneralModule(EvaluationService evaluation) : ModuleBase<SocketComm
     public async Task PingAsync()
     {
         var gateway = Context.Client.Latency.Milliseconds().Humanize(5);
-        var embed = new EmbedBuilder()
-            .WithTitle("Pong!")
-            .WithUserAsAuthor(Context.User, AuthorOptions.Requested)
-            .AddField("Gateway Latency", $"{gateway}")
-            .WithCurrentTimestamp();
 
-        var message = await ReplyAsync(embed: embed.Build());
+        var initial = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay(
+                    "## Pong!\n" +
+                    $"**Gateway Latency:** {gateway}\n" +
+                    "-# Calculating Discord latency…")
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        var message = await ReplyAsync(components: initial, allowedMentions: AllowedMentions.None);
 
         var discord = (message.CreatedAt - Context.Message.CreatedAt).Humanize(5);
-        embed.AddField("Discord Latency", $"{discord}");
 
-        await message.ModifyAsync(m => m.Embed = embed.Build());
+        var updated = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay(
+                    "## Pong!\n" +
+                    $"**Gateway Latency:** {gateway}\n" +
+                    $"**Discord Latency:** {discord}")
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        await message.ModifyAsync(m => m.Components = updated);
     }
 }
