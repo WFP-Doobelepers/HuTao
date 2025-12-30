@@ -83,8 +83,7 @@ public class ModifyReprimandsModule(
         {
             var ctx = (HuTao.Data.Models.Discord.Context)Context;
             await ctx.ReplyAsync(
-                components: reprimand.ToComponentsV2(),
-                flags: MessageFlags.ComponentsV2);
+                components: reprimand.ToComponentsV2());
         }
     }
 

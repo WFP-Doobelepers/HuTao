@@ -580,7 +580,7 @@ public class GenshinModule
                         ButtonStyle.Secondary)))
                 .Build();
 
-            await RespondAsync(components: components, flags: MessageFlags.ComponentsV2, ephemeral: true);
+            await RespondAsync(components: components, ephemeral: true);
         }
 
         [ComponentInteraction("remove_allowed_role", true)]
