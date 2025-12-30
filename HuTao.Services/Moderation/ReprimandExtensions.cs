@@ -109,20 +109,6 @@ public static class ReprimandExtensions
         };
     }
 
-    public static ComponentBuilder ToComponentBuilder(this Reprimand reprimand, bool ephemeral = false)
-    {
-        var components = new ComponentBuilder();
-
-        if (reprimand.Status is ReprimandStatus.Deleted) return components;
-
-        components.WithButton("Update", $"reprimand-update:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary);
-
-        if (reprimand is ExpirableReprimand && reprimand.IsCounted())
-            components.WithButton("Pardon", $"reprimand-pardon:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary);
-
-        return components.WithButton("Delete", $"reprimand-delete:{reprimand.Id}:{ephemeral}", ButtonStyle.Danger);
-    }
-
     public static MessageComponent ToComponentsV2(this Reprimand reprimand, bool ephemeral = false)
     {
         const uint defaultAccentColor = 0x9B59FF;
