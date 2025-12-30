@@ -43,7 +43,10 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
 
         collection.Add(category);
         await db.SaveChangesAsync();
-        await ReplyAsync(embed: EntityViewer(category).WithColor(Color.Green).Build());
+        var embed = EntityViewer(category).WithColor(Color.Green).Build();
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("default")]

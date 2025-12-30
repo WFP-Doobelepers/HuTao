@@ -326,7 +326,10 @@ public class ModerationService(
             .WithColor(Color.Green)
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+        await context.ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            ephemeral: true,
+            allowedMentions: AllowedMentions.None);
     }
 
     public static async Task SlowmodeChannelAsync(Context context, TimeSpan? length, ITextChannel? channel)
@@ -337,7 +340,16 @@ public class ModerationService(
         await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
 
         if (seconds is 0)
-            await context.ReplyAsync($"Slowmode disabled for {channel.Mention}", ephemeral: true);
+        {
+            var container = new ContainerBuilder()
+                .WithTextDisplay($"## Slowmode disabled\n**Channel:** {channel.Mention}")
+                .WithAccentColor(Color.Green.RawValue);
+
+            await context.ReplyAsync(
+                components: new ComponentBuilderV2().WithContainer(container).Build(),
+                ephemeral: true,
+                allowedMentions: AllowedMentions.None);
+        }
         else
         {
             var embed = new EmbedBuilder()
@@ -347,7 +359,10 @@ public class ModerationService(
                 .WithColor(Color.Green)
                 .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-            await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+            await context.ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                ephemeral: true,
+                allowedMentions: AllowedMentions.None);
         }
     }
 

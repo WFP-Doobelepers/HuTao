@@ -8,7 +8,6 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Humanizer;
-using Humanizer.Localisation;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
@@ -122,6 +121,40 @@ public static class ReprimandExtensions
             components.WithButton("Pardon", $"reprimand-pardon:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary);
 
         return components.WithButton("Delete", $"reprimand-delete:{reprimand.Id}:{ephemeral}", ButtonStyle.Danger);
+    }
+
+    public static MessageComponent ToComponentsV2(this Reprimand reprimand, bool ephemeral = false)
+    {
+        const uint defaultAccentColor = 0x9B59FF;
+        const int maxChars = 3800;
+
+        var embed = reprimand.ToEmbedBuilder(true, EmbedBuilder.MaxDescriptionLength).Build();
+
+        var container = new ContainerBuilder()
+            .WithSection(embed.ToComponentsV2Section(maxChars))
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        if (reprimand.Status is not ReprimandStatus.Deleted)
+        {
+            var actions = new ActionRowBuilder()
+                .WithButton(new ButtonBuilder("Update", $"reprimand-update:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary));
+
+            if (reprimand is ExpirableReprimand && reprimand.IsCounted())
+            {
+                actions.WithButton(new ButtonBuilder("Pardon", $"reprimand-pardon:{reprimand.Id}:{ephemeral}", ButtonStyle.Secondary));
+            }
+
+            actions.WithButton(new ButtonBuilder("Delete", $"reprimand-delete:{reprimand.Id}:{ephemeral}", ButtonStyle.Danger));
+
+            return new ComponentBuilderV2()
+                .WithContainer(container.WithAccentColor(embed.Color?.RawValue ?? defaultAccentColor))
+                .WithActionRow(actions)
+                .Build();
+        }
+
+        return new ComponentBuilderV2()
+            .WithContainer(container.WithAccentColor(embed.Color?.RawValue ?? defaultAccentColor))
+            .Build();
     }
 
     public static EmbedBuilder ToEmbedBuilder(this ModerationCategory category) => new EmbedBuilder()

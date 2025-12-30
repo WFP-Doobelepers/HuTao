@@ -105,9 +105,9 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
             await RespondAsync(NotAuthorizedMessage, ephemeral: true);
         else
         {
-            await RespondAsync(ephemeral: ephemeral,
-                embed: reprimand.ToEmbedBuilder(true, EmbedBuilder.MaxDescriptionLength).Build(),
-                components: reprimand.ToComponentBuilder(ephemeral).Build());
+            await RespondAsync(
+                ephemeral: ephemeral,
+                components: reprimand.ToComponentsV2(ephemeral));
         }
     }
 
