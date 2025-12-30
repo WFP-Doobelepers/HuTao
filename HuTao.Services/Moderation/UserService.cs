@@ -34,21 +34,37 @@ public class UserService(
     public async Task ReplyAvatarAsync(Context context, IUser user, bool ephemeral = false)
     {
         await context.DeferAsync(ephemeral);
-        var components = await ComponentsAsync(context, user);
-        var avatar = user.GetDefiniteAvatarUrl(4096);
-        var embed = new EmbedBuilder()
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId)
-            .WithImageUrl(avatar)
-            .WithColor(await image.GetAvatarColor(user))
-            .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
+        var avatar = user.GetDefiniteAvatarUrl(4096);
+        var accentColor = (await image.GetAvatarColor(user)).RawValue;
+
+        var media = new List<MediaGalleryItemProperties>();
         if (user is IGuildUser guild)
         {
             var guildAvatar = guild.GetGuildAvatarUrl(size: 4096);
-            if (guildAvatar is not null) embed.WithThumbnailUrl(avatar).WithImageUrl(guildAvatar);
+            if (!string.IsNullOrWhiteSpace(guildAvatar))
+                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(guildAvatar), "Guild avatar"));
         }
 
-        await context.ReplyAsync(embed: embed.Build(), components: components, ephemeral: ephemeral);
+        media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(avatar), "User avatar"));
+
+        var container = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder($"## Avatar\n**User:** {user} ({user.Mention})")],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(user.GetDisplayAvatarUrl(size: 256) ?? avatar)))
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+            .WithMediaGallery(media)
+            .WithAccentColor(accentColor);
+
+        var builder = new ComponentBuilderV2()
+            .WithContainer(container);
+
+        await AddUserMenusAsync(builder, context, user);
+
+        await context.ReplyAsync(
+            components: builder.Build(),
+            ephemeral: ephemeral,
+            allowedMentions: AllowedMentions.None);
     }
 
     /// <summary>
@@ -690,11 +706,36 @@ public class UserService(
     {
         await context.DeferAsync(ephemeral);
 
-        var components = await ComponentsAsync(context, user);
         var builders = await GetUserAsync(context, user);
-        var embeds = builders.Select(e => e.Build()).ToArray();
+        var embeds = builders.Select(e => e.Build()).ToList();
 
-        await context.ReplyAsync(components: components, embeds: embeds, ephemeral: ephemeral);
+        const uint defaultAccentColor = 0x9B59FF;
+        var accentColor = embeds.FirstOrDefault()?.Color?.RawValue ?? defaultAccentColor;
+
+        var container = new ContainerBuilder()
+            .WithAccentColor(accentColor);
+
+        for (var i = 0; i < embeds.Count; i++)
+        {
+            container.WithSection(embeds[i].ToComponentsV2Section(maxChars: 3500));
+
+            if (i < embeds.Count - 1)
+                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+        }
+
+        container
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay($"-# Requested by {context.User.Mention}");
+
+        var builder = new ComponentBuilderV2()
+            .WithContainer(container);
+
+        await AddUserMenusAsync(builder, context, user);
+
+        await context.ReplyAsync(
+            components: builder.Build(),
+            ephemeral: ephemeral,
+            allowedMentions: AllowedMentions.None);
     }
 
     private static SelectMenuBuilder HistoryMenu(GuildUserEntity userEntity, ModerationCategory? category = null, LogReprimandType type = LogReprimandType.None)
@@ -795,17 +836,19 @@ public class UserService(
         return embeds;
     }
 
-    private async Task<MessageComponent?> ComponentsAsync(Context context, IUser user)
+    private async Task AddUserMenusAsync(ComponentBuilderV2 builder, Context context, IUser user)
     {
         var auth = await authService.IsAuthorizedAsync(context, Scope);
         var category = await authService.IsCategoryAuthorizedAsync(context, Scope);
+        if (!auth && !category)
+            return;
+
         var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
 
-        return auth || category
-            ? new ComponentBuilder()
-                .WithSelectMenu(HistoryMenu(userEntity))
-                .WithSelectMenu(ReprimandMenu(user))
-                .Build()
-            : null;
+        builder.WithActionRow(new ActionRowBuilder()
+            .WithSelectMenu(HistoryMenu(userEntity)));
+
+        builder.WithActionRow(new ActionRowBuilder()
+            .WithSelectMenu(ReprimandMenu(user)));
     }
 }
