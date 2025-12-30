@@ -20,6 +20,11 @@ public static class ComponentBuilderExtensions
         return new ComponentBuilder().WithRows(builders);
     }
 
+    public static IEnumerable<ActionRowBuilder> ToActionRowBuilders(this IEnumerable<ActionRow> rows)
+        => rows
+            .Select(r => r.Components.Select(c => c.ToBuilder()))
+            .Select(c => new ActionRowBuilder().WithComponents(c.ToList()));
+
     public static ICollection<ActionRow> AddComponent(
         this ICollection<ActionRow> rows, Component component,
         int row = 0)
