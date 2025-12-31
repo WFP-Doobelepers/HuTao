@@ -11,15 +11,6 @@ public static class ComponentBuilderExtensions
     private const int MaxActionRowCount = 5;
     private const int MaxComponentsCount = 5;
 
-    public static ComponentBuilder ToBuilder(this IEnumerable<ActionRow> rows)
-    {
-        var builders = rows
-            .Select(r => r.Components.Select(c => c.ToBuilder()))
-            .Select(c => new ActionRowBuilder().WithComponents(c.ToList()));
-
-        return new ComponentBuilder().WithRows(builders);
-    }
-
     public static IEnumerable<ActionRowBuilder> ToActionRowBuilders(this IEnumerable<ActionRow> rows)
         => rows
             .Select(r => r.Components.Select(c => c.ToBuilder()))
@@ -90,8 +81,6 @@ public static class ComponentBuilderExtensions
     private static IEmote? ToEmote(this string? e) =>
         Emote.TryParse(e, out var emote) ? emote :
         Emoji.TryParse(e, out var emoji) ? emoji : null;
-
-    private static IMessageComponent ToComponent(this Component component) => component.ToBuilder().Build();
 
     private static IMessageComponentBuilder ToBuilder(this Component component) => component switch
     {

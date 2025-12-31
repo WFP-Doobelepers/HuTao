@@ -81,7 +81,6 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
 
         var guild = await db.Guilds.TrackGuildAsync(channel.Guild);
 
-        var hasContainers = message.Components.OfType<ContainerComponent>().Any();
         var actionRows = message.Components.OfType<ActionRowComponent>();
         var rows = actionRows.Select(r => new ActionRow(r)).ToList();
 
@@ -90,9 +89,7 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
 
         rows.AddComponent(linked.Button, options.Row);
 
-        var updated = hasContainers
-            ? BuildComponentsV2(message.Components, rows)
-            : rows.ToBuilder().Build();
+        var updated = BuildComponentsV2(message.Components, rows);
 
         await message.ModifyAsync(m => m.Components = updated);
 
