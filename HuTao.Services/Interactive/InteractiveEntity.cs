@@ -41,18 +41,6 @@ public abstract class InteractiveEntity<T> : InteractivePromptBase where T : cla
 
     protected Task AddEntitiesAsync(params T[] entities) => AddEntitiesAsync((ICollection<T>) entities);
 
-    // protected async Task AddEntitiesAsync(T entity)
-    // {
-    //     var collection = await GetCollectionAsync();
-    //     collection.Add(entity);
-    //
-    //     await Db.SaveChangesAsync();
-    //     await Context.Message.AddReactionAsync(new Emoji("✅"));
-    //     await ReplyAsync(embed: EntityViewer(entity)
-    //         .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
-    //         .WithColor(Color.Green).WithCurrentTimestamp().Build());
-    // }
-
     protected async Task PagedViewAsync(IEnumerable<T> collection) => await PagedViewAsync(collection, EntityViewer);
 
     protected async Task PagedViewAsync<TEntity>(
