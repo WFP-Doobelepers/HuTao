@@ -81,14 +81,20 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
 
         var guild = await db.Guilds.TrackGuildAsync(channel.Guild);
 
-        var components = message.Components.Cast<ActionRowComponent>();
-        var rows = components.Select(r => new ActionRow(r)).ToList();
+        var hasContainers = message.Components.OfType<ContainerComponent>().Any();
+        var actionRows = message.Components.OfType<ActionRowComponent>();
+        var rows = actionRows.Select(r => new ActionRow(r)).ToList();
 
         var builder = GetButtonBuilder(options);
         var linked = GetButton(guild, new LinkedButton(builder, options));
 
-        var component = rows.AddComponent(linked.Button, options.Row);
-        await message.ModifyAsync(m => m.Components = component.ToBuilder().Build());
+        rows.AddComponent(linked.Button, options.Row);
+
+        var updated = hasContainers
+            ? BuildComponentsV2(message.Components, rows)
+            : rows.ToBuilder().Build();
+
+        await message.ModifyAsync(m => m.Components = updated);
 
         await db.SaveChangesAsync();
         return linked;
@@ -102,7 +108,7 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
         var builder = GetButtonBuilder(options);
         var linked = GetButton(guild, new LinkedButton(builder, options));
 
-        template.Components.AddComponent(linked.Button, options.Row).ToBuilder().Build();
+        template.Components.AddComponent(linked.Button, options.Row);
 
         await db.SaveChangesAsync();
         return linked;
@@ -139,6 +145,24 @@ public class LinkingService(IMemoryCache cache, HuTaoContext db)
             button.Button.CustomId = $"linked:{button.Id}";
 
         return button;
+    }
+
+    private static MessageComponent BuildComponentsV2(
+        IReadOnlyCollection<IMessageComponent> existing,
+        IReadOnlyCollection<ActionRow> rows)
+    {
+        var builder = new ComponentBuilderV2();
+
+        foreach (var component in existing)
+        {
+            if (component is ContainerComponent container)
+                builder.WithContainer(new ContainerBuilder(container));
+        }
+
+        foreach (var actionRow in rows.ToActionRowBuilders())
+            builder.WithActionRow(actionRow);
+
+        return builder.Build();
     }
 
     private async Task SendMessageAsync(
