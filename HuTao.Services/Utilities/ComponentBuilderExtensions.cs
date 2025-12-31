@@ -105,7 +105,7 @@ public static class ComponentBuilderExtensions
         CustomId    = menu.CustomId,
         IsDisabled  = menu.IsDisabled,
         MaxValues   = menu.MaxValues,
-        MinValues   = menu.MaxValues,
+        MinValues   = menu.MinValues,
         Options     = menu.Options.Select(ToBuilder).ToList(),
         Placeholder = menu.Placeholder
     };
