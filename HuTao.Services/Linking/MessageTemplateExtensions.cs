@@ -48,7 +48,7 @@ public static class MessageTemplateExtensions
         if (!string.IsNullOrWhiteSpace(template.Content))
         {
             builder.WithContainer(new ContainerBuilder()
-                .WithTextDisplay(template.Content)
+                .WithTextDisplay(template.Content.Truncate(4000))
                 .WithAccentColor(defaultAccentColor));
         }
 

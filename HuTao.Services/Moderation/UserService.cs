@@ -305,7 +305,7 @@ public class UserService(
                 if (isFirstReprimand)
                 {
                     var section = new SectionBuilder()
-                        .WithTextDisplay(headerText)
+                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
                         .WithAccessory(new ButtonBuilder("☰", $"history-group:{state.User.Id}", 
                             ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                     container.WithSection(section);
@@ -313,14 +313,14 @@ public class UserService(
                 else if (isLastReprimand)
                 {
                     var section = new SectionBuilder()
-                        .WithTextDisplay(headerText)
+                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
                         .WithAccessory(new ButtonBuilder("▼", $"history-expand:{state.User.Id}", 
                             ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                     container.WithSection(section);
                 }
                 else
                 {
-                    container.WithTextDisplay(headerText);
+                    container.WithTextDisplay(headerText.Truncate(MaxTextDisplayLength));
                 }
                 
                 // Add media gallery if there are images
@@ -361,7 +361,7 @@ public class UserService(
                 if (isFirstReprimand)
                 {
                     var section = new SectionBuilder()
-                        .WithTextDisplay(headerText)
+                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
                         .WithAccessory(new ButtonBuilder("☰", $"history-group:{state.User.Id}", 
                             ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                     mainContainer.WithSection(section);
@@ -369,14 +369,14 @@ public class UserService(
                 else if (isLastReprimand)
                 {
                     var section = new SectionBuilder()
-                        .WithTextDisplay(headerText)
+                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
                         .WithAccessory(new ButtonBuilder("▲", $"history-expand:{state.User.Id}", 
                             ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                     mainContainer.WithSection(section);
                 }
                 else
                 {
-                    mainContainer.WithTextDisplay(headerText);
+                    mainContainer.WithTextDisplay(headerText.Truncate(MaxTextDisplayLength));
                 }
                 
                 // Add media gallery if there are images
@@ -460,7 +460,7 @@ public class UserService(
                 if (isFirstGroup)
                 {
                     var section = new SectionBuilder()
-                        .WithTextDisplay(condensedText.ToString().TrimEnd())
+                        .WithTextDisplay(condensedText.ToString().TrimEnd().Truncate(MaxTextDisplayLength))
                         .WithAccessory(new ButtonBuilder("📅", $"history-group:{state.User.Id}", 
                             ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                     container.WithSection(section);
@@ -468,7 +468,7 @@ public class UserService(
                 }
                 else
                 {
-                    container.WithTextDisplay(condensedText.ToString().TrimEnd());
+                    container.WithTextDisplay(condensedText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
                 }
                 
                 components.WithContainer(container);
@@ -539,7 +539,7 @@ public class UserService(
                     if (isFirstGroup)
                     {
                         var section = new SectionBuilder()
-                            .WithTextDisplay(groupText.ToString().TrimEnd())
+                            .WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength))
                             .WithAccessory(new ButtonBuilder("📅", $"history-group:{state.User.Id}", 
                                 ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
                         mainContainer.WithSection(section);
@@ -548,7 +548,7 @@ public class UserService(
                     else
                     {
                         mainContainer.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-                        mainContainer.WithTextDisplay(groupText.ToString().TrimEnd());
+                        mainContainer.WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
                     }
                     
                     totalMessageTextLength += groupText.Length;

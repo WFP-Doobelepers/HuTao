@@ -4,6 +4,7 @@ using Discord;
 using Fergun.Interactive.Pagination;
 using HuTao.Services.Channels;
 using HuTao.Services.Interactive.Paginator;
+using HuTao.Tests.Testing;
 using Moq;
 using Xunit;
 
@@ -30,6 +31,8 @@ public class ChannelBrowserTests
         var page = ChannelBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
     }
 
     [Fact]
@@ -52,6 +55,8 @@ public class ChannelBrowserTests
         var page = ChannelBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
     }
 
     private static IReadOnlyCollection<ChannelEntry> CreateEntries()

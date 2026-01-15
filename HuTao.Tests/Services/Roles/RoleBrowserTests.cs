@@ -6,6 +6,7 @@ using Fergun.Interactive.Extensions;
 using Fergun.Interactive.Pagination;
 using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Roles;
+using HuTao.Tests.Testing;
 using Moq;
 using Xunit;
 
@@ -33,6 +34,8 @@ public class RoleBrowserTests
         var page = RoleBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
         Assert.Equal(RoleBrowserView.List, state.View);
     }
 
@@ -48,6 +51,8 @@ public class RoleBrowserTests
         var page = RoleBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
         Assert.Equal(RoleBrowserView.Detail, state.View);
     }
 

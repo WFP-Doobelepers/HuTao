@@ -3,6 +3,7 @@ using Discord;
 using Fergun.Interactive.Pagination;
 using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.VoiceChat;
+using HuTao.Tests.Testing;
 using Moq;
 using Xunit;
 
@@ -29,6 +30,8 @@ public class VoiceChatPanelTests
         var page = VoiceChatPanelRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
     }
 }
 

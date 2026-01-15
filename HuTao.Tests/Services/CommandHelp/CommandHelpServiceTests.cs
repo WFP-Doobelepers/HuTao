@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Discord;
 using HuTao.Services.CommandHelp;
+using HuTao.Tests.Testing;
 using Xunit;
 
 namespace HuTao.Tests.Services.CommandHelp;
@@ -49,6 +50,7 @@ public class CommandHelpServiceTests
         var built = new ComponentBuilderV2().WithContainer(container).Build();
 
         Assert.NotNull(built);
+        built.ShouldBeValidComponentsV2();
     }
 
     [Fact]
@@ -83,6 +85,7 @@ public class CommandHelpServiceTests
         var container = (ContainerBuilder)method!.Invoke(null, new object[] { module, commands, "w!" })!;
         var built = new ComponentBuilderV2().WithContainer(container).Build();
 
+        built.ShouldBeValidComponentsV2();
         var text = ExtractAllText(built);
 
         Assert.DoesNotContain("\n-#", text);

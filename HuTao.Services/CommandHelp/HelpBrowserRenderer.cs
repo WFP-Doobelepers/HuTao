@@ -33,7 +33,7 @@ public static class HelpBrowserRenderer
 
         if (!string.IsNullOrWhiteSpace(state.Notice))
         {
-            container.WithTextDisplay($"-# {state.Notice}");
+            container.WithTextDisplay($"-# {state.Notice.Truncate(600)}");
             container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
         }
 

@@ -4,6 +4,7 @@ using Discord;
 using Fergun.Interactive.Pagination;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Interactive.Paginator;
+using HuTao.Tests.Testing;
 using Moq;
 using Xunit;
 
@@ -23,6 +24,24 @@ public class HelpBrowserTests
         var page = HelpBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
+    }
+
+    [Fact]
+    public void HelpBrowserRenderer_GeneratePage_WithLongNotice_TruncatesNoticeToComponentsV2Limit()
+    {
+        var (_, paginator) = Create(s =>
+        {
+            s.View = HelpBrowserView.Modules;
+            s.Notice = new string('a', 5000);
+        });
+
+        var page = HelpBrowserRenderer.GeneratePage(paginator);
+
+        Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
     }
 
     [Fact]
@@ -37,6 +56,8 @@ public class HelpBrowserTests
         var page = HelpBrowserRenderer.GeneratePage(paginator);
 
         Assert.NotNull(page);
+        Assert.NotNull(page.Components);
+        page.Components.ShouldBeValidComponentsV2();
     }
 
     [Fact]

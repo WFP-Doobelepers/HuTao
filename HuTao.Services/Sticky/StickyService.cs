@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.Linking;
@@ -77,7 +78,7 @@ public class StickyService(IMemoryCache cache, HuTaoContext db)
         if (!string.IsNullOrWhiteSpace(template.Content))
         {
             builder.WithContainer(new ContainerBuilder()
-                .WithTextDisplay(template.Content)
+                .WithTextDisplay(template.Content.Truncate(4000))
                 .WithAccentColor(defaultAccentColor));
         }
 

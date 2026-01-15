@@ -195,7 +195,7 @@ public class LinkedCommandService(
                     if (!string.IsNullOrWhiteSpace(template?.Content))
                     {
                         builder.WithContainer(new ContainerBuilder()
-                            .WithTextDisplay(template.Content)
+                            .WithTextDisplay(template.Content.Truncate(4000))
                             .WithAccentColor(defaultAccentColor));
                     }
 
@@ -238,7 +238,7 @@ public class LinkedCommandService(
         if (!string.IsNullOrWhiteSpace(template?.Content))
         {
             componentBuilder.WithContainer(new ContainerBuilder()
-                .WithTextDisplay(template.Content)
+                .WithTextDisplay(template.Content.Truncate(4000))
                 .WithAccentColor(defaultAccentColor));
         }
 

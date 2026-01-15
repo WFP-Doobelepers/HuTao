@@ -1,5 +1,6 @@
 using Discord;
 using HuTao.Services.Utilities;
+using HuTao.Tests.Testing;
 using Xunit;
 
 namespace HuTao.Tests.Services.Utilities;
@@ -17,6 +18,7 @@ public class ComponentsV2EmbedExtensionsTests
         var components = embed.ToComponentsV2Message();
 
         Assert.NotNull(components);
+        components.ShouldBeValidComponentsV2();
     }
 
     [Fact]
@@ -31,6 +33,7 @@ public class ComponentsV2EmbedExtensionsTests
         var components = embed.ToComponentsV2Message();
 
         Assert.NotNull(components);
+        components.ShouldBeValidComponentsV2();
     }
 }
 

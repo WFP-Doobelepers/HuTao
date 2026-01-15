@@ -213,13 +213,31 @@ public static class EmbedBuilderExtensions
     {
         if (!items.Any()) return builder;
 
-        builder.AddField(title, items.First());
-        foreach (var line in items.Skip(1))
+        var remaining = EmbedBuilder.MaxFieldCount - builder.Fields.Count;
+        if (remaining <= 0)
+            return builder;
+
+        var lines = items.Take(remaining).ToList();
+        var truncated = items.Count > lines.Count;
+
+        builder.AddField(title, WithTruncationSuffixIfNeeded(lines[0], truncated && lines.Count == 1));
+
+        for (var i = 1; i < lines.Count; i++)
         {
-            builder.AddField("\x200b", line);
+            builder.AddField("\x200b", WithTruncationSuffixIfNeeded(lines[i], truncated && i == lines.Count - 1));
         }
 
         return builder;
+
+        static string WithTruncationSuffixIfNeeded(string value, bool shouldAppend)
+        {
+            if (!shouldAppend)
+                return value;
+
+            const string suffix = "\n…";
+            var available = EmbedFieldBuilder.MaxFieldValueLength - suffix.Length;
+            return available <= 0 ? value : value.Truncate(available) + suffix;
+        }
     }
 
     private static EmbedBuilder WithEntityAsAuthor(
