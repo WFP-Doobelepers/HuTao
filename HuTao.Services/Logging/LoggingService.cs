@@ -314,7 +314,7 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         var files = options.HasFlag(UploadAttachments)
             ? await log.Attachments.ToAsyncEnumerable()
                 .Select(a => (Url: options.HasFlag(UseProxy) ? a.ProxyUrl : a.Url, Name: a.Filename))
-                .SelectAwait(async a => new FileAttachment(await http.GetStreamAsync(a.Url), a.Name))
+                .Select(async (a, ct) => new FileAttachment(await http.GetStreamAsync(a.Url, ct), a.Name))
                 .ToListAsync()
             : Enumerable.Empty<FileAttachment>();
 

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord.Commands;
 
@@ -19,7 +20,7 @@ public class EnumerableTypeReader<TResult>(
     {
         var results = await input
             .Split(_separators, splitOptions).ToAsyncEnumerable()
-            .SelectAwait(async i => await typeReader.ReadAsync(context, i, services))
+            .Select(async (string i, CancellationToken _) => await typeReader.ReadAsync(context, i, services))
             .SelectMany(r => r.Values?.ToAsyncEnumerable() ?? AsyncEnumerable.Empty<TypeReaderValue>())
             .Select(v => v.Value).OfType<TResult>()
             .ToListAsync();

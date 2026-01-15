@@ -77,7 +77,7 @@ public class AuthorizationService(HuTaoContext db)
 
             return await categories
                 .ToAsyncEnumerable()
-                .AllAwaitAsync(async c => await IsCategoryAuthorizedAsync(context, scope, c));
+                .AllAsync(async (c, ct) => await IsCategoryAuthorizedAsync(context, scope, c, ct));
         }
     }
 

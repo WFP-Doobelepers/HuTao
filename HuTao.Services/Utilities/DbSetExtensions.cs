@@ -17,25 +17,25 @@ public static class DbSetExtensions
 
     public static IAsyncEnumerable<GuildEntity> TrackGuildsAsync(
         this DbSet<GuildEntity> set, IEnumerable<IGuild> guilds, CancellationToken cancellationToken = default)
-        => guilds.ToAsyncEnumerable().SelectAwait(async g => await set.TrackGuildAsync(g.Id, cancellationToken));
+        => guilds.ToAsyncEnumerable().Select((IGuild g, CancellationToken _) => set.TrackGuildAsync(g.Id, cancellationToken));
 
     public static IAsyncEnumerable<GuildEntity> TrackGuildsAsync(
         this DbSet<GuildEntity> set, IEnumerable<IInvite> invites,
         CancellationToken cancellationToken = default) => invites
         .Where(i => i.GuildId is not null).ToAsyncEnumerable()
-        .SelectAwait(async i => await set.TrackGuildAsync(i.GuildId!.Value, cancellationToken));
+        .Select((IInvite i, CancellationToken _) => set.TrackGuildAsync(i.GuildId!.Value, cancellationToken));
 
     public static IAsyncEnumerable<GuildUserEntity> TrackUsersAsync(
         this DbSet<GuildUserEntity> set, IEnumerable<IGuildUser> users, CancellationToken cancellationToken = default)
-        => users.ToAsyncEnumerable().SelectAwait(async u => await set.TrackUserAsync(u, cancellationToken));
+        => users.ToAsyncEnumerable().Select((IGuildUser u, CancellationToken _) => set.TrackUserAsync(u, cancellationToken));
 
     public static IAsyncEnumerable<ReactionEntity> TrackEmotesAsync(
         this DbContext db, IEnumerable<IEmote> reactions, CancellationToken cancellationToken = default)
-        => reactions.ToAsyncEnumerable().SelectAwait(async e => await db.TrackEmoteAsync(e, cancellationToken));
+        => reactions.ToAsyncEnumerable().Select(async (IEmote e, CancellationToken _) => await db.TrackEmoteAsync(e, cancellationToken));
 
     public static IAsyncEnumerable<RoleEntity> TrackRolesAsync(
         this DbSet<RoleEntity> set, IEnumerable<IRole> roles, CancellationToken cancellationToken = default)
-        => roles.ToAsyncEnumerable().SelectAwait(async g => await set.TrackRoleAsync(g, cancellationToken));
+        => roles.ToAsyncEnumerable().Select((IRole r, CancellationToken _) => set.TrackRoleAsync(r, cancellationToken));
 
     public static async Task<ReactionEntity> TrackEmoteAsync(
         this DbContext db, IEmote reaction, CancellationToken cancellationToken = default)

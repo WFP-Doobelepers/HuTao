@@ -142,7 +142,7 @@ public class AutoModerationBehavior(
                 {
                     var exclusions = rules.InviteExclusions(config);
                     return await RegexUtilities.Invite.Matches(m.Content).ToAsyncEnumerable()
-                        .SelectAwait(async i => await cache.GetInviteAsync(client, i.Groups["code"].Value))
+                        .Select(async (Match i, CancellationToken _) => await cache.GetInviteAsync(client, i.Groups["code"].Value))
                         .Where(i => i is not null && exclusions.All(e => !e.Judge(i)))
                         .CountAsync(cancellationToken);
                 })) return;
@@ -231,7 +231,7 @@ public class AutoModerationBehavior(
 
         async Task<bool> TryReprimandAwait(AutoConfiguration config, Func<IUserMessage, Task<Count>> counter)
             => await Reprimand(config, await GetMessages(config).ToAsyncEnumerable()
-                .SelectAwait(async m => new Result(m, await m.Memoized(m, counter, $"{config.Id}")))
+                .Select(async (IUserMessage m, CancellationToken _) => new Result(m, await m.Memoized(m, counter, $"{config.Id}")))
                 .ToListAsync(cancellationToken));
 
         async Task<bool> Reprimand<T>(AutoConfiguration config, ICollection<T> messages) where T : Result
