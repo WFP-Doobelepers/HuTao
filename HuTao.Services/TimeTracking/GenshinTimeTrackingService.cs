@@ -61,9 +61,9 @@ public class GenshinTimeTrackingService(DiscordSocketClient client, HuTaoContext
         }
 
         AddJob(rules.AmericaChannel, ServerRegion.America);
-        AddJob(rules.EuropeChannel, ServerRegion.America);
-        AddJob(rules.AsiaChannel, ServerRegion.America);
-        AddJob(rules.SARChannel, ServerRegion.America);
+        AddJob(rules.EuropeChannel, ServerRegion.Europe);
+        AddJob(rules.AsiaChannel, ServerRegion.Asia);
+        AddJob(rules.SARChannel, ServerRegion.SAR);
     }
 
     [AutomaticRetry(Attempts = 0)]
@@ -84,20 +84,37 @@ public class GenshinTimeTrackingService(DiscordSocketClient client, HuTaoContext
 
         if (message?.Channel is not IGuildChannel channel) return;
 
-        var embed = new EmbedBuilder()
-            .WithTitle("Server Status")
-            .WithGuildAsAuthor(channel.Guild, AuthorOptions.UseFooter)
-            .WithCurrentTimestamp();
+        const uint defaultAccentColor = 0x9B59FF;
 
-        AddRegion(embed, ServerRegion.America, "md");
-        AddRegion(embed, ServerRegion.Europe, string.Empty);
-        AddRegion(embed, ServerRegion.Asia, "cs");
-        AddRegion(embed, ServerRegion.SAR, "fix");
+        var container = new ContainerBuilder()
+            .WithTextDisplay("## Server Status")
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        AddRegion(container, ServerRegion.America, "md");
+        container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        AddRegion(container, ServerRegion.Europe, string.Empty);
+        container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        AddRegion(container, ServerRegion.Asia, "cs");
+        container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        AddRegion(container, ServerRegion.SAR, "fix");
+
+        container
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay($"-# Updated {DateTimeOffset.UtcNow.ToUniversalTimestamp()}")
+            .WithAccentColor(defaultAccentColor);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .Build();
 
         await message.ModifyAsync(m =>
         {
             m.Content = string.Empty;
-            m.Embed   = embed.Build();
+            m.Components = components;
+            m.Embeds = Array.Empty<Embed>();
         }, RequestOptions);
     }
 
@@ -237,17 +254,17 @@ public class GenshinTimeTrackingService(DiscordSocketClient client, HuTaoContext
             "*/5 * * * *");
     }
 
-    private static void AddRegion(EmbedBuilder builder, ServerRegion region, string language)
+    private static void AddRegion(ContainerBuilder builder, ServerRegion region, string language)
     {
         var (name, offset) = ServerOffsets[region];
         var time = GetTime(offset);
-        builder
-            .AddField($"{region.Humanize()} Time", Format.Bold(Format.Code($"# {name} {time}", language)))
-            .AddField("Daily",
-                $"Resets in {Format.Bold(GetDailyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
-                true)
-            .AddField("Weekly",
-                $"Resets in {Format.Bold(GetWeeklyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
-                true);
+
+        builder.WithTextDisplay(string.Join("\n", new[]
+        {
+            $"### {region.Humanize()}",
+            Format.Code($"# {name} {time}", language),
+            $"**Daily**: Resets in {Format.Bold(GetDailyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}",
+            $"**Weekly**: Resets in {Format.Bold(GetWeeklyReset(offset).TimeLeft().Humanize(4, minUnit: TimeUnit.Minute))}"
+        }));
     }
 }
