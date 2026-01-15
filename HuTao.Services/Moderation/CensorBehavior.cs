@@ -29,7 +29,13 @@ public class CensorBehavior(HuTaoContext db, IMemoryCache cache, ModerationServi
         => ProcessMessage(notification.Message, cancellationToken);
 
     public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
-        => ProcessMessage(notification.NewMessage, cancellationToken);
+    {
+        var oldMessage = notification.OldMessage.HasValue ? notification.OldMessage.Value : null;
+        if (!MessageUpdateUtilities.IsUserContentEdit(notification.NewMessage, oldMessage))
+            return Task.CompletedTask;
+
+        return ProcessMessage(notification.NewMessage, cancellationToken);
+    }
 
     public Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)
         => ProcessUser(notification.GuildUser, cancellationToken);

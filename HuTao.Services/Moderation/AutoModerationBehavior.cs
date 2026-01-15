@@ -40,7 +40,13 @@ public class AutoModerationBehavior(
         => ProcessMessage(notification.Message, cancellationToken);
 
     public Task Handle(MessageUpdatedNotification notification, CancellationToken cancellationToken)
-        => ProcessMessage(notification.NewMessage, cancellationToken);
+    {
+        var oldMessage = notification.OldMessage.HasValue ? notification.OldMessage.Value : null;
+        if (!MessageUpdateUtilities.IsUserContentEdit(notification.NewMessage, oldMessage))
+            return Task.CompletedTask;
+
+        return ProcessMessage(notification.NewMessage, cancellationToken);
+    }
 
     private ConcurrentDictionary<ulong, IUserMessage> MessageDictionary(IGuildUser user)
         => cache.GetOrCreate($"{nameof(MessageDictionary)}.{user.Guild.Id}.{user.Id}", e =>

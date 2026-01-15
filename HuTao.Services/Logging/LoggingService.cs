@@ -113,11 +113,14 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
                 Channel     : INestedChannel channel
             } message) return;
 
+        var oldMessage = notification.OldMessage.HasValue ? notification.OldMessage.Value : null;
+        if (!MessageUpdateUtilities.IsUserContentEdit(message, oldMessage)) return;
+
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
         var latest = await GetLatestMessage(channel.Guild.Id, channel.Id, message.Id, cancellationToken);
 
         if (latest is null) return;
-        if (await MessageUnchanged(latest, message, cancellationToken)) return;
+        if (string.Equals(latest.Content, message.Content, StringComparison.Ordinal)) return;
 
         var log = await LogMessageAsync(user, message, latest, cancellationToken);
         await PublishLogAsync(log, LogType.MessageUpdated, channel.Guild, cancellationToken);
@@ -243,26 +246,6 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
 
         var exclusions = await GetExclusionsAsync(guild, cancellationToken);
         return exclusions.Any(e => e.Judge(channel, user));
-    }
-
-    private async Task<bool> MessageUnchanged(MessageLog log, IMessage message, CancellationToken cancellationToken)
-    {
-        var embeds = message.Embeds
-            .Select(embed => new Data.Models.Discord.Message.Embeds.Embed(embed))
-            .ToList();
-
-        var attachments = message.Attachments
-            .Select(attachment => new Attachment(attachment))
-            .ToList();
-
-        var embedsEqual = embeds.SequenceEqual(log.Embeds);
-        var attachmentsEqual = attachments.SequenceEqual(log.Attachments);
-
-        log.Embeds      = embedsEqual ? log.Embeds : embeds;
-        log.Attachments = attachmentsEqual ? log.Attachments : attachments;
-        await db.SaveChangesAsync(cancellationToken);
-
-        return message.Content == log.Content && embedsEqual && attachmentsEqual;
     }
 
     private async Task<EmbedLog> AddDetailsAsync(EmbedBuilder embed, ILog log, IReadOnlyCollection<MessageLog> logs)
