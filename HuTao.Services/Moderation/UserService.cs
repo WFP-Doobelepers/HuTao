@@ -90,8 +90,7 @@ public class UserService(
         }
 
         var history = guild.ReprimandHistory
-            .Where(r => r.UserId == user.Id)
-            .OfType(type).OfCategory(category)
+            .Where(r => r.UserId == user.Id && r.Status is not ReprimandStatus.Deleted)
             .OrderByDescending(r => r.Action?.Date)
             .ToList();
 
@@ -299,7 +298,7 @@ public class UserService(
                 
                 // Build content with notes and images
                 var (contentText, mediaItems) = BuildReprimandContent(reprimand, state.AllReprimands);
-                var headerText = $"### {reprimandInfo.TypeBadges} {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
+                var headerText = $"### {reprimandInfo.TypeBadges} • {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
                                 $"-# {reprimandInfo.Moderator} {reprimandInfo.DateShort} {reprimandInfo.TimeShort} • {reprimandInfo.RelativeTime}\n" +
                                 contentText;
                 
@@ -355,7 +354,7 @@ public class UserService(
                 
                 // Build content with notes and images
                 var (contentText, mediaItems) = BuildReprimandContent(reprimand, state.AllReprimands);
-                var headerText = $"### {reprimandInfo.TypeBadges} {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
+                var headerText = $"### {reprimandInfo.TypeBadges} • {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
                                 $"-# {reprimandInfo.Moderator} {reprimandInfo.DateShort} {reprimandInfo.TimeShort} • {reprimandInfo.RelativeTime}\n" +
                                 contentText;
                 
@@ -427,7 +426,7 @@ public class UserService(
                 
                 // Get badges for this reprimand type (use first entry since all have same type)
                 var firstEntry = entries.First();
-                var typeBadges = Utilities.ReprimandBadgeHelper.GetTypeOnly(firstEntry);
+                var typeBadges = firstEntry.GetTitle(showId: false);
                 
                 // Build condensed entries for this type using bullet points
                 var condensedText = new System.Text.StringBuilder();
@@ -508,7 +507,7 @@ public class UserService(
                 
                 // Get badges for this reprimand type (use first entry since all have same type)
                 var firstEntry = entries.First();
-                var typeBadges = Utilities.ReprimandBadgeHelper.GetTypeOnly(firstEntry);
+                var typeBadges = firstEntry.GetTitle(showId: false);
                 
                 // Build group text
                 var groupText = new System.Text.StringBuilder();
@@ -576,11 +575,7 @@ public class UserService(
         var currentReprimands = state.GetReprimandsForPage(p.CurrentPageIndex).ToList();
         var components = new ComponentBuilderV2();
         
-        // Get user avatar URL
-        var avatarUrl = state.User.GetDisplayAvatarUrl(size: 256) ?? state.User.GetDefaultAvatarUrl();
-        
-        // First page: Full history image with created/joined timestamps
-        // Header without thumbnail accessory to prevent layout issues
+        var showHistoryImage = state.IsChronologicalExpanded || state.IsGroupedExpanded;
         var createdTimestamp = $"<t:{state.User.CreatedAt.ToUnixTimeSeconds()}:R> <t:{state.User.CreatedAt.ToUnixTimeSeconds()}:f>";
         var joinedTimestamp = state.UserEntity.JoinedAt != null 
             ? $"<t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:R> <t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:f>"
@@ -588,13 +583,11 @@ public class UserService(
         
         if (p.CurrentPageIndex == 0)
         {
-            // Page 1: Header with basic info, history image only in expanded mode
             components.WithTextDisplay($"# {state.User.Mention}'s History\n\n" +
                                       $"-# Created {createdTimestamp}\n" +
                                       $"-# Joined   {joinedTimestamp}");
             
-            // Show history image only in expanded mode
-            if (state.IsChronologicalExpanded || state.IsGroupedExpanded)
+            if (showHistoryImage)
             {
                 var historyImageContainer = new ContainerBuilder()
                     .WithMediaGallery([new MediaGalleryItemProperties(
@@ -607,9 +600,10 @@ public class UserService(
         }
         else
         {
-            // Subsequent pages: Summary only, no image
-            components.WithTextDisplay($"# {state.User.Mention}'s History\n\n" +
-                                      $"-# Total Records: {state.TotalReprimands} • Filter: {state.TypeFilter.Humanize()}");
+            var headerText = $"# {state.User.Mention} History\n\n" +
+                             $"-# Total Records: {state.TotalReprimands} • Filter: {state.TypeFilter.Humanize()}";
+            
+            components.WithTextDisplay(headerText);
             components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
         }
 

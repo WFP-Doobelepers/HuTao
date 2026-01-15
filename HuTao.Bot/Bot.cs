@@ -99,6 +99,7 @@ public class Bot
             .AddScoped<ModerationLoggingService>()
             .AddScoped<LoggingService>()
             .AddScoped<UserService>()
+            .AddScoped<DemoReprimandSeeder>()
             .AddScoped<StickyService>()
             .AddScoped<LinkingService>()
             .AddScoped<LinkedCommandService>()

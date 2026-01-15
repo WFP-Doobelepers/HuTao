@@ -107,8 +107,9 @@ public class InteractiveUserModule(UserService userService, InteractiveService i
 
         var state = paginator.GetUserState<UserHistoryPaginatorState>();
 
-        state.TypeFilter = type;
-        state.CategoryFilter = category;
+        state.UpdateFilters(category, type);
+        paginator.PageCount = state.TotalPages;
+        paginator.SetPage(0);
 
         await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
     }
