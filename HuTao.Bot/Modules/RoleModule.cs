@@ -54,8 +54,14 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                     $"-# Showing first {top.Count} roles")
                 .WithAccentColor(defaultAccentColor);
 
+            var components = new ComponentBuilderV2()
+                .WithContainer(container)
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton(new ButtonBuilder("Browse Roles", "roles:open", ButtonStyle.Primary)))
+                .Build();
+
             await ReplyAsync(
-                components: new ComponentBuilderV2().WithContainer(container).Build(),
+                components: components,
                 allowedMentions: AllowedMentions.None);
             return;
         }

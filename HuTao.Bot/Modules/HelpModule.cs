@@ -9,6 +9,7 @@ using Fergun.Interactive;
 using Fergun.Interactive.Pagination;
 using HuTao.Data.Config;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules;
@@ -23,40 +24,16 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
     [Summary("Prints a neat list of all commands.")]
     public async Task HelpAsync()
     {
-        var modules = commandHelpService.GetModuleHelpData()
-            .OrderBy(d => d.Name)
-            .Select(d => Format.Bold(Format.Code(d.Name)));
+        var state = HelpBrowserState.Create(commandHelpService.GetModuleHelpData(), HuTaoConfig.Configuration.Prefix);
 
-        var prefix = HuTaoConfig.Configuration.Prefix;
-        var descriptionBuilder = new StringBuilder()
-            .AppendLine("Modules:")
-            .AppendJoin(", ", modules)
-            .AppendLine().AppendLine()
-            .AppendLine($"Do {Format.Code($"{prefix}help dm")} to have everything DMed to you.")
-            .AppendLine($"Do {Format.Code($"{prefix}help [module name]")} to have that module's commands listed.");
-
-        var argumentBuilder = new StringBuilder()
-            .AppendLine($"{Format.Code("[ ]")}: Optional arguments.")
-            .AppendLine($"{Format.Code("< >")}: Required arguments.")
-            .AppendLine($"{Format.Code("[...]")}: List of arguments separated by {Format.Code(",")}.")
-            .AppendLine(
-                $"▌Provide values by doing {Format.Code("name: value")} " +
-                $"or {Format.Code("name: \"value with spaces\"")}.");
-
-        var embed = new EmbedBuilder()
-            .WithTitle("Help")
-            .WithCurrentTimestamp()
-            .WithDescription(descriptionBuilder.ToString())
-            .AddField("Arguments", argumentBuilder.ToString())
-            .WithGuildAsAuthor(Context.Guild, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-        var components = new ComponentBuilderV2()
-            .WithContainer(new ContainerBuilder()
-                .WithTextDisplay(embed.Build().ToComponentsV2Text(maxChars: 3800))
-                .WithAccentColor(0x9B59FF))
+        var browser = InteractiveExtensions.CreateDefaultComponentPaginator()
+            .WithUsers(Context.User)
+            .WithPageCount(state.GetPageCount())
+            .WithUserState(state)
+            .WithPageFactory(HelpBrowserRenderer.GeneratePage)
             .Build();
 
-        await ReplyAsync(components: components);
+        await interactive.SendPaginatorAsync(browser, Context.Channel, resetTimeoutOnInput: true);
     }
 
     [Command]

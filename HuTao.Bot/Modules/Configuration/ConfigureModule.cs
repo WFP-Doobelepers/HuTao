@@ -366,6 +366,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
                 .WithAccentColor(embed.Color?.RawValue ?? defaultAccentColor));
         }
 
+        componentBuilder.WithActionRow(new ActionRowBuilder()
+            .WithButton(new ButtonBuilder("Open Config Panel", "cfg:open", ButtonStyle.Primary)));
+
         await ReplyAsync(
             components: componentBuilder.Build(),
             allowedMentions: AllowedMentions.None);
