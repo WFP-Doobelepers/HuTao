@@ -23,14 +23,33 @@ public class TimeTrackingModule(CommandErrorHandler error, GenshinTimeTrackingSe
     [Command("genshin")]
     public async Task GenshinAsync(ITextChannel channel)
     {
-        var message = await channel.SendMessageAsync("Setting up...");
+        var setup = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay("## Genshin Time Tracking\nSetting up…")
+                .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                .WithTextDisplay("-# This message will be updated automatically.")
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        var message = await channel.SendMessageAsync(components: setup, allowedMentions: AllowedMentions.None);
         await GenshinAsync(message);
     }
 
     [Command("genshin")]
     public async Task GenshinAsync(IUserMessage? message = null)
     {
-        message ??= await ReplyAsync("Setting up...");
+        if (message is null)
+        {
+            var setup = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("## Genshin Time Tracking\nSetting up…")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# This message will be updated automatically.")
+                    .WithAccentColor(0x9B59FF))
+                .Build();
+
+            message = await ReplyAsync(components: setup, allowedMentions: AllowedMentions.None);
+        }
 
         if (message.Channel is SocketGuildChannel channel
             && channel.Guild.Id != Context.Guild.Id)

@@ -7,6 +7,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using HuTao.Data.Models.Authorization;
+using HuTao.Services.Channels;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Utilities;
@@ -38,9 +39,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .AddItemsIntoFields("Positions", positions,
                 p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})");
 
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed.Build());
     }
 
     [Command("create")]
@@ -54,9 +53,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithAuthor(Context.User).WithTitle("Created Channel")
             .WithDescription($"Successfully created channel {channel.Mention}")
             .WithColor(Color.Green);
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed.Build());
     }
 
     [Command("delete")]
@@ -72,22 +69,17 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithColor(Color.Red)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed);
         await givenChannel.DeleteAsync();
     }
 
     [Command("position")]
     [Summary("Gets the position of a channel.")]
     public Task GetChannelPositionAsync(INestedChannel givenChannel) =>
-        ReplyAsync(
-            components: GetChannelProperties(givenChannel)
-                .WithAuthor(Context.User)
-                .WithTitle("Position Of Channel")
-                .Build()
-                .ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        ReplyWithChannelBrowserAsync(GetChannelProperties(givenChannel)
+            .WithAuthor(Context.User)
+            .WithTitle("Position Of Channel")
+            .Build());
 
     [Command("move")]
     [Summary("Move a channel position in a specific direction by a given number.")]
@@ -118,9 +110,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithColor(Color.Green)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed);
     }
 
     [Command("movedown")]
@@ -135,9 +125,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithColor(Color.Green)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed);
     }
 
     [Command("moveup")]
@@ -152,9 +140,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithColor(Color.Green)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyWithChannelBrowserAsync(embed);
     }
 
     [Command("reset")]
@@ -178,9 +164,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithColor(Color.Green)
                 .Build();
 
-            await ReplyAsync(
-                components: embed.ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyWithChannelBrowserAsync(embed);
         }
         catch (HttpException e)
         {
@@ -193,9 +177,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithColor(Color.Red)
                 .Build();
 
-            await ReplyAsync(
-                components: embed.ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyWithChannelBrowserAsync(embed);
         }
     }
 
@@ -229,9 +211,7 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddItemsIntoFields("Failed", failed, (channel, exception) => $"`{channel}` : {exception}`");
             }
 
-            await ReplyAsync(
-                components: embed.Build().ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyWithChannelBrowserAsync(embed.Build());
         }
     }
 
@@ -249,15 +229,38 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                 .WithDescription($"Synchronizing permissions of \"{givenChannel}\" to it's channel category.")
                 .WithAuthor(Context.User);
 
-            await ReplyAsync(
-                components: embed.Build().ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyWithChannelBrowserAsync(embed.Build());
         }
         catch (HttpException e)
         {
-            var errorFeedback = $"_Syncing error: **{e.Message}** _";
-            await ReplyAsync($"\"{errorFeedback}\"");
+            var errorFeedback = $"Syncing error: **{e.Message}**";
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## Channel Permissions Sync\n{errorFeedback}")
+                    .WithAccentColor(0x9B59FF))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton("Browse Channels", ChannelBrowserComponentIds.OpenButtonId, ButtonStyle.Primary))
+                .Build();
+
+            await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
         }
+    }
+
+    private async Task ReplyWithChannelBrowserAsync(Embed embed)
+    {
+        const uint defaultAccentColor = 0x9B59FF;
+
+        var container = embed.ToComponentsV2Container(
+            accentColor: embed.Color?.RawValue ?? defaultAccentColor,
+            maxChars: 3800);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Browse Channels", ChannelBrowserComponentIds.OpenButtonId, ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     private EmbedBuilder GetChannelProperties(INestedChannel channel) => new EmbedBuilder()

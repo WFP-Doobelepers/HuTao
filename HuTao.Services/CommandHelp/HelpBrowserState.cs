@@ -88,84 +88,86 @@ public sealed class HelpBrowserState
     }
 
     public bool TryApplyQuery(string? query)
+        => TryApplyQuery(query, HelpDataType.Command | HelpDataType.Module);
+
+    public bool TryApplyQuery(string? query, HelpDataType queries)
     {
         query = query?.Trim();
         if (string.IsNullOrWhiteSpace(query))
         {
-            View = HelpBrowserView.Modules;
-            TagFilter = null;
-            SelectedModuleIndex = null;
-            SelectedCommandIndex = null;
-            Notice = null;
+            Reset();
             return true;
         }
 
-        var tags = Modules
-            .SelectMany(m => m.HelpTags)
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var tagExact = tags.FirstOrDefault(t => t.Equals(query, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrWhiteSpace(tagExact))
+        if (queries.HasFlag(HelpDataType.Module))
         {
-            View = HelpBrowserView.Modules;
-            TagFilter = tagExact;
-            SelectedModuleIndex = null;
-            SelectedCommandIndex = null;
-            Notice = null;
-            return true;
+            var tags = Modules
+                .SelectMany(m => m.HelpTags)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var tagExact = tags.FirstOrDefault(t => t.Equals(query, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(tagExact))
+            {
+                View = HelpBrowserView.Modules;
+                TagFilter = tagExact;
+                SelectedModuleIndex = null;
+                SelectedCommandIndex = null;
+                Notice = null;
+                return true;
+            }
+
+            var moduleExact = Modules
+                .Select((m, i) => (m, i))
+                .FirstOrDefault(x => x.m.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
+
+            if (moduleExact.m is not null)
+            {
+                View = HelpBrowserView.ModuleCommands;
+                TagFilter = null;
+                SelectedModuleIndex = moduleExact.i;
+                SelectedCommandIndex = null;
+                Notice = null;
+                return true;
+            }
+
+            var moduleContains = Modules
+                .Select((m, i) => (m, i))
+                .FirstOrDefault(x => x.m.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+
+            if (moduleContains.m is not null)
+            {
+                View = HelpBrowserView.ModuleCommands;
+                TagFilter = null;
+                SelectedModuleIndex = moduleContains.i;
+                SelectedCommandIndex = null;
+                Notice = null;
+                return true;
+            }
         }
 
-        var moduleExact = Modules
-            .Select((m, i) => (m, i))
-            .FirstOrDefault(x => x.m.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
-
-        if (moduleExact.m is not null)
+        if (queries.HasFlag(HelpDataType.Command))
         {
-            View = HelpBrowserView.ModuleCommands;
-            TagFilter = null;
-            SelectedModuleIndex = moduleExact.i;
-            SelectedCommandIndex = null;
-            Notice = null;
-            return true;
+            var allCommands = Modules
+                .SelectMany(m => m.Commands.Select(c => (Module: m, Command: c)))
+                .ToList();
+
+            var commandExact = allCommands.FirstOrDefault(x =>
+                x.Command.Aliases.Any(a => a.Equals(query, StringComparison.OrdinalIgnoreCase)));
+
+            if (commandExact.Command is not null)
+                return SelectCommand(commandExact.Module, commandExact.Command);
+
+            var commandContains = allCommands.FirstOrDefault(x =>
+                x.Command.Aliases.Any(a => a.Contains(query, StringComparison.OrdinalIgnoreCase)));
+
+            if (commandContains.Command is not null)
+                return SelectCommand(commandContains.Module, commandContains.Command);
         }
-
-        var moduleContains = Modules
-            .Select((m, i) => (m, i))
-            .FirstOrDefault(x => x.m.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
-
-        if (moduleContains.m is not null)
-        {
-            View = HelpBrowserView.ModuleCommands;
-            TagFilter = null;
-            SelectedModuleIndex = moduleContains.i;
-            SelectedCommandIndex = null;
-            Notice = null;
-            return true;
-        }
-
-        var allCommands = Modules
-            .SelectMany(m => m.Commands.Select(c => (Module: m, Command: c)))
-            .ToList();
-
-        var commandExact = allCommands.FirstOrDefault(x =>
-            x.Command.Aliases.Any(a => a.Equals(query, StringComparison.OrdinalIgnoreCase)));
-
-        if (commandExact.Command is not null)
-            return SelectCommand(commandExact.Module, commandExact.Command);
-
-        var commandContains = allCommands.FirstOrDefault(x =>
-            x.Command.Aliases.Any(a => a.Contains(query, StringComparison.OrdinalIgnoreCase)));
-
-        if (commandContains.Command is not null)
-            return SelectCommand(commandContains.Module, commandContains.Command);
 
         Notice = $"No results for `{query}`.";
-        View = HelpBrowserView.Modules;
-        TagFilter = null;
-        SelectedModuleIndex = null;
-        SelectedCommandIndex = null;
+        Reset();
         return false;
 
         bool SelectCommand(ModuleHelpData module, CommandHelpData command)
@@ -214,6 +216,14 @@ public sealed class HelpBrowserState
             Notice = null;
             return true;
         }
+    }
+
+    private void Reset()
+    {
+        View = HelpBrowserView.Modules;
+        TagFilter = null;
+        SelectedModuleIndex = null;
+        SelectedCommandIndex = null;
     }
 }
 

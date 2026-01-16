@@ -30,6 +30,7 @@ namespace HuTao.Bot.Modules.Censors;
 [Summary("Manages censors and what action will be done to the user who triggers them.")]
 public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrigger<Censor>
 {
+    private const uint AccentColor = 0x9B59FF;
     private const string PatternSummary = "The .NET flavor regex pattern to be used.";
 
     [Command("ban")]
@@ -153,7 +154,7 @@ public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrig
         if (matches.Any())
             await PagedViewAsync(matches);
         else
-            await ReplyAsync("No matches found.");
+            await ReplyPanelAsync("Censors", "No matches found.");
     }
 
     [Command]
@@ -199,9 +200,27 @@ public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrig
     private async Task ReplyCensorAsync(Censor censor)
     {
         var embed = EntityViewer(censor);
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        var container = embed.Build().ToComponentsV2Container(accentColor: AccentColor, maxChars: 3800);
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+    }
+
+    private async Task ReplyPanelAsync(string title, string body)
+    {
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## {title}\n{body}")
+                .WithAccentColor(AccentColor))
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

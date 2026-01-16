@@ -47,7 +47,7 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         await db.SaveChangesAsync();
         cache.InvalidateCaches(Context.Guild);
 
-        await ReplyAsync($"New value: {rules.CensorNicknames}");
+        await ReplyConfigAsync("Moderation Rules", $"Censor nicknames: **{rules.CensorNicknames}**");
     }
 
     [Command("censor usernames")]
@@ -63,7 +63,7 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         await db.SaveChangesAsync();
         cache.InvalidateCaches(Context.Guild);
 
-        await ReplyAsync($"New value: {rules.CensorUsernames}");
+        await ReplyConfigAsync("Moderation Rules", $"Censor usernames: **{rules.CensorUsernames}**");
     }
 
     [Command("auto cooldown")]
@@ -80,9 +80,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Auto moderation cooldown has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Auto moderation cooldown: **Disabled**");
         else
-            await ReplyAsync($"Auto moderation cooldown has been set to {Format.Bold(length.Value.Humanize())}");
+            await ReplyConfigAsync("Moderation Rules", $"Auto moderation cooldown: **{length.Value.Humanize()}**");
     }
 
     [Command("notice expiry")]
@@ -99,9 +99,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Auto-pardon of notices has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Auto-pardon of notices: **Disabled**");
         else
-            await ReplyAsync($"Notices will now be pardoned after {Format.Bold(length.Value.Humanize())}");
+            await ReplyConfigAsync("Moderation Rules", $"Notices auto-pardon after: **{length.Value.Humanize()}**");
     }
 
     [Command("warning expiry")]
@@ -118,9 +118,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Auto-pardon of warnings has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Auto-pardon of warnings: **Disabled**");
         else
-            await ReplyAsync($"Warnings will now be pardoned after {Format.Bold(length.Value.Humanize())}");
+            await ReplyConfigAsync("Moderation Rules", $"Warnings auto-pardon after: **{length.Value.Humanize()}**");
     }
 
     [Command("replace mutes")]
@@ -136,7 +136,7 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         await db.SaveChangesAsync();
         cache.InvalidateCaches(Context.Guild);
 
-        await ReplyAsync($"New value: {rules.ReplaceMutes}");
+        await ReplyConfigAsync("Moderation Rules", $"Replace mutes: **{rules.ReplaceMutes}**");
     }
 
     [Command("censor expiry")]
@@ -153,9 +153,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Censor expiry has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Censor expiry: **Disabled**");
         else
-            await ReplyAsync($"Censors will now be considered active for {Format.Bold(length.Value.Humanize())}");
+            await ReplyConfigAsync("Moderation Rules", $"Censors considered active for: **{length.Value.Humanize()}**");
     }
 
     [Command("auto expiry")]
@@ -172,9 +172,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (length is null)
-            await ReplyAsync("Filter expiry has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Filter expiry: **Disabled**");
         else
-            await ReplyAsync($"Filters will now be considered active for {Format.Bold(length.Value.Humanize())}");
+            await ReplyConfigAsync("Moderation Rules", $"Filters considered active for: **{length.Value.Humanize()}**");
     }
 
     [Command("hard mute")]
@@ -191,9 +191,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
-            await ReplyAsync("Mute role has been configured.");
+            await ReplyConfigAsync("Moderation Rules", "Hard mute role: **Configured**");
         else
-            await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
+            await ReplyConfigAsync("Moderation Rules", $"Hard mute role: **{role.Name}**");
     }
 
     [Command("mute")]
@@ -210,9 +210,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
-            await ReplyAsync("Mute role has been configured.");
+            await ReplyConfigAsync("Moderation Rules", "Mute role: **Configured**");
         else
-            await ReplyAsync($"Mute role has been set to {Format.Bold(role.Name)}");
+            await ReplyConfigAsync("Moderation Rules", $"Mute role: **{role.Name}**");
     }
 
     [Command("name replacement")]
@@ -229,9 +229,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         cache.InvalidateCaches(Context.Guild);
 
         if (replacement is null)
-            await ReplyAsync("Name replacement has been disabled.");
+            await ReplyConfigAsync("Moderation Rules", "Name replacement: **Disabled**");
         else
-            await ReplyAsync($"Name replacement has been set to {Format.Bold(replacement)}");
+            await ReplyConfigAsync("Moderation Rules", $"Name replacement: **{replacement}**");
     }
 
     [Command("voice")]
@@ -276,6 +276,23 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         await ReplyAsync(
             components: embed.Build().ToComponentsV2Message(),
             allowedMentions: AllowedMentions.None);
+    }
+
+    private async Task ReplyConfigAsync(string title, string body)
+    {
+        const uint accentColor = 0x9B59FF;
+
+        var container = new ContainerBuilder()
+            .WithTextDisplay($"## {title}\n{body}".Truncate(3200))
+            .WithAccentColor(accentColor);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [Command]

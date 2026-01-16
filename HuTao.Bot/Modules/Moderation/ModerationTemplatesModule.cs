@@ -23,6 +23,8 @@ namespace HuTao.Bot.Modules.Moderation;
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<ModerationTemplate>
 {
+    private const uint AccentColor = 0x9B59FF;
+
     [Command("ban")]
     public async Task BanTemplateAsync(string name, BanTemplateOptions options)
     {
@@ -63,7 +65,7 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
     {
         if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
         {
-            await ReplyAsync("You must specify at least one role to add, remove, or toggle.");
+            await ReplyPanelAsync("Moderation Templates", "You must specify at least one role to add, remove, or toggle.");
             return;
         }
 
@@ -118,9 +120,35 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
             .WithColor(Color.Green)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyEmbedWithConfigButtonAsync(embed.Build());
+    }
+
+    private async Task ReplyPanelAsync(string title, string body)
+    {
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## {title}\n{body}")
+                .WithAccentColor(AccentColor))
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary)
+                .WithButton("Open Triggers", "trg:open", ButtonStyle.Secondary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+    }
+
+    private async Task ReplyEmbedWithConfigButtonAsync(Embed embed)
+    {
+        var container = embed.ToComponentsV2Container(accentColor: embed.Color?.RawValue ?? AccentColor, maxChars: 3800);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary)
+                .WithButton("Open Triggers", "trg:open", ButtonStyle.Secondary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

@@ -2,6 +2,7 @@ namespace HuTao.Services.Roles;
 
 public static class RoleBrowserComponentIds
 {
+    public const string OpenButtonId = "roles:open";
     public const string RoleSelectId = "roles:role";
     public const string BackButtonId = "roles:back";
     public const string SearchButtonId = "roles:search";

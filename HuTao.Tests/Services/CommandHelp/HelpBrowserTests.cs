@@ -64,6 +64,19 @@ public class HelpBrowserTests
         Assert.NotNull(state.SelectedCommandIndex);
     }
 
+    [Fact]
+    public void HelpBrowserState_TryApplyQuery_ModuleOnly_DoesNotSelectCommand()
+    {
+        var state = HelpBrowserState.Create(CreateModules(), "h!");
+
+        var ok = state.TryApplyQuery("ban", HelpDataType.Module);
+
+        Assert.False(ok);
+        Assert.Equal(HelpBrowserView.Modules, state.View);
+        Assert.Null(state.SelectedModuleIndex);
+        Assert.Null(state.SelectedCommandIndex);
+    }
+
     private static (HelpBrowserState State, IComponentPaginator Paginator) Create(Action<HelpBrowserState> configure)
     {
         var state = HelpBrowserState.Create(CreateModules(), "h!");

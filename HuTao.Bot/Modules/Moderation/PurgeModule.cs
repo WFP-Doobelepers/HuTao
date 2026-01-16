@@ -46,7 +46,13 @@ public class PurgeModule : ModuleBase<SocketCommandContext>
             amount = deleted.Count;
         }
 
-        await ReplyAsync($"Deleted {amount} messages.");
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## Purge\nDeleted **{amount}** messages.")
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

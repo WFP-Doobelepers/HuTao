@@ -13,6 +13,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Expirable;
+using HuTao.Services.Roles;
 using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules;
@@ -57,7 +58,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             var components = new ComponentBuilderV2()
                 .WithContainer(container)
                 .WithActionRow(new ActionRowBuilder()
-                    .WithButton(new ButtonBuilder("Browse Roles", "roles:open", ButtonStyle.Primary)))
+                    .WithButton(new ButtonBuilder("Browse Roles", RoleBrowserComponentIds.OpenButtonId, ButtonStyle.Primary)))
                 .Build();
 
             await ReplyAsync(
@@ -133,7 +134,17 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         [Summary("Adds specified roles to everyone.")]
         public async Task AddRolesAsync([RequireHierarchy] params SocketRole[] roles)
         {
-            await ReplyAsync("Adding roles, this might take a while...");
+            var progress = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("## Role Management\nAdding roles to everyone…")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# This might take a while.")
+                    .WithAccentColor(0x9B59FF))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton("Browse Roles", RoleBrowserComponentIds.OpenButtonId, ButtonStyle.Primary))
+                .Build();
+
+            await ReplyAsync(components: progress, allowedMentions: AllowedMentions.None);
             await Context.Guild.DownloadUsersAsync();
 
             foreach (var user in Context.Guild.Users)
@@ -255,7 +266,17 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         [Summary("Removes specified roles from everyone.")]
         public async Task RemoveRolesAsync([RequireHierarchy] params SocketRole[] roles)
         {
-            await ReplyAsync("Removing roles, this might take a while...");
+            var progress = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("## Role Management\nRemoving roles from everyone…")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# This might take a while.")
+                    .WithAccentColor(0x9B59FF))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton("Browse Roles", RoleBrowserComponentIds.OpenButtonId, ButtonStyle.Primary))
+                .Build();
+
+            await ReplyAsync(components: progress, allowedMentions: AllowedMentions.None);
             foreach (var role in roles)
             {
                 foreach (var member in role.Members)

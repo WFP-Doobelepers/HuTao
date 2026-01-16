@@ -25,6 +25,8 @@ namespace HuTao.Bot.Modules.Logging;
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 {
+    private const uint AccentColor = 0x9B59FF;
+
     public enum LoggingChannelContext
     {
         Moderator,
@@ -59,7 +61,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {(config.ShowAppealOnReprimands ?? LogReprimandType.None).Humanize()}");
+        await ReplyPanelAsync(
+            "Appeal Visibility",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(config.ShowAppealOnReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Command("silent")]
@@ -80,7 +86,10 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {(rules.SilentReprimands ?? LogReprimandType.None).Humanize()}");
+        await ReplyPanelAsync(
+            "Silent Reprimands",
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(rules.SilentReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Priority(-1)]
@@ -102,24 +111,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         config.AppealMessage = message;
         await db.SaveChangesAsync();
 
-        var embed = new EmbedBuilder()
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
-
-        if (message is null)
-        {
-            embed.WithDescription("The appeal message has been successfully removed.")
-                .WithColor(Color.LightGrey)
-                .WithTitle("Appeal Message Cleared");
-        }
-        else
-        {
-            embed.WithDescription($"The appeal message has been set to: {Format.Bold(message)}")
-                .WithColor(Color.Green)
-                .WithTitle("Appeal Message Set");
-        }
-
-        var components = embed.Build().ToComponentsV2Message();
-        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+        await ReplyPanelAsync(
+            message is null ? "Appeal Message Cleared" : "Appeal Message Set",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(message is null ? "Disabled" : message.Truncate(500))}");
     }
 
     [Command("attachments")]
@@ -135,7 +131,9 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         guild.LoggingRules.UploadAttachments = reUpload ?? !guild.LoggingRules.UploadAttachments;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"Current value: {guild.LoggingRules.UploadAttachments}");
+        await ReplyPanelAsync(
+            "Re-upload Attachments",
+            $"**Current:** {guild.LoggingRules.UploadAttachments}");
     }
 
     [Command("channel")]
@@ -151,7 +149,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         config.ChannelId = channel.Id;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"Current value: {config.MentionChannel()}");
+        await ReplyPanelAsync(
+            "Moderation Log Channel",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Channel:** {config.MentionChannel()}");
     }
 
     [Command("rules")]
@@ -174,7 +176,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {(config.Options ?? ModerationLogOptions.None).Humanize()}");
+        await ReplyPanelAsync(
+            "Moderation Logging Options",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(config.Options ?? ModerationLogOptions.None).Humanize()}");
     }
 
     [Command("event")]
@@ -193,10 +199,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         var rules = guild.LoggingRules.LoggingChannels;
         await SetLoggingChannelAsync(channel, types, rules);
 
-        if (channel is not null)
-            await ReplyAsync($"Set the log events {types.Humanize()} to be sent to {channel.Mention}.");
-        else
-            await ReplyAsync($"Disabled the log events {types.Humanize()}.");
+        await ReplyPanelAsync(
+            "Log Events",
+            channel is not null
+                ? $"**Events:** {types.Humanize()}\n**Channel:** {channel.Mention}"
+                : $"**Events:** {types.Humanize()}\n**Channel:** Disabled");
     }
 
     [Command("reprimand")]
@@ -218,7 +225,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {(config.LogReprimands ?? LogReprimandType.None).Humanize()}");
+        await ReplyPanelAsync(
+            "Logged Reprimands",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(config.LogReprimands ?? LogReprimandType.None).Humanize()}");
     }
 
     [Command("status")]
@@ -240,7 +251,11 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await db.SaveChangesAsync();
         }
 
-        await ReplyAsync($"Current value: {(config.LogReprimandStatus ?? LogReprimandStatus.None).Humanize()}");
+        await ReplyPanelAsync(
+            "Logged Status",
+            $"**Context:** {context}\n" +
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(config.LogReprimandStatus ?? LogReprimandStatus.None).Humanize()}");
     }
 
     [Command("history reprimands")]
@@ -255,7 +270,10 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         rules.HistoryReprimands = type;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {(rules.HistoryReprimands is null ? "Default" : rules.HistoryReprimands.Value.Humanize())}");
+        await ReplyPanelAsync(
+            "History Reprimands",
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(rules.HistoryReprimands is null ? "Default" : rules.HistoryReprimands.Value.Humanize())}");
     }
 
     [Command("ignore duplicates")]
@@ -270,7 +288,10 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         rules.IgnoreDuplicates = state ?? !rules.IgnoreDuplicates;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {rules.IgnoreDuplicates}");
+        await ReplyPanelAsync(
+            "Ignore Duplicates",
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {rules.IgnoreDuplicates}");
     }
 
     [Command("summary reprimands")]
@@ -285,8 +306,30 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         rules.SummaryReprimands = type;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"New value: {(rules.SummaryReprimands is null ? "Default" : rules.SummaryReprimands.Value.Humanize())}");
+        await ReplyPanelAsync(
+            "Summary Reprimands",
+            $"**Scope:** {ScopeName(category)}\n" +
+            $"**Current:** {(rules.SummaryReprimands is null ? "Default" : rules.SummaryReprimands.Value.Humanize())}");
     }
+
+    private async Task ReplyPanelAsync(string title, string body)
+    {
+        var container = new ContainerBuilder()
+            .WithTextDisplay($"## {title}\n{body}".Truncate(3800))
+            .WithAccentColor(AccentColor);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton(new ButtonBuilder("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+                .WithButton(new ButtonBuilder("Logging Exclusions", "logex:open", ButtonStyle.Secondary)))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+    }
+
+    private static string ScopeName(ModerationCategory? category)
+        => category?.Name ?? "Global (Default)";
 
     private async Task SetLoggingChannelAsync<T>(
         IChannel? channel, IEnumerable<T> types,

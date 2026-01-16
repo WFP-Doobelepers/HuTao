@@ -58,7 +58,15 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
         user.DefaultCategory = category == ModerationCategory.None ? null : category;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## Reprimands\nDefault reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.")
+                .WithAccentColor(0x9B59FF))
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await RespondAsync(components: components, allowedMentions: AllowedMentions.None, ephemeral: true);
     }
 
     [SlashCommand("update", "Update a reprimand's reason.")]

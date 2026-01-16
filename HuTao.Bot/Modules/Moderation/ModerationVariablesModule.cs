@@ -19,6 +19,8 @@ namespace HuTao.Bot.Modules.Moderation;
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<ModerationVariable>
 {
+    private const uint AccentColor = 0x9B59FF;
+
     [Command("add")]
     [Summary("Add a new moderation variable.")]
     public async Task AddPermissionAsync(
@@ -40,7 +42,7 @@ public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<Mode
         var existing = rules.Variables.FirstOrDefault(v => v.Name == name);
         if (existing is not null)
         {
-            await ReplyAsync($"A variable with the name `{name}` already exists.");
+            await ReplyPanelAsync("Moderation Variables", $"A variable with the name `{name}` already exists.");
             return;
         }
 
@@ -53,9 +55,7 @@ public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<Mode
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyEmbedWithConfigButtonAsync(embed);
     }
 
     [Command]
@@ -90,5 +90,31 @@ public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<Mode
         var rules = guild.ModerationRules ??= new ModerationRules();
 
         return rules.Variables;
+    }
+
+    private async Task ReplyPanelAsync(string title, string body)
+    {
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## {title}\n{body}")
+                .WithAccentColor(AccentColor))
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+    }
+
+    private async Task ReplyEmbedWithConfigButtonAsync(Embed embed)
+    {
+        var container = embed.ToComponentsV2Container(accentColor: embed.Color?.RawValue ?? AccentColor, maxChars: 3800);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 }

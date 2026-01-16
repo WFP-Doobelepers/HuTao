@@ -78,7 +78,13 @@ public class GenshinModule
     {
         if (Codes.IsEmpty)
         {
-            await context.ReplyAsync("There are no codes available yet.", ephemeral: true);
+            var noCodesComponents = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("## Genshin Codes\nThere are no codes available yet.")
+                    .WithAccentColor(VersionColor))
+                .Build();
+
+            await context.ReplyAsync(components: noCodesComponents, ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
 
@@ -144,7 +150,13 @@ public class GenshinModule
             var permissions = user.GetPermissions(send);
             if (!permissions.Has(ChannelPermission.SendMessages))
             {
-                await context.ReplyAsync("You don't have permission to send messages in here.", ephemeral: true);
+                var noPermComponents = new ComponentBuilderV2()
+                    .WithContainer(new ContainerBuilder()
+                        .WithTextDisplay("## Genshin Codes\nYou don't have permission to send messages in that channel.")
+                        .WithAccentColor(VersionColor))
+                    .Build();
+
+                await context.ReplyAsync(components: noPermComponents, ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
@@ -654,9 +666,9 @@ public class GenshinModule
         public async Task AllowRole(IRole role)
         {
             if (AllowedRoles.Add(role.Id))
-                await ReplyAsync($"Added {role.Mention} to allowed roles.");
+                await ReplyGenshinAsync("Genshin Permissions", $"Added {role.Mention} to allowed roles.");
             else
-                await ReplyAsync($"{role.Mention} is already an allowed role.");
+                await ReplyGenshinAsync("Genshin Permissions", $"{role.Mention} is already an allowed role.");
         }
 
         [Command("genshin allow")]
@@ -665,9 +677,9 @@ public class GenshinModule
         public async Task AllowUser(IGuildUser user)
         {
             if (AllowedUsers.Add(user.Id))
-                await ReplyAsync($"Added {user.Mention} to allowed users.");
+                await ReplyGenshinAsync("Genshin Permissions", $"Added {user.Mention} to allowed users.");
             else
-                await ReplyAsync($"{user.Mention} is already an allowed user.");
+                await ReplyGenshinAsync("Genshin Permissions", $"{user.Mention} is already an allowed user.");
         }
 
         [Command("code")]
@@ -688,9 +700,9 @@ public class GenshinModule
         public async Task DisallowRole(IRole role)
         {
             if (AllowedRoles.Remove(role.Id))
-                await ReplyAsync($"Removed {role.Mention} from allowed roles.");
+                await ReplyGenshinAsync("Genshin Permissions", $"Removed {role.Mention} from allowed roles.");
             else
-                await ReplyAsync($"{role.Mention} was not an allowed role.");
+                await ReplyGenshinAsync("Genshin Permissions", $"{role.Mention} was not an allowed role.");
         }
 
         [Command("genshin disallow")]
@@ -699,9 +711,9 @@ public class GenshinModule
         public async Task DisallowUser(IGuildUser user)
         {
             if (AllowedUsers.Remove(user.Id))
-                await ReplyAsync($"Removed {user.Mention} from allowed users.");
+                await ReplyGenshinAsync("Genshin Permissions", $"Removed {user.Mention} from allowed users.");
             else
-                await ReplyAsync($"{user.Mention} was not an allowed user.");
+                await ReplyGenshinAsync("Genshin Permissions", $"{user.Mention} was not an allowed user.");
         }
 
         [Command("genshin allowed")]
@@ -739,9 +751,13 @@ public class GenshinModule
         [Alias("codes remove")]
         [RequireAllowedUserCommand]
         [Summary("Removes a code from the Genshin Impact codes list")]
-        public Task RemoveCode(string code) => Codes.TryRemove(code, out _)
-            ? ReplyCodesAsync(Context)
-            : ReplyAsync("Code not found.");
+        public async Task RemoveCode(string code)
+        {
+            if (Codes.TryRemove(code, out _))
+                await ReplyCodesAsync(Context);
+            else
+                await ReplyGenshinAsync("Genshin Codes", "Code not found.");
+        }
 
         [Command("genshin settings")]
         [RequireAllowedUserCommand]
@@ -750,6 +766,17 @@ public class GenshinModule
         {
             var components = BuildSettingsComponents();
             await ReplyAsync(components: components);
+        }
+
+        private async Task ReplyGenshinAsync(string title, string body)
+        {
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## {title}\n{body}")
+                    .WithAccentColor(VersionColor))
+                .Build();
+
+            await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
         }
     }
 

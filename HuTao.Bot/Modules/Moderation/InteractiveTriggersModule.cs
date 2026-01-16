@@ -32,6 +32,7 @@ public sealed class InteractiveTriggersModule(
 {
     private const uint AccentColor = 0x9B59FF;
 
+    private const string OpenButtonId = "trg:open";
     private const string TriggerSelectId = "trg:select";
     private const string CategorySelectId = "trg:category";
     private const string BackButtonId = "trg:back";
@@ -48,6 +49,14 @@ public sealed class InteractiveTriggersModule(
         ModerationCategory? category = null,
         [RequireEphemeralScope]
         bool ephemeral = false)
+        => await OpenPanelAsync(category, ephemeral);
+
+    [ComponentInteraction(OpenButtonId, true)]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
+    public async Task OpenFromButtonAsync()
+        => await OpenPanelAsync(category: null, ephemeral: true);
+
+    private async Task OpenPanelAsync(ModerationCategory? category, bool ephemeral)
     {
         await DeferAsync(ephemeral);
 

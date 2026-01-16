@@ -460,7 +460,17 @@ public class ModerationModule(
 
         if (template is null)
         {
-            await ReplyAsync("No template found with this name.");
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("## Moderation Template\nNo template found with this name.")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# Use the templates list to see available names.")
+                    .WithAccentColor(0x9B59FF))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+                .Build();
+
+            await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
             return;
         }
 
@@ -479,7 +489,20 @@ public class ModerationModule(
             if (result is null) failed.Add(user);
         }
 
-        if (failed.Count > 0) await ReplyAsync($"Failed to run template on {failed.Count} {failed.Humanize()}.");
+        if (failed.Count > 0)
+        {
+            var components = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## Moderation Template\nFailed to run template on {failed.Count} {failed.Humanize()}.")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# Check permissions, role hierarchy, and the template scope.")
+                    .WithAccentColor(0x9B59FF))
+                .WithActionRow(new ActionRowBuilder()
+                    .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
+                .Build();
+
+            await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+        }
     }
 
     [Command("timeout")]

@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -56,36 +55,42 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
     [Summary("Spams the user's DMs with a list of every command available.")]
     public async Task HelpDMAsync()
     {
-        var tokenSource = new CancellationTokenSource();
-        var dm = await Context.User.CreateDMChannelAsync();
-        var modules = commandHelpService
-            .GetModuleHelpData()
-            .OrderBy(x => x.Name);
-
-        foreach (var module in modules)
+        try
         {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var paginator = commandHelpService.GetPaginatorForModule(module);
-                    await interactive.SendPaginatorAsync(paginator.WithUsers(Context.User).Build(), dm,
-                        resetTimeoutOnInput: true, cancellationToken: tokenSource.Token);
-                }
-                catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
-                {
-                    tokenSource.Cancel();
-                }
-            }, tokenSource.Token);
-        }
+            var dm = await Context.User.CreateDMChannelAsync();
+            var state = HelpBrowserState.Create(commandHelpService.GetModuleHelpData(), HuTaoConfig.Configuration.Prefix);
 
-        if (tokenSource.IsCancellationRequested)
-        {
-            await ReplyAsync(
-                $"You have private messages for this server disabled, {Context.User.Mention}. Please enable them so that I can send you help.");
+            var browser = InteractiveExtensions.CreateDefaultComponentPaginator()
+                .WithUsers(Context.User)
+                .WithPageCount(state.GetPageCount())
+                .WithUserState(state)
+                .WithPageFactory(HelpBrowserRenderer.GeneratePage)
+                .Build();
+
+            await interactive.SendPaginatorAsync(browser, dm, resetTimeoutOnInput: true);
+
+            var ok = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## Help\nSent you an interactive help browser in DMs, {Context.User.Mention}.")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# Tip: use `/help` for an ephemeral version.")
+                    .WithAccentColor(0x9B59FF))
+                .Build();
+
+            await ReplyAsync(components: ok, allowedMentions: AllowedMentions.None);
         }
-        else
-            await ReplyAsync($"Check your private messages, {Context.User.Mention}.");
+        catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
+        {
+            var blocked = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay($"## Help\nI can't DM you, {Context.User.Mention}.")
+                    .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                    .WithTextDisplay("-# Enable server DMs, then try again.")
+                    .WithAccentColor(0x9B59FF))
+                .Build();
+
+            await ReplyAsync(components: blocked, allowedMentions: AllowedMentions.None);
+        }
     }
 
     [Command("module")]
@@ -100,12 +105,16 @@ public sealed class HelpModule(ICommandHelpService commandHelpService, Interacti
     {
         var sanitizedQuery = FormatUtilities.SanitizeAllMentions(query);
 
-        if (commandHelpService.TryGetPaginator(query, type, out var paginated))
-        {
-            await interactive.SendPaginatorAsync(paginated.WithUsers(Context.User).Build(), Context.Channel,
-                resetTimeoutOnInput: true);
-        }
-        else
-            await ReplyAsync($"Sorry, I couldn't find help related to \"{sanitizedQuery}\".");
+        var state = HelpBrowserState.Create(commandHelpService.GetModuleHelpData(), HuTaoConfig.Configuration.Prefix);
+        state.TryApplyQuery(sanitizedQuery, type);
+
+        var browser = InteractiveExtensions.CreateDefaultComponentPaginator()
+            .WithUsers(Context.User)
+            .WithPageCount(state.GetPageCount())
+            .WithUserState(state)
+            .WithPageFactory(HelpBrowserRenderer.GeneratePage)
+            .Build();
+
+        await interactive.SendPaginatorAsync(browser, Context.Channel, resetTimeoutOnInput: true);
     }
 }

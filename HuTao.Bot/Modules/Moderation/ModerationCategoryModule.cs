@@ -22,13 +22,15 @@ namespace HuTao.Bot.Modules.Moderation;
 public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db)
     : InteractiveEntity<ModerationCategory>
 {
+    private const uint AccentColor = 0x9B59FF;
+
     [Command("add")]
     [Summary("Add a new moderation category.")]
     public async Task AddModerationCategoryAsync(string name, ModerationCategoryOptions? options = null)
     {
         if (name.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
-            await ReplyAsync("You cannot add a moderation category with the name `all`.");
+            await ReplyPanelAsync("Moderation Categories", "You cannot add a moderation category with the name `all`.");
             return;
         }
 
@@ -37,16 +39,14 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
 
         if (collection.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
         {
-            await ReplyAsync($"A category with the name `{name}` already exists.");
+            await ReplyPanelAsync("Moderation Categories", $"A category with the name `{name}` already exists.");
             return;
         }
 
         collection.Add(category);
         await db.SaveChangesAsync();
         var embed = EntityViewer(category).WithColor(Color.Green).Build();
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyEmbedWithConfigButtonAsync(embed);
     }
 
     [Command("default")]
@@ -65,7 +65,9 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
         user.DefaultCategory = category == ModerationCategory.None ? null : category;
         await db.SaveChangesAsync();
 
-        await ReplyAsync($"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
+        await ReplyPanelAsync(
+            "Moderation Categories",
+            $"Default reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.");
     }
 
     [Command("remove")]
@@ -86,6 +88,34 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ModerationCategories;
+    }
+
+    private async Task ReplyPanelAsync(string title, string body)
+    {
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay($"## {title}\n{body}")
+                .WithAccentColor(AccentColor))
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary)
+                .WithButton("Open Triggers", "trg:open", ButtonStyle.Secondary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+    }
+
+    private async Task ReplyEmbedWithConfigButtonAsync(Embed embed)
+    {
+        var container = embed.ToComponentsV2Container(accentColor: embed.Color?.RawValue ?? AccentColor, maxChars: 3800);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary)
+                .WithButton("Open Triggers", "trg:open", ButtonStyle.Secondary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

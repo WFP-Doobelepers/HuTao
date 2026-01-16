@@ -2,11 +2,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.Core.Preconditions.Commands;
+using HuTao.Services.VoiceChat;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +19,8 @@ namespace HuTao.Bot.Modules;
 [Summary("Commands to manage voice chats.")]
 public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 {
+    private const uint AccentColor = 0x9B59FF;
+
     [Command("ban")]
     [Summary("Ban someone from your current VC.")]
     public async Task BanAsync(IGuildUser user)
@@ -37,14 +41,10 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             await textChannel.AddPermissionOverwriteAsync(user,
                 OverwritePermissions.DenyAll(textChannel));
 
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithDescription("User has been banned from the channel.")
-                .WithColor(Color.DarkRed);
-
-            await ReplyAsync(
-                components: embed.Build().ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyPanelAsync(
+                "User banned",
+                $"{user.Mention} has been banned from this voice chat.",
+                Color.DarkRed.RawValue);
         }
     }
 
@@ -60,14 +60,14 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 
         if (voiceChat.UserId == Context.User.Id)
         {
-            await ReplyAsync("You already are the owner of the VC.");
+            await ReplyPanelAsync("Voice Chat", "You already are the owner of this voice chat.");
             return;
         }
 
         var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
         if (voiceChannel.Users.Any(u => u.Id == voiceChat.UserId))
         {
-            await ReplyAsync("You cannot claim this VC.");
+            await ReplyPanelAsync("Voice Chat", "You cannot claim this voice chat right now.");
             return;
         }
 
@@ -79,7 +79,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         voiceChat.UserId = Context.User.Id;
         await db.SaveChangesAsync();
 
-        await ReplyAsync("VC successfully claimed.");
+        await ReplyPanelAsync("Voice Chat", "Voice chat successfully claimed.");
     }
 
     [Command("clean")]
@@ -109,7 +109,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         }
 
         await db.SaveChangesAsync();
-        await ReplyAsync($"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.");
+        await ReplyPanelAsync("Voice Chat Cleanup", $"Cleaned {Format.Bold(voiceChats.Count + " channel(s)")}.", AccentColor);
     }
 
     [Command("hide")]
@@ -126,7 +126,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
             new OverwritePermissions(viewChannel: PermValue.Deny));
 
-        await ReplyAsync("VC hidden.");
+        await ReplyPanelAsync("Voice Chat", "Voice chat hidden.");
     }
 
     [Command("kick")]
@@ -142,14 +142,10 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
         {
             await user.ModifyAsync(u => u.Channel = null);
-            var embed = new EmbedBuilder()
-                .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-                .WithDescription("User has been kicked from the channel.")
-                .WithColor(Color.LightOrange);
-
-            await ReplyAsync(
-                components: embed.Build().ToComponentsV2Message(),
-                allowedMentions: AllowedMentions.None);
+            await ReplyPanelAsync(
+                "User kicked",
+                $"{user.Mention} has been kicked from this voice chat.",
+                Color.LightOrange.RawValue);
         }
     }
 
@@ -167,9 +163,9 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         await channel.ModifyAsync(c => c.UserLimit = new Optional<int?>((int?) limit));
 
         if (limit is null)
-            await ReplyAsync("Voice user limit reset.");
+            await ReplyPanelAsync("Voice Chat", "Voice user limit reset.");
         else
-            await ReplyAsync($"User limit set to {Format.Bold(limit + " user(s)")}.");
+            await ReplyPanelAsync("Voice Chat", $"User limit set to {Format.Bold(limit + " user(s)")}.", AccentColor);
     }
 
     [Command("lock")]
@@ -188,8 +184,10 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
 
-        await ReplyAsync("Voice chat locked successfully. " +
-            $"Use {Format.Code(HuTaoConfig.Configuration.Prefix + "voice unlock")} to unlock.");
+        await ReplyPanelAsync(
+            "Voice Chat",
+            "Voice chat locked.\n" +
+            $"-# Use {Format.Code(HuTaoConfig.Configuration.Prefix + "voice unlock")} or the panel to unlock.");
     }
 
     [Command("owner")]
@@ -203,7 +201,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             return;
 
         var owner = Context.Guild.GetUser(voiceChat.UserId);
-        await ReplyAsync($"The current owner is {Format.Bold(owner.GetFullUsername())}.");
+        await ReplyPanelAsync("Voice Chat", $"The current owner is {Format.Bold(owner.GetFullUsername())}.");
     }
 
     [Command("reveal")]
@@ -220,7 +218,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         var overwrite = new OverwritePermissions(viewChannel: PermValue.Inherit);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
-        await ReplyAsync("Voice chat revealed.");
+        await ReplyPanelAsync("Voice Chat", "Voice chat revealed.");
     }
 
     [Command("transfer")]
@@ -239,13 +237,13 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         var canManage = Context.User is IGuildUser current && current.GetPermissions(voiceChannel).ManageChannel;
         if (voiceChat.Owner.Id != Context.User.Id && !canManage)
         {
-            await ReplyAsync("You are not the owner of the VC.");
+            await ReplyPanelAsync("Voice Chat", "You are not the owner of this voice chat.");
             return;
         }
 
         if (voiceChat.Owner.Id == user.Id)
         {
-            await ReplyAsync("You already are the owner of the VC.");
+            await ReplyPanelAsync("Voice Chat", "That user is already the owner.");
             return;
         }
 
@@ -257,9 +255,10 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         voiceChat.UserId = user.Id;
         await db.SaveChangesAsync();
 
-        await ReplyAsync(
-            "Voice chat ownership successfully transferred " +
-            $"to {Format.Bold(user.GetFullUsername())}.");
+        await ReplyPanelAsync(
+            "Voice Chat",
+            $"Ownership transferred to {Format.Bold(user.GetFullUsername())}.",
+            AccentColor);
     }
 
     [Command("unban")]
@@ -275,14 +274,13 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         var voiceChannel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
         await voiceChannel.RemovePermissionOverwriteAsync(user);
 
-        var embed = new EmbedBuilder()
-            .WithUserAsAuthor(user, AuthorOptions.IncludeId | AuthorOptions.UseThumbnail)
-            .WithDescription("User has been unbanned from the channel.")
-            .WithColor(Color.Blue);
+        var textChannel = (IGuildChannel)Context.Channel;
+        await textChannel.RemovePermissionOverwriteAsync(user);
 
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        await ReplyPanelAsync(
+            "User unbanned",
+            $"{user.Mention} has been unbanned from this voice chat.",
+            Color.Blue.RawValue);
     }
 
     [Command("unlock")]
@@ -301,6 +299,21 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             ?? new OverwritePermissions(connect: PermValue.Inherit);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
-        await ReplyAsync("Voice chat unlocked successfully.");
+        await ReplyPanelAsync("Voice Chat", "Voice chat unlocked.");
+    }
+
+    private async Task ReplyPanelAsync(string title, string body, uint? accentColor = null)
+    {
+        var container = new ContainerBuilder()
+            .WithTextDisplay($"## {title}\n{body}".Truncate(3200))
+            .WithAccentColor(accentColor ?? AccentColor);
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton("Open Voice Panel", VoiceChatPanelComponentIds.OpenButtonId, ButtonStyle.Primary))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 }

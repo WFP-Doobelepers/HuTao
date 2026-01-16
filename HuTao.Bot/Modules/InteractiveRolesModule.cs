@@ -15,8 +15,6 @@ namespace HuTao.Bot.Modules;
 public sealed class InteractiveRolesModule(InteractiveService interactive)
     : InteractionModuleBase<SocketInteractionContext>
 {
-    private const string OpenButtonId = "roles:open";
-
     [SlashCommand("roles", "Browse server roles interactively.")]
     public async Task RolesAsync([RequireEphemeralScope] bool ephemeral = false)
     {
@@ -40,7 +38,7 @@ public sealed class InteractiveRolesModule(InteractiveService interactive)
             responseType: InteractionResponseType.DeferredChannelMessageWithSource);
     }
 
-    [ComponentInteraction(OpenButtonId, true)]
+    [ComponentInteraction(RoleBrowserComponentIds.OpenButtonId, true)]
     public async Task OpenFromButtonAsync()
     {
         await DeferAsync(ephemeral: true);

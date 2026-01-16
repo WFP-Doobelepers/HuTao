@@ -41,7 +41,13 @@ public class GenshinRegisterModule(IMemoryCache cache, InteractionService comman
         await commands.AddModulesToGuildAsync(Context.Guild, false, modules);
         cache.Set($"{nameof(LibenModule)}.Channel.{Context.Guild.Id}", channel ?? Context.Channel as ITextChannel);
 
-        await ReplyAsync("Registered commands");
+        var components = new ComponentBuilderV2()
+            .WithContainer(new ContainerBuilder()
+                .WithTextDisplay("## Liben\nRegistered commands.")
+                .WithAccentColor(0x9B59FF))
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 }
 
@@ -485,7 +491,7 @@ public class LibenModule(
                     .ToString()
                     .Trim();
 
-                container.WithSection(new SectionBuilder().WithTextDisplay(text));
+                container.WithTextDisplay(text);
 
                 if (i < pageItems.Count - 1)
                     container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
