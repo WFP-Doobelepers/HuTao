@@ -171,7 +171,9 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
         await db.SaveChangesAsync();
 
         var embed = EntityViewer(trigger).WithColor(Color.Green);
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using Discord;
 using Discord.Commands;
 using Fergun.Interactive;
 using Fergun.Interactive.Pagination;
+using Humanizer;
 using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 
@@ -16,7 +18,7 @@ namespace HuTao.Services.CommandHelp;
 /// </summary>
 public interface ICommandHelpService
 {
-    bool TryGetEmbed(string query, HelpDataType queries, out StaticPaginatorBuilder embed);
+    bool TryGetPaginator(string query, HelpDataType queries, out ComponentPaginatorBuilder paginator);
 
     /// <summary>
     ///     Retrieves command help data for the supplied query.
@@ -50,15 +52,20 @@ public interface ICommandHelpService
     ///     Retrieves an embed from a <see cref="CommandHelpData" />.
     /// </summary>
     /// <param name="command">The command's help data.</param>
-    /// <returns>An <see cref="EmbedBuilder" /> that contains information for the command.</returns>
-    StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command);
+    /// <returns>A component paginator builder that contains information for the command.</returns>
+    ComponentPaginatorBuilder GetPaginatorForCommand(CommandHelpData command);
 
     /// <summary>
     ///     Retrieves an embed from a <see cref="ModuleHelpData" />
     /// </summary>
     /// <param name="module">The module's help data.</param>
-    /// <returns>An <see cref="EmbedBuilder" /> that contains information for the module.</returns>
-    StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module);
+    /// <returns>A component paginator builder that contains information for the module.</returns>
+    ComponentPaginatorBuilder GetPaginatorForModule(ModuleHelpData module);
+
+    /// <summary>
+    ///     Builds a single Components V2 help message for a module (static, no paginator controls).
+    /// </summary>
+    MessageComponent GetComponentsForModule(ModuleHelpData module, int pageSize = 8);
 }
 
 /// <inheritdoc />
@@ -66,7 +73,7 @@ internal class CommandHelpService(CommandService commandService) : ICommandHelpS
 {
     private IReadOnlyCollection<ModuleHelpData> _cachedHelpData = null!;
 
-    public bool TryGetEmbed(string query, HelpDataType queries, out StaticPaginatorBuilder message)
+    public bool TryGetPaginator(string query, HelpDataType queries, out ComponentPaginatorBuilder message)
     {
         message = null!;
 
@@ -76,7 +83,7 @@ internal class CommandHelpService(CommandService commandService) : ICommandHelpS
             var byModule = GetModuleHelpData(query);
             if (byModule is not null)
             {
-                message = GetEmbedForModule(byModule);
+                message = GetPaginatorForModule(byModule);
                 return true;
             }
         }
@@ -86,7 +93,7 @@ internal class CommandHelpService(CommandService commandService) : ICommandHelpS
             var byCommand = GetCommandHelpData(query);
             if (byCommand is not null)
             {
-                message = GetEmbedForCommand(byCommand);
+                message = GetPaginatorForCommand(byCommand);
                 return true;
             }
         }
@@ -148,37 +155,127 @@ internal class CommandHelpService(CommandService commandService) : ICommandHelpS
         return null;
     }
 
-    public StaticPaginatorBuilder GetEmbedForCommand(CommandHelpData command)
+    public ComponentPaginatorBuilder GetPaginatorForCommand(CommandHelpData command)
     {
-        var embed = command.ToEmbedBuilder();
-        var builder = new MultiEmbedPageBuilder().AddBuilder(embed);
+        const uint accentColor = 0x9B59FF;
+        var embed = command.ToEmbedBuilder().Build();
+        var text = embed.ToComponentsV2Text(maxChars: 3800);
 
-        return InteractiveExtensions.CreateDefaultPaginator().WithPages(builder);
+        return InteractiveExtensions.CreateDefaultComponentPaginator()
+            .WithPageCount(1)
+            .WithPageFactory(p =>
+            {
+                var container = new ContainerBuilder()
+                    .WithTextDisplay(text)
+                    .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+                    .WithActionRow(new ActionRowBuilder()
+                        .AddStopButton(p, "Close", ButtonStyle.Danger))
+                    .WithAccentColor(accentColor);
+
+                var components = new ComponentBuilderV2().WithContainer(container).Build();
+                return new PageBuilder().WithComponents(components).Build();
+            });
     }
 
-    public StaticPaginatorBuilder GetEmbedForModule(ModuleHelpData module)
+    public ComponentPaginatorBuilder GetPaginatorForModule(ModuleHelpData module)
     {
-        var paginator = InteractiveExtensions.CreateDefaultPaginator();
+        const int pageSize = 6;
+        var prefix = HuTao.Data.Config.HuTaoConfig.Configuration.Prefix;
+        var commands = module.Commands
+            .OrderBy(c => c.Aliases.FirstOrDefault() ?? c.Name)
+            .ToList();
 
-        var builders = module.Commands
-            .Select(c => c.ToEmbedBuilder())
-            .Prepend(new EmbedBuilder()
-                .WithTitle($"Module: {module.Name}")
-                .WithDescription(module.Summary));
+        var pageCount = Math.Max(1, (int)Math.Ceiling((double)commands.Count / pageSize));
 
-        var pages = new List<MultiEmbedPageBuilder>();
-        var page = pages.Insert(new MultiEmbedPageBuilder());
+        return InteractiveExtensions.CreateDefaultComponentPaginator()
+            .WithPageCount(pageCount)
+            .WithPageFactory(p => BuildModuleHelpPage(p, module, commands, pageSize, prefix));
+    }
 
-        foreach (var builder in builders)
+    public MessageComponent GetComponentsForModule(ModuleHelpData module, int pageSize = 8)
+    {
+        const uint accentColor = 0x9B59FF;
+        var prefix = HuTao.Data.Config.HuTaoConfig.Configuration.Prefix;
+        var commands = module.Commands
+            .OrderBy(c => c.Aliases.FirstOrDefault() ?? c.Name)
+            .Take(Math.Max(1, pageSize))
+            .ToList();
+
+        var container = BuildModuleContainer(module, commands, prefix)
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay($"-# Tip: use {Format.Code($"{prefix}help command <name>")} for full command details")
+            .WithAccentColor(accentColor);
+
+        return new ComponentBuilderV2().WithContainer(container).Build();
+    }
+
+    private static IPage BuildModuleHelpPage(
+        IComponentPaginator p,
+        ModuleHelpData module,
+        IReadOnlyList<CommandHelpData> commands,
+        int pageSize,
+        string prefix)
+    {
+        const uint accentColor = 0x9B59FF;
+
+        var pageCommands = commands
+            .Skip(p.CurrentPageIndex * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var container = BuildModuleContainer(module, pageCommands, prefix)
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+            .WithActionRow(new ActionRowBuilder()
+                .AddPreviousButton(p, "◀", ButtonStyle.Secondary)
+                .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
+                .AddNextButton(p, "▶", ButtonStyle.Secondary)
+                .AddStopButton(p, "Close", ButtonStyle.Danger))
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay($"-# Page {p.CurrentPageIndex + 1} of {p.PageCount} • Use {Format.Code($"{prefix}help command <name>")} for full details")
+            .WithAccentColor(accentColor);
+
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+        return new PageBuilder().WithComponents(components).Build();
+    }
+
+    private static ContainerBuilder BuildModuleContainer(
+        ModuleHelpData module,
+        IReadOnlyList<CommandHelpData> commands,
+        string prefix)
+    {
+        const int maxSummaryChars = 220;
+        var container = new ContainerBuilder()
+            .WithTextDisplay($"## Module: {module.Name}\n{module.Summary ?? "No summary."}")
+            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+        for (var i = 0; i < commands.Count; i++)
         {
-            var length = page.Builders.Sum(b => b.Length) + builder.Length;
-            if (length > EmbedBuilder.MaxEmbedLength || page.Builders.Count >= 10)
-                page = pages.Insert(new MultiEmbedPageBuilder().AddBuilder(builder));
-            else
-                page.AddBuilder(builder);
+            var command = commands[i];
+            var name = command.Aliases.FirstOrDefault() ?? command.Name;
+            var summary = (command.Summary ?? "No summary.").Truncate(maxSummaryChars);
+
+            var aliases = command.Aliases
+                .Where(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(6)
+                .ToList();
+
+            var text = new StringBuilder()
+                .AppendLine($"### {prefix}{name}")
+                .AppendLine(summary)
+                .AppendLine(aliases.Count != 0
+                    ? $"-# Aliases: {string.Join(", ", aliases.Select(a => Format.Code(a)))}"
+                    : "-# ")
+                .ToString()
+                .Trim();
+
+            container.WithSection(new SectionBuilder().WithTextDisplay(text));
+
+            if (i < commands.Count - 1)
+                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
         }
 
-        return paginator.WithPages(pages);
+        return container;
     }
 }
 

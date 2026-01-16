@@ -25,7 +25,6 @@ public class ScriptExecutionContext(string code)
         "Discord.Webhook",
         "Discord.WebSocket",
         "Humanizer",
-        "Humanizer.Localisation",
         "Microsoft.Extensions.DependencyInjection",
         "Newtonsoft.Json",
         "Newtonsoft.Json.Linq",

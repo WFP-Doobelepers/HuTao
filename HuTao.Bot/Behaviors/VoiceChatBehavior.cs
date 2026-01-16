@@ -81,10 +81,11 @@ public class VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
                 var deny = new OverwritePermissions(viewChannel: PermValue.Deny);
                 await chat.AddPermissionOverwriteAsync(guild.EveryoneRole, deny);
 
-                if (commandHelp.TryGetEmbed("voice", HelpDataType.Module, out var paginated))
+                var voiceHelp = commandHelp.GetModuleHelpData("voice");
+                if (voiceHelp is not null)
                 {
-                    var embed = await paginated.Build().GetOrLoadCurrentPageAsync();
-                    var message = await chat.SendMessageAsync(embeds: embed.GetEmbedArray());
+                    var components = commandHelp.GetComponentsForModule(voiceHelp);
+                    var message = await chat.SendMessageAsync(components: components);
 
                     await message.PinAsync();
                 }

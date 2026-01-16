@@ -115,7 +115,9 @@ public class LinkedCommandModule(HuTaoContext db, CommandService commands, Linke
             .WithColor(Color.Green)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

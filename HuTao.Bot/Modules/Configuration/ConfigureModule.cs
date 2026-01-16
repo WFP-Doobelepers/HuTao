@@ -273,7 +273,9 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
             .AddField("Show Join-Leave: ", guild.VoiceChatRules.ShowJoinLeave)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command]
@@ -355,7 +357,18 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
                 .Build());
         }
 
-        await ReplyAsync(embeds: embeds.ToArray());
+        const uint defaultAccentColor = 0x9B59FF;
+        var componentBuilder = new ComponentBuilderV2();
+        foreach (var embed in embeds)
+        {
+            componentBuilder.WithContainer(new ContainerBuilder()
+                .WithSection(embed.ToComponentsV2Section(maxChars: 3800))
+                .WithAccentColor(embed.Color?.RawValue ?? defaultAccentColor));
+        }
+
+        await ReplyAsync(
+            components: componentBuilder.Build(),
+            allowedMentions: AllowedMentions.None);
 
         static EmbedFieldBuilder Config<T>(string name, T? current, T template) where T : ModerationLogConfig
         {

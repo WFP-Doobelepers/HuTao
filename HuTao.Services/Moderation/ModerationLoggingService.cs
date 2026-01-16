@@ -47,7 +47,6 @@ public class ModerationLoggingService(HuTaoContext db)
         CancellationToken cancellationToken = default)
     {
         var reprimand = result.Last;
-        var buttons = reprimand.ToComponentBuilder().Build();
         var guild = await reprimand.GetGuildAsync(db, cancellationToken);
 
         var commandLog = GetConfig(r => r?.CommandLog, DefaultCommandLogConfig);
@@ -80,12 +79,13 @@ public class ModerationLoggingService(HuTaoContext db)
                 && details.Context?.Channel.Id == config.ChannelId) return;
 
             var text = await details.Guild.GetTextChannelAsync(config.ChannelId);
-            await PublishToChannelAsync(text, config, buttons);
+            await PublishToChannelAsync(text, config, includeActions: true);
         }
 
         async Task<bool> PublishToContextAsync(Context context, LogConfig<ModerationLogConfig> config)
         {
-            var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
+            var embed = (await CreateEmbedAsync(result, details, config, cancellationToken)).Build();
+            var components = BuildLogComponents(embed, includeActions: true);
             try
             {
                 if (context is InteractionContext
@@ -93,27 +93,28 @@ public class ModerationLoggingService(HuTaoContext db)
                         Interaction: IComponentInteraction or IModalInteraction
                     } interaction)
                 {
-                    var modalComponents = reprimand.ToComponentBuilder(details.Ephemeral).Build();
                     if (details.Modify)
                     {
                         await interaction.ModifyOriginalResponseAsync(m =>
                         {
-                            m.Embed      = embed.Build();
-                            m.Components = modalComponents;
+                            m.Components = components;
+                            m.Embeds = Array.Empty<Embed>();
                         });
                     }
                     else
                     {
                         await interaction.FollowupAsync(
-                            embed: embed.Build(),
-                            components: modalComponents,
+                            components: components,
                             ephemeral: details.Ephemeral);
                     }
 
                     return !details.Ephemeral;
                 }
 
-                await context.ReplyAsync(embed: embed.Build(), ephemeral: details.Ephemeral, components: buttons);
+                await context.ReplyAsync(
+                    components: components,
+                    ephemeral: details.Ephemeral,
+                    allowedMentions: AllowedMentions.None);
                 return !(context is InteractionContext && details.Ephemeral);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
@@ -129,7 +130,7 @@ public class ModerationLoggingService(HuTaoContext db)
         {
             try
             {
-                await PublishToChannelAsync(await user.CreateDMChannelAsync(), config);
+                await PublishToChannelAsync(await user.CreateDMChannelAsync(), config, includeActions: false);
             }
             catch (HttpException e)
             {
@@ -142,13 +143,14 @@ public class ModerationLoggingService(HuTaoContext db)
 
         async Task PublishToChannelAsync<T>(
             IMessageChannel? channel, LogConfig<T> config,
-            MessageComponent? components = null) where T : ModerationLogConfig
+            bool includeActions) where T : ModerationLogConfig
         {
             try
             {
                 if (channel is null) return;
-                var embed = await CreateEmbedAsync(result, details, config, cancellationToken);
-                await channel.SendMessageAsync(embed: embed.Build(), components: components);
+                var embed = (await CreateEmbedAsync(result, details, config, cancellationToken)).Build();
+                var components = BuildLogComponents(embed, includeActions);
+                await channel.SendMessageAsync(components: components, allowedMentions: AllowedMentions.None);
             }
             catch (HttpException e) when (e.HttpCode is HttpStatusCode.Forbidden)
             {
@@ -157,6 +159,33 @@ public class ModerationLoggingService(HuTaoContext db)
                     .AppendLine($"Could not publish reprimand for {channel}.")
                     .AppendLine(e.Message).ToString(), ephemeral: true);
             }
+        }
+
+        MessageComponent BuildLogComponents(Embed embed, bool includeActions)
+        {
+            const uint defaultAccentColor = 0x9B59FF;
+            var accent = embed.Color?.RawValue ?? defaultAccentColor;
+
+            var container = new ContainerBuilder()
+                .WithSection(embed.ToComponentsV2Section(maxChars: 3800))
+                .WithAccentColor(accent);
+
+            var builder = new ComponentBuilderV2()
+                .WithContainer(container);
+
+            if (!includeActions)
+                return builder.Build();
+
+            var actions = new ActionRowBuilder()
+                .WithButton(new ButtonBuilder("Update", $"reprimand-update:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Secondary));
+
+            if (reprimand is ExpirableReprimand && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated)
+                actions.WithButton(new ButtonBuilder("Pardon", $"reprimand-pardon:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Secondary));
+
+            actions.WithButton(new ButtonBuilder("Delete", $"reprimand-delete:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Danger));
+
+            builder.WithActionRow(actions);
+            return builder.Build();
         }
     }
 

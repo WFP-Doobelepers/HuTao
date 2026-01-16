@@ -187,10 +187,32 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
     private static async Task PublishLogAsync(EmbedLog? log, IMessageChannel? channel)
     {
         if (log is null || channel is null) return;
-        var message = await channel.SendFilesAsync(log.Attachments, embeds: log.Embeds.Take(10).ToArray());
-        foreach (var chunk in log.Embeds.Skip(10).Chunk(10))
+
+        var embeds = log.Embeds.ToList();
+        if (embeds.Count == 0)
+            return;
+
+        var message = await channel.SendFilesAsync(
+            log.Attachments,
+            components: BuildComponents(embeds.Take(10)),
+            allowedMentions: AllowedMentions.None);
+
+        foreach (var chunk in embeds.Skip(10).Chunk(10))
         {
-            await message.ReplyAsync(embeds: chunk.ToArray());
+            await message.ReplyAsync(
+                components: BuildComponents(chunk),
+                allowedMentions: AllowedMentions.None);
+        }
+
+        static MessageComponent BuildComponents(IEnumerable<Embed> embeds)
+        {
+            var builder = new ComponentBuilderV2();
+            foreach (var embed in embeds)
+            {
+                builder.WithContainer(embed.ToComponentsV2Container());
+            }
+
+            return builder.Build();
         }
     }
 

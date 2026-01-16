@@ -41,7 +41,9 @@ public class LoggingExclusionsModule(HuTaoContext db) : InteractiveEntity<Criter
             .AddField("Excluded: ", exclusions.ToCriteria().Humanize())
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("include")]

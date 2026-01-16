@@ -34,10 +34,42 @@ public static class MessageTemplateExtensions
                 : EmbedBuilderOptions.None));
 
     public static Task<IUserMessage> SendMessageAsync(this MessageTemplate template, IMessageChannel channel)
-        => channel.SendMessageAsync(template.Content,
-            allowedMentions: template.AllowMentions ? AllowedMentions.All : AllowedMentions.None,
-            embeds: template.GetEmbedBuilders().Select(e => e.Build()).ToArray(),
-            components: template.Components.ToBuilder().Build());
+    {
+        var allowedMentions = template.AllowMentions ? AllowedMentions.All : AllowedMentions.None;
+        var flags = template.SuppressEmbeds ? MessageFlags.SuppressEmbeds : MessageFlags.None;
+
+        var embeds = template.GetEmbedBuilders()
+            .Select(e => e.Build())
+            .ToList();
+
+        const uint defaultAccentColor = 0x9B59FF;
+        var builder = new ComponentBuilderV2();
+
+        if (!string.IsNullOrWhiteSpace(template.Content))
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay(template.Content)
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        foreach (var embed in embeds)
+            builder.WithContainer(embed.ToComponentsV2Container());
+
+        foreach (var row in template.Components.ToActionRowBuilders())
+            builder.WithActionRow(row);
+
+        if (string.IsNullOrWhiteSpace(template.Content) && embeds.Count == 0)
+        {
+            builder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("-# (empty template)")
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        return channel.SendMessageAsync(
+            allowedMentions: allowedMentions,
+            components: builder.Build(),
+            flags: flags);
+    }
 
     internal static async Task UpdateAsync(this DbContext db, MessageTemplate template, IGuild guild)
     {

@@ -36,8 +36,47 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         [Summary("Leave empty to show all roles.")]
         params SocketRole[] roles)
     {
-        var embeds = roles.Select(ViewRoleInfoAsync);
-        await ReplyAsync(embeds: embeds.Select(e => e.Build()).ToArray());
+        const uint defaultAccentColor = 0x9B59FF;
+
+        if (roles.Length == 0)
+        {
+            var top = Context.Guild.Roles
+                .OrderByDescending(r => r.Position)
+                .Take(50)
+                .ToList();
+
+            var list = string.Join("\n", top.Select(r => $"- {r.Mention} (`{r.Id}`)"));
+
+            var container = new ContainerBuilder()
+                .WithTextDisplay(
+                    $"## Roles ({Context.Guild.Roles.Count})\n" +
+                    $"{list}\n" +
+                    $"-# Showing first {top.Count} roles")
+                .WithAccentColor(defaultAccentColor);
+
+            await ReplyAsync(
+                components: new ComponentBuilderV2().WithContainer(container).Build(),
+                allowedMentions: AllowedMentions.None);
+            return;
+        }
+
+        var embeds = roles
+            .Take(10)
+            .Select(ViewRoleInfoAsync)
+            .Select(e => e.Build())
+            .ToList();
+
+        var componentBuilder = new ComponentBuilderV2();
+        foreach (var embed in embeds)
+        {
+            componentBuilder.WithContainer(new ContainerBuilder()
+                .WithSection(embed.ToComponentsV2Section(maxChars: 3800))
+                .WithAccentColor(embed.Color?.RawValue ?? defaultAccentColor));
+        }
+
+        await ReplyAsync(
+            components: componentBuilder.Build(),
+            allowedMentions: AllowedMentions.None);
     }
 
     private EmbedBuilder ViewRoleInfoAsync(SocketRole role)
@@ -79,7 +118,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                     $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to {user.Mention}.")
                 .WithColor(Color.Green);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("add everyone")]
@@ -106,7 +147,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                     $"Added {roles.OrderByDescending(r => r.Position).Humanize(x => x.Mention)} to everyone.")
                 .WithColor(Color.Green);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("temporary add")]
@@ -122,7 +165,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                     .ToString())
                 .WithColor(Color.Green);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("color")]
@@ -138,7 +183,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .WithDescription("Color changed successfully")
                 .WithColor(color);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("create")]
@@ -160,7 +207,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .AddField("Color", role.Color, true)
                 .AddItemsIntoFields("Permissions", permissions, ", ");
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("delete")]
@@ -176,7 +225,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .WithDescription($"Deleted the following role(s): {Format.Bold(roles.Humanize())} from the guild.")
                 .WithColor(Color.DarkRed);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("remove")]
@@ -189,7 +240,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .WithDescription($"Removed {Format.Bold(roles.Humanize())} from {user.Mention}.")
                 .WithColor(Color.DarkRed);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("remove everyone")]
@@ -216,7 +269,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .WithDescription($"Removed {Format.Bold(roles.Humanize())} from everyone.")
                 .WithColor(Color.DarkRed);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("temporary convert")]
@@ -235,7 +290,9 @@ public class RoleModule : ModuleBase<SocketCommandContext>
                 .WithCurrentTimestamp()
                 .WithUserAsAuthor(Context.Message.Author, AuthorOptions.Requested | AuthorOptions.UseFooter);
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
 
         [Command("temporary create")]

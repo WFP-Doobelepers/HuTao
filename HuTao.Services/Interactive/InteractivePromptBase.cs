@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -49,20 +50,50 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
         string content,
         IUserMessage? message, PromptOptions? promptOptions)
     {
-        var embed = new EmbedBuilder()
-            .WithUserAsAuthor(Context.User)
-            .WithDescription(content)
-            .WithColor(promptOptions?.Color ??
-                await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl())))
-            .WithFields(promptOptions?.Fields ?? []);
+        var accent = (promptOptions?.Color ??
+            await ImageService.GetDominantColorAsync(new Uri(Context.User.GetDefiniteAvatarUrl()))).RawValue;
+
+        var container = new ContainerBuilder()
+            .WithAccentColor(accent);
+
+        var avatarUrl = Context.User.GetDisplayAvatarUrl(size: 128) ?? Context.User.GetDefiniteAvatarUrl();
+        var header = new SectionBuilder()
+            .WithTextDisplay($"## Prompt\n{content}")
+            .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(avatarUrl)));
+
+        container.WithSection(header);
+
+        var fields = (promptOptions?.Fields ?? []).ToList();
+        if (fields.Count > 0)
+        {
+            var fieldText = string.Join("\n\n", fields.Select(f => $"**{f.Name}**\n{f.Value}"));
+            container
+                .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small)
+                .WithTextDisplay(fieldText);
+        }
 
         if (!promptOptions?.IsRequired ?? false)
-            embed.WithFooter($"Reply '{Optional.SkipString}' if you don't need this.");
+        {
+            container
+                .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+                .WithTextDisplay($"-# Reply '{Optional.SkipString}' if you don't need this.");
+        }
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .Build();
 
         if (message is null)
-            return await ReplyAsync(embed: embed.Build());
+        {
+            return await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
+        }
 
-        await message.ModifyAsync(msg => msg.Embed = embed.Build());
+        await message.ModifyAsync(msg =>
+        {
+            msg.Components = components;
+            msg.Embeds = Array.Empty<Embed>();
+        });
+
         return message;
     }
 }

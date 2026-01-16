@@ -48,8 +48,14 @@ public class ModerationVariablesModule(HuTaoContext db) : InteractiveEntity<Mode
         rules.Variables.Add(variable);
 
         await db.SaveChangesAsync();
-        await ReplyAsync(embed: EntityViewer(variable).WithColor(Color.Green)
-            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested).Build());
+        var embed = EntityViewer(variable)
+            .WithColor(Color.Green)
+            .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command]

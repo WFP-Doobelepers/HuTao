@@ -176,6 +176,8 @@ public class LinkedCommandService(
         var roleTemplates = command.Roles.ToArray();
 
         var flags = template?.SuppressEmbeds ?? false ? MessageFlags.SuppressEmbeds : MessageFlags.None;
+        var allowedMentions = template?.AllowMentions ?? false ? AllowedMentions.All : AllowedMentions.None;
+        const uint defaultAccentColor = 0x9B59FF;
         if (command.UserOptions.HasFlag(UserTargetOptions.DmUser))
         {
             foreach (var user in users)
@@ -186,9 +188,37 @@ public class LinkedCommandService(
                 try
                 {
                     await dm.SendMessageAsync($"This message was sent from {context.Guild.Name}.");
-                    await dm.SendMessageAsync(template?.Content, flags: flags,
-                        components: template?.Components.ToBuilder().Build(),
-                        embeds: embeds.Concat(roles).Select(e => e.Build()).ToArray());
+
+                    var builtEmbeds = embeds.Concat(roles).Select(e => e.Build()).ToList();
+                    var builder = new ComponentBuilderV2();
+
+                    if (!string.IsNullOrWhiteSpace(template?.Content))
+                    {
+                        builder.WithContainer(new ContainerBuilder()
+                            .WithTextDisplay(template.Content)
+                            .WithAccentColor(defaultAccentColor));
+                    }
+
+                    foreach (var embed in builtEmbeds)
+                        builder.WithContainer(embed.ToComponentsV2Container());
+
+                    if (template is not null)
+                    {
+                        foreach (var row in template.Components.ToActionRowBuilders())
+                            builder.WithActionRow(row);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(template?.Content) && builtEmbeds.Count == 0)
+                    {
+                        builder.WithContainer(new ContainerBuilder()
+                            .WithTextDisplay("-# (empty template)")
+                            .WithAccentColor(defaultAccentColor));
+                    }
+
+                    await dm.SendMessageAsync(
+                        components: builder.Build(),
+                        allowedMentions: allowedMentions,
+                        flags: flags);
                 }
                 catch (HttpException e) when (e.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
                 {
@@ -202,10 +232,37 @@ public class LinkedCommandService(
             embeds.AddRange(await roles.ToListAsync());
         }
 
-        await context.ReplyAsync(template?.Content,
-            components: template?.Components.ToBuilder().Build(),
-            embeds: embeds.Select(e => e.Build()).ToArray(),
-            flags: flags, ephemeral: command.Ephemeral);
+        var built = embeds.Select(e => e.Build()).ToList();
+        var componentBuilder = new ComponentBuilderV2();
+
+        if (!string.IsNullOrWhiteSpace(template?.Content))
+        {
+            componentBuilder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay(template.Content)
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        foreach (var embed in built)
+            componentBuilder.WithContainer(embed.ToComponentsV2Container());
+
+        if (template is not null)
+        {
+            foreach (var row in template.Components.ToActionRowBuilders())
+                componentBuilder.WithActionRow(row);
+        }
+
+        if (string.IsNullOrWhiteSpace(template?.Content) && built.Count == 0)
+        {
+            componentBuilder.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("-# (empty template)")
+                .WithAccentColor(defaultAccentColor));
+        }
+
+        await context.ReplyAsync(
+            components: componentBuilder.Build(),
+            allowedMentions: allowedMentions,
+            flags: flags,
+            ephemeral: command.Ephemeral);
     }
 
     private async Task RemoveModuleAsync(GuildEntity guild)

@@ -81,9 +81,9 @@ public class ModifyReprimandsModule(
             await error.AssociateError(Context, NotAuthorizedMessage);
         else
         {
-            await ReplyAsync(
-                embed: reprimand.ToEmbedBuilder(true, EmbedBuilder.MaxDescriptionLength).Build(),
-                components: reprimand.ToComponentBuilder().Build());
+            var ctx = (HuTao.Data.Models.Discord.Context)Context;
+            await ctx.ReplyAsync(
+                components: reprimand.ToComponentsV2());
         }
     }
 

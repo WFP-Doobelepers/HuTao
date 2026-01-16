@@ -2,17 +2,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
+using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
+using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using static HuTao.Data.Models.Authorization.AuthorizationScope;
 
 namespace HuTao.Bot.Modules;
 
-public class InteractiveUserModule(UserService userService) : InteractionModuleBase<SocketInteractionContext>
+public class InteractiveUserModule(UserService userService, InteractiveService interactiveService) : InteractionModuleBase<SocketInteractionContext>
 {
     private static readonly GenericBitwise<LogReprimandType> InfractionTypeBitwise = new();
 
@@ -89,6 +92,24 @@ public class InteractiveUserModule(UserService userService) : InteractionModuleB
     {
         var category = categories.FirstOrDefault();
         var user = await Context.Client.Rest.GetUserAsync(ulong.Parse(id));
-        await userService.ReplyHistoryAsync(Context, category, type, user, true);
+
+        if (Context.Interaction is not IComponentInteraction interaction
+            || !interactiveService.TryGetComponentPaginator(interaction.Message, out var paginator)
+            || !paginator.CanInteract(interaction.User))
+        {
+            // ReplyHistoryAsync handles its own defer
+            await userService.ReplyHistoryAsync(Context, category, type, user, true);
+            return;
+        }
+
+        // Only defer if we have a paginator to update
+        await DeferAsync();
+
+        var state = paginator.GetUserState<UserHistoryPaginatorState>();
+
+        state.TypeFilter = type;
+        state.CategoryFilter = category;
+
+        await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
     }
 }

@@ -32,11 +32,15 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     public async Task CategoryOfChannel(INestedChannel givenChannel)
     {
         var positions = await GetCategoryChannelPositionsAsync(givenChannel.CategoryId);
-        await ReplyAsync(embed: new EmbedBuilder()
+        var embed = new EmbedBuilder()
             .WithTitle("Category Channel Positions")
             .AddField("Category", $"<#{givenChannel.CategoryId}>", true)
             .AddItemsIntoFields("Positions", positions,
-                p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})").Build());
+                p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})");
+
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("create")]
@@ -50,29 +54,40 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
             .WithAuthor(Context.User).WithTitle("Created Channel")
             .WithDescription($"Successfully created channel {channel.Mention}")
             .WithColor(Color.Green);
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("delete")]
     [Summary("Deletes a channel.")]
     public async Task DeleteChannelAsync(INestedChannel givenChannel)
     {
-        await ReplyAsync(embed: GetChannelProperties(givenChannel)
+        var embed = GetChannelProperties(givenChannel)
             .WithAuthor(Context.User)
             .WithTitle("Deleted Channel")
             .WithDescription(
                 $"Disintegrating the channel \"{givenChannel}\" from Discord databases... " +
                 "Don't power off your Discord...")
-            .WithColor(Color.Red).Build());
+            .WithColor(Color.Red)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
         await givenChannel.DeleteAsync();
     }
 
     [Command("position")]
     [Summary("Gets the position of a channel.")]
     public Task GetChannelPositionAsync(INestedChannel givenChannel) =>
-        ReplyAsync(embed: GetChannelProperties(givenChannel)
-            .WithAuthor(Context.User)
-            .WithTitle("Position Of Channel").Build());
+        ReplyAsync(
+            components: GetChannelProperties(givenChannel)
+                .WithAuthor(Context.User)
+                .WithTitle("Position Of Channel")
+                .Build()
+                .ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
 
     [Command("move")]
     [Summary("Move a channel position in a specific direction by a given number.")]
@@ -94,13 +109,18 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         };
 
         await SwapChannelPositionsAsync(givenChannel, moveBy);
-        await ReplyAsync(embed: GetChannelProperties(givenChannel)
+        var embed = GetChannelProperties(givenChannel)
             .WithAuthor(Context.User)
             .WithTitle("Channel move")
             .WithDescription(
                 $"Moved channel \"{givenChannel}\" " +
                 $"{moveBy} {direction.ToString().ToLower()} positions.")
-            .WithColor(Color.Green).Build());
+            .WithColor(Color.Green)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("movedown")]
@@ -108,11 +128,16 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     public async Task PositionMoveDownChannel(INestedChannel givenChannel)
     {
         await SwapChannelPositionsAsync(givenChannel, 1);
-        await ReplyAsync(embed: GetChannelProperties(givenChannel)
+        var embed = GetChannelProperties(givenChannel)
             .WithAuthor(Context.User)
             .WithTitle("Channel move")
             .WithDescription($"The channel \"{givenChannel}\" has been moved downward.")
-            .WithColor(Color.Green).Build());
+            .WithColor(Color.Green)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("moveup")]
@@ -120,11 +145,16 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     public async Task PositionMoveUpChannel(INestedChannel givenChannel)
     {
         await SwapChannelPositionsAsync(givenChannel, -1);
-        await ReplyAsync(embed: GetChannelProperties(givenChannel)
+        var embed = GetChannelProperties(givenChannel)
             .WithAuthor(Context.User)
             .WithTitle("Chanel move")
             .WithDescription($"The channel \"{givenChannel}\" has been moved upward.")
-            .WithColor(Color.Green).Build());
+            .WithColor(Color.Green)
+            .Build();
+
+        await ReplyAsync(
+            components: embed.ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [Command("reset")]
@@ -138,23 +168,34 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         try
         {
             var positions = await ResetCategoryChannelAsync(givenChannel.CategoryId);
-            await ReplyAsync(embed: GetChannelProperties(givenChannel)
+            var embed = GetChannelProperties(givenChannel)
                 .WithAuthor(Context.User)
                 .WithTitle("Reset Category")
                 .WithDescription(givenChannel.CategoryId is null
                     ? "Channels with no category have been reset"
                     : $"Channels in the category <#{givenChannel.CategoryId}> have been reset.")
                 .AddItemsIntoFields("Positions", positions, p => $"{p.Key}: {p.Value} (Actual: {p.Key.Position})")
-                .WithColor(Color.Green).Build());
+                .WithColor(Color.Green)
+                .Build();
+
+            await ReplyAsync(
+                components: embed.ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
         catch (HttpException e)
         {
-            await ReplyAsync(embed: GetChannelProperties(givenChannel)
-                .WithAuthor(Context.User).WithTitle("Reset Category")
+            var embed = GetChannelProperties(givenChannel)
+                .WithAuthor(Context.User)
+                .WithTitle("Reset Category")
                 .WithDescription(new StringBuilder()
                     .AppendLine($"An error occurred while resetting the category <#{givenChannel.CategoryId}>.")
                     .AppendLine(e.Message).ToString())
-                .WithColor(Color.Red).Build());
+                .WithColor(Color.Red)
+                .Build();
+
+            await ReplyAsync(
+                components: embed.ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
     }
 
@@ -188,7 +229,9 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
                     .AddItemsIntoFields("Failed", failed, (channel, exception) => $"`{channel}` : {exception}`");
             }
 
-            await ReplyAsync(embed: embed.Build());
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
     }
 
@@ -198,15 +241,17 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     {
         try
         {
-            await givenChannel.SyncPermissionsAsync().ContinueWith(async _ =>
-            {
-                var embed = new EmbedBuilder()
-                    .WithTitle($"Synchronizing Channel \"{givenChannel}\" : {givenChannel.Id}")
-                    .AddField("Channel ID", givenChannel.Id, true)
-                    .WithDescription($"Synchronizing permissions of \"{givenChannel}\" to it's channel category.")
-                    .WithAuthor(Context.User);
-                await ReplyAsync(embed: embed.Build());
-            });
+            await givenChannel.SyncPermissionsAsync();
+
+            var embed = new EmbedBuilder()
+                .WithTitle($"Synchronizing Channel \"{givenChannel}\" : {givenChannel.Id}")
+                .AddField("Channel ID", givenChannel.Id, true)
+                .WithDescription($"Synchronizing permissions of \"{givenChannel}\" to it's channel category.")
+                .WithAuthor(Context.User);
+
+            await ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
         }
         catch (HttpException e)
         {

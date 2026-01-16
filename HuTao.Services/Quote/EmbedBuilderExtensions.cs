@@ -1,7 +1,6 @@
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.WebSocket;
 using Humanizer;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
@@ -29,21 +28,6 @@ public static class EmbedBuilderExtensions
         => embed
             .AddField("Quoted by", quotingUser.Mention, true)
             .AddField("Author", $"{message.MentionUser()} from {Format.Bold(message.GetJumpUrlForEmbed())}", true);
-
-    internal static ComponentBuilder WithQuotedMessage(this ComponentBuilder builder, QuotedMessage? quote)
-    {
-        if (quote?.Context is { User: IGuildUser user, Guild: SocketGuild guild }
-            && guild.GetTextChannel(quote.ChannelId) is IGuildChannel channel
-            && user.GetPermissions(channel).ManageMessages)
-        {
-            return builder
-                .WithButton("Delete", $"delete:{quote.ChannelId}:{quote.MessageId}", ButtonStyle.Danger)
-                .WithButton("User Info", $"user:{quote.UserId}", ButtonStyle.Secondary)
-                .WithButton("Reprimands", $"history:{quote.UserId}", ButtonStyle.Secondary);
-        }
-
-        return builder;
-    }
 
     internal static async Task<EmbedBuilder> WithMessageReference(this EmbedBuilder embed, IMessage message)
     {

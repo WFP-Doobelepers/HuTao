@@ -199,7 +199,9 @@ public class CensorModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrig
     private async Task ReplyCensorAsync(Censor censor)
     {
         var embed = EntityViewer(censor);
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]

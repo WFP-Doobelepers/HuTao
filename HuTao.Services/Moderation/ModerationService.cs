@@ -9,6 +9,7 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Fergun.Interactive;
+using Fergun.Interactive.Pagination;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
@@ -161,36 +162,153 @@ public class ModerationService(
         }
     }
 
+    /// <summary>
+    /// Sends an interactive mute list using ComponentPaginator V2 with enhanced capabilities.
+    /// Works with both text commands and slash commands.
+    /// </summary>
     public async Task SendMuteListAsync(Context context, ModerationCategory? category, bool ephemeral)
     {
         await context.DeferAsync(ephemeral);
         var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
-        var history = guild.ReprimandHistory.OfType<Mute>()
+
+        var activeMutes = guild.ReprimandHistory.OfType<Mute>()
             .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired
             and not ReprimandStatus.Pardoned
             and not ReprimandStatus.Deleted)
-            .Where(r => category is null || r.Category?.Id == category.Id);
-
-        var builders = history
+            .Where(r => category is null || r.Category?.Id == category.Id)
             .OrderByDescending(r => r.Action?.Date)
-            .Select(r => new EmbedBuilder().WithExpirableDetails(r))
-            .Chunk(10);
+            .ToList();
 
-        var pages = builders.Select(b => new MultiEmbedPageBuilder().WithBuilders(b));
-        var paginator = InteractiveExtensions.CreateDefaultPaginator().WithPages(pages).Build();
+        var state = new MuteListPaginatorState(activeMutes, category, guild);
+        var paginator = new ComponentPaginatorBuilder()
+            .WithUsers(context.User)
+            .WithPageFactory(p => GenerateMuteListPage(p, state))
+            .WithPageCount(state.TotalPages)
+            .WithUserState(state)
+            .WithActionOnTimeout(ActionOnStop.DisableInput)
+            .WithActionOnCancellation(ActionOnStop.DisableInput)
+            .Build();
 
         await (context switch
         {
-            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel),
+            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel,
+                timeout: TimeSpan.FromMinutes(15),
+                resetTimeoutOnInput: true),
 
             InteractionContext { Interaction: SocketInteraction interaction }
-                => interactive.SendPaginatorAsync(paginator, interaction, ephemeral: ephemeral,
+                => interactive.SendPaginatorAsync(paginator, interaction,
+                    ephemeral: ephemeral,
+                    timeout: TimeSpan.FromMinutes(15),
                     responseType: InteractionResponseType.DeferredChannelMessageWithSource),
 
             _ => throw new ArgumentOutOfRangeException(nameof(context), context, "Invalid context.")
         });
+    }
+
+    /// <summary>
+    /// Page factory method for Components V2 mute list paginator
+    /// </summary>
+    private static IPage GenerateMuteListPage(IComponentPaginator p, MuteListPaginatorState state)
+    {
+        var currentMutes = state.GetMutesForPage(p.CurrentPageIndex).ToList();
+        var container = new ContainerBuilder();
+
+        // Header with summary
+        var categoryText = state.Category?.Name != null ? $" in {state.Category.Name}" : "";
+        var headerText = $"## Active Mutes{categoryText}\n" +
+                         $"**Total:** {state.TotalMutes} mutes • **Page:** {p.CurrentPageIndex + 1}/{p.PageCount}";
+
+        container.WithTextDisplay(headerText);
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+
+        if (!currentMutes.Any())
+        {
+            container.WithTextDisplay("*No active mutes found matching your criteria.*\n\n" +
+                                    "Mutes may have been automatically expired or manually removed.");
+        }
+        else
+        {
+            foreach (var (mute, index) in currentMutes.Select((m, i) => (m, i)))
+            {
+                var muteInfo = state.GetMuteDisplayInfo(mute);
+
+                // User section with mute details
+                var muteSection = new SectionBuilder()
+                    .WithTextDisplay($"### {muteInfo.Username}\n" +
+                                   $"**User ID:** `{mute.UserId}`\n" +
+                                   $"**Reason:** {muteInfo.Reason}\n" +
+                                   $"**Duration:** {muteInfo.Duration}\n" +
+                                   $"**Expires:** {muteInfo.ExpiryDisplay}")
+                    .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(muteInfo.AvatarUrl)));
+
+                container.WithSection(muteSection);
+
+                // Action buttons for this mute
+                var actionRow = new ActionRowBuilder();
+
+                if (mute.IsActive())
+                {
+                    actionRow.WithButton("Unmute", $"mute-action:unmute:{mute.Id}",
+                        ButtonStyle.Success, new Emoji("🔓"), disabled: p.ShouldDisable())
+                             .WithButton("Extend", $"mute-action:extend:{mute.Id}",
+                        ButtonStyle.Secondary, new Emoji("⏰"), disabled: p.ShouldDisable());
+                }
+
+                actionRow.WithButton("Details", $"mute-action:details:{mute.Id}",
+                    ButtonStyle.Primary, new Emoji("ℹ️"), disabled: p.ShouldDisable());
+
+                container.WithActionRow(actionRow);
+
+                // Separator between mutes
+                if (index < currentMutes.Count - 1)
+                    container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Large));
+            }
+        }
+
+        // Category filter if multiple categories exist
+        if (state.Guild.ModerationCategories.Count > 0)
+        {
+            container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+
+            var categoryOptions = state.Guild.ModerationCategories
+                .Select(c => new SelectMenuOptionBuilder(
+                    c.Name.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength),
+                    c.Id.ToString(),
+                    $"{c.MuteRoleId?.ToString() ?? "No role"}".Truncate(SelectMenuOptionBuilder.MaxDescriptionLength),
+                    isDefault: c.Id == state.Category?.Id))
+                .Prepend(new SelectMenuOptionBuilder("All Categories", "all", "Show all mutes",
+                    isDefault: state.Category == null))
+                .ToList();
+
+            container.WithActionRow(new ActionRowBuilder()
+                .WithSelectMenu("mute-category-filter", categoryOptions,
+                    "Filter by moderation category", disabled: p.ShouldDisable()));
+        }
+
+        // Main navigation
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+        container.WithActionRow(new ActionRowBuilder()
+            .AddPreviousButton(p, "◀", ButtonStyle.Secondary)
+            .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
+            .AddNextButton(p, "▶", ButtonStyle.Secondary)
+            .WithButton("Refresh", "mute-refresh", ButtonStyle.Primary, new Emoji("🔄"), disabled: p.ShouldDisable())
+            .AddStopButton(p, "Close", ButtonStyle.Danger));
+
+        // Footer with metadata
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(false).WithSpacing(SeparatorSpacingSize.Small));
+        var footerText = $"-# Last updated: {DateTimeOffset.UtcNow:MMM dd, HH:mm} UTC";
+        if (state.Category != null)
+            footerText += $" • Category: {state.Category.Name}";
+
+        container.WithTextDisplay(footerText)
+            .WithAccentColor(0x9B59FF); // HuTao brand color
+
+        return new PageBuilder()
+            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithAllowedMentions(AllowedMentions.None)
+            .Build();
     }
 
     public static async Task ShowSlowmodeChannelsAsync(Context context)
@@ -208,7 +326,10 @@ public class ModerationService(
             .WithColor(Color.Green)
             .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+        await context.ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            ephemeral: true,
+            allowedMentions: AllowedMentions.None);
     }
 
     public static async Task SlowmodeChannelAsync(Context context, TimeSpan? length, ITextChannel? channel)
@@ -219,7 +340,16 @@ public class ModerationService(
         await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
 
         if (seconds is 0)
-            await context.ReplyAsync($"Slowmode disabled for {channel.Mention}", ephemeral: true);
+        {
+            var container = new ContainerBuilder()
+                .WithTextDisplay($"## Slowmode disabled\n**Channel:** {channel.Mention}")
+                .WithAccentColor(Color.Green.RawValue);
+
+            await context.ReplyAsync(
+                components: new ComponentBuilderV2().WithContainer(container).Build(),
+                ephemeral: true,
+                allowedMentions: AllowedMentions.None);
+        }
         else
         {
             var embed = new EmbedBuilder()
@@ -229,7 +359,10 @@ public class ModerationService(
                 .WithColor(Color.Green)
                 .WithUserAsAuthor(context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-            await context.ReplyAsync(embed: embed.Build(), ephemeral: true);
+            await context.ReplyAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                ephemeral: true,
+                allowedMentions: AllowedMentions.None);
         }
     }
 

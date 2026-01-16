@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using Humanizer;
-using Humanizer.Localisation;
 
 namespace HuTao.Services.Utilities;
 

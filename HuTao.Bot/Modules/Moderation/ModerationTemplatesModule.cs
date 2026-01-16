@@ -118,7 +118,9 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
             .WithColor(Color.Green)
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested);
 
-        await ReplyAsync(embed: embed.Build());
+        await ReplyAsync(
+            components: embed.Build().ToComponentsV2Message(),
+            allowedMentions: AllowedMentions.None);
     }
 
     [NamedArgumentType]
