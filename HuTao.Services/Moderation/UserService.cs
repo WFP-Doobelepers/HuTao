@@ -137,7 +137,7 @@ public class UserService(
     private static int GetVisibleTextLength(string text)
     {
         // Match markdown links: [text](url)
-        var linkPattern = @"\[([^\]]+)\]\([^\)]+\)";
+        var linkPattern = @"\[([^\]]*)\]\([^\)]+\)";
         var matches = System.Text.RegularExpressions.Regex.Matches(text, linkPattern);
         
         var visibleLength = text.Length;
@@ -162,7 +162,7 @@ public class UserService(
             return text;
 
         // Find all markdown links
-        var linkPattern = @"\[([^\]]+)\]\([^\)]+\)";
+        var linkPattern = @"\[([^\]]*)\]\([^\)]+\)";
         var matches = System.Text.RegularExpressions.Regex.Matches(text, linkPattern);
         
         // If no links, simple truncation

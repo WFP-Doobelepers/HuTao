@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -135,7 +136,11 @@ public class ModifyReprimandsModule(
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
-        return new ReprimandDetails(Context, user, reason, variables);
+        var details = new ReprimandDetails(Context, user, reason, variables);
+        var updatedReason = MediaParsingHelper.AppendAttachmentsToReason(details.Reason, Context.Message.Attachments);
+        if (!string.Equals(updatedReason, details.Reason, StringComparison.Ordinal))
+            details = details with { Reason = updatedReason };
+        return details;
     }
 
     private delegate Task UpdateReprimandDelegate(

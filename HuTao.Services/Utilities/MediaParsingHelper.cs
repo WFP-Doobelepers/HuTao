@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
@@ -15,12 +16,35 @@ public static class MediaParsingHelper
     /// <summary>
     /// Regex patterns for extracting image URLs from markdown and plain text
     /// </summary>
-    private static readonly Regex[] ImagePatterns =
+    private static readonly Regex MarkdownImagePattern = new(
+        @"!\[[^\]]*]\(\s*<?(?<url>https?://[^\s)]+)>?\s*\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex MarkdownLinkPattern = new(
+        @"\[[^\]]*]\(\s*<?(?<url>https?://[^\s)]+)>?\s*\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex RawUrlPattern = new(
+        @"https?://[^\s<>\)\]]+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly IReadOnlyCollection<string> ImageExtensions =
     [
-        new Regex(@"!\[.*?\]\((https?://[^\)]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\)]*)?)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new Regex(@"https?://[^\s<>]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<>]*)?", RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        new Regex(@"https?://(?:cdn\.)?discord(?:app)?\.com/attachments/\d+/\d+/[^\s<>]+", RegexOptions.IgnoreCase | RegexOptions.Compiled)
+        ".jpg", ".jpeg", ".png", ".gif", ".webp"
     ];
+
+    private static readonly IReadOnlyCollection<string> DiscordCdnHosts =
+    [
+        "cdn.discordapp.com",
+        "media.discordapp.net"
+    ];
+
+    private static readonly char[] TrailingUrlPunctuation =
+    [
+        '.', ',', '!', ';', ')', ']', '}', '>', '"', '\''
+    ];
+
+    private const int MaxReasonLength = 1024;
 
     /// <summary>
     /// Keywords that indicate NSFW content - checks in both reason text and image URLs
@@ -41,19 +65,13 @@ public static class MediaParsingHelper
         if (string.IsNullOrWhiteSpace(text))
             return [];
 
-        var urls = new HashSet<string>();
+        var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var pattern in ImagePatterns)
-        {
-            var matches = pattern.Matches(text);
-            foreach (Match match in matches)
-            {
-                var url = match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
-                urls.Add(url);
-            }
-        }
+        ExtractFromPattern(MarkdownImagePattern, text, urls);
+        ExtractFromPattern(MarkdownLinkPattern, text, urls);
+        ExtractFromPattern(RawUrlPattern, text, urls);
 
-        return urls.ToList();
+        return urls.Where(IsLikelyImageUrl).ToList();
     }
 
     /// <summary>
@@ -113,6 +131,17 @@ public static class MediaParsingHelper
         return imageUrls.Select(url => CreateMediaItem(url, reason ?? text)).ToList();
     }
 
+    public static string? AppendAttachmentsToReason(string? reason, IEnumerable<IAttachment>? attachments)
+    {
+        if (attachments is null) return reason;
+
+        var attachmentLines = BuildAttachmentLines(reason, attachments);
+        if (attachmentLines.Count == 0) return reason;
+
+        var baseReason = string.IsNullOrWhiteSpace(reason) ? "No reason provided" : reason.TrimEnd();
+        return CombineReasonAndAttachments(baseReason, attachmentLines);
+    }
+
     /// <summary>
     /// Gets notes attached to a reprimand (notes with matching parent ID or similar context)
     /// </summary>
@@ -151,6 +180,127 @@ public static class MediaParsingHelper
             })
             .OrderBy(n => n.Action?.Date)
             .ToList();
+    }
+
+    private static void ExtractFromPattern(Regex pattern, string text, ISet<string> urls)
+    {
+        var matches = pattern.Matches(text);
+        foreach (Match match in matches)
+        {
+            var url = match.Groups["url"].Success ? match.Groups["url"].Value : match.Value;
+            var normalized = NormalizeUrl(url);
+            if (!string.IsNullOrWhiteSpace(normalized))
+                urls.Add(normalized);
+        }
+    }
+
+    private static string NormalizeUrl(string url)
+    {
+        var trimmed = url.Trim().Trim('<', '>');
+        return trimmed.TrimEnd(TrailingUrlPunctuation);
+    }
+
+    private static bool IsLikelyImageUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return false;
+
+        var path = uri.AbsolutePath;
+        if (ImageExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+            return true;
+
+        if (!IsDiscordAttachment(uri))
+            return false;
+
+        return uri.Query.Contains("width=", StringComparison.OrdinalIgnoreCase)
+            || uri.Query.Contains("height=", StringComparison.OrdinalIgnoreCase)
+            || uri.Query.Contains("format=", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsDiscordAttachment(Uri uri)
+    {
+        if (!DiscordCdnHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase))
+            return false;
+
+        return uri.AbsolutePath.Contains("/attachments/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<string> BuildAttachmentLines(string? reason, IEnumerable<IAttachment> attachments)
+    {
+        var lines = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var reasonText = reason ?? string.Empty;
+
+        foreach (var attachment in attachments.OrderByDescending(IsImageAttachment))
+        {
+            var url = NormalizeUrl(attachment.Url);
+            if (string.IsNullOrWhiteSpace(url)) continue;
+            if (!seen.Add(url)) continue;
+            if (!string.IsNullOrEmpty(reasonText) &&
+                reasonText.Contains(url, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var label = string.IsNullOrWhiteSpace(attachment.Filename) ? "Attachment" : attachment.Filename;
+            lines.Add($"-# - [{label}]({url})");
+        }
+
+        return lines;
+    }
+
+    private static string CombineReasonAndAttachments(string baseReason, IReadOnlyList<string> attachmentLines)
+    {
+        var attachmentsText = BuildAttachmentText(attachmentLines, MaxReasonLength);
+        if (string.IsNullOrEmpty(attachmentsText))
+            return TruncateToLength(baseReason, MaxReasonLength);
+
+        if (attachmentsText.Length >= MaxReasonLength)
+            return attachmentsText;
+
+        var remainingForReason = MaxReasonLength - attachmentsText.Length - 1;
+        if (remainingForReason <= 0)
+            return attachmentsText;
+
+        var truncatedReason = TruncateToLength(baseReason, remainingForReason);
+        return $"{truncatedReason}\n{attachmentsText}";
+    }
+
+    private static string BuildAttachmentText(IReadOnlyList<string> lines, int maxLength)
+    {
+        var builder = new StringBuilder();
+        foreach (var line in lines)
+        {
+            var extra = builder.Length == 0 ? line.Length : line.Length + 1;
+            if (builder.Length + extra > maxLength)
+                break;
+
+            if (builder.Length > 0)
+                builder.AppendLine();
+
+            builder.Append(line);
+        }
+
+        return builder.ToString();
+    }
+
+    private static string TruncateToLength(string text, int maxLength)
+    {
+        if (maxLength <= 0) return string.Empty;
+        if (text.Length <= maxLength) return text;
+        if (maxLength <= 3) return text[..maxLength];
+        return text[..(maxLength - 3)] + "...";
+    }
+
+    private static bool IsImageAttachment(IAttachment attachment)
+    {
+        if (attachment.Height is not null || attachment.Width is not null)
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(attachment.ContentType) &&
+            attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var url = attachment.Url;
+        return ImageExtensions.Any(ext => url.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
 }
 

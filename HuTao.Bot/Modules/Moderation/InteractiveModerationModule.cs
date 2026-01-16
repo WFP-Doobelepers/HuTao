@@ -27,7 +27,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         TimeSpan? length = null, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Ban)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
         if (deleteDays > 7)
@@ -36,7 +37,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             return;
         }
 
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
@@ -53,10 +54,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         TimeSpan? length = null, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryHardMuteAsync(length, details);
 
         if (result is null)
@@ -76,10 +78,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [RequireHigherRole] IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Kick)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryKickAsync(details);
 
         if (result is null)
@@ -96,10 +99,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         TimeSpan? length = null, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryMuteAsync(length, details);
 
         if (result is null)
@@ -127,10 +131,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [RequireHigherRole] IUser user, string? note = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Note)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, note, category, ephemeral);
+        var details = await GetDetailsAsync(user, note, category, ephemeral, attachment);
         await moderation.NoteAsync(details);
     }
 
@@ -143,10 +148,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [RequireHigherRole] IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         await moderation.NoticeAsync(details);
     }
 
@@ -206,10 +212,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Timeout)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryTimeoutAsync(length, details);
 
         if (result is null)
@@ -226,10 +233,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Timeout)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryUntimeoutAsync(details);
 
         if (!result)
@@ -241,10 +249,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         IUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Ban)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryUnbanAsync(details);
 
         if (result is null)
@@ -256,10 +265,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         var result = await moderation.TryUnmuteAsync(details);
 
         if (!result)
@@ -271,10 +281,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [RequireHigherRole] IGuildUser user, uint amount = 1, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
         ModerationCategory? category = null,
-        [RequireEphemeralScope] bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false,
+        IAttachment? attachment = null)
     {
         await DeferAsync(ephemeral);
-        var details = await GetDetailsAsync(user, reason, category, ephemeral);
+        var details = await GetDetailsAsync(user, reason, category, ephemeral, attachment);
         await moderation.WarnAsync(amount, details);
     }
 
@@ -363,13 +374,18 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     });
 
     private async Task<ReprimandDetails> GetDetailsAsync(
-        IUser user, string? reason, ModerationCategory? category, bool ephemeral)
+        IUser user, string? reason, ModerationCategory? category, bool ephemeral, IAttachment? attachment = null)
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
         var details = new ReprimandDetails(
             Context, user, reason, variables,
             category: category, ephemeral: ephemeral);
+        var updatedReason = MediaParsingHelper.AppendAttachmentsToReason(
+            details.Reason,
+            attachment is null ? [] : new[] { attachment });
+        if (!string.Equals(updatedReason, details.Reason, StringComparison.Ordinal))
+            details = details with { Reason = updatedReason };
 
         await db.Users.TrackUserAsync(details);
         await db.SaveChangesAsync();
