@@ -26,10 +26,10 @@ public sealed class InteractiveHelpModule(ICommandHelpService help, InteractiveS
 
     [SlashCommand("help", "Browse bot commands and usage.")]
     public async Task HelpAsync(
-        [Summary("Search by module/tag/command name (optional).")]
+        [Summary(description: "Search by module/tag/command name.")]
         [Autocomplete(typeof(HelpAutocomplete))]
         string? query = null,
-        [Summary("True to only show you the help.")]
+        [Summary(description: "True to only show you the help.")]
         [RequireEphemeralScope]
         bool ephemeral = false)
     {

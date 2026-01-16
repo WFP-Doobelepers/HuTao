@@ -47,6 +47,16 @@ public class CommandHandlingService(
         if (hasPrefix || hasMention)
         {
             var context = new SocketCommandContext(discord, message);
+            var invoked = message.Content[argPos..].TrimStart();
+            var invokedParts = invoked.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            var invokedName = invokedParts.Length > 0 ? invokedParts[0] : string.Empty;
+            log.LogDebug(
+                "Prefix command received (Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId}, MessageId={MessageId})",
+                invokedName,
+                context.User.Id,
+                context.Channel.Id,
+                context.Guild?.Id,
+                message.Id);
             if (context.User is IGuildUser user) await db.Users.TrackUserAsync(user, cancellationToken);
             await commands.ExecuteAsync(context, argPos, services, MultiMatchHandling.Best);
         }
@@ -128,9 +138,14 @@ public class CommandHandlingService(
 
         if (result.Error is not CommandError.UnknownCommand)
         {
-            log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
-                result.Error, result.ErrorReason, command.Value?.Name,
-                context.User, context.Channel, context.Guild);
+            log.LogError(
+                "Command execution failed (Error={Error}, Reason={ErrorReason}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId})",
+                result.Error,
+                result.ErrorReason,
+                command.Value?.Name,
+                context.User.Id,
+                context.Channel.Id,
+                context.Guild?.Id);
 
             await errorHandler.AssociateError(context.Message, $"{result.Error}: {result.ErrorReason}");
         }

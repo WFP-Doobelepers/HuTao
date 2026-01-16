@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -28,7 +29,9 @@ using HuTao.Services.TimeTracking;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Serilog.Formatting.Compact;
 using Serilog.Events;
+using Serilog.Sinks.Grafana.Loki;
 
 namespace HuTao.Bot;
 
@@ -38,7 +41,26 @@ public class Bot
     private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
     private CancellationTokenSource _reconnectCts = null!;
 
-    public static async Task Main() => await new Bot().StartAsync();
+    public static async Task Main()
+    {
+        Log.Logger = CreateLogger();
+        RegisterExceptionLogging();
+
+        try
+        {
+            Log.Information("Starting HuTao bot");
+            await new Bot().StartAsync();
+        }
+        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
+        {
+            Log.Fatal(ex, "HuTao bot terminated unexpectedly");
+            throw;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
 
     private static ServiceProvider ConfigureServices() =>
         new ServiceCollection()
@@ -97,7 +119,7 @@ public class Bot
             return;
         }
 
-        Log.Information("Attempting to reset the client");
+        Log.Information("Attempting to reset the client (state: {ConnectionState})", client.ConnectionState);
 
         var timeout = Task.Delay(ResetTimeout);
         var connect = client.StartAsync();
@@ -162,14 +184,6 @@ public class Bot
 
     private async Task StartAsync()
     {
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Hangfire", LogEventLevel.Debug)
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .MinimumLevel.Verbose()
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .CreateLogger();
-
         await using var services = ConfigureServices();
 
         GlobalConfiguration.Configuration
@@ -212,5 +226,120 @@ public class Bot
         .UseNpgsql(HuTaoConfig.Configuration.HuTaoContext);
 
     private static void FailFast()
-        => Environment.Exit(1);
+    {
+        try
+        {
+            Log.CloseAndFlush();
+        }
+        finally
+        {
+            Environment.Exit(1);
+        }
+    }
+
+    private static ILogger CreateLogger()
+    {
+        var environment = GetEnvironmentName();
+        var minimumLevel = GetMinimumLogLevel();
+        var logDirectory = GetLogDirectory();
+
+        Directory.CreateDirectory(logDirectory);
+
+        var fileFormatter = new RenderedCompactJsonFormatter();
+        var baseFile = Path.Combine(logDirectory, "hutao-bot-.ndjson");
+        var warnFile = Path.Combine(logDirectory, "hutao-bot-warn-.ndjson");
+
+        var config = new LoggerConfiguration()
+            .MinimumLevel.Is(minimumLevel)
+            .MinimumLevel.Override("Hangfire", LogEventLevel.Information)
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("System", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .Enrich.WithMachineName()
+            .Enrich.WithProcessId()
+            .Enrich.WithThreadId()
+            .Enrich.WithEnvironmentName()
+            .Enrich.WithProperty("Application", "HuTao")
+            .Enrich.WithProperty("Service", "Bot")
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.Async(a => a.File(
+                fileFormatter,
+                baseFile,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14,
+                fileSizeLimitBytes: 100_000_000,
+                rollOnFileSizeLimit: true,
+                shared: true,
+                flushToDiskInterval: TimeSpan.FromSeconds(1)))
+            .WriteTo.Async(a => a.File(
+                fileFormatter,
+                warnFile,
+                restrictedToMinimumLevel: LogEventLevel.Warning,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 30,
+                fileSizeLimitBytes: 100_000_000,
+                rollOnFileSizeLimit: true,
+                shared: true,
+                flushToDiskInterval: TimeSpan.FromSeconds(1)));
+
+        var lokiUrl = Environment.GetEnvironmentVariable("HUTAO_LOKI_URL");
+        if (!string.IsNullOrWhiteSpace(lokiUrl))
+        {
+            config.WriteTo.GrafanaLoki(
+                lokiUrl,
+                labels: new[]
+                {
+                    new LokiLabel { Key = "app", Value = "hutao" },
+                    new LokiLabel { Key = "service", Value = "bot" },
+                    new LokiLabel { Key = "environment", Value = environment }
+                },
+                propertiesAsLabels: new[] { "SourceContext" });
+        }
+
+        var logger = config.CreateLogger();
+        logger.Information("Logging initialized (Environment={Environment}, Level={Level}, Directory={Directory})",
+            environment, minimumLevel, logDirectory);
+
+        return logger;
+    }
+
+    private static LogEventLevel GetMinimumLogLevel()
+    {
+        var configured = Environment.GetEnvironmentVariable("HUTAO_LOG_LEVEL");
+        if (Enum.TryParse(configured, ignoreCase: true, out LogEventLevel level))
+            return level;
+
+#if DEBUG
+        return LogEventLevel.Debug;
+#else
+        return LogEventLevel.Information;
+#endif
+    }
+
+    private static string GetEnvironmentName()
+        => Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "Production";
+
+    private static string GetLogDirectory()
+        => Environment.GetEnvironmentVariable("HUTAO_LOG_DIR")
+            ?? Path.Combine(AppContext.BaseDirectory, "logs");
+
+    private static void RegisterExceptionLogging()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            Log.Fatal(args.ExceptionObject as Exception,
+                "Unhandled exception (IsTerminating={IsTerminating})",
+                args.IsTerminating);
+            Log.CloseAndFlush();
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Log.Error(args.Exception, "Unobserved task exception");
+            args.SetObserved();
+        };
+    }
 }

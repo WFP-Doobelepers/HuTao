@@ -9,7 +9,6 @@ using Fergun.Interactive.Pagination;
 using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
-using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
@@ -17,6 +16,7 @@ using HuTao.Services.Core;
 using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HuTao.Services.Moderation;
 
@@ -29,6 +29,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
     public InteractiveService Interactive { get; init; } = null!;
     public ModerationService ModerationService { get; init; } = null!;
     public AuthorizationService Auth { get; init; } = null!;
+    public ILogger<ModerationInteractionHandlers> Log { get; init; } = null!;
 
     [ComponentInteraction("mute-action:unmute:*")]
     public async Task HandleMuteUnmuteAsync(string muteIdString)
@@ -180,7 +181,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 .AddField("User ID", mute.UserId, true)
                 .AddField("Status", mute.Status.ToString(), true)
                 .AddField("Duration", mute.Length?.Humanize() ?? "Permanent", true)
-                .AddField("Reason", mute.Action?.Reason ?? "No reason provided", false)
+                .AddField("Reason", mute.Action?.Reason ?? "No reason provided")
                 .AddField("Moderator", mute.Action?.Moderator is { } mod ? mod.Id.ToString() : "System", true)
                 .AddField("Date", mute.Action?.Date.ToString("MMM dd, yyyy HH:mm") ?? "Unknown", true)
                 .WithFooter($"Mute ID: {mute.Id}")
@@ -333,19 +334,19 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
     public async Task HandleHistoryRefreshAsync()
     {
         var interaction = (IComponentInteraction)Context.Interaction;
-        
-        Console.WriteLine($"[DEBUG] history-refresh interaction received from {interaction.User.Username}");
 
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator))
         {
-            Console.WriteLine("[DEBUG] TryGetComponentPaginator returned false");
+            Log.LogDebug("history-refresh ignored: paginator not found (UserId={UserId}, MessageId={MessageId})",
+                interaction.User.Id, interaction.Message.Id);
             await DeferAsync();
             return;
         }
         
         if (!paginator.CanInteract(interaction.User))
         {
-            Console.WriteLine("[DEBUG] CanInteract returned false");
+            Log.LogDebug("history-refresh ignored: user cannot interact (UserId={UserId}, MessageId={MessageId})",
+                interaction.User.Id, interaction.Message.Id);
             await DeferAsync();
             return;
         }

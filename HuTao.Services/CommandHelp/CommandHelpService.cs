@@ -265,11 +265,11 @@ internal class CommandHelpService(CommandService commandService) : ICommandHelpS
                 .AppendLine(summary)
                 .AppendLine(aliases.Count != 0
                     ? $"-# Aliases: {string.Join(", ", aliases.Select(a => Format.Code(a)))}"
-                    : "-# ")
+                    : string.Empty)
                 .ToString()
                 .Trim();
 
-            container.WithSection(new SectionBuilder().WithTextDisplay(text));
+            container.WithTextDisplay(text);
 
             if (i < commands.Count - 1)
                 container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);

@@ -8,6 +8,7 @@ public static class ComponentsV2EmbedExtensions
 {
     private const int DefaultMaxChars = 550;
     private const uint DefaultAccentColor = 0x9B59FF;
+    private const string FallbackThumbnailUrl = "https://cdn.discordapp.com/embed/avatars/0.png";
 
     public static string ToComponentsV2Text(this Embed embed, int maxChars = DefaultMaxChars)
     {
@@ -40,9 +41,11 @@ public static class ComponentsV2EmbedExtensions
 
         var thumbUrl = embed.Thumbnail?.Url;
         if (!string.IsNullOrWhiteSpace(thumbUrl))
-        {
             section.WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(thumbUrl)));
-        }
+        else if (!string.IsNullOrWhiteSpace(embed.Url))
+            section.WithAccessory(ButtonBuilder.CreateLinkButton("Open", embed.Url));
+        else
+            section.WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(FallbackThumbnailUrl)));
 
         return section;
     }

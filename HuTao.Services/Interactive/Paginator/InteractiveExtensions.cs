@@ -102,12 +102,17 @@ public static class InteractiveExtensions
                     .ToString()
                     .Trim();
 
-                var section = new SectionBuilder().WithTextDisplay(text);
                 var thumbUrl = embed.Thumbnail?.Url;
                 if (!string.IsNullOrWhiteSpace(thumbUrl))
-                    section.WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(thumbUrl)));
-
-                container.WithSection(section);
+                {
+                    container.WithSection(new SectionBuilder()
+                        .WithTextDisplay(text)
+                        .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(thumbUrl))));
+                }
+                else
+                {
+                    container.WithTextDisplay(text);
+                }
 
                 if (i < filtered.Count - 1)
                     container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);

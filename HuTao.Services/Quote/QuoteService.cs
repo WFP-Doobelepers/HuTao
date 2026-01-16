@@ -143,13 +143,19 @@ public class QuoteService(DiscordSocketClient client, LoggingService logging, Hu
 
         var entry = state.Entries[p.CurrentPageIndex];
 
-        var headerSection = new SectionBuilder().WithTextDisplay(entry.HeaderText);
+        var container = new ContainerBuilder();
         if (!string.IsNullOrWhiteSpace(entry.AuthorAvatarUrl))
-            headerSection.WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(entry.AuthorAvatarUrl)));
+        {
+            container.WithSection(new SectionBuilder()
+                .WithTextDisplay(entry.HeaderText)
+                .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(entry.AuthorAvatarUrl))));
+        }
+        else
+        {
+            container.WithTextDisplay(entry.HeaderText);
+        }
 
-        var container = new ContainerBuilder()
-            .WithSection(headerSection)
-            .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+        container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         if (entry.MediaItems.Count != 0)
             container.WithMediaGallery(entry.MediaItems);

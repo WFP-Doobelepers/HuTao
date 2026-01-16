@@ -33,6 +33,13 @@ public class InteractionHandlingService(
             return;
 
         var context = new SocketInteractionContext(discord, interaction);
+        log.LogDebug(
+            "Interaction received (InteractionId={InteractionId}, Type={InteractionType}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId})",
+            interaction.Id,
+            interaction.Type,
+            context.User.Id,
+            context.Channel.Id,
+            context.Guild?.Id);
         if (context.User is IGuildUser user) await db.Users.TrackUserAsync(user, cancellationToken);
         await commands.ExecuteCommandAsync(context, services);
     }
@@ -80,9 +87,16 @@ public class InteractionHandlingService(
 
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
-            log.LogError("{Error}: {ErrorReason} in {Name} by {User} in {Channel} {Guild}",
-                result.Error, result.ErrorReason, command.Name,
-                context.User, context.Channel, context.Guild);
+            log.LogError(
+                "Interaction execution failed (Error={Error}, Reason={ErrorReason}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId}, InteractionId={InteractionId}, InteractionType={InteractionType})",
+                result.Error,
+                result.ErrorReason,
+                command.Name,
+                context.User.Id,
+                context.Channel.Id,
+                context.Guild?.Id,
+                context.Interaction.Id,
+                context.Interaction.Type);
 
             if (context.Interaction.HasResponded)
                 await context.Interaction.FollowupAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
