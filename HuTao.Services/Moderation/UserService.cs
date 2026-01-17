@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -128,454 +129,101 @@ public class UserService(
 
     public const string SelectOptionId = "select_option";
     private const int MaxTextDisplayLength = 4000;
-    private const int TargetTruncateLength = 80;
 
     /// <summary>
-    /// Calculates the visible length of text, ignoring markdown link URLs
-    /// </summary>
-    private static int GetVisibleTextLength(string text)
-    {
-        // Match markdown links: [text](url)
-        var linkPattern = @"\[([^\]]*)\]\([^\)]+\)";
-        var matches = System.Text.RegularExpressions.Regex.Matches(text, linkPattern);
-        
-        var visibleLength = text.Length;
-        foreach (System.Text.RegularExpressions.Match match in matches)
-        {
-            // Subtract the URL part length (everything except the [text] part)
-            var fullLinkLength = match.Value.Length;
-            var textPartLength = match.Groups[1].Value.Length + 2; // +2 for the []
-            visibleLength -= (fullLinkLength - textPartLength);
-        }
-        
-        return visibleLength;
-    }
-
-    /// <summary>
-    /// Intelligently truncates text while preserving markdown links
-    /// </summary>
-    private static string TruncatePreservingLinks(string text, int maxVisibleLength)
-    {
-        var visibleLength = GetVisibleTextLength(text);
-        if (visibleLength <= maxVisibleLength)
-            return text;
-
-        // Find all markdown links
-        var linkPattern = @"\[([^\]]*)\]\([^\)]+\)";
-        var matches = System.Text.RegularExpressions.Regex.Matches(text, linkPattern);
-        
-        // If no links, simple truncation
-        if (matches.Count == 0)
-        {
-            return text.Substring(0, Math.Min(maxVisibleLength, text.Length)) + "...";
-        }
-
-        // Build result preserving links
-        var result = new System.Text.StringBuilder();
-        var currentPos = 0;
-        var currentVisibleLength = 0;
-
-        foreach (System.Text.RegularExpressions.Match match in matches)
-        {
-            // Add text before this link
-            var beforeLink = text.Substring(currentPos, match.Index - currentPos);
-            var beforeLinkVisible = beforeLink.Length;
-            
-            if (currentVisibleLength + beforeLinkVisible > maxVisibleLength)
-            {
-                // Truncate before link
-                var remaining = maxVisibleLength - currentVisibleLength;
-                result.Append(beforeLink.Substring(0, Math.Max(0, remaining)));
-                result.Append("...");
-                return result.ToString();
-            }
-            
-            result.Append(beforeLink);
-            currentVisibleLength += beforeLinkVisible;
-            
-            // Add the link
-            var linkTextLength = match.Groups[1].Value.Length;
-            if (currentVisibleLength + linkTextLength + 2 > maxVisibleLength) // +2 for []
-            {
-                result.Append("...");
-                return result.ToString();
-            }
-            
-            result.Append(match.Value); // Full link with URL
-            currentVisibleLength += linkTextLength + 2;
-            currentPos = match.Index + match.Length;
-        }
-        
-        // Add remaining text after last link
-        var remainingText = text.Substring(currentPos);
-        if (currentVisibleLength + remainingText.Length > maxVisibleLength)
-        {
-            var space = maxVisibleLength - currentVisibleLength;
-            result.Append(remainingText.Substring(0, Math.Max(0, space)));
-            result.Append("...");
-        }
-        else
-        {
-            result.Append(remainingText);
-        }
-        
-        return result.ToString();
-    }
-
-    /// <summary>
-    /// Builds reprimand content text including notes as bullet points and extracts media
-    /// </summary>
-    private static (string Text, List<MediaGalleryItemProperties> Media) BuildReprimandContent(
-        Reprimand reprimand, IReadOnlyList<Reprimand> allReprimands)
-    {
-        var text = new System.Text.StringBuilder();
-        var reason = reprimand.Action?.Reason ?? "No reason provided";
-        
-        // Main reason
-        text.AppendLine($">>> {reason}");
-        
-        // Get attached notes
-        var notes = Utilities.MediaParsingHelper.GetAttachedNotes(reprimand, allReprimands);
-        if (notes.Any())
-        {
-            foreach (var note in notes)
-            {
-                var noteReason = note.Action?.Reason ?? "";
-                if (!string.IsNullOrWhiteSpace(noteReason))
-                {
-                    text.AppendLine($"-# - {noteReason}");
-                }
-            }
-        }
-        
-        // Extract images from reason and notes
-        var imageUrls = Utilities.MediaParsingHelper.ExtractImageUrls(reason);
-        foreach (var note in notes)
-        {
-            var noteReason = note.Action?.Reason ?? "";
-            imageUrls.AddRange(Utilities.MediaParsingHelper.ExtractImageUrls(noteReason));
-        }
-        
-        // Create media items with NSFW detection
-        var mediaItems = imageUrls
-            .Distinct()
-            .Select(url => Utilities.MediaParsingHelper.CreateMediaItem(url, reason))
-            .ToList();
-        
-        return (text.ToString().TrimEnd(), mediaItems);
-    }
-
-    /// <summary>
-    /// Renders reprimands in chronological order with full details and day dividers.
-    /// Collapsed (5 items): Separate containers per reprimand.
-    /// Expanded (10 items): Single main container.
-    /// </summary>
-    private static void RenderChronologicalReprimands(ComponentBuilderV2 components, 
-        IEnumerable<Reprimand> reprimands, UserHistoryPaginatorState state, IComponentPaginator p)
-    {
-        var reprimandList = reprimands.ToList();
-        DateTimeOffset? lastDate = null;
-        
-        if (!state.IsChronologicalExpanded)
-        {
-            // Collapsed (5 items): Use separate containers to avoid component limit
-            for (int i = 0; i < reprimandList.Count; i++)
-            {
-                var reprimand = reprimandList[i];
-                var reprimandInfo = state.GetReprimandDisplayInfo(reprimand);
-                var currentDate = reprimand.Action?.Date.Date;
-                var isFirstReprimand = i == 0;
-                var isLastReprimand = i == reprimandList.Count - 1;
-                
-                // Add day divider if date changed
-                if (lastDate.HasValue && currentDate.HasValue && currentDate.Value.Date != lastDate.Value.Date)
-                {
-                    components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-                }
-                lastDate = currentDate;
-                
-                var container = new ContainerBuilder();
-                
-                // Build content with notes and images
-                var (contentText, mediaItems) = BuildReprimandContent(reprimand, state.AllReprimands);
-                var headerText = $"### {reprimandInfo.TypeBadges} • {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
-                                $"-# {reprimandInfo.Moderator} {reprimandInfo.DateShort} {reprimandInfo.TimeShort} • {reprimandInfo.RelativeTime}\n" +
-                                contentText;
-                
-                if (isFirstReprimand)
-                {
-                    var section = new SectionBuilder()
-                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
-                        .WithAccessory(new ButtonBuilder("☰", $"history-group:{state.User.Id}", 
-                            ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                    container.WithSection(section);
-                }
-                else if (isLastReprimand)
-                {
-                    var section = new SectionBuilder()
-                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
-                        .WithAccessory(new ButtonBuilder("▼", $"history-expand:{state.User.Id}", 
-                            ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                    container.WithSection(section);
-                }
-                else
-                {
-                    container.WithTextDisplay(headerText.Truncate(MaxTextDisplayLength));
-                }
-                
-                // Add media gallery if there are images
-                if (mediaItems.Any())
-                {
-                    container.WithMediaGallery(mediaItems);
-                }
-                
-                components.WithContainer(container);
-            }
-        }
-        else
-        {
-            // Expanded (10 items): Single main container
-            var mainContainer = new ContainerBuilder();
-            
-            for (int i = 0; i < reprimandList.Count; i++)
-            {
-                var reprimand = reprimandList[i];
-                var reprimandInfo = state.GetReprimandDisplayInfo(reprimand);
-                var currentDate = reprimand.Action?.Date.Date;
-                var isFirstReprimand = i == 0;
-                var isLastReprimand = i == reprimandList.Count - 1;
-                
-                // Add day divider if date changed
-                if (lastDate.HasValue && currentDate.HasValue && currentDate.Value.Date != lastDate.Value.Date)
-                {
-                    mainContainer.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-                }
-                lastDate = currentDate;
-                
-                // Build content with notes and images
-                var (contentText, mediaItems) = BuildReprimandContent(reprimand, state.AllReprimands);
-                var headerText = $"### {reprimandInfo.TypeBadges} • {reprimandInfo.StatusBadge} • [{reprimandInfo.ShortId}]\n" +
-                                $"-# {reprimandInfo.Moderator} {reprimandInfo.DateShort} {reprimandInfo.TimeShort} • {reprimandInfo.RelativeTime}\n" +
-                                contentText;
-                
-                if (isFirstReprimand)
-                {
-                    var section = new SectionBuilder()
-                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
-                        .WithAccessory(new ButtonBuilder("☰", $"history-group:{state.User.Id}", 
-                            ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                    mainContainer.WithSection(section);
-                }
-                else if (isLastReprimand)
-                {
-                    var section = new SectionBuilder()
-                        .WithTextDisplay(headerText.Truncate(MaxTextDisplayLength))
-                        .WithAccessory(new ButtonBuilder("▲", $"history-expand:{state.User.Id}", 
-                            ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                    mainContainer.WithSection(section);
-                }
-                else
-                {
-                    mainContainer.WithTextDisplay(headerText.Truncate(MaxTextDisplayLength));
-                }
-                
-                // Add media gallery if there are images
-                if (mediaItems.Any())
-                {
-                    mainContainer.WithMediaGallery(mediaItems);
-                }
-            }
-            
-            components.WithContainer(mainContainer);
-        }
-    }
-
-    /// <summary>
-    /// Renders reprimands grouped by type in condensed format.
-    /// Collapsed (truncated): Separate containers per group.
-    /// Expanded (full reasons): Single main container.
+    /// Renders reprimands grouped by type with full reasons and moderator info.
+    /// Categories are sorted by their latest reprimand date.
+    /// Duplicate reasons are auto-collapsed.
     /// </summary>
     private static void RenderGroupedReprimands(ComponentBuilderV2 components, 
-        IEnumerable<Reprimand> reprimands, UserHistoryPaginatorState state, IComponentPaginator p)
+        IEnumerable<Reprimand> reprimands, int availableComponents)
     {
         var reprimandList = reprimands.ToList();
+        
+        const int maxTotalMessageText = 3500;
+        
+        var container = new ContainerBuilder();
+        var componentCount = 1; // Start at 1 for the container itself
+        var totalMessageTextLength = 0;
+        
         var grouped = reprimandList
             .GroupBy(r => r.GetTitle(showId: false))
-            .OrderBy(g => g.Key)
+            .OrderByDescending(g => g.Max(r => r.Action?.Date))
             .ToList();
         
-        if (!state.IsGroupedExpanded)
+        foreach (var group in grouped)
         {
-            // Collapsed (truncated): Use separate containers per group
-            // IMPORTANT: Track TOTAL message text (all components combined) - Discord limit is 4000 chars for entire message
-            const int maxTotalMessageText = 3500; // Conservative limit leaving room for header, footer, buttons
-            bool isFirstGroup = true;
-            var totalMessageTextLength = 0;
-            var currentPageReprimands = reprimandList.Skip(p.CurrentPageIndex * state.GetReprimandsPerPage()).Take(state.GetReprimandsPerPage()).ToList();
+            // TextDisplay = 1 component
+            if (componentCount + 1 > availableComponents)
+                break;
             
-            // Re-group the current page's reprimands
-            var pageGrouped = currentPageReprimands
-                .GroupBy(r => r.GetTitle(showId: false))
-                .OrderBy(g => g.Key)
-                .ToList();
+            var entries = group.OrderByDescending(r => r.Action?.Date).ToList();
             
-            foreach (var group in pageGrouped)
+            var firstEntry = entries.First();
+            var typeBadges = firstEntry.GetTitle(showId: false);
+            
+            var groupText = new StringBuilder();
+            groupText.AppendLine($"### {typeBadges}");
+            var headerLength = groupText.Length;
+            
+            if (totalMessageTextLength + headerLength > maxTotalMessageText && componentCount > 1)
+                break;
+            
+            var collapsedEntries = CollapseIdenticalReasons(entries);
+            
+            foreach (var (reprimandOrGroup, count) in collapsedEntries)
             {
-                var entries = group.OrderByDescending(r => r.Action?.Date).ToList();
-                var container = new ContainerBuilder();
+                var reason = reprimandOrGroup.Action?.Reason ?? "No reason provided";
+                var date = reprimandOrGroup.Action?.Date ?? DateTimeOffset.UtcNow;
+                var moderator = reprimandOrGroup.Action?.Moderator is { } mod ? $"<@{mod.Id}>" : "System";
+                var dateStr = $"<t:{date.ToUnixTimeSeconds()}:d>";
+                var timeStr = $"<t:{date.ToUnixTimeSeconds()}:t>";
+                var relativeStr = $"<t:{date.ToUnixTimeSeconds()}:R>";
                 
-                // Get badges for this reprimand type (use first entry since all have same type)
-                var firstEntry = entries.First();
-                var typeBadges = firstEntry.GetTitle(showId: false);
+                var countPrefix = count > 1 ? $"**x{count}** " : "";
+                var entry = $"• {countPrefix}{reason}\n-# {moderator} {dateStr} {timeStr} • {relativeStr}\n";
                 
-                // Build condensed entries for this type using bullet points
-                var condensedText = new System.Text.StringBuilder();
-                condensedText.AppendLine($"### {typeBadges}");
-                var headerLength = condensedText.Length;
-                
-                // Check if adding this group header would exceed TOTAL MESSAGE limit
-                if (totalMessageTextLength + headerLength > maxTotalMessageText)
+                if (totalMessageTextLength + groupText.Length + entry.Length > maxTotalMessageText)
                     break;
                 
-                foreach (var reprimand in entries)
-                {
-                    var reason = reprimand.Action?.Reason ?? "No reason provided";
-                    var date = reprimand.Action?.Date ?? DateTimeOffset.UtcNow;
-                    var dateStr = $"<t:{date.ToUnixTimeSeconds()}:d>";
-                    var displayReason = TruncatePreservingLinks(reason, TargetTruncateLength);
-                    var entry = $"• {displayReason} • {dateStr}\n";
-                    
-                    // Check if adding this entry would exceed TOTAL MESSAGE limit
-                    if (totalMessageTextLength + condensedText.Length + entry.Length > maxTotalMessageText)
-                        break;
-                    
-                    condensedText.Append(entry);
-                }
-                
-                // Skip empty groups
-                if (condensedText.Length <= headerLength)
-                    continue;
-                
-                // First group gets the chronological toggle button
-                if (isFirstGroup)
-                {
-                    var section = new SectionBuilder()
-                        .WithTextDisplay(condensedText.ToString().TrimEnd().Truncate(MaxTextDisplayLength))
-                        .WithAccessory(new ButtonBuilder("📅", $"history-group:{state.User.Id}", 
-                            ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                    container.WithSection(section);
-                    isFirstGroup = false;
-                }
-                else
-                {
-                    container.WithTextDisplay(condensedText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
-                }
-                
-                components.WithContainer(container);
-                totalMessageTextLength += condensedText.Length;
+                groupText.Append(entry);
             }
             
-            // Add expand button at the end
-            var expandContainer = new ContainerBuilder();
-            var expandSection = new SectionBuilder()
-                .WithTextDisplay("-# Showing shortened reasons")
-                .WithAccessory(new ButtonBuilder("▼", $"history-expand:{state.User.Id}", 
-                    ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-            expandContainer.WithSection(expandSection);
-            components.WithContainer(expandContainer);
+            if (groupText.Length > headerLength)
+            {
+                container.WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
+                componentCount++;
+                totalMessageTextLength += groupText.Length;
+            }
         }
-        else
+        
+        if (componentCount > 1) // More than just the container
         {
-            // Expanded (full reasons): Single container with multiple TextDisplays
-            // IMPORTANT: Track TOTAL message text (all components combined) - Discord limit is 4000 chars for entire message
-            const int maxTotalMessageText = 3500; // Conservative limit leaving room for header, footer, buttons
-            var mainContainer = new ContainerBuilder();
-            bool isFirstGroup = true;
-            var totalMessageTextLength = 0;
-            var processedCount = 0;
-            var currentPageReprimands = reprimandList.Skip(p.CurrentPageIndex * state.GetReprimandsPerPage()).Take(state.GetReprimandsPerPage()).ToList();
-            
-            // Re-group the current page's reprimands
-            var pageGrouped = currentPageReprimands
-                .GroupBy(r => r.GetTitle(showId: false))
-                .OrderBy(g => g.Key)
-                .ToList();
-            
-            foreach (var group in pageGrouped)
-            {
-                var entries = group.OrderByDescending(r => r.Action?.Date).ToList();
-                
-                // Get badges for this reprimand type (use first entry since all have same type)
-                var firstEntry = entries.First();
-                var typeBadges = firstEntry.GetTitle(showId: false);
-                
-                // Build group text
-                var groupText = new System.Text.StringBuilder();
-                groupText.AppendLine($"### {typeBadges}");
-                var headerLength = groupText.Length;
-                
-                // Check if adding this group header would exceed TOTAL MESSAGE limit
-                if (totalMessageTextLength + headerLength > maxTotalMessageText && processedCount > 0)
-                    break;
-                
-                foreach (var reprimand in entries)
-                {
-                    var reason = reprimand.Action?.Reason ?? "No reason provided";
-                    var date = reprimand.Action?.Date ?? DateTimeOffset.UtcNow;
-                    var dateStr = $"<t:{date.ToUnixTimeSeconds()}:d>";
-                    var entry = $"• {reason} • {dateStr}\n";
-                    
-                    // Check if adding this entry would exceed TOTAL MESSAGE limit
-                    if (totalMessageTextLength + groupText.Length + entry.Length > maxTotalMessageText)
-                        break; // Stop adding entries, move to next page
-                    
-                    groupText.Append(entry);
-                    processedCount++;
-                }
-                
-                // Output this group
-                if (groupText.Length > headerLength)
-                {
-                    if (isFirstGroup)
-                    {
-                        var section = new SectionBuilder()
-                            .WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength))
-                            .WithAccessory(new ButtonBuilder("📅", $"history-group:{state.User.Id}", 
-                                ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-                        mainContainer.WithSection(section);
-                        isFirstGroup = false;
-                    }
-                    else
-                    {
-                        mainContainer.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-                        mainContainer.WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
-                    }
-                    
-                    totalMessageTextLength += groupText.Length;
-                }
-            }
-            
-            // Add collapse button at the end
-            mainContainer.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-            var expandSection = new SectionBuilder()
-                .WithTextDisplay("-# Showing full reasons")
-                .WithAccessory(new ButtonBuilder("▲", $"history-expand:{state.User.Id}", 
-                    ButtonStyle.Secondary, isDisabled: p.ShouldDisable()));
-            mainContainer.WithSection(expandSection);
-            
-            components.WithContainer(mainContainer);
+            components.WithContainer(container);
         }
     }
+    
+    /// <summary>
+    /// Collapses reprimands with identical reasons into groups with counts.
+    /// Returns tuples of (representative reprimand, count), preserving order by using the first occurrence.
+    /// </summary>
+    private static IEnumerable<(Reprimand Reprimand, int Count)> CollapseIdenticalReasons(IEnumerable<Reprimand> reprimands)
+        => reprimands
+            .GroupBy(r => r.Action?.Reason ?? "")
+            .Select(g => (Reprimand: g.First(), Count: g.Count()));
 
     /// <summary>
     /// Page factory method for Components V2 user history paginator
     /// </summary>
     private static IPage GenerateUserHistoryPage(IComponentPaginator p, UserHistoryPaginatorState state)
     {
+        const int maxTotalComponents = 40;
+        
         var currentReprimands = state.GetReprimandsForPage(p.CurrentPageIndex).ToList();
         var components = new ComponentBuilderV2();
+        var usedComponents = 0;
         
-        var showHistoryImage = state.IsChronologicalExpanded || state.IsGroupedExpanded;
+        var showHistoryImage = true;
         var createdTimestamp = $"<t:{state.User.CreatedAt.ToUnixTimeSeconds()}:R> <t:{state.User.CreatedAt.ToUnixTimeSeconds()}:f>";
         var joinedTimestamp = state.UserEntity.JoinedAt != null 
             ? $"<t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:R> <t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:f>"
@@ -586,6 +234,7 @@ public class UserService(
             components.WithTextDisplay($"# {state.User.Mention}'s History\n\n" +
                                       $"-# Created {createdTimestamp}\n" +
                                       $"-# Joined   {joinedTimestamp}");
+            usedComponents++; // TextDisplay
             
             if (showHistoryImage)
             {
@@ -594,9 +243,11 @@ public class UserService(
                         new UnfurledMediaItemProperties("attachment://reprimand_history.png"))]);
                 
                 components.WithContainer(historyImageContainer);
+                usedComponents += 2; // Container + MediaGallery inside
             }
             
             components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+            usedComponents++; // Separator
         }
         else
         {
@@ -604,8 +255,18 @@ public class UserService(
                              $"-# Total Records: {state.TotalReprimands} • Filter: {state.TypeFilter.Humanize()}";
             
             components.WithTextDisplay(headerText);
+            usedComponents++; // TextDisplay
+            
             components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+            usedComponents++; // Separator
         }
+
+        // Reserve components for footer elements:
+        // - 4-5 ActionRows (type filter, category filter if exists, mod actions, navigation)
+        // - 1 TextDisplay (footer)
+        var hasCategories = state.Guild.ModerationCategories.Any();
+        var reservedForFooter = (hasCategories ? 5 : 4) + 1; // ActionRows + footer TextDisplay
+        var availableForContent = maxTotalComponents - usedComponents - reservedForFooter;
 
         // Display reprimands or empty message
         if (!currentReprimands.Any())
@@ -613,15 +274,9 @@ public class UserService(
             components.WithTextDisplay("*No reprimands found matching your criteria.*\n\n" +
                                       "This user has a clean record with the current filters applied.");
         }
-        else if (state.IsGrouped)
-        {
-            // Grouped view: Show condensed format grouped by type
-            RenderGroupedReprimands(components, currentReprimands, state, p);
-        }
         else
         {
-            // Chronological view: Show full format with day dividers
-            RenderChronologicalReprimands(components, currentReprimands, state, p);
+            RenderGroupedReprimands(components, currentReprimands, availableForContent);
         }
 
         // Build reprimand type filter select menu (outside container, in top-level action row)
@@ -686,8 +341,8 @@ public class UserService(
 
         // Create attachment from cached bytes only on first page
         Func<IEnumerable<FileAttachment>> attachmentFactory = p.CurrentPageIndex == 0
-            ? () => new FileAttachment[] { new FileAttachment(new MemoryStream(state.HistoryImageBytes), "reprimand_history.png") }
-            : () => Array.Empty<FileAttachment>();
+            ? () => [new FileAttachment(new MemoryStream(state.HistoryImageBytes), "reprimand_history.png")]
+            : Array.Empty<FileAttachment>;
         
         return new PageBuilder()
             .WithComponents(components.Build())

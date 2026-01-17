@@ -122,91 +122,11 @@ public class ComponentPaginatorTests
 
         // Assert
         Assert.Equal(25, state.TotalReprimands);
-        Assert.Equal(5, state.TotalPages); // Collapsed (5 per page): Math.Ceiling(25/5) = 5
-        Assert.False(state.IsChronologicalExpanded); // Should default to collapsed
+        Assert.True(state.TotalPages >= 1); // Dynamic pagination based on content size
     }
 
     [Fact]
-    public void UserHistoryPaginatorState_DefaultsToCollapsed()
-    {
-        // Arrange
-        var user = CreateMockUser(123);
-        var userEntity = CreateTestUserEntity(123);
-        var reprimands = CreateTestReprimands(10);
-        var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
-
-        // Act
-        var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
-
-        // Assert
-        Assert.False(state.IsChronologicalExpanded); // Should start collapsed (5 items per page)
-        Assert.False(state.IsGroupedExpanded); // Should start collapsed (truncated reasons)
-        Assert.False(state.IsGrouped); // Should start in chronological mode
-    }
-
-    [Fact]
-    public void UserHistoryPaginatorState_ToggleExpanded_ChangesPageCount()
-    {
-        // Arrange
-        var user = CreateMockUser(123);
-        var userEntity = CreateTestUserEntity(123);
-        var reprimands = CreateTestReprimands(25); // 25 reprimands
-        var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
-        var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
-
-        // Act - Toggle from collapsed (5/page) to expanded (10/page)
-        state.ToggleExpanded();
-
-        // Assert
-        Assert.True(state.IsChronologicalExpanded); // Now expanded
-        Assert.Equal(3, state.TotalPages); // Math.Ceiling(25/10) = 3 pages
-        Assert.True(state.PageCountChanged); // Flag should be set
-
-        // Act - Toggle back to collapsed
-        state.ToggleExpanded();
-
-        // Assert
-        Assert.False(state.IsChronologicalExpanded); // Back to collapsed
-        Assert.Equal(5, state.TotalPages); // Math.Ceiling(25/5) = 5 pages
-        Assert.True(state.PageCountChanged);
-    }
-
-    [Fact]
-    public void UserHistoryPaginatorState_ToggleGrouped_ChangesPageCountToOne()
-    {
-        // Arrange
-        var user = CreateMockUser(123);
-        var userEntity = CreateTestUserEntity(123);
-        var reprimands = CreateTestReprimands(10);
-        var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
-        var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
-        var initialPageCount = state.TotalPages; // Should be 2 (10 items / 5 per page)
-
-        // Act - Toggle to grouped mode
-        state.ToggleGrouped();
-
-        // Assert - Grouped mode shows all reprimands on one page
-        Assert.True(state.IsGrouped);
-        Assert.Equal(1, state.TotalPages); // All reprimands on one page
-        Assert.True(state.PageCountChanged); // Flag should be set
-
-        // Act - Toggle back to chronological
-        state.ToggleGrouped();
-
-        // Assert - Back to paginated view
-        Assert.False(state.IsGrouped);
-        Assert.Equal(initialPageCount, state.TotalPages); // Back to 2 pages
-        Assert.True(state.PageCountChanged);
-    }
-
-    [Fact]
-    public void UserHistoryPaginatorState_GetReprimandsForPage_ReturnsCorrectReprimands()
+    public void UserHistoryPaginatorState_GetReprimandsForPage_ReturnsReprimands()
     {
         // Arrange
         var user = CreateMockUser(123);
@@ -217,24 +137,18 @@ public class ComponentPaginatorTests
         var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
             null, LogReprimandType.All, guild, user, imageBytes);
 
-        // Act - Collapsed mode (5 per page, default)
-        var page0Collapsed = state.GetReprimandsForPage(0).ToList();
-        var page1Collapsed = state.GetReprimandsForPage(1).ToList();
-        var page4Collapsed = state.GetReprimandsForPage(4).ToList();
+        // Act - Get first page
+        var page0 = state.GetReprimandsForPage(0).ToList();
 
-        // Assert - Collapsed: 5 pages with 5 items each
-        Assert.Equal(5, page0Collapsed.Count);
-        Assert.Equal(5, page1Collapsed.Count);
-        Assert.Equal(5, page4Collapsed.Count); // Last page
-
-        // Act - Toggle to expanded (10 per page)
-        state.ToggleExpanded();
-        var page0Expanded = state.GetReprimandsForPage(0).ToList();
-        var page2Expanded = state.GetReprimandsForPage(2).ToList();
-
-        // Assert - Expanded: 3 pages, last has 5 items
-        Assert.Equal(10, page0Expanded.Count);
-        Assert.Equal(5, page2Expanded.Count); // Last page has only 5 reprimands
+        // Assert - First page has items and all reprimands are accessible across pages
+        Assert.True(page0.Count > 0);
+        
+        var totalItems = 0;
+        for (int i = 0; i < state.TotalPages; i++)
+        {
+            totalItems += state.GetReprimandsForPage(i).Count();
+        }
+        Assert.Equal(25, totalItems); // All reprimands accessible
     }
 
     [Fact]
@@ -344,47 +258,6 @@ public class ComponentPaginatorTests
         // Assert
         Assert.Equal(requestedBy, state.RequestedBy);
         Assert.Equal(999UL, state.RequestedBy.Id);
-    }
-
-    [Fact]
-    public void UserHistoryPaginatorState_IndependentExpandStates()
-    {
-        // Arrange
-        var user = CreateMockUser(123);
-        var userEntity = CreateTestUserEntity(123);
-        var reprimands = CreateTestReprimands(25);
-        var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
-        var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
-
-        // Assert - Both start collapsed
-        Assert.False(state.IsChronologicalExpanded);
-        Assert.False(state.IsGroupedExpanded);
-        Assert.Equal(5, state.TotalPages); // 5 items per page when collapsed
-
-        // Act - Expand chronological only
-        state.ToggleExpanded();
-
-        // Assert - Chronological expanded, grouped still collapsed
-        Assert.True(state.IsChronologicalExpanded);
-        Assert.False(state.IsGroupedExpanded);
-        Assert.Equal(3, state.TotalPages); // Page count changed to 10 per page
-
-        // Act - Toggle grouped independently
-        state.IsGroupedExpanded = !state.IsGroupedExpanded;
-
-        // Assert - Both now expanded
-        Assert.True(state.IsChronologicalExpanded);
-        Assert.True(state.IsGroupedExpanded);
-
-        // Act - Collapse chronological back
-        state.ToggleExpanded();
-
-        // Assert - Chronological collapsed, grouped still expanded
-        Assert.False(state.IsChronologicalExpanded);
-        Assert.True(state.IsGroupedExpanded);
-        Assert.Equal(5, state.TotalPages); // Page count changed back
     }
 
     #endregion

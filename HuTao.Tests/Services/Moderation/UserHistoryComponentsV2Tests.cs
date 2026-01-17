@@ -56,52 +56,15 @@ public class UserHistoryComponentsV2Tests
             .WithPageFactory(_ => throw new InvalidOperationException("Not used in test."))
             .Build();
 
-        ValidateMode("chronological-collapsed", configure: () =>
+        // Validate grouped view (only mode)
+        state.UpdateFilters(category: null, type: LogReprimandType.All);
+        paginator.PageCount = state.TotalPages;
+
+        var components0 = InvokeGenerateUserHistoryComponents(paginator, state, pageIndex: 0);
+        components0.ShouldBeValidComponentsV2();
+
+        if (state.TotalPages > 1)
         {
-            state.IsGrouped = false;
-            state.IsChronologicalExpanded = false;
-            state.IsGroupedExpanded = false;
-            state.UpdateFilters(category: null, type: LogReprimandType.All);
-            paginator.PageCount = state.TotalPages;
-        });
-
-        ValidateMode("chronological-expanded", configure: () =>
-        {
-            state.IsGrouped = false;
-            state.IsChronologicalExpanded = true;
-            state.IsGroupedExpanded = false;
-            state.UpdateFilters(category: null, type: LogReprimandType.All);
-            paginator.PageCount = state.TotalPages;
-        });
-
-        ValidateMode("grouped-collapsed", configure: () =>
-        {
-            state.IsGrouped = true;
-            state.IsChronologicalExpanded = false;
-            state.IsGroupedExpanded = false;
-            state.UpdateFilters(category: null, type: LogReprimandType.All);
-            paginator.PageCount = state.TotalPages;
-        });
-
-        ValidateMode("grouped-expanded", configure: () =>
-        {
-            state.IsGrouped = true;
-            state.IsChronologicalExpanded = false;
-            state.IsGroupedExpanded = true;
-            state.UpdateFilters(category: null, type: LogReprimandType.All);
-            paginator.PageCount = state.TotalPages;
-        });
-
-        void ValidateMode(string name, Action configure)
-        {
-            configure();
-
-            var components0 = InvokeGenerateUserHistoryComponents(paginator, state, pageIndex: 0);
-            components0.ShouldBeValidComponentsV2();
-
-            if (state.TotalPages <= 1)
-                return;
-
             var components1 = InvokeGenerateUserHistoryComponents(paginator, state, pageIndex: 1);
             components1.ShouldBeValidComponentsV2();
         }

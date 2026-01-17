@@ -127,9 +127,9 @@ public class DemoReprimandSeeder(HuTaoContext db)
                     var delta = TimeSpan.FromHours(rng.Next(1, 72));
                     modified = new ModifiedSeed(date + delta, status switch
                     {
-                        ReprimandStatus.Updated => "Updated after review",
-                        ReprimandStatus.Pardoned => "Pardoned after appeal",
-                        ReprimandStatus.Deleted => "Deleted (demo data cleanup)",
+                        ReprimandStatus.Updated => Pick(UpdatedReasons, rng),
+                        ReprimandStatus.Pardoned => Pick(PardonedReasons, rng),
+                        ReprimandStatus.Deleted => "Deleted (cleanup)",
                         ReprimandStatus.Expired => "[Reprimand Expired]",
                         _ => "Modified"
                     });
@@ -145,12 +145,41 @@ public class DemoReprimandSeeder(HuTaoContext db)
                     reason,
                     extra,
                     modified));
+
+                if (ShouldAddFollowUpNote(kind, rng))
+                {
+                    var noteDate = date + TimeSpan.FromMinutes(rng.Next(5, 120));
+                    var noteReason = Pick(FollowUpNoteReasons, rng);
+                    results.Add(new DemoSeedItem(
+                        userId,
+                        DemoReprimandKind.Note,
+                        ReprimandStatus.Added,
+                        noteDate,
+                        null,
+                        null,
+                        noteReason,
+                        DemoSeedExtra.Default,
+                        null));
+                }
             }
         }
 
         return results
             .OrderByDescending(r => r.ActionDate)
             .ToList();
+    }
+    
+    private static bool ShouldAddFollowUpNote(DemoReprimandKind kind, Random rng)
+    {
+        return kind switch
+        {
+            DemoReprimandKind.Warning => rng.NextDouble() < 0.25,
+            DemoReprimandKind.Ban => rng.NextDouble() < 0.40,
+            DemoReprimandKind.Kick => rng.NextDouble() < 0.30,
+            DemoReprimandKind.Mute => rng.NextDouble() < 0.20,
+            DemoReprimandKind.Timeout => rng.NextDouble() < 0.15,
+            _ => false
+        };
     }
 
     private static Reprimand CreateReprimand(ReprimandDetails details, DemoSeedItem item)
@@ -234,67 +263,123 @@ public class DemoReprimandSeeder(HuTaoContext db)
 
     private static readonly string[] WarningReasons =
     [
-        "Spamming in #general",
-        "Off-topic posting after warning",
-        "Excessive caps / emoji spam",
-        "Ignoring moderator instructions",
-        "Posting spoilers without tags"
+        "Ignoring verbal warnings by continuing to make inappropriate jokes",
+        "Continuing off-topic discussion after being told to stop",
+        "Warned for bypassing the word filter",
+        "Posting copypasta after channel-wide verbal warnings",
+        "Making inappropriate jokes after verbal warning",
+        "Excessive caps / emoji spam after verbal",
+        "Posting spoilers without tags in non-spoiler channel",
+        "Warned for making NSFW comments. Please read server rules",
+        "Continuing to argue after being told to drop the topic",
+        "Disrespectful behavior toward other members",
+        "Sharing content that made others uncomfortable",
+        "Bypassing automod/filter after being automodded"
     ];
 
     private static readonly string[] NoteReasons =
     [
-        "User apologized; keep an eye on behavior",
+        "User apologized; keeping note for future reference",
         "Prior incident referenced in appeal",
-        "Friendly reminder issued in DMs",
-        "Context: conversation escalated quickly"
+        "Context: conversation escalated quickly, intervened",
+        "Verbal warning issued in DMs about behavior",
+        "User claims misunderstanding, will monitor",
+        "Alt account suspected, keeping track",
+        "Previous warn was borderline, documenting context",
+        "User was cooperative when approached",
+        "Sent DM explaining the issue"
     ];
 
     private static readonly string[] NoticeReasons =
     [
         "Final reminder to follow server rules",
-        "Notice issued for repeated minor issues",
-        "Keep discussion civil and on-topic"
+        "Notice issued for repeated minor infractions",
+        "Keep discussions civil and on-topic",
+        "Reminder: this is your last chance before action"
     ];
 
     private static readonly string[] TimeoutReasons =
     [
-        "Heated argument - cooldown period",
-        "Harassment / personal attacks",
+        "Heated argument - cooldown period needed",
+        "Personal attacks toward another member",
         "Disruptive behavior in voice chat",
-        "Repeated rule-breaking after warnings"
+        "Repeated rule-breaking after multiple warnings",
+        "Continuing inappropriate behavior after verbal",
+        "Spamming after being asked to stop",
+        "Being disrespectful to staff"
     ];
 
     private static readonly string[] MuteReasons =
     [
-        "Continued spamming after warnings",
-        "Bypassing slowmode",
-        "Repeatedly pinging roles / users",
-        "Posting low-effort spam"
+        "Continued spamming after multiple warnings",
+        "Bypassing slowmode restrictions",
+        "Mass pinging roles/users",
+        "Posting low-effort spam repeatedly",
+        "Consistently derailing conversations",
+        "Ignoring multiple staff warnings"
     ];
 
     private static readonly string[] KickReasons =
     [
-        "Repeated rule violations",
-        "Aggressive behavior toward members",
-        "Evading moderation actions"
+        "Repeated rule violations after warnings",
+        "Aggressive behavior toward multiple members",
+        "Evading moderation actions",
+        "Account too new with suspicious behavior",
+        "Refusing to follow staff instructions"
     ];
 
     private static readonly string[] BanReasons =
     [
-        "Hate speech / slurs",
-        "Scam / phishing attempts",
-        "Raid participation",
-        "Severe harassment",
-        "Advertising other servers after warnings"
+        "After further review of your history",
+        "Hate speech / discriminatory content",
+        "Scam / phishing link distribution",
+        "Raid participation confirmed",
+        "Severe harassment of members",
+        "DM advertising/scamming server members",
+        "Multiple severe infractions",
+        "Posting illegal content",
+        "Threatening other members"
     ];
 
     private static readonly string[] CensoredContents =
     [
-        "some very rude message",
-        "spoilers without tags",
-        "invite link",
-        "NSFW content",
-        "scam link"
+        "slur bypass attempt",
+        "banned word in message",
+        "inappropriate content",
+        "invite link spam",
+        "NSFW content in SFW channel",
+        "scam/phishing link",
+        "mass mention spam"
+    ];
+    
+    private static readonly string[] FollowUpNoteReasons =
+    [
+        "User acknowledged the warning in DMs",
+        "Explained rules to user, they understood",
+        "User apologized and agreed to follow rules",
+        "Keeping track of this incident for future reference",
+        "User disputed but accepted the decision",
+        "Additional context from other mods",
+        "User was respectful when confronted",
+        "DM conversation went well, user seems genuine",
+        "Screenshots saved for documentation"
+    ];
+    
+    private static readonly string[] UpdatedReasons =
+    [
+        "Updated after mod team review",
+        "Severity adjusted after discussion",
+        "Modified based on additional context",
+        "Updated per senior mod decision"
+    ];
+    
+    private static readonly string[] PardonedReasons =
+    [
+        "Pardoned after successful appeal",
+        "Pardoned: user demonstrated improvement",
+        "Appeal accepted by mod team",
+        "Pardoned after review of evidence",
+        "Reduced after user appeal"
     ];
 }
 

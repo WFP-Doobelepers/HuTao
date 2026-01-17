@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -38,12 +39,14 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
     {
         var sw = new Stopwatch();
         sw.Start();
+        
         var scale = 2f;
-        var baseWidth = 600;
-        var headerHeight = (int) (28 * scale);
-        var rowHeight = (int) (50 * scale);
-        var iconSize = (int) (28 * scale);
-        var iconGap = (int) (12 * scale);
+        var baseWidth = 520;
+        var headerHeight = (int) (32 * scale);
+        var rowHeight = (int) (44 * scale);
+        var iconSize = (int) (24 * scale);
+        var iconGap = (int) (10 * scale);
+        var padding = (int) (16 * scale);
 
         var reprimandData = GetReprimandData(user, category);
 
@@ -53,11 +56,11 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
 
         var backgroundColor = ImageSharpColor.Transparent;
         var headerColor = ImageSharpColor.ParseHex("5865F2");
-        var rowEvenColor = ImageSharpColor.FromRgba(47, 49, 54, 200);
-        var rowOddColor = ImageSharpColor.FromRgba(54, 57, 63, 200);
+        var rowEvenColor = ImageSharpColor.FromRgba(47, 49, 54, 220);
+        var rowOddColor = ImageSharpColor.FromRgba(54, 57, 63, 220);
         var textColor = ImageSharpColor.White;
-        var textSecondary = ImageSharpColor.ParseHex("B9BBBE");
-        var textDark = ImageSharpColor.ParseHex("72767D");
+        var textSecondary = ImageSharpColor.ParseHex("DCDDDE");
+        var textMuted = ImageSharpColor.ParseHex("8E9297");
         var iconColor = ImageSharpColor.ParseHex("B9BBBE");
 
         FontFamily textFont;
@@ -66,28 +69,34 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
 
         try
         {
-            textFont        = SystemFonts.Get("JetBrainsMono NF");
+            textFont        = SystemFonts.Get("Segoe UI");
             titleFontFamily = SystemFonts.Get("Segoe UI");
-            iconFont        = SystemFonts.Get("Font Awesome 7 Free Solid");
+            iconFont        = SystemFonts.Get("Font Awesome 6 Free Solid");
         }
         catch
         {
-            textFont        = SystemFonts.Get("Consolas");
+            textFont        = SystemFonts.Get("Arial");
             titleFontFamily = SystemFonts.Get("Arial");
-            iconFont        = SystemFonts.Get("Segoe UI");
+            iconFont        = SystemFonts.Get("Arial");
         }
 
-        var headerFont = titleFontFamily.CreateFont(12 * scale, FontStyle.Bold);
-        var dataFont = textFont.CreateFont(14 * scale, FontStyle.Regular);
+        var headerFont = titleFontFamily.CreateFont(13 * scale, FontStyle.Bold);
+        var labelFont = textFont.CreateFont(14 * scale, FontStyle.Regular);
+        var countFont = textFont.CreateFont(14 * scale, FontStyle.Bold);
         var smallFont = textFont.CreateFont(12 * scale, FontStyle.Regular);
-        var reasonFont = textFont.CreateFont(8 * scale, FontStyle.Regular);
-        var iconFontSize = iconFont.CreateFont(20 * scale, FontStyle.Regular);
+        var reasonFont = textFont.CreateFont(11 * scale, FontStyle.Regular);
+        var iconFontSize = iconFont.CreateFont(18 * scale, FontStyle.Regular);
+
+        var iconX = padding;
+        var typeX = iconX + iconSize + iconGap;
+        var countX = 160 * scale;
+        var actionX = 240 * scale;
+        var reasonX = 380 * scale;
 
         using var image = new Image<Rgba32>(width, height);
         image.Mutate(ctx =>
         {
             ctx.Fill(backgroundColor);
-
             ctx.Fill(headerColor, new RectangleF(0, 0, width, headerHeight));
 
             for (var i = 0; i < reprimandData.Length; i++)
@@ -98,12 +107,6 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
             }
 
             var headY = (headerHeight - headerFont.Size) / 2f;
-            var iconX = 20 * scale;
-            var typeX = iconX + iconSize + iconGap;
-            var countX = 180 * scale;
-            var actionX = 280 * scale;
-            var reasonX = 420 * scale;
-
             ctx.DrawText("Type", headerFont, textColor, new PointF(typeX, headY));
             ctx.DrawText("Count", headerFont, textColor, new PointF(countX, headY));
             ctx.DrawText("Last Action", headerFont, textColor, new PointF(actionX, headY));
@@ -113,37 +116,25 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
             {
                 var data = reprimandData[i];
                 float rowY = headerHeight + i * rowHeight;
-
-                var textY = rowY + (rowHeight - dataFont.Size) / 2f;
+                var textY = rowY + (rowHeight - labelFont.Size) / 2f;
                 var iconY = rowY + (rowHeight - iconFontSize.Size) / 2f;
 
-                ctx.DrawText(data.Icon, iconFontSize, iconColor,
-                    new PointF(iconX, iconY));
+                ctx.DrawText(data.Icon, iconFontSize, iconColor, new PointF(iconX, iconY));
+                ctx.DrawText(data.Label, labelFont, textColor, new PointF(typeX, textY));
 
-                ctx.DrawText(data.Label, dataFont, textColor,
-                    new PointF(typeX, textY));
+                var activeTextColor = data.Active > 0 ? textColor : textMuted;
+                ctx.DrawText($"{data.Active}", countFont, activeTextColor, new PointF(countX, textY));
+                
+                var activeWidth = $"{data.Active}".Length * 9 * scale;
+                ctx.DrawText($"/{data.Total}", smallFont, textMuted, new PointF(countX + activeWidth, textY + 2 * scale));
 
-                var activeText = data.Active.ToString();
-                var totalText = data.Total.ToString();
-                var activeTextColor = data.Active > 0 ? textColor : textSecondary;
+                ctx.DrawText(data.LastIssued, smallFont, textSecondary, new PointF(actionX, textY));
 
-                ctx.DrawText(activeText, dataFont, activeTextColor,
-                    new PointF(countX, textY));
-
-                var activeWidth = activeText.Length * 8 * scale;
-                ctx.DrawText("/", dataFont, textDark,
-                    new PointF(countX + activeWidth + 2 * scale, textY));
-
-                var separatorWidth = 6 * scale;
-                ctx.DrawText(totalText, dataFont, textDark,
-                    new PointF(countX + activeWidth + separatorWidth + 4 * scale, textY));
-
-                ctx.DrawText(data.LastIssued, smallFont, textSecondary,
-                    new PointF(actionX, textY));
-
-                var reasonText = data.LatestReason.Length > 40 ? data.LatestReason[..37] + "..." : data.LatestReason;
-                ctx.DrawText(reasonText, reasonFont, textSecondary,
-                    new PointF(reasonX, textY));
+                var maxReasonLen = 28;
+                var reasonText = data.LatestReason.Length > maxReasonLen 
+                    ? data.LatestReason[..(maxReasonLen - 3)] + "..." 
+                    : data.LatestReason;
+                ctx.DrawText(reasonText, reasonFont, textSecondary, new PointF(reasonX, textY));
             }
         });
 
@@ -157,8 +148,46 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
         return stream;
     }
 
-    private static (string Label, string Icon, int Active, int Total, string LastIssued, string LatestReason)
-        GetReprimandInfo<T>(string label, string icon, GuildUserEntity user, ModerationCategory? category) where T : Reprimand
+    private static ReprimandRowData[] GetReprimandData(GuildUserEntity user, ModerationCategory? category)
+    {
+        var rules = category?.Logging?.SummaryReprimands
+            ?? user.Guild.ModerationRules?.Logging?.SummaryReprimands
+            ?? LogReprimandType.All;
+
+        var data = new List<ReprimandRowData>();
+
+        if (rules.HasFlag(LogReprimandType.Warning))
+            data.Add(GetReprimandRowData<Warning>("Warning", "\uf071", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Ban))
+            data.Add(GetReprimandRowData<Ban>("Ban", "\uf05e", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Kick))
+            data.Add(GetReprimandRowData<Kick>("Kick", "\uf54c", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Note))
+            data.Add(GetReprimandRowData<Note>("Note", "\uf249", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Mute))
+            data.Add(GetReprimandRowData<Mute>("Mute", "\uf131", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Timeout))
+            data.Add(GetReprimandRowData<Timeout>("Timeout", "\uf251", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Censored))
+            data.Add(GetReprimandRowData<Censored>("Censored", "\uf070", user, category));
+
+        if (rules.HasFlag(LogReprimandType.Notice))
+            data.Add(GetReprimandRowData<Notice>("Notice", "\uf0a1", user, category));
+
+        return data
+            .OrderByDescending(x => x.LastDate.HasValue ? 1 : 0)
+            .ThenByDescending(x => x.LastDate ?? DateTimeOffset.MinValue)
+            .ToArray();
+    }
+    
+    private static ReprimandRowData GetReprimandRowData<T>(string label, string icon, GuildUserEntity user, ModerationCategory? category) 
+        where T : Reprimand
     {
         var count = typeof(T) == typeof(Warning)
             ? user.WarningCount(category)
@@ -166,48 +195,22 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
 
         var latest = user.Reprimands<T>(category).OrderByDescending(r => r.Action?.Date).FirstOrDefault();
 
-        var lastIssued = latest?.Action?.Date.Humanize() ?? "-";
-        var latestReason = latest?.GetLatestReason() ?? "-";
-
-        return (label, icon, (int) count.Active, (int) count.Total, lastIssued, latestReason);
+        return new ReprimandRowData(
+            label, 
+            icon, 
+            (int)count.Active, 
+            (int)count.Total, 
+            latest?.Action?.Date.Humanize() ?? "-", 
+            latest?.GetLatestReason() ?? "-",
+            latest?.Action?.Date);
     }
-
-    private static (string Label, string Icon, int Active, int Total, string LastIssued, string LatestReason)[] GetReprimandData(
-        GuildUserEntity user, ModerationCategory? category)
-    {
-        var rules = category?.Logging?.SummaryReprimands
-            ?? user.Guild.ModerationRules?.Logging?.SummaryReprimands
-            ?? LogReprimandType.All;
-
-        var data = new List<(string Label, string Icon, int Active, int Total, string LastIssued, string LatestReason)>();
-
-        if (rules.HasFlag(LogReprimandType.Warning))
-            data.Add(GetReprimandInfo<Warning>("Warning", "\uf071", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Notice))
-            data.Add(GetReprimandInfo<Notice>("Notice", "\uf0a1", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Ban))
-            data.Add(GetReprimandInfo<Ban>("Ban", "\uf05e", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Kick))
-            data.Add(GetReprimandInfo<Kick>("Kick", "\uf54b", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Note))
-            data.Add(GetReprimandInfo<Note>("Note", "\uf249", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Mute))
-            data.Add(GetReprimandInfo<Mute>("Mute", "\uf131", user, category));
-
-        if (false && rules.HasFlag(LogReprimandType.HardMute))
-            data.Add(GetReprimandInfo<HardMute>("Hard Mute", "\uf131", user, category));
-
-        if (true || rules.HasFlag(LogReprimandType.Timeout))
-            data.Add(GetReprimandInfo<Timeout>("Timeout", "\uf251", user, category));
-
-        if (rules.HasFlag(LogReprimandType.Censored))
-            data.Add(GetReprimandInfo<Censored>("Censored", "\uf070", user, category));
-
-        return data.OrderByDescending(x => x.LastIssued == "-" ? 0 : 1).ToArray();
-    }
+    
+    private record ReprimandRowData(
+        string Label, 
+        string Icon, 
+        int Active, 
+        int Total, 
+        string LastIssued, 
+        string LatestReason, 
+        DateTimeOffset? LastDate);
 }

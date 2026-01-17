@@ -44,8 +44,6 @@ public class InteractiveConfigurationModule(
 
     private const string OpenButtonId = "cfg:open";
 
-    private const string OpenButtonId = "cfg:open";
-
     private const string BackButtonId = "cfg:back";
     private const string RefreshButtonId = "cfg:refresh";
 
@@ -110,31 +108,6 @@ public class InteractiveConfigurationModule(
             paginator,
             Context.Interaction,
             ephemeral: ephemeral,
-            timeout: TimeSpan.FromMinutes(10),
-            resetTimeoutOnInput: true,
-            responseType: InteractionResponseType.DeferredChannelMessageWithSource);
-    }
-
-    [ComponentInteraction(OpenButtonId, true)]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
-    public async Task OpenFromButtonAsync()
-    {
-        await DeferAsync(ephemeral: true);
-
-        var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
-        var state = ConfigPanelState.Create(guild, Context.Guild.Name, category: null);
-
-        var paginator = InteractiveExtensions.CreateDefaultComponentPaginator()
-            .WithUsers(Context.User)
-            .WithPageCount(1)
-            .WithUserState(state)
-            .WithPageFactory(GeneratePage)
-            .Build();
-
-        await interactive.SendPaginatorAsync(
-            paginator,
-            Context.Interaction,
-            ephemeral: true,
             timeout: TimeSpan.FromMinutes(10),
             resetTimeoutOnInput: true,
             responseType: InteractionResponseType.DeferredChannelMessageWithSource);
