@@ -72,8 +72,12 @@ public static class HelpBrowserRenderer
             .WithTextDisplay($"-# Prefix: `{state.Prefix}`{filterText} • Page {p.CurrentPageIndex + 1} of {p.PageCount}")
             .WithAccentColor(AccentColor);
 
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, $"HelpBrowser page {p.CurrentPageIndex}");
+
         return new PageBuilder()
-            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithComponents(components)
             .Build();
     }
 

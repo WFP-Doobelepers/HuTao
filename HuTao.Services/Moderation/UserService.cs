@@ -343,9 +343,13 @@ public class UserService(
         Func<IEnumerable<FileAttachment>> attachmentFactory = p.CurrentPageIndex == 0
             ? () => [new FileAttachment(new MemoryStream(state.HistoryImageBytes), "reprimand_history.png")]
             : Array.Empty<FileAttachment>;
-        
+
+        var builtComponents = components.Build();
+
+        ComponentsV2Validator.AssertValid(builtComponents, $"UserHistory page {p.CurrentPageIndex}");
+
         return new PageBuilder()
-            .WithComponents(components.Build())
+            .WithComponents(builtComponents)
             .WithAllowedMentions(AllowedMentions.None)
             .WithAttachmentsFactory(attachmentFactory)
             .Build();

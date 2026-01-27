@@ -305,8 +305,12 @@ public class ModerationService(
         container.WithTextDisplay(footerText)
             .WithAccentColor(0x9B59FF); // HuTao brand color
 
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, $"MuteList page {p.CurrentPageIndex}");
+
         return new PageBuilder()
-            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithComponents(components)
             .WithAllowedMentions(AllowedMentions.None)
             .Build();
     }

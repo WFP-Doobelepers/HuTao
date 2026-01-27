@@ -8,6 +8,8 @@ namespace HuTao.Tests.Testing;
 
 public static class ComponentsV2Assertions
 {
+    private const int MaxTotalComponents = 40;
+    private const int MaxCumulativeTextLength = 4000;
     private const int MaxTextDisplayLength = 4000;
     private const int MaxThumbnailDescriptionLength = 1024;
     private const int MaxMediaGalleryItemDescriptionLength = 256;
@@ -29,15 +31,52 @@ public static class ComponentsV2Assertions
         Assert.Fail(string.Join(Environment.NewLine, violations));
     }
 
+    public static int CountAllComponents(MessageComponent components)
+    {
+        var count = 0;
+        CountComponentsRecursive(components.Components, ref count);
+        return count;
+    }
+
+    private static void CountComponentsRecursive(IEnumerable<IMessageComponent> components, ref int count)
+    {
+        foreach (var component in components)
+        {
+            count++;
+            switch (component)
+            {
+                case ContainerComponent container:
+                    CountComponentsRecursive(container.Components, ref count);
+                    break;
+                case SectionComponent section:
+                    CountComponentsRecursive(section.Components, ref count);
+                    if (section.Accessory is not null)
+                        count++;
+                    break;
+                case ActionRowComponent actionRow:
+                    CountComponentsRecursive(actionRow.Components, ref count);
+                    break;
+            }
+        }
+    }
+
     private static List<string> ValidateComponentsV2(MessageComponent components)
     {
         var violations = new List<string>();
+        var totalComponentCount = 0;
         var actionRowCount = 0;
+        var cumulativeTextLength = 0;
 
         VisitMany(components.Components, "root");
 
+        if (totalComponentCount > MaxTotalComponents)
+            violations.Add($"Total component count {totalComponentCount} exceeds maximum {MaxTotalComponents}.");
+
         if (actionRowCount > MaxActionRows)
-            violations.Add($"Too many action rows: {actionRowCount} (max {MaxActionRows}).");
+            violations.Add($"Total action row count {actionRowCount} exceeds maximum {MaxActionRows}.");
+
+        if (cumulativeTextLength > MaxCumulativeTextLength)
+            violations.Add($"Cumulative text length {cumulativeTextLength} exceeds maximum {MaxCumulativeTextLength}.");
 
         return violations;
 
@@ -51,6 +90,7 @@ public static class ComponentsV2Assertions
                     continue;
                 }
 
+                totalComponentCount++;
                 var nextPath = $"{path}/{component.GetType().Name}";
 
                 switch (component)
@@ -100,6 +140,8 @@ public static class ComponentsV2Assertions
 
             foreach (var child in section.Components)
             {
+                totalComponentCount++;
+
                 if (child is not TextDisplayComponent text)
                 {
                     violations.Add($"{path}: invalid section child type {child.GetType().Name} (only TextDisplay allowed).");
@@ -111,6 +153,8 @@ public static class ComponentsV2Assertions
 
             if (section.Accessory is null)
                 return;
+
+            totalComponentCount++;
 
             if (section.Accessory is ThumbnailComponent thumb)
             {
@@ -140,6 +184,8 @@ public static class ComponentsV2Assertions
 
             if (textDisplay.Content.Length > MaxTextDisplayLength)
                 violations.Add($"{path}: TextDisplay content too long: {textDisplay.Content.Length} (max {MaxTextDisplayLength}).");
+
+            cumulativeTextLength += textDisplay.Content.Length;
         }
 
         void ValidateThumbnail(ThumbnailComponent thumbnail, string path)
@@ -199,6 +245,8 @@ public static class ComponentsV2Assertions
 
             foreach (var child in actionRow.Components)
             {
+                totalComponentCount++;
+
                 switch (child)
                 {
                     case ButtonComponent button:
@@ -261,4 +309,3 @@ public static class ComponentsV2Assertions
         }
     }
 }
-

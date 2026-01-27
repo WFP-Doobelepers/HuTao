@@ -89,8 +89,12 @@ public static class RoleBrowserRenderer
             container.WithAccentColor(AccentColor);
         }
 
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, $"RoleBrowser page {p.CurrentPageIndex}");
+
         return new PageBuilder()
-            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithComponents(components)
             .Build();
     }
 

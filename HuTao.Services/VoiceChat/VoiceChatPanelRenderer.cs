@@ -88,8 +88,12 @@ public static class VoiceChatPanelRenderer
             container.WithAccentColor(AccentColor);
         }
 
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, "VoiceChatPanel");
+
         return new PageBuilder()
-            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithComponents(components)
             .Build();
     }
 

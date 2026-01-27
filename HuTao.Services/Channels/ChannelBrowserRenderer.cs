@@ -110,8 +110,12 @@ public static class ChannelBrowserRenderer
             container.WithAccentColor(AccentColor);
         }
 
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, $"ChannelBrowser page {p.CurrentPageIndex}");
+
         return new PageBuilder()
-            .WithComponents(new ComponentBuilderV2().WithContainer(container).Build())
+            .WithComponents(components)
             .Build();
     }
 
