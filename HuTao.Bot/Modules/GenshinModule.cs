@@ -435,9 +435,9 @@ public class GenshinModule
             if (role is null) return;
 
             if (AllowedRoles.Add(role.Id))
-                await RespondAsync($"✅ Added {role.Mention} to allowed roles.", ephemeral: true);
+                await RespondAsync($"Added {role.Mention} to allowed roles.", ephemeral: true);
             else
-                await RespondAsync($"⚠️ {role.Mention} is already an allowed role.", ephemeral: true);
+                await RespondAsync($"{role.Mention} is already an allowed role.", ephemeral: true);
         }
 
         [ComponentInteraction("add_allowed_user", true)]
@@ -448,9 +448,9 @@ public class GenshinModule
             if (user is null) return;
 
             if (AllowedUsers.Add(user.Id))
-                await RespondAsync($"✅ Added {user.Mention} to allowed users.", ephemeral: true);
+                await RespondAsync($"Added {user.Mention} to allowed users.", ephemeral: true);
             else
-                await RespondAsync($"⚠️ {user.Mention} is already an allowed user.", ephemeral: true);
+                await RespondAsync($"{user.Mention} is already an allowed user.", ephemeral: true);
         }
 
         [ComponentInteraction("advanced_settings", true)]
@@ -603,9 +603,9 @@ public class GenshinModule
             if (role is null) return;
 
             if (AllowedRoles.Remove(role.Id))
-                await RespondAsync($"🗑️ Removed {role.Mention} from allowed roles.", ephemeral: true);
+                await RespondAsync($"Removed {role.Mention} from allowed roles.", ephemeral: true);
             else
-                await RespondAsync($"⚠️ {role.Mention} was not an allowed role.", ephemeral: true);
+                await RespondAsync($"{role.Mention} was not an allowed role.", ephemeral: true);
         }
 
         [ComponentInteraction("remove_allowed_user", true)]
@@ -616,9 +616,9 @@ public class GenshinModule
             if (user is null) return;
 
             if (AllowedUsers.Remove(user.Id))
-                await RespondAsync($"🗑️ Removed {user.Mention} from allowed users.", ephemeral: true);
+                await RespondAsync($"Removed {user.Mention} from allowed users.", ephemeral: true);
             else
-                await RespondAsync($"⚠️ {user.Mention} was not an allowed user.", ephemeral: true);
+                await RespondAsync($"{user.Mention} was not an allowed user.", ephemeral: true);
         }
 
         [AutomaticRetry(Attempts = 0)]

@@ -39,7 +39,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("You cannot interact with this paginator.", ephemeral: true);
             return;
         }
 
@@ -49,49 +49,46 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         {
             if (!Guid.TryParse(muteIdString, out var muteId))
             {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
+                await FollowupAsync("Invalid mute ID.", ephemeral: true);
                 return;
             }
 
             var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
             if (mute is null)
             {
-                await FollowupAsync("❌ Mute not found or already removed.", ephemeral: true);
+                await FollowupAsync("Mute not found or already removed.", ephemeral: true);
                 return;
             }
 
-            // Check permissions
             var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
             if (!hasPermission)
             {
-                await FollowupAsync("❌ You don't have permission to unmute users.", ephemeral: true);
+                await FollowupAsync("You don't have permission to unmute users.", ephemeral: true);
                 return;
             }
 
-            // Perform unmute
             var user = await Context.Client.Rest.GetUserAsync(mute.UserId);
             var details = new ReprimandDetails(user, (IGuildUser)Context.User, "Manual unmute via paginator");
 
             var result = await ModerationService.TryUnmuteAsync(details);
             if (result)
             {
-                // Refresh paginator data
                 var state = paginator.GetUserState<MuteListPaginatorState>();
                 var refreshedMutes = await RefreshMuteData(state.Category);
                 state.UpdateData(refreshedMutes, state.Category);
                 paginator.PageCount = state.TotalPages;
 
                 await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
-                await FollowupAsync($"✅ **<@{user.Id}>** has been unmuted successfully.", ephemeral: true);
+                await FollowupAsync($"**<@{user.Id}>** has been unmuted successfully.", ephemeral: true);
             }
             else
             {
-                await FollowupAsync("❌ Failed to unmute user. They may not be muted or an error occurred.", ephemeral: true);
+                await FollowupAsync("Failed to unmute user. They may not be muted or an error occurred.", ephemeral: true);
             }
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            await FollowupAsync($"An error occurred: {ex.Message}", ephemeral: true);
         }
     }
 
@@ -178,7 +175,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("You cannot interact with this paginator.", ephemeral: true);
             return;
         }
 
@@ -188,7 +185,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         {
             if (!Guid.TryParse(muteIdString, out var muteId))
             {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
+                await FollowupAsync("Invalid mute ID.", ephemeral: true);
                 return;
             }
 
@@ -199,7 +196,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
 
             if (mute is null)
             {
-                await FollowupAsync("❌ Mute not found.", ephemeral: true);
+                await FollowupAsync("Mute not found.", ephemeral: true);
                 return;
             }
 
@@ -225,7 +222,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            await FollowupAsync($"An error occurred: {ex.Message}", ephemeral: true);
         }
     }
 

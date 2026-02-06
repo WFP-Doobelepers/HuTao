@@ -188,7 +188,7 @@ public class LibenModule(
         CachedBoxes[Context.User.Id] = box;
 
         await DeferAsync(true);
-        var components = BuildBoxComponents(box, "✅ Added your box");
+        var components = BuildBoxComponents(box, "Added your box");
         await ModifyOriginalResponseAsync(m =>
         {
             m.Components = components;
@@ -565,7 +565,7 @@ public class LibenModule(
             LookingUsers[(Context.User.Id, element)] = looking;
 
             await DeferAsync(true);
-            var components = BuildBoxComponents(looking, "✅ Added your looking status");
+            var components = BuildBoxComponents(looking, "Added your looking status");
             await ModifyOriginalResponseAsync(m =>
             {
                 m.Components = components;
@@ -702,7 +702,7 @@ public class LibenModule(
     {
         if (CachedBoxes.TryRemove(Context.User.Id, out var box))
         {
-            var components = BuildBoxComponents(box, "✅ Removed your box");
+            var components = BuildBoxComponents(box, "Removed your box");
             await RespondAsync(components: components, ephemeral: true);
             await RefreshAsync();
         }

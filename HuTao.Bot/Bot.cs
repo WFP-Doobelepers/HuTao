@@ -104,7 +104,7 @@ public class Bot
             .AddScoped<LinkingService>()
             .AddScoped<LinkedCommandService>()
             .AddScoped<GenshinTimeTrackingService>()
-            .AddSingleton<IQuoteService, QuoteService>()
+            .AddScoped<IQuoteService, QuoteService>()
             .AddExpirableServices()
             .AddAutoRemoveMessage()
             .AddCommandHelp()
@@ -219,7 +219,23 @@ public class Bot
 
         using var server = new BackgroundJobServer();
 
-        await Task.Delay(Timeout.Infinite);
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => cts.Cancel();
+
+        try
+        {
+            await Task.Delay(Timeout.Infinite, cts.Token);
+        }
+        catch (OperationCanceledException) { }
+
+        Log.Information("Shutting down...");
+        await client.StopAsync();
+        await client.LogoutAsync();
     }
 
     private static void ContextOptions(DbContextOptionsBuilder optionsBuilder) => optionsBuilder
