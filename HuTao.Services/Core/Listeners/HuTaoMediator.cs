@@ -12,38 +12,25 @@ namespace HuTao.Services.Core.Listeners;
 
 public class HuTaoMediator(IServiceProvider provider) : Mediator(provider)
 {
-    protected override Task PublishCore(
+    protected override async Task PublishCore(
         IEnumerable<NotificationHandlerExecutor> handlers,
         INotification notification, CancellationToken cancellationToken)
     {
-        try
+        var priorities = handlers.Select(h => (Handler: h, GetOrderAttribute(h.HandlerCallback)?.Priority));
+        var ordered = priorities.OrderBy(h => !h.Priority.HasValue).ThenBy(h => h.Priority);
+        foreach (var (handler, _) in ordered)
         {
-            _ = Task.Run(async () =>
+            try
             {
-                var priorities = handlers.Select(h => (Handler: h, GetOrderAttribute(h.HandlerCallback)?.Priority));
-                var ordered = priorities.OrderBy(h => !h.Priority.HasValue).ThenBy(h => h.Priority);
-                foreach (var (handler, _) in ordered)
-                {
-                    try
-                    {
-                        await handler.HandlerCallback(notification, cancellationToken);
-                    }
-                    catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
-                    {
-                        Log.Error(ex,
-                            "An unexpected error occurred within a handler for a dispatched message: {Notification}",
-                            notification);
-                    }
-                }
-            }, cancellationToken);
+                await handler.HandlerCallback(notification, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
+            {
+                Log.Error(ex,
+                    "An unexpected error occurred within a handler for a dispatched message: {Notification}",
+                    notification);
+            }
         }
-        catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
-        {
-            Log.Error(ex, "An unexpected error occurred while dispatching a notification: {Notification}",
-                notification);
-        }
-
-        return Task.CompletedTask;
     }
 
     private static PriorityAttribute? GetOrderAttribute(Func<INotification, CancellationToken, Task> x)

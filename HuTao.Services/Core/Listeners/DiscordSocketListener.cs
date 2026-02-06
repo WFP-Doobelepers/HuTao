@@ -7,6 +7,7 @@ using Discord.WebSocket;
 using HuTao.Services.Core.Messages;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace HuTao.Services.Core.Listeners;
 
@@ -37,12 +38,26 @@ public class DiscordSocketListener
     /// </summary>
     private IServiceScopeFactory ServiceScope { get; }
 
-    private async Task PublishScopedAsync<T>(T notification, CancellationToken cancellationToken)
+    private Task PublishScopedAsync<T>(T notification, CancellationToken cancellationToken)
         where T : INotification
     {
-        await using var scope = ServiceScope.CreateAsyncScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        await mediator.Publish(notification, cancellationToken);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = ServiceScope.CreateAsyncScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                await mediator.Publish(notification, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not (OutOfMemoryException or StackOverflowException))
+            {
+                Log.Error(ex,
+                    "An unexpected error occurred while dispatching a notification: {Notification}",
+                    notification);
+            }
+        }, cancellationToken);
+
+        return Task.CompletedTask;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
