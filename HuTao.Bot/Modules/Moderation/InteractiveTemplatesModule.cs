@@ -16,7 +16,7 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Moderation;
 
-[Group("template", "Manage moderation templates.")]
+[Group("templates", "Manage moderation templates.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class InteractiveTemplatesModule(HuTaoContext db) : InteractionEntity<ModerationTemplate>
