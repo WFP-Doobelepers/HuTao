@@ -177,7 +177,8 @@ public class ModerationLoggingService(HuTaoContext db)
                 return builder.Build();
 
             var actions = new ActionRowBuilder()
-                .WithButton(new ButtonBuilder("Update", $"reprimand-update:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Secondary));
+                .WithButton(new ButtonBuilder("Update", $"reprimand-update:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Secondary))
+                .WithButton(new ButtonBuilder("History", $"reprimand-history:{reprimand.UserId}:{details.Ephemeral}", ButtonStyle.Secondary));
 
             if (reprimand is ExpirableReprimand && reprimand.Status is ReprimandStatus.Added or ReprimandStatus.Updated)
                 actions.WithButton(new ButtonBuilder("Pardon", $"reprimand-pardon:{reprimand.Id}:{details.Ephemeral}", ButtonStyle.Secondary));

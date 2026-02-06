@@ -71,6 +71,24 @@ public class InteractiveUserModule(UserService userService, InteractiveService i
     [RequireAuthorization(User)]
     public Task UserInformationAsync(IUser user) => SlashInformationAsync(user, true);
 
+    [UserCommand("Quick Warn")]
+    [RequireAuthorization(Warning)]
+    public Task QuickWarnAsync(IUser user)
+        => Context.Interaction.RespondWithModalAsync<Moderation.InteractiveModerationModule.WarningModal>(
+            $"warn:{user.Id}", modifyModal: m => m.WithTitle($"{m.Title} {user}"));
+
+    [UserCommand("Quick Mute")]
+    [RequireAuthorization(Mute)]
+    public Task QuickMuteAsync(IUser user)
+        => Context.Interaction.RespondWithModalAsync<Moderation.InteractiveModerationModule.MuteModal>(
+            $"mute:{user.Id}", modifyModal: m => m.WithTitle($"{m.Title} {user}"));
+
+    [UserCommand("Quick Note")]
+    [RequireAuthorization(Note)]
+    public Task QuickNoteAsync(IUser user)
+        => Context.Interaction.RespondWithModalAsync<Moderation.InteractiveModerationModule.NoteModal>(
+            $"note:{user.Id}", modifyModal: m => m.WithTitle($"{m.Title} {user}"));
+
     [ComponentInteraction("history:*")]
     [RequireAuthorization(History, Group = nameof(History))]
     [RequireCategoryAuthorization(History, Group = nameof(History))]

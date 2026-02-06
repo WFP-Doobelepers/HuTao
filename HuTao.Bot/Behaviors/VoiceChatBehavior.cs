@@ -145,8 +145,8 @@ public class VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
                         var voiceChannel = guild.GetVoiceChannel(voiceChat.VoiceChannelId);
                         if (voiceChannel?.ConnectedUsers.Any() ?? false) return;
 
-                        _ = voiceChannel?.DeleteAsync();
-                        _ = textChannel?.DeleteAsync();
+                        voiceChannel?.DeleteAsync().SafeFireAndForget();
+                        textChannel?.DeleteAsync().SafeFireAndForget();
 
                         db.Remove(voiceChat);
                         await db.SaveChangesAsync(cancellationToken);

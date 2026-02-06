@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -111,5 +111,12 @@ public static class MessageExtensions
             : CacheMode.CacheOnly;
 
         return await channel.GetMessageAsync(messageId, cacheMode);
+    }
+
+    public static void SafeFireAndForget(this Task task)
+    {
+        _ = task.ContinueWith(
+            static t => { _ = t.Exception; },
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 }

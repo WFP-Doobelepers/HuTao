@@ -10,6 +10,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Auto.Configurations;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.Core;
@@ -53,7 +54,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             }
 
             var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
-            if (mute == null)
+            if (mute is null)
             {
                 await FollowupAsync("❌ Mute not found or already removed.", ephemeral: true);
                 return;
@@ -102,43 +103,71 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("You cannot interact with this paginator.", ephemeral: true);
             return;
         }
 
+        if (!Guid.TryParse(muteIdString, out _))
+        {
+            await RespondAsync("Invalid mute ID.", ephemeral: true);
+            return;
+        }
+
+        await RespondWithModalAsync<MuteExtendModal>($"mute-extend-modal:{muteIdString}");
+    }
+
+    [ModalInteraction("mute-extend-modal:*")]
+    public async Task HandleMuteExtendModalAsync(string muteIdString, MuteExtendModal modal)
+    {
         await DeferAsync(ephemeral: true);
 
-        try
+        if (!Guid.TryParse(muteIdString, out var muteId))
         {
-            if (!Guid.TryParse(muteIdString, out var muteId))
-            {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
-                return;
-            }
-
-            var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
-            if (mute == null)
-            {
-                await FollowupAsync("❌ Mute not found.", ephemeral: true);
-                return;
-            }
-
-            // Check permissions
-            var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
-            if (!hasPermission)
-            {
-                await FollowupAsync("❌ You don't have permission to extend mutes.", ephemeral: true);
-                return;
-            }
-
-            // For now, just show a message - in a full implementation, you'd show a modal to collect extension duration
-            await FollowupAsync($"⏰ Mute extension for User {mute.UserId}. " +
-                              "Full implementation would show a modal to collect extension duration.", ephemeral: true);
+            await FollowupAsync("Invalid mute ID.", ephemeral: true);
+            return;
         }
-        catch (Exception ex)
+
+        var mute = await Db.Set<Mute>()
+            .Include(m => m.Action)
+            .Include(m => m.Category)
+            .FirstOrDefaultAsync(m => m.Id == muteId);
+
+        if (mute is null)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            await FollowupAsync("Mute not found.", ephemeral: true);
+            return;
         }
+
+        var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
+        if (!hasPermission)
+        {
+            await FollowupAsync("You don't have permission to extend mutes.", ephemeral: true);
+            return;
+        }
+
+        if (modal.Duration is null)
+        {
+            await FollowupAsync("Please provide a valid duration.", ephemeral: true);
+            return;
+        }
+
+        var user = await Context.Client.Rest.GetUserAsync(mute.UserId);
+        if (user is null)
+        {
+            await FollowupAsync("User not found.", ephemeral: true);
+            return;
+        }
+
+        var reason = modal.Reason ?? $"Mute extended by {modal.Duration.Value.Humanize()}";
+        var details = new ReprimandDetails(user, (IGuildUser)Context.User, reason, Category: mute.Category);
+
+        await ModerationService.TryUnmuteAsync(details);
+        var result = await ModerationService.TryMuteAsync(modal.Duration, details);
+
+        if (result is not null)
+            await FollowupAsync($"Mute for <@{mute.UserId}> extended by **{modal.Duration.Value.Humanize()}**.", ephemeral: true);
+        else
+            await FollowupAsync("Failed to extend mute. The user may no longer be muted.", ephemeral: true);
     }
 
     [ComponentInteraction("mute-action:details:*")]
@@ -168,7 +197,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 .Include(m => m.Category)
                 .FirstOrDefaultAsync(m => m.Id == muteId);
 
-            if (mute == null)
+            if (mute is null)
             {
                 await FollowupAsync("❌ Mute not found.", ephemeral: true);
                 return;
@@ -186,7 +215,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 .WithFooter($"Mute ID: {mute.Id}")
                 .WithTimestamp(DateTimeOffset.UtcNow);
 
-            if (mute.Category != null)
+            if (mute.Category is not null)
                 embed.AddField("Category", mute.Category.Name, true);
 
             await FollowupAsync(
@@ -263,9 +292,69 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 is not ReprimandStatus.Expired
             and not ReprimandStatus.Pardoned
             and not ReprimandStatus.Deleted)
-            .Where(r => category == null || r.Category?.Id == category.Id)
+            .Where(r => category is null || r.Category?.Id == category.Id)
             .OrderByDescending(r => r.Action?.Date)
             .ToList();
+    }
+
+    [ComponentInteraction("auto-toggle:*")]
+    public async Task HandleAutoToggleAsync(string triggerId)
+    {
+        await DeferAsync(ephemeral: true);
+
+        if (!Guid.TryParse(triggerId, out var id))
+        {
+            await FollowupAsync("Invalid trigger ID.", ephemeral: true);
+            return;
+        }
+
+        var trigger = await Db.Set<AutoConfiguration>().FindAsync(id);
+        if (trigger is null)
+        {
+            await FollowupAsync("Trigger not found.", ephemeral: true);
+            return;
+        }
+
+        var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Configuration);
+        if (!hasPermission)
+        {
+            await FollowupAsync("You don't have permission to modify triggers.", ephemeral: true);
+            return;
+        }
+
+        await ModerationService.ToggleTriggerAsync(trigger, (IGuildUser)Context.User, state: null);
+        await FollowupAsync(
+            $"Trigger `{trigger.Id}` is now **{(trigger.IsActive ? "enabled" : "disabled")}**.",
+            ephemeral: true);
+    }
+
+    [ComponentInteraction("auto-delete:*")]
+    public async Task HandleAutoDeleteAsync(string triggerId)
+    {
+        await DeferAsync(ephemeral: true);
+
+        if (!Guid.TryParse(triggerId, out var id))
+        {
+            await FollowupAsync("Invalid trigger ID.", ephemeral: true);
+            return;
+        }
+
+        var trigger = await Db.Set<AutoConfiguration>().FindAsync(id);
+        if (trigger is null)
+        {
+            await FollowupAsync("Trigger not found or already deleted.", ephemeral: true);
+            return;
+        }
+
+        var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Configuration);
+        if (!hasPermission)
+        {
+            await FollowupAsync("You don't have permission to delete triggers.", ephemeral: true);
+            return;
+        }
+
+        await ModerationService.DeleteTriggerAsync(trigger, (IGuildUser)Context.User, silent: true);
+        await FollowupAsync($"Trigger `{id}` has been deleted.", ephemeral: true);
     }
 
     // User History V2 Interaction Handlers
@@ -356,4 +445,19 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
 
         await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
     }
+}
+
+public class MuteExtendModal : IModal
+{
+    public string Title => "Extend Mute";
+
+    [RequiredInput]
+    [InputLabel("Duration")]
+    [ModalTextInput("duration", TextInputStyle.Short, "Example: 1h30m")]
+    public TimeSpan? Duration { get; set; }
+
+    [RequiredInput(false)]
+    [InputLabel("Reason")]
+    [ModalTextInput("reason", TextInputStyle.Paragraph, "Reason for extension...")]
+    public string? Reason { get; set; }
 }

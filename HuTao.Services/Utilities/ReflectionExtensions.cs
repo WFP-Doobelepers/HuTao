@@ -58,8 +58,8 @@ public static class ReflectionExtensions
         this object context, T arg, Func<T, TResult> f,
         [CallerMemberName] string? cacheKey = null) where T : notnull
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
-        if (cacheKey == null) throw new ArgumentNullException(nameof(cacheKey));
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(cacheKey);
 
         var objCache = WeakCache.GetOrCreateValue(context);
 

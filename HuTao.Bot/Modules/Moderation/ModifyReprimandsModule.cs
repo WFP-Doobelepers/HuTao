@@ -71,7 +71,7 @@ public class ModifyReprimandsModule(
     public async Task ViewReprimandAsync(string id)
     {
         var reprimand = await TryFindEntityAsync(id);
-        if (reprimand == null)
+        if (reprimand is null)
         {
             await error.AssociateError(Context.Message, EmptyMatchMessage);
             return;

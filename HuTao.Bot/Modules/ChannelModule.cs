@@ -279,8 +279,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     private async Task SwapChannelPositionsAsync(INestedChannel givenChannel, long by)
     {
         var positions = await GetCategoryChannelPositionsAsync(givenChannel.CategoryId);
-        var channelPosition = positions.First(c => c.Key.Id == givenChannel.Id).Value;
+        var channelEntry = positions.FirstOrDefault(c => c.Key.Id == givenChannel.Id);
+        if (channelEntry.Key is null)
+            throw new InvalidOperationException("Channel not found in category positions.");
 
+        var channelPosition = channelEntry.Value;
         var swapPosition = channelPosition + by;
         var min = positions.Min(p => p.Value);
         var max = positions.Max(p => p.Value);
@@ -291,7 +294,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         if (swapPosition > max)
             throw new InvalidOperationException("Channel is already at the bottom of the category.");
 
-        var swapChannel = positions.First(p => p.Value == swapPosition).Key;
+        var swapEntry = positions.FirstOrDefault(p => p.Value == swapPosition);
+        if (swapEntry.Key is null)
+            throw new InvalidOperationException("No channel found at the target position.");
+
+        var swapChannel = swapEntry.Key;
 
         var givenChannelPosition = swapChannel.Position;
         var swapChannelPosition = givenChannel.Position;

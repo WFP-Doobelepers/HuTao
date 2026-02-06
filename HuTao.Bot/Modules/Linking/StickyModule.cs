@@ -43,7 +43,7 @@ public class StickyModule(CommandErrorHandler error, StickyService sticky) : Int
         string id)
     {
         var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
-        if (sticky1 == null)
+        if (sticky1 is null)
             await error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
         else
         {
@@ -58,7 +58,7 @@ public class StickyModule(CommandErrorHandler error, StickyService sticky) : Int
         string id)
     {
         var sticky1 = await TryFindEntityAsync(id, await GetCollectionAsync());
-        if (sticky1 == null)
+        if (sticky1 is null)
             await error.AssociateError(Context.Message, "Could not find sticky message with that ID.");
         else
         {

@@ -263,7 +263,7 @@ public class ModerationService(
 
                 // Separator between mutes
                 if (index < currentMutes.Count - 1)
-                    container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Large));
+                    container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
             }
         }
 
@@ -347,7 +347,7 @@ public class ModerationService(
         {
             var container = new ContainerBuilder()
                 .WithTextDisplay($"## Slowmode disabled\n**Channel:** {channel.Mention}")
-                .WithAccentColor(Color.Green.RawValue);
+                .WithAccentColor(0x9B59FF);
 
             await context.ReplyAsync(
                 components: new ComponentBuilderV2().WithContainer(container).Build(),
@@ -475,12 +475,12 @@ public class ModerationService(
 
         if (details.Trigger is Censor censor)
         {
-            if (!censor.Silent) _ = message.DeleteAsync();
+            if (!censor.Silent) message.DeleteAsync().SafeFireAndForget();
 
             var reprimand = await CensorReprimandAsync(details, censored, censor, cancellationToken);
             if (reprimand is not null) return reprimand;
         }
-        else _ = message.DeleteAsync();
+        else message.DeleteAsync().SafeFireAndForget();
 
         return await PublishReprimandAsync(censored, details, cancellationToken);
     }

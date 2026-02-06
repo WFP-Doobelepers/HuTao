@@ -22,7 +22,9 @@ using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus
 namespace HuTao.Bot.Modules.Moderation;
 
 [Group("reprimand", "Reprimand management commands")]
-public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService auth, ModerationService moderation)
+public class InteractiveReprimandsModule(
+    HuTaoContext db, AuthorizationService auth,
+    ModerationService moderation, UserService userService)
     : InteractionEntity<Reprimand>
 {
     private const AuthorizationScope Scope = All | Modify;
@@ -102,7 +104,7 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
         bool ephemeral = false)
     {
         var reprimand = await TryFindEntityAsync(id);
-        if (reprimand == null)
+        if (reprimand is null)
         {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);
             return;
@@ -138,6 +140,21 @@ public class InteractiveReprimandsModule(HuTaoContext db, AuthorizationService a
     [ModalInteraction("reprimand-update:*:*", true)]
     public Task UpdateReprimandAsync(string id, bool ephemeral, UpdateModal modal)
         => UpdateReprimandAsync(id, modal.Reason, ephemeral);
+
+    [ComponentInteraction("reprimand-history:*:*", true)]
+    [RequireAuthorization(History, Group = nameof(History))]
+    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    public async Task ViewUserHistoryAsync(ulong userId, bool ephemeral)
+    {
+        var user = await Context.Client.Rest.GetUserAsync(userId);
+        if (user is null)
+        {
+            await RespondAsync("User not found.", ephemeral: true);
+            return;
+        }
+
+        await userService.ReplyHistoryAsync(Context, null, LogReprimandType.None, user, false, ephemeral);
+    }
 
     [ComponentInteraction("reprimand-update:*:*", true)]
     public Task UpdateReprimandMenuAsync(string id, bool ephemeral)

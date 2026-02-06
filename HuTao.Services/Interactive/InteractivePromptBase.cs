@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -38,7 +38,7 @@ public abstract class InteractivePromptBase : ModuleBase<SocketCommandContext>
                 filter: promptOptions.Criterion.AsFunc(Context));
         }
 
-        _ = response.Value?.DeleteAsync();
+        response.Value?.DeleteAsync().SafeFireAndForget();
 
         if (!(promptOptions?.IsRequired ?? false) && (response.Value?.IsSkipped() ?? false))
             return (null, message);

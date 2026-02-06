@@ -312,6 +312,44 @@ public class LoggingModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             $"**Current:** {(rules.SummaryReprimands is null ? "Default" : rules.SummaryReprimands.Value.Humanize())}");
     }
 
+    [Command("overview")]
+    [Alias("view", "summary")]
+    [Summary("View a summary of all logging configuration.")]
+    public async Task OverviewAsync(ModerationCategory? category = null)
+    {
+        var rules = await GetLoggingAsync(category);
+        var scope = ScopeName(category);
+
+        var commandLog = rules.CommandLog ?? new ModerationLogConfig();
+        var userLog = rules.UserLog ?? new ModerationLogConfig();
+        var modLog = rules.ModeratorLog ?? new ModerationLogChannelConfig();
+        var publicLog = rules.PublicLog ?? new ModerationLogChannelConfig();
+
+        var body = string.Join("\n", new[]
+        {
+            $"**Scope:** {scope}",
+            "",
+            "### Channels",
+            $"**Moderator:** {modLog.MentionChannel()}",
+            $"**Public:** {publicLog.MentionChannel()}",
+            "",
+            "### Logged Reprimands",
+            $"**Command:** {(commandLog.LogReprimands ?? LogReprimandType.None).Humanize()}",
+            $"**User:** {(userLog.LogReprimands ?? LogReprimandType.None).Humanize()}",
+            $"**Moderator:** {(modLog.LogReprimands ?? LogReprimandType.None).Humanize()}",
+            $"**Public:** {(publicLog.LogReprimands ?? LogReprimandType.None).Humanize()}",
+            "",
+            "### Options",
+            $"**Silent:** {(rules.SilentReprimands ?? LogReprimandType.None).Humanize()}",
+            $"**Ignore Duplicates:** {rules.IgnoreDuplicates}",
+            $"**Upload Attachments:** Unknown (check guild settings)",
+            $"**History Default:** {(rules.HistoryReprimands is null ? "Default" : rules.HistoryReprimands.Value.Humanize())}",
+            $"**Summary Default:** {(rules.SummaryReprimands is null ? "Default" : rules.SummaryReprimands.Value.Humanize())}"
+        });
+
+        await ReplyPanelAsync("Logging Overview", body);
+    }
+
     private async Task ReplyPanelAsync(string title, string body)
     {
         var container = new ContainerBuilder()

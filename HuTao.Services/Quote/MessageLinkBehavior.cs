@@ -12,6 +12,7 @@ using HuTao.Data.Models.Discord;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Messages;
+using HuTao.Services.Utilities;
 using MediatR;
 using MessageExtensions = HuTao.Services.Utilities.MessageExtensions;
 
@@ -57,7 +58,7 @@ public class MessageLinkBehavior(
         var paginator = await quoteService.GetPaginatorAsync(context, source, urls);
         if (paginator is null) return;
 
-        if (MessageExtensions.IsJumpUrls(source.Content)) _ = source.DeleteAsync();
+        if (MessageExtensions.IsJumpUrls(source.Content)) source.DeleteAsync().SafeFireAndForget();
 
         await interactive.SendPaginatorAsync(paginator, source.Channel,
             cancellationToken: cancellationToken,

@@ -176,8 +176,21 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
             .WithUserAsAuthor(Context.User, AuthorOptions.UseFooter | AuthorOptions.Requested)
             .Build();
 
-        await ReplyAsync(
-            components: embed.ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        var container = new ContainerBuilder()
+            .WithSection(embed.ToComponentsV2Section(maxChars: 3800))
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay("-# Auto-moderation rule created successfully.")
+            .WithAccentColor(0x9B59FF);
+
+        var actions = new ActionRowBuilder()
+            .WithButton(new ButtonBuilder("Toggle", $"auto-toggle:{configuration.Id}", ButtonStyle.Secondary))
+            .WithButton(new ButtonBuilder("Delete", $"auto-delete:{configuration.Id}", ButtonStyle.Danger));
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(actions)
+            .Build();
+
+        await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
     }
 }

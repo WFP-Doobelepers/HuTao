@@ -125,7 +125,54 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
             return;
         }
 
+        var confirmId = Guid.NewGuid();
+        var embed = EntityViewer(entity).Build();
+        var container = embed.ToComponentsV2Container(accentColor: 0x9B59FF, maxChars: 3800);
+        container.WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small);
+        container.WithTextDisplay("-# Are you sure you want to delete this?");
+
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .WithActionRow(new ActionRowBuilder()
+                .WithButton(new ButtonBuilder("Confirm", $"confirm-delete:{confirmId}", ButtonStyle.Danger))
+                .WithButton(new ButtonBuilder("Cancel", $"cancel-delete:{confirmId}", ButtonStyle.Secondary)))
+            .Build();
+
+        await FollowupAsync(components: components, ephemeral: ephemeral);
+
+        var result = await Interactive.NextMessageComponentAsync(
+            c => c.User.Id == Context.User.Id &&
+                 (c.Data.CustomId == $"confirm-delete:{confirmId}" ||
+                  c.Data.CustomId == $"cancel-delete:{confirmId}"),
+            timeout: TimeSpan.FromMinutes(1));
+
+        if (!result.IsSuccess || result.Value is null ||
+            result.Value.Data.CustomId == $"cancel-delete:{confirmId}")
+        {
+            await ModifyOriginalResponseAsync(m =>
+            {
+                var cancelled = embed.ToComponentsV2Container(accentColor: 0x9B59FF, maxChars: 3800);
+                cancelled.WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small);
+                cancelled.WithTextDisplay("-# Deletion cancelled.");
+
+                m.Components = new ComponentBuilderV2().WithContainer(cancelled).Build();
+            });
+
+            if (result.Value is not null) await result.Value.DeferAsync();
+            return;
+        }
+
+        await result.Value.DeferAsync();
         await RemoveEntityAsync(entity, ephemeral);
+
+        await ModifyOriginalResponseAsync(m =>
+        {
+            var deleted = embed.ToComponentsV2Container(accentColor: 0x9B59FF, maxChars: 3800);
+            deleted.WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small);
+            deleted.WithTextDisplay("-# Deleted successfully.");
+
+            m.Components = new ComponentBuilderV2().WithContainer(deleted).Build();
+        });
     }
 
     protected virtual async Task RemoveEntityAsync(T entity, bool ephemeral)

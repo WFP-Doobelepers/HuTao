@@ -104,8 +104,8 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         await foreach (var link in empty)
         {
             db.Remove(link.Rules);
-            _ = link.VoiceChannel?.DeleteAsync();
-            _ = link.VoiceChat?.DeleteAsync();
+            link.VoiceChannel?.DeleteAsync().SafeFireAndForget();
+            link.VoiceChat?.DeleteAsync().SafeFireAndForget();
         }
 
         await db.SaveChangesAsync();

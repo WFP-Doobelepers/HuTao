@@ -158,7 +158,7 @@ public class LinkedCommandService(
         }
 
         if (command.Silent && context is CommandContext commandContext)
-            _ = commandContext.Message.DeleteAsync();
+            commandContext.Message.DeleteAsync().SafeFireAndForget();
 
         var users = new List<IGuildUser>();
         if (command.UserOptions.HasFlag(UserTargetOptions.ApplySelf) && context.User is IGuildUser guildUser)

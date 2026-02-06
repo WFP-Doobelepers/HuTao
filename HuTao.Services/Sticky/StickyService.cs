@@ -62,7 +62,7 @@ public class StickyService(IMemoryCache cache, HuTaoContext db)
 
         while (details.Messages.TryTake(out var message))
         {
-            _ = message.DeleteAsync();
+            message.DeleteAsync().SafeFireAndForget();
         }
 
         var allowedMentions = template.AllowMentions ? AllowedMentions.All : AllowedMentions.None;
