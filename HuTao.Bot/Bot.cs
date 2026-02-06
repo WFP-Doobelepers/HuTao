@@ -39,6 +39,7 @@ public class Bot
 {
     private static CancellationTokenSource? _mediatorToken;
     private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(15);
+    private const int MaxResetRetries = 5;
     private CancellationTokenSource _reconnectCts = null!;
 
     public static async Task Main()
@@ -113,31 +114,51 @@ public class Bot
 
     private static async Task CheckStateAsync(IDiscordClient client)
     {
-        // Client reconnected, no need to reset
-        if (client.ConnectionState is ConnectionState.Connected or ConnectionState.Connecting)
+        for (var attempt = 1; attempt <= MaxResetRetries; attempt++)
         {
-            Log.Information("Client is already connected or connecting, skipping reset.");
-            return;
+            if (client.ConnectionState is ConnectionState.Connected or ConnectionState.Connecting)
+            {
+                Log.Information("Client is already connected or connecting, skipping reset");
+                return;
+            }
+
+            Log.Information(
+                "Attempting to reset the client (attempt {Attempt}/{MaxRetries}, state: {ConnectionState})",
+                attempt, MaxResetRetries, client.ConnectionState);
+
+            try
+            {
+                var timeout = Task.Delay(ResetTimeout);
+                var connect = client.StartAsync();
+                var task = await Task.WhenAny(timeout, connect);
+
+                if (connect.IsCompletedSuccessfully)
+                {
+                    Log.Information("Client reset successfully on attempt {Attempt}", attempt);
+                    return;
+                }
+
+                if (task == timeout)
+                    Log.Warning("Client reset timed out (attempt {Attempt}/{MaxRetries})", attempt, MaxResetRetries);
+                else if (connect.IsFaulted)
+                    Log.Warning(connect.Exception as Exception ?? new InvalidOperationException(),
+                        "Client reset faulted (attempt {Attempt}/{MaxRetries})", attempt, MaxResetRetries);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Client reset threw (attempt {Attempt}/{MaxRetries})", attempt, MaxResetRetries);
+            }
+
+            if (attempt < MaxResetRetries)
+            {
+                var delay = TimeSpan.FromSeconds(5 * Math.Pow(2, attempt - 1));
+                Log.Information("Waiting {Delay} before next reconnect attempt...", delay);
+                await Task.Delay(delay);
+            }
         }
 
-        Log.Information("Attempting to reset the client (state: {ConnectionState})", client.ConnectionState);
-
-        var timeout = Task.Delay(ResetTimeout);
-        var connect = client.StartAsync();
-        var task = await Task.WhenAny(timeout, connect);
-
-        if (task == timeout)
-        {
-            Log.Fatal("Client reset timed out (task deadlocked?), killing process");
-            FailFast();
-        }
-        else if (connect.IsFaulted)
-        {
-            Log.Fatal(connect.Exception as Exception ?? new InvalidOperationException(),
-                "Client reset faulted, killing process");
-            FailFast();
-        }
-        else if (connect.IsCompletedSuccessfully) Log.Information("Client reset successfully!");
+        Log.Fatal("All {MaxRetries} client reset attempts failed, killing process", MaxResetRetries);
+        FailFast();
     }
 
     private Task ClientOnConnected()
