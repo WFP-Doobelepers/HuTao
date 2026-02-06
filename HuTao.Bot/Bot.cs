@@ -82,6 +82,7 @@ public class Bot
             .AddSingleton(new InteractionServiceConfig
             {
                 AutoServiceScopes = false,
+                DefaultRunMode    = Discord.Interactions.RunMode.Sync,
                 UseCompiledLambda = true
             })
             .AddSingleton<DiscordSocketClient>()

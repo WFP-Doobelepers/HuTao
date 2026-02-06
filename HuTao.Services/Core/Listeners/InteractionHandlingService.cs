@@ -14,14 +14,15 @@ using HuTao.Services.Core.Messages;
 using HuTao.Services.Core.TypeReaders.Interactions;
 using HuTao.Services.Utilities;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace HuTao.Services.Core.Listeners;
 
 public class InteractionHandlingService(
-    DiscordSocketClient discord, HuTaoContext db,
+    DiscordSocketClient discord,
     InteractionService commands, InteractiveService interactive,
-    ILogger<InteractionHandlingService> log, IServiceProvider services)
+    ILogger<InteractionHandlingService> log, IServiceScopeFactory scopeFactory)
     : INotificationHandler<InteractionCreatedNotification>,
       INotificationHandler<ReadyNotification>
 {
@@ -40,8 +41,11 @@ public class InteractionHandlingService(
             context.User.Id,
             context.Channel.Id,
             context.Guild?.Id);
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<HuTaoContext>();
         if (context.User is IGuildUser user) await db.Users.TrackUserAsync(user, cancellationToken);
-        await commands.ExecuteCommandAsync(context, services);
+        await commands.ExecuteCommandAsync(context, scope.ServiceProvider);
     }
 
     public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
@@ -77,7 +81,8 @@ public class InteractionHandlingService(
         commands.AddComponentTypeConverter<ModerationCategory>(new CategoryComponentTypeConverter());
         commands.AddComponentTypeConverter<TimeSpan>(new TimeSpanTypeConverter());
 
-        await commands.AddModulesAsync(Assembly.GetEntryAssembly(), services);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        await commands.AddModulesAsync(Assembly.GetEntryAssembly(), scope.ServiceProvider);
     }
 
     private async Task CommandExecutedAsync(

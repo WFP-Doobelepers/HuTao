@@ -20,7 +20,7 @@ namespace HuTao.Bot.Modules.Logging;
 [Group("log", "Logging configuration.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<SocketInteractionContext>
+public partial class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<SocketInteractionContext>
 {
     private const uint AccentColor = 0x9B59FF;
 

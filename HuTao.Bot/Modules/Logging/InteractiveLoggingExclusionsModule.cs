@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Interactions;
 using Fergun.Interactive;
-using Fergun.Interactive.Extensions;
 using Fergun.Interactive.Pagination;
 using Humanizer;
 using HuTao.Data;
@@ -19,16 +18,15 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.Logging;
 
-[Group("log", "Logging configuration")]
-[RequireContext(ContextType.Guild)]
-public sealed class InteractiveLoggingExclusionsModule(
-    HuTaoContext db,
-    IMemoryCache cache,
-    InteractiveService interactive)
-    : InteractionModuleBase<SocketInteractionContext>
+public partial class InteractiveLoggingModule
 {
-    private const uint AccentColor = 0x9B59FF;
-
+    [RequireContext(ContextType.Guild)]
+    public sealed class InteractiveLoggingExclusionsModule(
+        HuTaoContext db,
+        IMemoryCache cache,
+        InteractiveService interactive)
+        : InteractionModuleBase<SocketInteractionContext>
+    {
     private const string OpenButtonId = "logex:open";
     private const string RemoveSelectId = "logex:remove";
     private const string AddUserSelectId = "logex:add-user";
@@ -399,4 +397,4 @@ public sealed class InteractiveLoggingExclusionsModule(
         }
     }
 }
-
+}
