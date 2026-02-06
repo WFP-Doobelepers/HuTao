@@ -38,7 +38,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
         Public
     }
 
-    [SlashCommand("reprimand", "Enable or disable specific reprimands to be logged.")]
+    [SlashCommand("reprimand", "Choose which reprimand types are logged.")]
     public async Task ConfigureReprimandAsync(
         LoggingContext context,
         LogReprimandType type,
@@ -62,7 +62,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {(config.LogReprimands ?? LogReprimandType.None).Humanize()}", ephemeral);
     }
 
-    [SlashCommand("status", "Enable or disable specific reprimand status to be logged.")]
+    [SlashCommand("status", "Choose which status changes are logged.")]
     public async Task ConfigureStatusAsync(
         LoggingContext context,
         LogReprimandStatus type,
@@ -110,7 +110,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {(config.Options ?? ModerationLogOptions.None).Humanize()}", ephemeral);
     }
 
-    [SlashCommand("appeal", "Show the appeal message on a reprimand type.")]
+    [SlashCommand("appeal", "Show the appeal message for specific reprimand types.")]
     public async Task ConfigureAppealAsync(
         LoggingContext context,
         LogReprimandType type = LogReprimandType.None,
@@ -134,7 +134,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {(config.ShowAppealOnReprimands ?? LogReprimandType.None).Humanize()}", ephemeral);
     }
 
-    [SlashCommand("appeal-message", "Set the appeal message when someone is reprimanded.")]
+    [SlashCommand("appeal-message", "Set the message shown to users when they receive a reprimand.")]
     public async Task ConfigureAppealMessageAsync(
         LoggingContext context,
         string? message = null,
@@ -153,7 +153,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {(message is null ? "Disabled" : message.Truncate(500))}", ephemeral);
     }
 
-    [SlashCommand("silent", "Delete the invoked command when doing these reprimands.")]
+    [SlashCommand("silent", "Automatically hide the command response for these reprimand types.")]
     public async Task ConfigureSilentAsync(
         LogReprimandType type = LogReprimandType.None,
         bool? state = null,
@@ -175,7 +175,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {(rules.SilentReprimands ?? LogReprimandType.None).Humanize()}", ephemeral);
     }
 
-    [SlashCommand("channel", "Set the channel to output the reprimand.")]
+    [SlashCommand("channel", "Set the channel where reprimand logs are posted.")]
     public async Task ConfigureChannelAsync(
         LoggingChannelContext context,
         ITextChannel channel,
@@ -235,7 +235,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {guild.LoggingRules.UploadAttachments}", ephemeral);
     }
 
-    [SlashCommand("history-reprimands", "Set the default reprimands to show in the history.")]
+    [SlashCommand("history-reprimands", "Set which reprimand types appear in user histories by default.")]
     public async Task HistoryReprimandsAsync(
         LogReprimandType? type = null,
         [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,
@@ -269,7 +269,7 @@ public class InteractiveLoggingModule(HuTaoContext db) : InteractionModuleBase<S
             $"**Current:** {rules.IgnoreDuplicates}", ephemeral);
     }
 
-    [SlashCommand("summary-reprimands", "Set the default summary reprimands to show in the history.")]
+    [SlashCommand("summary-reprimands", "Set which reprimand types appear in user summaries by default.")]
     public async Task SummaryReprimandsAsync(
         LogReprimandType? type = null,
         [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory? category = null,

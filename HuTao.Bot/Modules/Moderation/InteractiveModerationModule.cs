@@ -21,7 +21,7 @@ namespace HuTao.Bot.Modules.Moderation;
 public class InteractiveModerationModule(AuthorizationService auth, ModerationService moderation, HuTaoContext db)
     : InteractionModuleBase<SocketInteractionContext>
 {
-    [SlashCommand("ban", "Ban a user from the current guild.")]
+    [SlashCommand("ban", "Ban a user from this server.")]
     public async Task BanAsync(
         [RequireHigherRole] IUser user, uint deleteDays = 0,
         TimeSpan? length = null, string? reason = null,
@@ -33,7 +33,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         await DeferAsync(ephemeral);
         if (deleteDays > 7)
         {
-            await FollowupAsync("Failed to ban user. Delete Days cannot be greater than 7.");
+            await FollowupAsync("Delete days must be between 0 and 7.");
             return;
         }
 
@@ -41,14 +41,14 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
-            await FollowupAsync("Failed to ban user.");
+            await FollowupAsync("Could not ban this user. Check that the bot has permission and outranks them.");
     }
 
-    [SlashCommand("ban-menu", "Open a menu to ban a user from the current guild.")]
+    [SlashCommand("ban-menu", "Open a menu to ban a user.")]
     public Task BanMenuAsync([RequireHigherRole] IUser user)
         => RespondModMenuAsync(user, LogReprimandType.Ban);
 
-    [SlashCommand("hardmute", "Hard Mute a user from the current guild.")]
+    [SlashCommand("hardmute", "Hard mute a user, removing all their roles.")]
     public async Task HardMuteAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
@@ -63,17 +63,17 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
         if (result is null)
         {
-            await FollowupAsync("Failed to hard mute user. " +
-                "Either the user is already hard muted or there is no hard mute role configured. " +
-                "Configure the mute role by running the 'configure hard mute' command.");
+            await FollowupAsync("Could not hard mute this user. " +
+                "They may already be hard muted, or no hard mute role is configured. " +
+                "Use `/config` to set one up.");
         }
     }
 
-    [SlashCommand("hardmute-menu", "Open a menu to hard mute a user from the current guild.")]
+    [SlashCommand("hardmute-menu", "Open a menu to hard mute a user.")]
     public Task HardMuteMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.HardMute);
 
-    [SlashCommand("kick", "Kick a user from the current guild.")]
+    [SlashCommand("kick", "Kick a user from this server.")]
     public async Task KickAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Kick)]
@@ -86,14 +86,14 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryKickAsync(details);
 
         if (result is null)
-            await FollowupAsync("Failed to kick user.");
+            await FollowupAsync("Could not kick this user. Check that the bot has permission and outranks them.");
     }
 
-    [SlashCommand("kick-menu", "Open a menu to kick a user from the current guild.")]
+    [SlashCommand("kick-menu", "Open a menu to kick a user.")]
     public Task KickMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Kick);
 
-    [SlashCommand("mute", "Mute a user from the current guild.")]
+    [SlashCommand("mute", "Mute a user in this server.")]
     public async Task MuteAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
@@ -108,13 +108,13 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
         if (result is null)
         {
-            await FollowupAsync("Failed to mute user. " +
-                "Either the user is already muted or there is no mute role configured. " +
-                "Configure the mute role by running the 'configure mute' command.");
+            await FollowupAsync("Could not mute this user. " +
+                "They may already be muted, or no mute role is configured. " +
+                "Use `/config` to set one up.");
         }
     }
 
-    [SlashCommand("mutelist", "View active mutes on the current guild.")]
+    [SlashCommand("mutelist", "View currently active mutes.")]
     [RequireAuthorization(AuthorizationScope.History)]
     public Task MuteListAsync(
         [Autocomplete(typeof(CategoryAutocomplete))]
@@ -122,7 +122,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         [RequireEphemeralScope] bool ephemeral = false)
         => moderation.SendMuteListAsync(Context, category, ephemeral);
 
-    [SlashCommand("mute-menu", "Open a menu to mute a user from the current guild.")]
+    [SlashCommand("mute-menu", "Open a menu to mute a user.")]
     public Task MuteMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Mute);
 
@@ -139,11 +139,11 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         await moderation.NoteAsync(details);
     }
 
-    [SlashCommand("note-menu", "Open a menu to note a user from the current guild.")]
+    [SlashCommand("note-menu", "Open a menu to add a note for a user.")]
     public Task NoteMenuAsync([RequireHigherRole] IUser user)
         => RespondModMenuAsync(user, LogReprimandType.Note);
 
-    [SlashCommand("notice", "Add a notice to a user. This counts as a minor warning.")]
+    [SlashCommand("notice", "Give a user a notice. Counts as a minor warning.")]
     public async Task NoticeAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
@@ -156,7 +156,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         await moderation.NoticeAsync(details);
     }
 
-    [SlashCommand("notice-menu", "Open a menu to notice a user from the current guild.")]
+    [SlashCommand("notice-menu", "Open a menu to give a user a notice.")]
     public Task NoticeMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Notice);
 
@@ -174,7 +174,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             ? ModerationService.ShowSlowmodeChannelsAsync(Context)
             : ModerationService.SlowmodeChannelAsync(Context, length, channel);
 
-    [SlashCommand("template", "Run a configured moderation template")]
+    [SlashCommand("template", "Apply a saved moderation template to a user.")]
     public async Task TemplateAsync(
         [Autocomplete(typeof(TemplateAutocomplete))]
         string name,
@@ -205,7 +205,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             await FollowupAsync("Failed to use the template.");
     }
 
-    [SlashCommand("timeout", "Timeout a user from the current guild.")]
+    [SlashCommand("timeout", "Timeout a user in this server.")]
     public async Task TimeoutAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan length,
@@ -220,14 +220,14 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryTimeoutAsync(length, details);
 
         if (result is null)
-            await FollowupAsync("Failed to timeout user.");
+            await FollowupAsync("Could not timeout this user. Check that the bot has permission and outranks them.");
     }
 
-    [SlashCommand("timeout-menu", "Open a menu to timeout a user from the current guild.")]
+    [SlashCommand("timeout-menu", "Open a menu to timeout a user.")]
     public Task TimeoutMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Timeout);
 
-    [SlashCommand("untimeout", "Remove timeout from a user in the current guild.")]
+    [SlashCommand("untimeout", "Remove a timeout from a user.")]
     public async Task UnTimeoutAsync(
         IGuildUser user,
         string? reason = null,
@@ -241,10 +241,10 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryUntimeoutAsync(details);
 
         if (!result)
-            await FollowupAsync("Failed to remove timeout from user.");
+            await FollowupAsync("Could not remove the timeout. The user may not be timed out.");
     }
 
-    [SlashCommand("unban", "Unban a user from the current guild.")]
+    [SlashCommand("unban", "Unban a user from this server.")]
     public async Task UnbanAsync(
         IUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Ban)]
@@ -257,10 +257,10 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryUnbanAsync(details);
 
         if (result is null)
-            await FollowupAsync("This user has no ban logs. Forced unban.");
+            await FollowupAsync("No ban record found for this user. A forced unban was performed.");
     }
 
-    [SlashCommand("unmute", "Unmute a user from the current guild.")]
+    [SlashCommand("unmute", "Unmute a user in this server.")]
     public async Task UnmuteAsync(
         IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
@@ -273,10 +273,10 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         var result = await moderation.TryUnmuteAsync(details);
 
         if (!result)
-            await FollowupAsync("Unmute failed.");
+            await FollowupAsync("Could not unmute this user. They may not currently be muted.");
     }
 
-    [SlashCommand("warn", "Warn a user from the current guild.")]
+    [SlashCommand("warn", "Warn a user in this server.")]
     public async Task WarnAsync(
         [RequireHigherRole] IGuildUser user, uint amount = 1, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Warning)]
@@ -289,7 +289,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         await moderation.WarnAsync(amount, details);
     }
 
-    [SlashCommand("warn-menu", "Open a menu to warn a user from the current guild.")]
+    [SlashCommand("warn-menu", "Open a menu to warn a user.")]
     public Task WarnMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Warning);
 

@@ -21,7 +21,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.Moderation;
 
-[Group("trigger", "Manage reprimand triggers.")]
+[Group("trigger", "Manage escalation rules for automatic actions.")]
 [RequireContext(ContextType.Guild)]
 public sealed class InteractiveTriggersModule(
     HuTaoContext db,
@@ -42,7 +42,7 @@ public sealed class InteractiveTriggersModule(
     private const string DeleteLoudButtonId = "trg:confirm:loud";
     private const string DeleteSilentButtonId = "trg:confirm:silent";
 
-    [SlashCommand("panel", "Open an interactive trigger manager.")]
+    [SlashCommand("panel", "Open the escalation rules manager.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task PanelAsync(
         [Autocomplete(typeof(CategoryAutocomplete))]
@@ -284,7 +284,7 @@ public sealed class InteractiveTriggersModule(
         };
 
         var container = new ContainerBuilder()
-            .WithTextDisplay($"## Triggers\n**Guild:** {state.GuildName}\n**Filter:** {filter}")
+            .WithTextDisplay($"## Escalation Rules\n**Server:** {state.GuildName}\n**Filter:** {filter}")
             .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         switch (state.View)
@@ -345,7 +345,7 @@ public sealed class InteractiveTriggersModule(
         {
             container
                 .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
-                .WithTextDisplay($"-# Updated {state.LastUpdated.Value.ToUniversalTimestamp()} • {state.Triggers.Count} triggers")
+                .WithTextDisplay($"-# Updated {state.LastUpdated.Value.ToUniversalTimestamp()} • {state.Triggers.Count} rules")
                 .WithAccentColor(AccentColor);
         }
         else
@@ -363,7 +363,7 @@ public sealed class InteractiveTriggersModule(
         var pageItems = state.GetTriggersForPage(p.CurrentPageIndex).ToList();
         if (pageItems.Count == 0)
         {
-            container.WithTextDisplay("-# No triggers match your filter.");
+            container.WithTextDisplay("-# No rules match your filter.");
             return;
         }
 
@@ -381,7 +381,7 @@ public sealed class InteractiveTriggersModule(
         container.WithActionRow(new ActionRowBuilder()
             .WithSelectMenu(new SelectMenuBuilder()
                 .WithCustomId(TriggerSelectId)
-                .WithPlaceholder("Select a trigger…")
+                .WithPlaceholder("Select a rule…")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .WithOptions(options)
@@ -392,14 +392,14 @@ public sealed class InteractiveTriggersModule(
     {
         if (state.SelectedTriggerId is null)
         {
-            container.WithTextDisplay("-# No trigger selected.");
+            container.WithTextDisplay("-# No rule selected.");
             return;
         }
 
         var trigger = state.Triggers.FirstOrDefault(t => t.Id == state.SelectedTriggerId.Value);
         if (trigger is null)
         {
-            container.WithTextDisplay("-# That trigger no longer exists.");
+            container.WithTextDisplay("-# That rule no longer exists.");
             return;
         }
 
@@ -422,14 +422,14 @@ public sealed class InteractiveTriggersModule(
     {
         if (state.SelectedTriggerId is null)
         {
-            container.WithTextDisplay("-# No trigger selected.");
+            container.WithTextDisplay("-# No rule selected.");
             return;
         }
 
         var trigger = state.Triggers.FirstOrDefault(t => t.Id == state.SelectedTriggerId.Value);
         if (trigger is null)
         {
-            container.WithTextDisplay("-# That trigger no longer exists.");
+            container.WithTextDisplay("-# That rule no longer exists.");
             return;
         }
 

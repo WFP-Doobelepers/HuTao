@@ -28,7 +28,7 @@ public class InteractiveUserModule(UserService userService, InteractiveService i
         bool ephemeral = false)
         => await userService.ReplyAvatarAsync(Context, user, ephemeral);
 
-    [SlashCommand("history", "View a history of a user's infractions")]
+    [SlashCommand("history", "View a user's moderation history.")]
     public async Task SlashHistoryAsync(
         [Summary(description: "The user to show history of")]
         IUser user,

@@ -25,7 +25,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Group("permissions")]
 [Name("Permissions")]
 [Alias("perms", "perm")]
-[Summary("Manages guild permissions.")]
+[Summary("Manages server permissions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class PermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db)
     : InteractiveEntity<AuthorizationGroup>

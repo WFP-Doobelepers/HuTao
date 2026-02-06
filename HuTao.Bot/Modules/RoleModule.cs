@@ -239,7 +239,7 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             }
 
             var embed = new EmbedBuilder()
-                .WithDescription($"Deleted the following role(s): {Format.Bold(roles.Humanize())} from the guild.")
+                .WithDescription($"Deleted the following role(s): {Format.Bold(roles.Humanize())} from the server.")
                 .WithColor(Color.DarkRed);
 
             await ReplyAsync(

@@ -282,6 +282,6 @@ public class LinkedCommandService(
             ICommandContext context, CommandInfo command,
             IServiceProvider services) => context.Guild.Id == GuildId
             ? Task.FromResult(PreconditionResult.FromSuccess())
-            : Task.FromResult(PreconditionResult.FromError("This command is not available in this guild."));
+            : Task.FromResult(PreconditionResult.FromError("This command is not available in this server."));
     }
 }

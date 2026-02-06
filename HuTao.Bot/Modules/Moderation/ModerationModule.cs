@@ -19,7 +19,7 @@ using HuTao.Services.Utilities;
 namespace HuTao.Bot.Modules.Moderation;
 
 [Name("Moderation")]
-[Summary("Guild moderation commands.")]
+[Summary("Server moderation commands.")]
 [RequireContext(ContextType.Guild)]
 public class ModerationModule(
     AuthorizationService auth,
@@ -29,7 +29,7 @@ public class ModerationModule(
     : ModuleBase<SocketCommandContext>
 {
     [Command("ban")]
-    [Summary("Ban a user from the current guild.")]
+    [Summary("Ban a user from this server.")]
     public async Task BanAsync(
         [RequireHigherRole] IUser user,
         uint deleteDays = 0, TimeSpan? length = null,
@@ -39,7 +39,7 @@ public class ModerationModule(
     {
         if (deleteDays > 7)
         {
-            await error.AssociateError(Context.Message, "Failed to ban user. Delete Days cannot be greater than 7.");
+            await error.AssociateError(Context.Message, "Delete days must be between 0 and 7.");
             return;
         }
 
@@ -47,7 +47,7 @@ public class ModerationModule(
         var result = await moderation.TryBanAsync(deleteDays, length, details);
 
         if (result is null)
-            await error.AssociateError(Context.Message, "Failed to ban user.");
+            await error.AssociateError(Context.Message, "Could not ban this user. Check that the bot has permission and outranks them.");
     }
 
     [Priority(-1)]
@@ -112,7 +112,7 @@ public class ModerationModule(
     }
 
     [Command("hardmute")]
-    [Summary("Hard Mute a user from the current guild.")]
+    [Summary("Hard mute a user, removing all their roles.")]
     public async Task HardMuteAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null,
@@ -125,9 +125,9 @@ public class ModerationModule(
 
         if (result is null)
         {
-            await error.AssociateError(Context.Message, "Failed to mute user. " +
-                "Either the user is already muted or there is no hard mute role configured. " +
-                "Configure the mute role by running the 'configure hard mute' command.");
+            await error.AssociateError(Context.Message, "Could not hard mute this user. " +
+                "They may already be hard muted, or no hard mute role is configured. " +
+                "Use `/config` to set one up.");
         }
     }
 
@@ -191,7 +191,7 @@ public class ModerationModule(
     }
 
     [Command("kick")]
-    [Summary("Kick a user from the current guild.")]
+    [Summary("Kick a user from this server.")]
     public async Task KickAsync(
         [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Kick)]
@@ -202,7 +202,7 @@ public class ModerationModule(
         var result = await moderation.TryKickAsync(details);
 
         if (result is null)
-            await error.AssociateError(Context.Message, "Failed to kick user.");
+            await error.AssociateError(Context.Message, "Could not kick this user. Check that the bot has permission and outranks them.");
     }
 
     [Priority(-1)]
@@ -240,7 +240,7 @@ public class ModerationModule(
     }
 
     [Command("mute")]
-    [Summary("Mute a user from the current guild.")]
+    [Summary("Mute a user in this server.")]
     public async Task MuteAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null,
@@ -253,9 +253,9 @@ public class ModerationModule(
 
         if (result is null)
         {
-            await error.AssociateError(Context.Message, "Failed to mute user. " +
-                "Either the user is already muted or there is no mute role configured. " +
-                "Configure the mute role by running the 'configure mute' command.");
+            await error.AssociateError(Context.Message, "Could not mute this user. " +
+                "They may already be muted, or no mute role is configured. " +
+                "Use `/config` to set one up.");
         }
     }
 
@@ -321,7 +321,7 @@ public class ModerationModule(
     [Priority(1)]
     [Command("mutes")]
     [Alias("mute list", "mutelist")]
-    [Summary("View active mutes on the current guild.")]
+    [Summary("View currently active mutes.")]
     [RequireAuthorization(AuthorizationScope.History)]
     public Task MuteListAsync(ModerationCategory? category = null)
         => moderation.SendMuteListAsync(Context, category, false);
@@ -373,7 +373,7 @@ public class ModerationModule(
     }
 
     [Command("notice")]
-    [Summary("Add a notice to a user. This counts as a minor warning.")]
+    [Summary("Give a user a notice. Counts as a minor warning.")]
     public async Task NoticeAsync(
         [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Warning)]
@@ -451,7 +451,7 @@ public class ModerationModule(
     [Priority(-1)]
     [Command("template")]
     [Alias("t")]
-    [Summary("Run a configured moderation template")]
+    [Summary("Apply a saved moderation template to a user.")]
     public async Task TemplateAsync(string name, [RequireHigherRole] params IUser[] users)
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
@@ -506,7 +506,7 @@ public class ModerationModule(
     }
 
     [Command("timeout")]
-    [Summary("Timeout a user from the current guild.")]
+    [Summary("Timeout a user in this server.")]
     public async Task TimeoutAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan length,
@@ -518,7 +518,7 @@ public class ModerationModule(
         var result = await moderation.TryTimeoutAsync(length, details);
 
         if (result is null)
-            await error.AssociateError(Context.Message, "Failed to timeout user.");
+            await error.AssociateError(Context.Message, "Could not timeout this user. Check that the bot has permission and outranks them.");
     }
 
     [Priority(-1)]
@@ -532,7 +532,7 @@ public class ModerationModule(
         => TimeoutAsync(user, length, null, reason);
 
     [Command("untimeout")]
-    [Summary("Remove timeout from a user in the current guild.")]
+    [Summary("Remove a timeout from a user.")]
     public async Task UntimeoutAsync(
         IGuildUser user,
         [CheckCategory(AuthorizationScope.Timeout)]
@@ -543,7 +543,7 @@ public class ModerationModule(
         var result = await moderation.TryUntimeoutAsync(details);
 
         if (!result)
-            await error.AssociateError(Context.Message, "Failed to remove timeout from user.");
+            await error.AssociateError(Context.Message, "Could not remove the timeout. The user may not be timed out.");
     }
 
     [Priority(-1)]
@@ -583,7 +583,7 @@ public class ModerationModule(
     }
 
     [Command("unban")]
-    [Summary("Unban a user from the current guild.")]
+    [Summary("Unban a user from this server.")]
     public async Task UnbanAsync(
         IUser user,
         [CheckCategory(AuthorizationScope.Ban)]
@@ -594,7 +594,7 @@ public class ModerationModule(
         var result = await moderation.TryUnbanAsync(details);
 
         if (result is null)
-            await error.AssociateError(Context.Message, "This user has no ban logs. Forced unban.");
+            await error.AssociateError(Context.Message, "No ban record found for this user. A forced unban was performed.");
     }
 
     [Priority(-1)]
@@ -631,7 +631,7 @@ public class ModerationModule(
     }
 
     [Command("unmute")]
-    [Summary("Unmute a user from the current guild.")]
+    [Summary("Unmute a user in this server.")]
     public async Task UnmuteAsync(
         IGuildUser user,
         [CheckCategory(AuthorizationScope.Mute)]
@@ -642,7 +642,7 @@ public class ModerationModule(
         var result = await moderation.TryUnmuteAsync(details);
 
         if (!result)
-            await error.AssociateError(Context.Message, "Unmute failed.");
+            await error.AssociateError(Context.Message, "Could not unmute this user. They may not currently be muted.");
     }
 
     [Priority(-1)]
@@ -679,7 +679,7 @@ public class ModerationModule(
     }
 
     [Command("warn")]
-    [Summary("Warn a user from the current guild.")]
+    [Summary("Warn a user in this server.")]
     public async Task WarnAsync(
         [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Warning)]

@@ -23,7 +23,7 @@ public static class VoiceChatPanelRenderer
             .WithTextDisplay(string.Join("\n", new[]
             {
                 "## Voice Chat Panel",
-                $"**Guild:** {state.GuildName}",
+                $"**Server:** {state.GuildName}",
                 $"**Voice:** {state.VoiceChannelMention}",
                 $"**Text:** {state.TextChannelMention}",
                 $"**Owner:** {state.OwnerMention}",

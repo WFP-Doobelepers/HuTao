@@ -144,9 +144,9 @@ public static class ReprimandExtensions
     }
 
     public static EmbedBuilder ToEmbedBuilder(this ModerationCategory category) => new EmbedBuilder()
-        .WithTitle($"Category: {category.Id}")
+        .WithTitle($"Category: {category.Name}")
         .AddField("Name", category.Name, true)
-        .AddField("Authorization", category.Authorization.Humanize().DefaultIfNullOrEmpty("None"), true);
+        .AddField("Permissions", category.Authorization.Humanize().DefaultIfNullOrEmpty("None"), true);
 
     public static EmbedBuilder ToEmbedBuilder(this Reprimand r, bool showId, int? length = null)
     {
@@ -172,7 +172,7 @@ public static class ReprimandExtensions
             embed.AddField("Category", r.Category.Name, true);
 
         if (r.Trigger is not null)
-            embed.AddField($"Triggers on {r.Trigger.GetTitle()}", r.Trigger.GetDetails());
+            embed.AddField($"Escalation Rule: {r.Trigger.GetTitle()}", r.Trigger.GetDetails());
 
         return embed;
     }
@@ -228,17 +228,17 @@ public static class ReprimandExtensions
 
         return action switch
         {
-            Ban b           => $"{status} ban to {mention} for {b.GetLength()}.",
-            Censored c      => $"{status} censor to {mention}: {c.CensoredMessage().Truncate(512)}",
-            Filtered f      => $"{status} filter to {mention}: {f.Messages.Humanize().Truncate(512)}",
-            HardMute h      => $"{status} hard mute to {mention} for {h.GetLength()}.",
-            Kick            => $"{status} kick to {mention}.",
-            Mute m          => $"{status} mute to {mention} for {m.GetLength()}.",
-            Note            => $"{status} note to {mention}.",
-            Notice          => $"{status} notice to {mention}.",
-            RoleReprimand r => $"{status} roles to {mention} for {r.GetLength()}: {((IRoleReprimand) r).Humanized}",
-            Timeout t       => $"{status} timeout to {mention} for {t.GetLength()}.",
-            Warning w       => $"{status} warn to {mention} {w.Count} times.",
+            Ban b           => $"{status} banned {mention} for {b.GetLength()}.",
+            Censored c      => $"{status} filtered {mention}: {c.CensoredMessage().Truncate(512)}",
+            Filtered f      => $"{status} auto-filtered {mention}: {f.Messages.Humanize().Truncate(512)}",
+            HardMute h      => $"{status} hard muted {mention} for {h.GetLength()}.",
+            Kick            => $"{status} kicked {mention}.",
+            Mute m          => $"{status} muted {mention} for {m.GetLength()}.",
+            Note            => $"{status} noted {mention}.",
+            Notice          => $"{status} noticed {mention}.",
+            RoleReprimand r => $"{status} changed roles for {mention} for {r.GetLength()}: {((IRoleReprimand) r).Humanized}",
+            Timeout t       => $"{status} timed out {mention} for {t.GetLength()}.",
+            Warning w       => $"{status} warned {mention} {w.Count} time(s).",
 
             _ => throw new ArgumentOutOfRangeException(
                 nameof(action), action, "An unknown reprimand was given.")
@@ -247,7 +247,7 @@ public static class ReprimandExtensions
 
     public static string GetDetails(this ModerationExclusion exclusion, Context context) => exclusion switch
     {
-        InviteExclusion e      => $"Guild: {context.GetGuild(e.GuildId)} ({e.Guild.Id})",
+        InviteExclusion e      => $"Server: {context.GetGuild(e.GuildId)} ({e.Guild.Id})",
         EmojiExclusion e       => $"Emoji: {e.Emoji}",
         CriterionExclusion e   => $"Criterion: {e.Criterion}",
         LinkExclusion e        => $"Link: {e.Link.Uri}",
@@ -262,14 +262,14 @@ public static class ReprimandExtensions
         var title = action switch
         {
             Ban           => nameof(Ban),
-            Censored      => nameof(Censored),
-            Filtered      => nameof(Filtered),
-            HardMute      => nameof(HardMute),
+            Censored      => "Word Filter",
+            Filtered      => "Auto-Mod Filter",
+            HardMute      => "Hard Mute",
             Kick          => nameof(Kick),
             Mute          => nameof(Mute),
             Note          => nameof(Note),
             Notice        => nameof(Notice),
-            RoleReprimand => nameof(RoleReprimand),
+            RoleReprimand => "Role Change",
             Timeout       => nameof(Timeout),
             Warning       => nameof(Warning),
 
@@ -277,7 +277,7 @@ public static class ReprimandExtensions
                 nameof(action), action, "An unknown reprimand was given.")
         };
 
-        return showId ? $"{title.Humanize()}: {action.Id}" : title.Humanize();
+        return showId ? $"{title}: {action.Id}" : title;
     }
 
     public static async Task<(long Active, long Total)> CountAsync<T>(
@@ -451,16 +451,16 @@ public static class ReprimandExtensions
     }
 
     private static string GetExpirationTime(this IExpirable expirable)
-        => expirable.ExpireAt?.ToUniversalTimestamp() ?? "Indefinitely";
+        => expirable.ExpireAt?.ToUniversalTimestamp() ?? "Permanent";
 
     private static string GetGuild(this Context context, ulong guildId) => context.Client is DiscordSocketClient client
-        ? client.GetGuild(guildId)?.Name ?? $"[Unknown Guild] ({guildId})"
-        : $"[Unknown Name] {guildId}";
+        ? client.GetGuild(guildId)?.Name ?? $"[Unknown Server] ({guildId})"
+        : $"[Unknown Server] {guildId}";
 
     private static string GetLength(this ILength mute)
         => mute.Length?.Humanize(5,
             minUnit: TimeUnit.Second,
-            maxUnit: TimeUnit.Year) ?? "indefinitely";
+            maxUnit: TimeUnit.Year) ?? "permanently";
 
     public record RoleTemplateResult(
         IReadOnlyCollection<RoleMetadata> Added,

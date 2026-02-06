@@ -25,7 +25,7 @@ namespace HuTao.Bot.Modules.Moderation;
 
 [Group("trigger")]
 [Alias("triggers")]
-[Summary("Reprimand triggers.")]
+[Summary("Escalation rules.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db, ModerationService moderation)
     : InteractiveTrigger<ReprimandTrigger>
@@ -94,7 +94,7 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
 
     [Command("reprimands")]
     [Alias("history")]
-    [Summary("Shows associated reprimands of this trigger.")]
+    [Summary("Shows associated reprimands of this rule.")]
     protected async Task ViewAssociatedReprimandsAsync(
         string id,
         [Summary("Leave empty to show everything.")]
@@ -117,7 +117,7 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
 
     [Command]
     [Alias("list", "view")]
-    [Summary("View the reprimand trigger list.")]
+    [Summary("View the escalation rules list.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override EmbedBuilder EntityViewer(ReprimandTrigger trigger) => new EmbedBuilder()

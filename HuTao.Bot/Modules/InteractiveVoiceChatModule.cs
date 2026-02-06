@@ -229,7 +229,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
         var guildTarget = Context.Guild.GetUser(target.Id);
         if (guildTarget is null)
         {
-            state.Notice = "That user is not in this guild.";
+            state.Notice = "That user is not in this server.";
             await DeferAsync();
             await RenderAsync(paginator);
             return;
@@ -319,7 +319,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
         var guildTarget = Context.Guild.GetUser(target.Id);
         if (guildTarget is null)
         {
-            state.Notice = "That user is not in this guild.";
+            state.Notice = "That user is not in this server.";
             await DeferAsync();
             await RenderAsync(paginator);
             return;
@@ -374,7 +374,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
         var guildTarget = Context.Guild.GetUser(target.Id);
         if (guildTarget is null)
         {
-            state.Notice = "That user is not in this guild.";
+            state.Notice = "That user is not in this server.";
             await DeferAsync();
             await RenderAsync(paginator);
             return;

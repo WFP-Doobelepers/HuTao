@@ -27,7 +27,7 @@ public class InteractiveDevModule(DemoReprimandSeeder seeder) : InteractionModul
     {
         if (Context.Guild is null || Context.User is not IGuildUser moderator)
         {
-            await RespondAsync("This command can only be used inside a guild.", ephemeral: true);
+            await RespondAsync("This command can only be used inside a server.", ephemeral: true);
             return;
         }
 

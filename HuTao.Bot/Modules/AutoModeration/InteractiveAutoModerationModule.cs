@@ -29,11 +29,11 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
 {
     private const uint AccentColor = 0x9B59FF;
 
-    [SlashCommand("add", "Add a filter that does not give a reprimand.")]
+    [SlashCommand("add", "Add a spam filter with no punishment.")]
     public Task AddAsync(
         FilterType type,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -49,12 +49,12 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return AddConfigurationAsync(config, ephemeral);
     }
 
-    [SlashCommand("warn", "Add a filter that warns the user.")]
+    [SlashCommand("warn", "Add a spam filter that warns the user.")]
     public Task AddWarningAsync(
         FilterType type,
-        [Summary(description: "Number of warnings.")] uint count = 1,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of warnings to give.")] uint count = 1,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -71,12 +71,12 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return AddConfigurationAsync(config, ephemeral);
     }
 
-    [SlashCommand("mute", "Add a filter that mutes the user.")]
+    [SlashCommand("mute", "Add a spam filter that mutes the user.")]
     public Task AddMuteAsync(
         FilterType type,
         TimeSpan? mute_length = null,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -93,11 +93,11 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return AddConfigurationAsync(config, ephemeral);
     }
 
-    [SlashCommand("kick", "Add a filter that kicks the user.")]
+    [SlashCommand("kick", "Add a spam filter that kicks the user.")]
     public Task AddKickAsync(
         FilterType type,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -114,13 +114,13 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return AddConfigurationAsync(config, ephemeral);
     }
 
-    [SlashCommand("ban", "Add a filter that bans the user.")]
+    [SlashCommand("ban", "Add a spam filter that bans the user.")]
     public Task AddBanAsync(
         FilterType type,
         TimeSpan? ban_length = null,
         [Summary(description: "Days of messages to delete on ban.")] int delete_days = 1,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -137,11 +137,11 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return AddConfigurationAsync(config, ephemeral);
     }
 
-    [SlashCommand("note", "Add a filter that notes the user.")]
+    [SlashCommand("note", "Add a spam filter that logs a note.")]
     public Task AddNoteAsync(
         FilterType type,
-        [Summary(description: "Threshold limit.")] int amount = 1,
-        [Summary(description: "Time period for messages.")] TimeSpan? period = null,
+        [Summary(description: "Number of messages before the rule triggers.")] int amount = 1,
+        [Summary(description: "Time window to count messages in.")] TimeSpan? period = null,
         bool delete_messages = true,
         bool global = false,
         int minimum_length = 0,
@@ -178,9 +178,9 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         await FollowupAsync(embeds: embeds, ephemeral: ephemeral);
     }
 
-    [SlashCommand("toggle", "Toggle an auto-moderation rule.")]
+    [SlashCommand("toggle", "Enable or disable an auto-moderation rule.")]
     public async Task ToggleAsync(
-        [Summary(description: "Rule ID.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
+        [Summary(description: "The rule to modify.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
         string id,
         bool? state = null,
         [RequireEphemeralScope] bool ephemeral = false)
@@ -203,9 +203,9 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
             allowedMentions: AllowedMentions.None, ephemeral: ephemeral);
     }
 
-    [SlashCommand("delete", "Delete an auto-moderation rule and its reprimands.")]
+    [SlashCommand("delete", "Delete an auto-moderation rule and its records.")]
     public async Task DeleteAsync(
-        [Summary(description: "Rule ID.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
+        [Summary(description: "The rule to delete.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
         string id,
         bool silent = false,
         [RequireEphemeralScope] bool ephemeral = false)
@@ -260,7 +260,7 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
     private static EmbedBuilder EntityViewer(AutoConfiguration entity)
     {
         var embed = new EmbedBuilder()
-            .WithTitle($"{entity.GetTitle()} Spam: {entity.Id}")
+            .WithTitle($"{entity.GetTitle()} Spam Filter: {entity.Id}")
             .WithDescription(entity.GetDetails())
             .WithColor(entity.Reprimand?.GetColor() ?? Color.Default)
             .AddField("Moderator", entity.GetModerator(), true)
@@ -277,7 +277,7 @@ public class InteractiveAutoModerationModule(HuTaoContext db, ModerationService 
         return entity switch
         {
             DuplicateConfiguration config => embed
-                .WithTitle($"{entity.GetTitle()} {config.Type} Spam: {entity.Id}")
+                .WithTitle($"{entity.GetTitle()} {config.Type} Spam Filter: {entity.Id}")
                 .AddField("Tolerance", config.Tolerance, true)
                 .AddField("Percentage", $"{config.Percentage:P}", true)
                 .AddField("Type", config.Type, true),

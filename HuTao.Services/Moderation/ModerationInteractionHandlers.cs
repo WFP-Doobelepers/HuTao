@@ -39,7 +39,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("❌ Only the person who opened this can interact with it.", ephemeral: true);
             return;
         }
 
@@ -49,18 +49,17 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         {
             if (!Guid.TryParse(muteIdString, out var muteId))
             {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
+                await FollowupAsync("❌ Could not find that mute record.", ephemeral: true);
                 return;
             }
 
             var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
             if (mute == null)
             {
-                await FollowupAsync("❌ Mute not found or already removed.", ephemeral: true);
+                await FollowupAsync("❌ This mute was already removed or doesn't exist.", ephemeral: true);
                 return;
             }
 
-            // Check permissions
             var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
             if (!hasPermission)
             {
@@ -82,16 +81,17 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 paginator.PageCount = state.TotalPages;
 
                 await paginator.RenderPageAsync(interaction);
-                await FollowupAsync($"✅ **<@{user.Id}>** has been unmuted successfully.", ephemeral: true);
+                await FollowupAsync($"✅ **<@{user.Id}>** has been unmuted.", ephemeral: true);
             }
             else
             {
-                await FollowupAsync("❌ Failed to unmute user. They may not be muted or an error occurred.", ephemeral: true);
+                await FollowupAsync("❌ Could not unmute this user. They may no longer be muted.", ephemeral: true);
             }
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            Log.LogError(ex, "Error unmuting user {MuteId}", muteIdString);
+            await FollowupAsync("❌ Something went wrong. Please try again or contact an admin.", ephemeral: true);
         }
     }
 
@@ -103,7 +103,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("❌ Only the person who opened this can interact with it.", ephemeral: true);
             return;
         }
 
@@ -113,18 +113,17 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         {
             if (!Guid.TryParse(muteIdString, out var muteId))
             {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
+                await FollowupAsync("❌ Could not find that mute record.", ephemeral: true);
                 return;
             }
 
             var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
             if (mute == null)
             {
-                await FollowupAsync("❌ Mute not found.", ephemeral: true);
+                await FollowupAsync("❌ This mute was already removed or doesn't exist.", ephemeral: true);
                 return;
             }
 
-            // Check permissions
             var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
             if (!hasPermission)
             {
@@ -132,13 +131,13 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            // For now, just show a message - in a full implementation, you'd show a modal to collect extension duration
-            await FollowupAsync($"⏰ Mute extension for User {mute.UserId}. " +
+            await FollowupAsync($"⏰ Mute extension for <@{mute.UserId}>. " +
                               "Full implementation would show a modal to collect extension duration.", ephemeral: true);
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            Log.LogError(ex, "Error extending mute {MuteId}", muteIdString);
+            await FollowupAsync("❌ Something went wrong. Please try again or contact an admin.", ephemeral: true);
         }
     }
 
@@ -150,7 +149,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
             !paginator.CanInteract(interaction.User))
         {
-            await RespondAsync("❌ You cannot interact with this paginator.", ephemeral: true);
+            await RespondAsync("❌ Only the person who opened this can interact with it.", ephemeral: true);
             return;
         }
 
@@ -160,7 +159,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         {
             if (!Guid.TryParse(muteIdString, out var muteId))
             {
-                await FollowupAsync("❌ Invalid mute ID.", ephemeral: true);
+                await FollowupAsync("❌ Could not find that mute record.", ephemeral: true);
                 return;
             }
 
@@ -171,18 +170,18 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
 
             if (mute == null)
             {
-                await FollowupAsync("❌ Mute not found.", ephemeral: true);
+                await FollowupAsync("❌ This mute was already removed or doesn't exist.", ephemeral: true);
                 return;
             }
 
             var embed = new EmbedBuilder()
-                .WithTitle($"Mute Details - {mute.UserId}")
+                .WithTitle($"Mute Details - <@{mute.UserId}>")
                 .WithColor(Color.Orange)
                 .AddField("User ID", mute.UserId, true)
                 .AddField("Status", mute.Status.ToString(), true)
                 .AddField("Duration", mute.Length?.Humanize() ?? "Permanent", true)
                 .AddField("Reason", mute.Action?.Reason ?? "No reason provided")
-                .AddField("Moderator", mute.Action?.Moderator is { } mod ? mod.Id.ToString() : "System", true)
+                .AddField("Moderator", mute.Action?.Moderator is { } mod ? $"<@{mod.Id}>" : "System", true)
                 .AddField("Date", mute.Action?.Date.ToString("MMM dd, yyyy HH:mm") ?? "Unknown", true)
                 .WithFooter($"Mute ID: {mute.Id}")
                 .WithTimestamp(DateTimeOffset.UtcNow);
@@ -197,7 +196,8 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ An error occurred: {ex.Message}", ephemeral: true);
+            Log.LogError(ex, "Error fetching mute details {MuteId}", muteIdString);
+            await FollowupAsync("❌ Something went wrong. Please try again or contact an admin.", ephemeral: true);
         }
     }
 
@@ -252,7 +252,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         paginator.PageCount = state.TotalPages;
 
         await paginator.RenderPageAsync(interaction);
-        await FollowupAsync("🔄 Mute list refreshed successfully.", ephemeral: true);
+        await FollowupAsync("🔄 Mute list updated.", ephemeral: true);
     }
 
     private async Task<IReadOnlyList<Mute>> RefreshMuteData(ModerationCategory? category)
@@ -366,6 +366,6 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         paginator.PageCount = state.TotalPages;
 
         await paginator.RenderPageAsync(interaction);
-        await FollowupAsync("🔄 User history refreshed successfully.", ephemeral: true);
+        await FollowupAsync("🔄 History updated.", ephemeral: true);
     }
 }

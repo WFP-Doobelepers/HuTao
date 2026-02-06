@@ -22,11 +22,11 @@ namespace HuTao.Bot.Modules.AutoModeration;
 
 [Group("auto")]
 [Name("Auto Moderation")]
-[Summary("Manage Auto Moderation rules and what action will be done to the user who triggers them.")]
+[Summary("Configure rules that automatically act on spam and other violations.")]
 public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrigger<AutoConfiguration>
 {
     [Command("ban")]
-    [Summary("A filter that bans the user.")]
+    [Summary("A spam filter that bans the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddBanSpamAsync(FilterType type, BanConfigurationOptions options)
     {
@@ -36,7 +36,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
     }
 
     [Command("kick")]
-    [Summary("A filter that kicks the user.")]
+    [Summary("A spam filter that kicks the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddKickSpamAsync(FilterType type, AutoConfigurationOptions options)
     {
@@ -46,7 +46,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
     }
 
     [Command("mute")]
-    [Summary("A filter that mutes the user.")]
+    [Summary("A spam filter that mutes the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddMuteSpamAsync(FilterType type, MuteConfigurationOptions options)
     {
@@ -56,7 +56,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
     }
 
     [Command("note")]
-    [Summary("A filter that adds a note to the user.")]
+    [Summary("A spam filter that logs a note.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddNoteSpamAsync(FilterType type, AutoConfigurationOptions options)
     {
@@ -66,7 +66,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
     }
 
     [Command("notice")]
-    [Summary("A filter that adds a notice to the user.")]
+    [Summary("A spam filter that gives a notice.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddNoticeSpamAsync(FilterType type, AutoConfigurationOptions options)
     {
@@ -77,7 +77,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
 
     [Command("add")]
     [Alias("create")]
-    [Summary("A filter that does not give a reprimand to the user.")]
+    [Summary("A spam filter with no punishment.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddSpamAsync(FilterType type, AutoConfigurationOptions options)
     {
@@ -87,7 +87,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
 
     [Command("warning")]
     [Alias("warn")]
-    [Summary("A filter that warns the user.")]
+    [Summary("A spam filter that warns the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddWarningSpamAsync(FilterType type, WarningConfigurationOptions options)
     {
@@ -99,13 +99,13 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
 
     [Command]
     [Alias("list", "view")]
-    [Summary("Lists all the Auto Moderation rules.")]
+    [Summary("View all auto-moderation rules.")]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override EmbedBuilder EntityViewer(AutoConfiguration entity)
     {
         var embed = new EmbedBuilder()
-            .WithTitle($"{entity.GetTitle()} Spam: {entity.Id}")
+            .WithTitle($"{entity.GetTitle()} Spam Filter: {entity.Id}")
             .WithDescription(entity.GetDetails())
             .WithColor(entity.Reprimand?.GetColor() ?? Color.Default)
             .AddField("Moderator", entity.GetModerator(), true)
@@ -121,7 +121,7 @@ public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : Interac
 
         return entity switch
         {
-            DuplicateConfiguration config => embed.WithTitle($"{entity.GetTitle()} {config.Type} Spam: {entity.Id}")
+            DuplicateConfiguration config => embed.WithTitle($"{entity.GetTitle()} {config.Type} Spam Filter: {entity.Id}")
                 .AddField("Tolerance", config.Tolerance, true)
                 .AddField("Percentage", $"{config.Percentage:P}", true)
                 .AddField("Type", config.Type, true),

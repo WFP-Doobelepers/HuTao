@@ -17,7 +17,7 @@ using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Moderation;
 
-[Group("permissions", "Manage guild authorization rules.")]
+[Group("permissions", "Manage server authorization rules.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class InteractivePermissionsModule(HuTaoContext db)

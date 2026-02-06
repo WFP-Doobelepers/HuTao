@@ -66,7 +66,7 @@ public class InteractiveCategoryPermissionsModule(HuTaoContext db)
         await AddPermissionAsync(category, scope, access, criterion, ephemeral);
     }
 
-    [SlashCommand("add-permission", "Add a guild permission requirement to a category.")]
+    [SlashCommand("add-permission", "Add a server permission requirement to a category.")]
     public async Task AddGuildPermissionAsync(
         [Autocomplete(typeof(CategoryAutocomplete))] ModerationCategory category,
         AuthorizationScope scope,

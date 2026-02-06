@@ -151,7 +151,7 @@ public class ModerationService(
         var ephemeral = await auth.IsAuthorizedAsync(context, AuthorizationScope.All | AuthorizationScope.Ephemeral);
         channel ??= (ITextChannel) context.Channel;
         if (context.User is not IGuildUser user)
-            await context.ReplyAsync("You must be a guild user to use this command.");
+            await context.ReplyAsync("You must be a server member to use this command.");
         else if (!user.GetPermissions(channel).SendMessages)
             await context.ReplyAsync("You do not have permission to send messages in this channel.");
         else

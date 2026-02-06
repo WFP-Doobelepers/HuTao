@@ -18,13 +18,13 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.AutoModeration;
 
-[Group("auto-exclusion", "Manage auto-moderation exclusions.")]
+[Group("auto-exclusion", "Manage auto-moderation exemptions.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache cache)
     : InteractionModuleBase<SocketInteractionContext>
 {
-    [SlashCommand("add-role", "Exclude a role from auto-moderation.")]
+    [SlashCommand("add-role", "Exempt a role from auto-moderation.")]
     public async Task ExcludeRoleAsync(
         IRole role,
         [Summary(description: "Optional auto config to apply to.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
@@ -36,10 +36,10 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         var criterion = new RoleCriterion(role);
         var exclusion = new CriterionExclusion(criterion, config);
         await AddExclusionAsync(exclusion);
-        await FollowupAsync($"Excluded role {role.Mention} from auto-moderation.", ephemeral: ephemeral);
+        await FollowupAsync($"Exempted role {role.Mention} from auto-moderation.", ephemeral: ephemeral);
     }
 
-    [SlashCommand("add-user", "Exclude a user from auto-moderation.")]
+    [SlashCommand("add-user", "Exempt a user from auto-moderation.")]
     public async Task ExcludeUserAsync(
         IUser user,
         [Summary(description: "Optional auto config to apply to.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
@@ -51,10 +51,10 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         var criterion = new UserCriterion(user.Id);
         var exclusion = new CriterionExclusion(criterion, config);
         await AddExclusionAsync(exclusion);
-        await FollowupAsync($"Excluded user {user.Mention} from auto-moderation.", ephemeral: ephemeral);
+        await FollowupAsync($"Exempted user {user.Mention} from auto-moderation.", ephemeral: ephemeral);
     }
 
-    [SlashCommand("add-channel", "Exclude a channel from auto-moderation.")]
+    [SlashCommand("add-channel", "Exempt a channel from auto-moderation.")]
     public async Task ExcludeChannelAsync(
         IGuildChannel channel,
         [Summary(description: "Optional auto config to apply to.")] [Autocomplete(typeof(AutoConfigAutocomplete))]
@@ -66,10 +66,10 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         var criterion = new ChannelCriterion(channel.Id, channel is ICategoryChannel);
         var exclusion = new CriterionExclusion(criterion, config);
         await AddExclusionAsync(exclusion);
-        await FollowupAsync($"Excluded channel {MentionUtils.MentionChannel(channel.Id)} from auto-moderation.", ephemeral: ephemeral);
+        await FollowupAsync($"Exempted channel {MentionUtils.MentionChannel(channel.Id)} from auto-moderation.", ephemeral: ephemeral);
     }
 
-    [SlashCommand("list", "View all auto-moderation exclusions.")]
+    [SlashCommand("list", "View all auto-moderation exemptions.")]
     public async Task ListExclusionsAsync([RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
@@ -77,14 +77,14 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
 
         if (exclusions.Count == 0)
         {
-            await FollowupAsync("No auto-moderation exclusions configured.", ephemeral: true);
+            await FollowupAsync("No auto-moderation exemptions configured.", ephemeral: true);
             return;
         }
 
         var embeds = exclusions
             .Take(10)
             .Select(e => new EmbedBuilder()
-                .WithTitle($"Exclusion: {e.Id}")
+                .WithTitle($"Exemption: {e.Id}")
                 .WithDescription(e switch
                 {
                     CriterionExclusion ce => $"Criterion: {ce.Criterion}",
@@ -99,13 +99,13 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         await FollowupAsync(embeds: embeds, ephemeral: ephemeral);
     }
 
-    [SlashCommand("remove", "Remove an auto-moderation exclusion by ID.")]
+    [SlashCommand("remove", "Remove an auto-moderation exemption.")]
     public async Task RemoveExclusionAsync(string id, [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
         if (!Guid.TryParse(id, out var guid))
         {
-            await FollowupAsync("Invalid ID format.", ephemeral: true);
+            await FollowupAsync("That ID doesn't look right. Try copying it from the list.", ephemeral: true);
             return;
         }
 
@@ -113,7 +113,7 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         var entity = exclusions.FirstOrDefault(e => e.Id == guid);
         if (entity is null)
         {
-            await FollowupAsync("Exclusion not found.", ephemeral: true);
+            await FollowupAsync("Exemption not found. It may have already been removed.", ephemeral: true);
             return;
         }
 
@@ -122,7 +122,7 @@ public class InteractiveModerationExclusionsModule(HuTaoContext db, IMemoryCache
         await db.SaveChangesAsync();
         cache.InvalidateCaches(Context.Guild);
 
-        await FollowupAsync($"Exclusion `{id}` removed.", ephemeral: ephemeral);
+        await FollowupAsync($"Exemption `{id}` removed.", ephemeral: ephemeral);
     }
 
     private async Task AddExclusionAsync(ModerationExclusion exclusion)

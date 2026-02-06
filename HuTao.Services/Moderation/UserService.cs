@@ -44,7 +44,7 @@ public class UserService(
         {
             var guildAvatar = guild.GetGuildAvatarUrl(size: 4096);
             if (!string.IsNullOrWhiteSpace(guildAvatar))
-                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(guildAvatar), "Guild avatar"));
+                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(guildAvatar), "Server avatar"));
         }
 
         media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(avatar), "User avatar"));

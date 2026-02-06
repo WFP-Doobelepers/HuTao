@@ -22,7 +22,7 @@ public static class RoleBrowserRenderer
         var filterLabel = string.IsNullOrWhiteSpace(state.Filter) ? "All" : state.Filter;
 
         var container = new ContainerBuilder()
-            .WithTextDisplay($"## Roles\n**Guild:** {state.GuildName}\n**Filter:** {filterLabel}\n**Total:** {filteredCount} / {state.Roles.Count}")
+            .WithTextDisplay($"## Roles\n**Server:** {state.GuildName}\n**Filter:** {filterLabel}\n**Total:** {filteredCount} / {state.Roles.Count}")
             .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         switch (state.View)

@@ -22,7 +22,7 @@ public static class ChannelBrowserRenderer
         var searchText = string.IsNullOrWhiteSpace(state.Search) ? "None" : state.Search;
 
         var container = new ContainerBuilder()
-            .WithTextDisplay($"## Channels\n**Guild:** {state.GuildName}\n**Filter:** {filterText}\n**Search:** {searchText}")
+            .WithTextDisplay($"## Channels\n**Server:** {state.GuildName}\n**Filter:** {filterText}\n**Search:** {searchText}")
             .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         if (!string.IsNullOrWhiteSpace(state.Notice))

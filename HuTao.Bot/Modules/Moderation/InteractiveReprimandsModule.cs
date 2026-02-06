@@ -21,16 +21,16 @@ using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus
 
 namespace HuTao.Bot.Modules.Moderation;
 
-[Group("reprimand", "Reprimand management commands")]
+[Group("reprimand", "View and manage moderation records.")]
 public class InteractiveReprimandsModule(
     HuTaoContext db, AuthorizationService auth,
     ModerationService moderation, UserService userService)
     : InteractionEntity<Reprimand>
 {
     private const AuthorizationScope Scope = All | Modify;
-    private const string NotAuthorizedMessage = "You are not authorized to modify this reprimand.";
+    private const string NotAuthorizedMessage = "You don't have permission to modify this reprimand.";
 
-    [SlashCommand("pardon", "Pardon a reprimand, this would mean they are not counted towards triggers.")]
+    [SlashCommand("pardon", "Pardon a reprimand so it no longer counts toward escalation rules.")]
     public async Task PardonReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
@@ -43,7 +43,7 @@ public class InteractiveReprimandsModule(
             => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
-    [SlashCommand("default-category", "Sets the default category for reprimands.")]
+    [SlashCommand("default-category", "Set your default category when issuing reprimands.")]
     public async Task SetDefaultCategoryAsync(
         [Summary(description: "The category to set as the default.")]
         [Autocomplete(typeof(CategoryAutocomplete))]
@@ -62,7 +62,7 @@ public class InteractiveReprimandsModule(
 
         var components = new ComponentBuilderV2()
             .WithContainer(new ContainerBuilder()
-                .WithTextDisplay($"## Reprimands\nDefault reprimand category set to `{user.DefaultCategory?.Name ?? "None"}`.")
+                .WithTextDisplay($"## Reprimands\nYour default category has been set to `{user.DefaultCategory?.Name ?? "None"}`.")
                 .WithAccentColor(0x9B59FF))
             .WithActionRow(new ActionRowBuilder()
                 .WithButton("Open Config Panel", "cfg:open", ButtonStyle.Primary))
@@ -83,7 +83,7 @@ public class InteractiveReprimandsModule(
         await ModifyReprimandAsync(reprimand, ephemeral, moderation.UpdateReprimandAsync, reason);
     }
 
-    [SlashCommand("history", "Views the entire reprimand history of the server.")]
+    [SlashCommand("history", "View the full moderation history for this server.")]
     public async Task ViewHistoryAsync(
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(History)]
         ModerationCategory? category = null,
@@ -122,7 +122,7 @@ public class InteractiveReprimandsModule(
     }
 
     [ComponentInteraction("reprimand-delete:*:*", true)]
-    [SlashCommand("delete", "Delete a reprimand. This completely removes the data.")]
+    [SlashCommand("delete", "Permanently delete a reprimand and its data.")]
     protected override Task RemoveEntityAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,

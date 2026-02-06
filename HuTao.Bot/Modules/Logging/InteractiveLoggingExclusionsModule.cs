@@ -36,7 +36,7 @@ public sealed class InteractiveLoggingExclusionsModule(
     private const string AddChannelSelectId = "logex:add-channel";
     private const string RefreshButtonId = "logex:refresh";
 
-    [SlashCommand("exclusions", "Manage logging exclusions interactively.")]
+    [SlashCommand("exclusions", "Manage logging exemptions.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task ExclusionsAsync([RequireEphemeralScope] bool ephemeral = false)
         => await OpenAsync(ephemeral);
@@ -260,13 +260,13 @@ public sealed class InteractiveLoggingExclusionsModule(
         var disabled = p.ShouldDisable();
 
         var container = new ContainerBuilder()
-            .WithTextDisplay($"## Logging Exclusions\n**Total:** {state.Entries.Count}\n-# These rules skip logging when matched")
+            .WithTextDisplay($"## Logging Exemptions\n**Total:** {state.Entries.Count}\n-# These rules skip logging when matched")
             .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         var page = state.GetPage(p.CurrentPageIndex);
         if (page.Count == 0)
         {
-            container.WithTextDisplay("-# No exclusions yet. Add some below.");
+            container.WithTextDisplay("-# No exemptions yet. Add some below.");
         }
         else
         {
@@ -286,7 +286,7 @@ public sealed class InteractiveLoggingExclusionsModule(
         container.WithActionRow(new ActionRowBuilder()
             .WithSelectMenu(new SelectMenuBuilder()
                 .WithCustomId(RemoveSelectId)
-                .WithPlaceholder(removeOptions.Count == 0 ? "No exclusions to remove" : "Remove an exclusion…")
+                .WithPlaceholder(removeOptions.Count == 0 ? "No exemptions to remove" : "Remove an exemption…")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .WithOptions(removeOptions)
@@ -295,7 +295,7 @@ public sealed class InteractiveLoggingExclusionsModule(
         container.WithActionRow(new ActionRowBuilder()
             .WithSelectMenu(new SelectMenuBuilder()
                 .WithCustomId(AddUserSelectId)
-                .WithPlaceholder("Add excluded user…")
+                .WithPlaceholder("Add exempt user…")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .WithType(ComponentType.UserSelect)
@@ -304,7 +304,7 @@ public sealed class InteractiveLoggingExclusionsModule(
         container.WithActionRow(new ActionRowBuilder()
             .WithSelectMenu(new SelectMenuBuilder()
                 .WithCustomId(AddRoleSelectId)
-                .WithPlaceholder("Add excluded role…")
+                .WithPlaceholder("Add exempt role…")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .WithType(ComponentType.RoleSelect)
@@ -313,7 +313,7 @@ public sealed class InteractiveLoggingExclusionsModule(
         container.WithActionRow(new ActionRowBuilder()
             .WithSelectMenu(new SelectMenuBuilder()
                 .WithCustomId(AddChannelSelectId)
-                .WithPlaceholder("Add excluded channel/category…")
+                .WithPlaceholder("Add exempt channel/category…")
                 .WithMinValues(1)
                 .WithMaxValues(1)
                 .WithType(ComponentType.ChannelSelect)

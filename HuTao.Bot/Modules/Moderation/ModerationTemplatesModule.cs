@@ -18,8 +18,7 @@ namespace HuTao.Bot.Modules.Moderation;
 
 [Group("template")]
 [Alias("templates")]
-[Summary(
-    "Reprimand templates are a way to quickly reprimand a user using a template. They are executed using the `template` command.")]
+[Summary("Save and reuse moderation actions as templates. Apply them with the `template` command.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<ModerationTemplate>
 {

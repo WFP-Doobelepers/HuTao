@@ -22,14 +22,14 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.Censors;
 
-[Group("censor", "Manage word censors and their actions.")]
+[Group("censor", "Manage word filters that auto-delete messages.")]
 [RequireContext(ContextType.Guild)]
 public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
     : InteractionEntity<Censor>
 {
     private const uint AccentColor = 0x9B59FF;
 
-    [SlashCommand("add", "Add a censor that deletes the message.")]
+    [SlashCommand("add", "Add a word filter that deletes matching messages.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddCensorAsync(
         string pattern,
@@ -42,7 +42,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await DeferAsync(ephemeral);
         if (!TryValidatePattern(pattern))
         {
-            await FollowupAsync("Invalid regex pattern. Please check your syntax.", ephemeral: ephemeral);
+            await FollowupAsync("Invalid pattern. Make sure your regex syntax is correct.", ephemeral: ephemeral);
             return;
         }
         var options = new SlashCensorOptions { Silent = silent, Mode = mode, Category = category };
@@ -50,7 +50,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await AddAndReplyAsync(censor);
     }
 
-    [SlashCommand("warn", "Add a censor that warns the user.")]
+    [SlashCommand("warn", "Add a word filter that warns the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddWarnCensorAsync(
         string pattern, uint count = 1,
@@ -63,7 +63,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await DeferAsync(ephemeral);
         if (!TryValidatePattern(pattern))
         {
-            await FollowupAsync("Invalid regex pattern. Please check your syntax.", ephemeral: ephemeral);
+            await FollowupAsync("Invalid pattern. Make sure your regex syntax is correct.", ephemeral: ephemeral);
             return;
         }
         var action = new WarningAction(count);
@@ -72,7 +72,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await AddAndReplyAsync(censor);
     }
 
-    [SlashCommand("mute", "Add a censor that mutes the user.")]
+    [SlashCommand("mute", "Add a word filter that mutes the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddMuteCensorAsync(
         string pattern, System.TimeSpan? length = null,
@@ -85,7 +85,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await DeferAsync(ephemeral);
         if (!TryValidatePattern(pattern))
         {
-            await FollowupAsync("Invalid regex pattern. Please check your syntax.", ephemeral: ephemeral);
+            await FollowupAsync("Invalid pattern. Make sure your regex syntax is correct.", ephemeral: ephemeral);
             return;
         }
         var action = new MuteAction(length);
@@ -94,7 +94,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await AddAndReplyAsync(censor);
     }
 
-    [SlashCommand("ban", "Add a censor that bans the user.")]
+    [SlashCommand("ban", "Add a word filter that bans the user.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddBanCensorAsync(
         string pattern, uint deleteDays = 0, System.TimeSpan? length = null,
@@ -107,7 +107,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await DeferAsync(ephemeral);
         if (!TryValidatePattern(pattern))
         {
-            await FollowupAsync("Invalid regex pattern. Please check your syntax.", ephemeral: ephemeral);
+            await FollowupAsync("Invalid pattern. Make sure your regex syntax is correct.", ephemeral: ephemeral);
             return;
         }
         var action = new BanAction(deleteDays, length);
@@ -116,7 +116,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await AddAndReplyAsync(censor);
     }
 
-    [SlashCommand("test", "Test whether a word matches any censor.")]
+    [SlashCommand("test", "Test if a word matches any active filter.")]
     [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     public async Task TestCensorAsync(string word, [RequireEphemeralScope] bool ephemeral = false)
     {
@@ -132,7 +132,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
             await FollowupAsync("No matches found.", ephemeral: ephemeral);
     }
 
-    [SlashCommand("list", "View the censor list.")]
+    [SlashCommand("list", "View all configured word filters.")]
     [RequireAuthorization(AuthorizationScope.History | AuthorizationScope.Configuration)]
     public async Task ListAsync([RequireEphemeralScope] bool ephemeral = false)
     {
@@ -141,7 +141,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         await PagedViewAsync(collection, ephemeral);
     }
 
-    [SlashCommand("remove", "Remove a censor by ID.")]
+    [SlashCommand("remove", "Remove a word filter by ID.")]
     [RequireAuthorization(AuthorizationScope.Configuration)]
     protected override Task RemoveEntityAsync(
         [Autocomplete(typeof(CensorAutocomplete))] string id,
@@ -149,7 +149,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         => base.RemoveEntityAsync(id, ephemeral);
 
     protected override EmbedBuilder EntityViewer(Censor censor) => new EmbedBuilder()
-        .WithTitle($"{censor.Reprimand?.GetTitle()} Censor: {censor.Id}")
+        .WithTitle($"{censor.Reprimand?.GetTitle()} Word Filter: {censor.Id}")
         .AddField("Pattern", Format.Code(censor.Pattern))
         .AddField("Options", censor.Options.Humanize(), true)
         .AddField("Silent", $"{censor.Silent}", true)
@@ -192,7 +192,7 @@ public class InteractiveCensorsModule(HuTaoContext db, IMemoryCache cache)
         var components = new ComponentBuilderV2()
             .WithContainer(container)
             .WithActionRow(new ActionRowBuilder()
-                .WithButton("Open Triggers", "trg:open", ButtonStyle.Secondary))
+                .WithButton("Open Rules", "trg:open", ButtonStyle.Secondary))
             .Build();
 
         await FollowupAsync(components: components, allowedMentions: AllowedMentions.None);

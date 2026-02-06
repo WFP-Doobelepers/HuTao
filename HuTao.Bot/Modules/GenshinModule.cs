@@ -787,7 +787,7 @@ public class GenshinModule
             CommandInfo command, IServiceProvider services)
         {
             if (context.User is not IGuildUser user)
-                return CPreconditionResult.FromError("This command can only be used in a guild.");
+                return CPreconditionResult.FromError("This command can only be used in a server.");
 
             if (context.Client.TokenType is not TokenType.Bot)
             {
@@ -815,7 +815,7 @@ public class GenshinModule
             ICommandInfo commandInfo, IServiceProvider services)
         {
             if (context.User is not IGuildUser user)
-                return IPreconditionResult.FromError("This command can only be used in a guild.");
+                return IPreconditionResult.FromError("This command can only be used in a server.");
 
             if (context.Client.TokenType is not TokenType.Bot)
             {

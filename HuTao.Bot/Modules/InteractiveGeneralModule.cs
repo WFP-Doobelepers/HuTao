@@ -33,7 +33,7 @@ public class InteractiveGeneralModule(AuthorizationService auth, EvaluationServi
     {
         if (Context.User is not IGuildUser user)
         {
-            await RespondAsync("This only works in a guild.", ephemeral: true);
+            await RespondAsync("This only works in a server.", ephemeral: true);
             return;
         }
 

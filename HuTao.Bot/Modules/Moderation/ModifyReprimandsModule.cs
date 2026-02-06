@@ -22,7 +22,7 @@ using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus
 namespace HuTao.Bot.Modules.Moderation;
 
 [Name("Reprimand Modification")]
-[Summary("Modification of reprimands. Provide a partial ID with at least the 2 starting characters.")]
+[Summary("Modify or manage reprimand records. Use partial IDs (at least 2 characters).")]
 public class ModifyReprimandsModule(
     CommandErrorHandler error,
     HuTaoContext db,

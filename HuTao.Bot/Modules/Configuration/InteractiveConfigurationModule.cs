@@ -632,7 +632,7 @@ public class InteractiveConfigurationModule(
         var lockSelectors = disabled || state.View is not ConfigView.Overview;
 
         var container = new ContainerBuilder()
-            .WithTextDisplay($"## Configuration\n**Guild:** {state.GuildName}\n**Section:** {state.Section.Humanize()}")
+            .WithTextDisplay($"## Configuration\n**Server:** {state.GuildName}\n**Section:** {state.Section.Humanize()}")
             .WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         switch (state.Section)
