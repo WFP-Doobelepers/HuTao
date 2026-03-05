@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -9,6 +9,9 @@ using Humanizer;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Auto.Configurations;
+using HuTao.Data.Models.Moderation.Auto.Exclusions;
+using HuTao.Data.Models.Moderation.Infractions.Censors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Caching.Memory;
@@ -42,9 +45,16 @@ public static class CacheExtensions
         {
             entry.SetAbsoluteExpiration(CacheExpiry);
             var entity = await set.AsSplitQuery()
-                .Include(r => r.Triggers)
-                .Include(r => r.Exclusions)
-                .Include(r => r.CensorExclusions)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Exclusions)
+                    .ThenInclude(e => ((CriterionExclusion)e).Criterion)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.CensorExclusions)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => t.Category).ThenInclude(c => c!.CensorExclusions)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => ((Censor)t).Exclusions)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => ((AutoConfiguration)t).Exclusions)
+                    .ThenInclude(e => ((CriterionExclusion)e).Criterion)
                 .FirstOrDefaultAsync(r => r.Id == guild.Id, cancellationToken);
             return entity?.ModerationRules;
         });

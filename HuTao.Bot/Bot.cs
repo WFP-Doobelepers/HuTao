@@ -290,7 +290,7 @@ public class Bot
 
         var config = new LoggerConfiguration()
             .MinimumLevel.Is(minimumLevel)
-            .MinimumLevel.Override("Hangfire", LogEventLevel.Information)
+            .MinimumLevel.Override("Hangfire", LogEventLevel.Verbose)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("System", LogEventLevel.Warning)
             .Enrich.FromLogContext()

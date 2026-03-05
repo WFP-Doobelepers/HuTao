@@ -63,28 +63,28 @@ public sealed class ReprimandHistoryImageService : IReprimandHistoryImageService
         var textMuted = ImageSharpColor.ParseHex("8E9297");
         var iconColor = ImageSharpColor.ParseHex("B9BBBE");
 
-        FontFamily textFont;
-        FontFamily titleFontFamily;
+        FontFamily serifFont;
+        FontFamily monoFont;
         FontFamily iconFont;
 
         try
         {
-            textFont        = SystemFonts.Get("Segoe UI");
-            titleFontFamily = SystemFonts.Get("Segoe UI");
-            iconFont        = SystemFonts.Get("Font Awesome 6 Free Solid");
+            serifFont = SystemFonts.Get("IBM Plex Serif");
+            monoFont  = SystemFonts.Get("IBM Plex Mono");
+            iconFont  = SystemFonts.Get("Font Awesome 6 Free Solid");
         }
         catch
         {
-            textFont        = SystemFonts.Get("Arial");
-            titleFontFamily = SystemFonts.Get("Arial");
-            iconFont        = SystemFonts.Get("Arial");
+            serifFont = SystemFonts.Get("DejaVu Serif");
+            monoFont  = SystemFonts.Get("DejaVu Sans Mono");
+            iconFont  = SystemFonts.Get("DejaVu Sans");
         }
 
-        var headerFont = titleFontFamily.CreateFont(13 * scale, FontStyle.Bold);
-        var labelFont = textFont.CreateFont(14 * scale, FontStyle.Regular);
-        var countFont = textFont.CreateFont(14 * scale, FontStyle.Bold);
-        var smallFont = textFont.CreateFont(12 * scale, FontStyle.Regular);
-        var reasonFont = textFont.CreateFont(11 * scale, FontStyle.Regular);
+        var headerFont = monoFont.CreateFont(13 * scale, FontStyle.Bold);
+        var labelFont = serifFont.CreateFont(14 * scale, FontStyle.Regular);
+        var countFont = monoFont.CreateFont(14 * scale, FontStyle.Bold);
+        var smallFont = serifFont.CreateFont(12 * scale, FontStyle.Regular);
+        var reasonFont = serifFont.CreateFont(11 * scale, FontStyle.Regular);
         var iconFontSize = iconFont.CreateFont(18 * scale, FontStyle.Regular);
 
         var iconX = padding;

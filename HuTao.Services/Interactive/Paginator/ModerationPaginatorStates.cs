@@ -91,7 +91,7 @@ public class UserHistoryPaginatorState
     private const int OverheadPerItem = 100;
 
     public UserHistoryPaginatorState(IUser user, GuildUserEntity userEntity, IReadOnlyList<Reprimand> reprimands,
-                                   ModerationCategory? category, LogReprimandType typeFilter, GuildEntity guild, IUser requestedBy, byte[] historyImageBytes)
+                                   ModerationCategory? category, LogReprimandType typeFilter, GuildEntity guild, IUser requestedBy)
     {
         User = user;
         UserEntity = userEntity;
@@ -100,7 +100,6 @@ public class UserHistoryPaginatorState
         TypeFilter = typeFilter;
         Guild = guild;
         RequestedBy = requestedBy;
-        HistoryImageBytes = historyImageBytes;
         FilteredReprimands = FilterReprimands();
         TotalReprimands = FilteredReprimands.Count;
         CalculatePageBoundaries();
@@ -109,7 +108,6 @@ public class UserHistoryPaginatorState
     public IUser User { get; }
     public GuildUserEntity UserEntity { get; }
     public IUser RequestedBy { get; }
-    public byte[] HistoryImageBytes { get; }
     
     public IReadOnlyList<Reprimand> AllReprimands { get; private set; }
     public IReadOnlyList<Reprimand> FilteredReprimands { get; private set; }
@@ -119,6 +117,9 @@ public class UserHistoryPaginatorState
     public int TotalReprimands { get; private set; }
     public int TotalPages { get; private set; }
     public bool PageCountChanged { get; private set; }
+    
+    public bool IsBanned { get; set; }
+    public DateTimeOffset? TimedOutUntil { get; set; }
     
     private List<int> PageStartIndices { get; set; } = new() { 0 };
 

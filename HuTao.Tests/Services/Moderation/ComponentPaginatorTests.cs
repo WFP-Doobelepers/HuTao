@@ -114,11 +114,10 @@ public class ComponentPaginatorTests
         var userEntity = CreateTestUserEntity(123);
         var reprimands = CreateTestReprimands(25); // 25 reprimands
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
 
         // Act
         var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
+            null, LogReprimandType.All, guild, user);
 
         // Assert
         Assert.Equal(25, state.TotalReprimands);
@@ -133,9 +132,8 @@ public class ComponentPaginatorTests
         var userEntity = CreateTestUserEntity(123);
         var reprimands = CreateTestReprimands(25);
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
         var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
+            null, LogReprimandType.All, guild, user);
 
         // Act - Get first page
         var page0 = state.GetReprimandsForPage(0).ToList();
@@ -159,9 +157,8 @@ public class ComponentPaginatorTests
         var userEntity = CreateTestUserEntity(123);
         var reprimands = CreateTestReprimands(10);
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
         var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
+            null, LogReprimandType.All, guild, user);
 
         // Act
         state.UpdateFilters(null, LogReprimandType.Warning);
@@ -180,9 +177,8 @@ public class ComponentPaginatorTests
         var userEntity = CreateTestUserEntity(123);
         var initialReprimands = CreateTestReprimands(10);
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
         var state = new UserHistoryPaginatorState(user, userEntity, initialReprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
+            null, LogReprimandType.All, guild, user);
 
         // Act
         var newReprimands = CreateTestReprimands(5);
@@ -202,9 +198,8 @@ public class ComponentPaginatorTests
             CreateMockUser(123), CreateMockGuildUser(456), "Test warning"));
         reprimand.Id = Guid.Parse("12345678-1234-1234-1234-123456789012");
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
         var state = new UserHistoryPaginatorState(user, userEntity,
-            new[] { reprimand }, null, LogReprimandType.All, guild, user, imageBytes);
+            new[] { reprimand }, null, LogReprimandType.All, guild, user);
 
         // Act
         var displayInfo = state.GetReprimandDisplayInfo(reprimand);
@@ -222,25 +217,6 @@ public class ComponentPaginatorTests
     }
 
     [Fact]
-    public void UserHistoryPaginatorState_ImageBytes_StoredCorrectly()
-    {
-        // Arrange
-        var user = CreateMockUser(123);
-        var userEntity = CreateTestUserEntity(123);
-        var reprimands = CreateTestReprimands(5);
-        var guild = CreateTestGuild();
-        var imageBytes = new byte[] { 1, 2, 3, 4, 5 };
-
-        // Act
-        var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, user, imageBytes);
-
-        // Assert
-        Assert.Equal(imageBytes, state.HistoryImageBytes);
-        Assert.Equal(5, state.HistoryImageBytes.Length);
-    }
-
-    [Fact]
     public void UserHistoryPaginatorState_RequestedBy_StoredCorrectly()
     {
         // Arrange
@@ -249,11 +225,10 @@ public class ComponentPaginatorTests
         var userEntity = CreateTestUserEntity(123);
         var reprimands = CreateTestReprimands(5);
         var guild = CreateTestGuild();
-        var imageBytes = Array.Empty<byte>();
 
         // Act
         var state = new UserHistoryPaginatorState(user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, requestedBy, imageBytes);
+            null, LogReprimandType.All, guild, requestedBy);
 
         // Assert
         Assert.Equal(requestedBy, state.RequestedBy);

@@ -38,7 +38,6 @@ public class UserHistoryComponentsV2Tests
         guild.ModerationCategories.Add(category);
 
         var reprimands = CreateLongReasonReprimands(count: 12, userId: userId, guildId: guildId);
-        var imageBytes = new byte[] { 1, 2, 3 };
 
         var state = new UserHistoryPaginatorState(
             user,
@@ -47,8 +46,7 @@ public class UserHistoryComponentsV2Tests
             category: null,
             LogReprimandType.All,
             guild,
-            requestedBy,
-            imageBytes);
+            requestedBy);
 
         var paginator = InteractiveExtensions.CreateDefaultComponentPaginator()
             .WithUsers(requestedBy)
@@ -207,7 +205,7 @@ public class UserHistoryComponentsV2Tests
 
         return new UserHistoryPaginatorState(
             user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, requestedBy, new byte[] { 1, 2, 3 });
+            null, LogReprimandType.All, guild, requestedBy);
     }
 
     private static IComponentPaginator CreatePaginator(UserHistoryPaginatorState state)

@@ -266,7 +266,7 @@ public class ComponentLimitStressTests
 
         return new UserHistoryPaginatorState(
             user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, requestedBy, Array.Empty<byte>());
+            null, LogReprimandType.All, guild, requestedBy);
     }
 
     private static IComponentPaginator CreatePaginator(UserHistoryPaginatorState state)

@@ -26,7 +26,6 @@ namespace HuTao.Services.Moderation;
 public class UserService(
     AuthorizationService authService,
     IImageService image,
-    IReprimandHistoryImageService historyImage,
     InteractiveService interactive,
     HuTaoContext db)
 {
@@ -95,10 +94,11 @@ public class UserService(
             .OrderByDescending(r => r.Action?.Date)
             .ToList();
 
-        using var imageStream = await historyImage.GenerateHistoryImageAsync(userEntity, category);
-        var imageBytes = imageStream.ToArray();
-
-        var state = new UserHistoryPaginatorState(user, userEntity, history, category, type, guild, context.User, imageBytes);
+        var state = new UserHistoryPaginatorState(user, userEntity, history, category, type, guild, context.User)
+        {
+            IsBanned = await context.Guild.GetBanAsync(user) is not null,
+            TimedOutUntil = (user as IGuildUser)?.TimedOutUntil
+        };
         var paginator = new ComponentPaginatorBuilder()
             .WithUsers(context.User)
             .WithPageFactory(p => GenerateUserHistoryPage(p, state))
@@ -136,139 +136,213 @@ public class UserService(
     /// Duplicate reasons are auto-collapsed.
     /// </summary>
     private static void RenderGroupedReprimands(ComponentBuilderV2 components, 
-        IEnumerable<Reprimand> reprimands, int availableComponents)
+        IEnumerable<Reprimand> pageReprimands, IEnumerable<Reprimand> allReprimands,
+        int usedTextLength, string? footer = null)
     {
-        var reprimandList = reprimands.ToList();
+        const int maxCumulativeText = 4000;
+        var reprimandList = pageReprimands.ToList();
+        var cumulativeTextLength = usedTextLength;
+        var footerLength = footer?.Length ?? 0;
         
-        const int maxTotalMessageText = 3500;
-        
-        var container = new ContainerBuilder();
-        var componentCount = 1; // Start at 1 for the container itself
-        var totalMessageTextLength = 0;
+        var allByType = allReprimands
+            .GroupBy(r => r.GetTitle(showId: false))
+            .ToDictionary(g => g.Key, g => (Total: g.Count(), Inactive: g.Count(r => !IsActive(r))));
         
         var grouped = reprimandList
             .GroupBy(r => r.GetTitle(showId: false))
             .OrderByDescending(g => g.Max(r => r.Action?.Date))
             .ToList();
         
+        var container = new ContainerBuilder();
+        var hasContent = false;
+        
         foreach (var group in grouped)
         {
-            // TextDisplay = 1 component
-            if (componentCount + 1 > availableComponents)
-                break;
-            
-            var entries = group.OrderByDescending(r => r.Action?.Date).ToList();
+            var entries = group
+                .OrderByDescending(r => IsActive(r))
+                .ThenByDescending(r => r.Action?.Date)
+                .ToList();
             
             var firstEntry = entries.First();
-            var typeBadges = firstEntry.GetTitle(showId: false);
+            var typeName = firstEntry.GetTitle(showId: false);
+            var (totalCount, inactiveCount) = allByType.GetValueOrDefault(typeName, (entries.Count, 0));
+            var showingCount = entries.Count;
             
             var groupText = new StringBuilder();
-            groupText.AppendLine($"### {typeBadges}");
-            var headerLength = groupText.Length;
+            groupText.Append($"### {typeName.ToQuantity(totalCount)}");
             
-            if (totalMessageTextLength + headerLength > maxTotalMessageText && componentCount > 1)
+            var subtitleParts = new List<string>();
+            if (showingCount < totalCount)
+                subtitleParts.Add($"Showing {showingCount}/{totalCount}");
+            if (inactiveCount > 0)
+                subtitleParts.Add($"{inactiveCount} inactive");
+            if (subtitleParts.Count > 0)
+                groupText.Append($"\n-# {string.Join(" • ", subtitleParts)}");
+            groupText.AppendLine();
+            
+            if (cumulativeTextLength + groupText.Length + footerLength >= maxCumulativeText)
                 break;
             
-            var collapsedEntries = CollapseIdenticalReasons(entries);
+            if (hasContent)
+                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
             
-            foreach (var (reprimandOrGroup, count) in collapsedEntries)
+            var collapsedList = CollapseIdenticalReasons(entries).ToList();
+            string? lastModerator = null;
+            
+            for (var i = 0; i < collapsedList.Count; i++)
             {
+                var (reprimandOrGroup, count, isActive) = collapsedList[i];
                 var reason = reprimandOrGroup.Action?.Reason ?? "No reason provided";
                 var date = reprimandOrGroup.Action?.Date ?? DateTimeOffset.UtcNow;
                 var moderator = reprimandOrGroup.Action?.Moderator is { } mod ? $"<@{mod.Id}>" : "System";
-                var dateStr = $"<t:{date.ToUnixTimeSeconds()}:d>";
-                var timeStr = $"<t:{date.ToUnixTimeSeconds()}:t>";
                 var relativeStr = $"<t:{date.ToUnixTimeSeconds()}:R>";
+                var entryBuilder = new StringBuilder();
                 
-                var countPrefix = count > 1 ? $"**x{count}** " : "";
-                var entry = $"• {countPrefix}{reason}\n-# {moderator} {dateStr} {timeStr} • {relativeStr}\n";
+                if (count > 1)
+                {
+                    var nextMod = i + 1 < collapsedList.Count
+                        ? collapsedList[i + 1].Reprimand.Action?.Moderator is { } nm ? $"<@{nm.Id}>" : "System"
+                        : null;
+                    var modHasMoreEntries = moderator == lastModerator || moderator == nextMod;
+                    
+                    if (moderator != lastModerator)
+                    {
+                        entryBuilder.AppendLine(modHasMoreEntries
+                            ? $"-# {moderator}"
+                            : $"-# {moderator} • {relativeStr}");
+                        lastModerator = moderator;
+                    }
+                    
+                    var mergedContent = modHasMoreEntries
+                        ? $"**x{count}** {reason} • {relativeStr}"
+                        : $"**x{count}** {reason}";
+                    entryBuilder.AppendLine(FormatQuotedContent(mergedContent, isActive));
+                }
+                else
+                {
+                    if (moderator != lastModerator)
+                    {
+                        entryBuilder.AppendLine($"-# {moderator} • {relativeStr}");
+                        lastModerator = moderator;
+                    }
+                    else
+                    {
+                        entryBuilder.AppendLine($"-# {relativeStr}");
+                    }
+                    entryBuilder.AppendLine(FormatQuotedContent(reason, isActive));
+                }
                 
-                if (totalMessageTextLength + groupText.Length + entry.Length > maxTotalMessageText)
+                if (cumulativeTextLength + groupText.Length + entryBuilder.Length + footerLength >= maxCumulativeText)
                     break;
                 
-                groupText.Append(entry);
+                groupText.Append(entryBuilder);
             }
             
-            if (groupText.Length > headerLength)
-            {
-                container.WithTextDisplay(groupText.ToString().TrimEnd().Truncate(MaxTextDisplayLength));
-                componentCount++;
-                totalMessageTextLength += groupText.Length;
-            }
+            var groupStr = groupText.ToString().TrimEnd();
+            container.WithTextDisplay(groupStr.Truncate(MaxTextDisplayLength));
+            cumulativeTextLength += groupStr.Length;
+            hasContent = true;
         }
         
-        if (componentCount > 1) // More than just the container
-        {
+        if (footer is not null)
+            container.WithTextDisplay(footer);
+        
+        if (hasContent)
             components.WithContainer(container);
-        }
     }
     
+    private static string FormatQuotedContent(string content, bool isActive)
+    {
+        if (isActive)
+            return "> " + content.Replace("\n", "\n> ");
+        
+        var lines = content.Split('\n');
+        var result = new StringBuilder();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (i > 0) result.Append('\n');
+            result.Append($"> -# ~~{lines[i]}~~");
+        }
+        result.Append(" • [inactive]");
+        return result.ToString();
+    }
+    
+    private static bool IsActive(Reprimand r)
+        => r is ExpirableReprimand e ? e.IsActive() : r.Status is ReprimandStatus.Added;
+
     /// <summary>
-    /// Collapses reprimands with identical reasons into groups with counts.
-    /// Returns tuples of (representative reprimand, count), preserving order by using the first occurrence.
+    /// Collapses reprimands with identical reasons and active status into groups with counts.
     /// </summary>
-    private static IEnumerable<(Reprimand Reprimand, int Count)> CollapseIdenticalReasons(IEnumerable<Reprimand> reprimands)
+    private static IEnumerable<(Reprimand Reprimand, int Count, bool IsActive)> CollapseIdenticalReasons(IEnumerable<Reprimand> reprimands)
         => reprimands
-            .GroupBy(r => r.Action?.Reason ?? "")
-            .Select(g => (Reprimand: g.First(), Count: g.Count()));
+            .GroupBy(r => (Reason: r.Action?.Reason ?? "", IsActive: IsActive(r)))
+            .Select(g => (Reprimand: g.First(), Count: g.Count(), g.Key.IsActive));
 
     /// <summary>
     /// Page factory method for Components V2 user history paginator
     /// </summary>
     private static IPage GenerateUserHistoryPage(IComponentPaginator p, UserHistoryPaginatorState state)
     {
-        const int maxTotalComponents = 40;
-        
         var currentReprimands = state.GetReprimandsForPage(p.CurrentPageIndex).ToList();
         var components = new ComponentBuilderV2();
-        var usedComponents = 0;
         
-        var showHistoryImage = true;
-        var createdTimestamp = $"<t:{state.User.CreatedAt.ToUnixTimeSeconds()}:R> <t:{state.User.CreatedAt.ToUnixTimeSeconds()}:f>";
+        var createdTimestamp = $"<t:{state.User.CreatedAt.ToUnixTimeSeconds()}:R>";
         var joinedTimestamp = state.UserEntity.JoinedAt != null 
-            ? $"<t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:R> <t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:f>"
+            ? $"<t:{state.UserEntity.JoinedAt.Value.ToUnixTimeSeconds()}:R>"
             : "Unknown";
         
-        if (p.CurrentPageIndex == 0)
+        var headerBuilder = new StringBuilder();
+        headerBuilder.Append($"### {state.User.Mention}'s History\n");
+        headerBuilder.Append(p.CurrentPageIndex == 0
+            ? $"-# Created {createdTimestamp} • Joined {joinedTimestamp}"
+            : $"-# Page {p.CurrentPageIndex + 1} • {state.TotalReprimands} records");
+        
+        var indicators = new List<string>();
+        
+        if (state.IsBanned)
         {
-            components.WithTextDisplay($"# {state.User.Mention}'s History\n\n" +
-                                      $"-# Created {createdTimestamp}\n" +
-                                      $"-# Joined   {joinedTimestamp}");
-            usedComponents++; // TextDisplay
-            
-            if (showHistoryImage)
-            {
-                var historyImageContainer = new ContainerBuilder()
-                    .WithMediaGallery([new MediaGalleryItemProperties(
-                        new UnfurledMediaItemProperties("attachment://reprimand_history.png"))]);
-                
-                components.WithContainer(historyImageContainer);
-                usedComponents += 2; // Container + MediaGallery inside
-            }
-            
-            components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-            usedComponents++; // Separator
+            var banReprimand = state.AllReprimands.OfType<Ban>().FirstOrDefault(r => r.IsActive());
+            var banDate = banReprimand?.Action?.Date ?? banReprimand?.StartedAt;
+            indicators.Add(banDate is not null
+                ? $"Banned <t:{banDate.Value.ToUnixTimeSeconds()}:R>"
+                : "Banned");
+        }
+        
+        if (state.TimedOutUntil is { } apiTimeout && apiTimeout > DateTimeOffset.UtcNow)
+        {
+            indicators.Add($"Timed out <t:{apiTimeout.ToUnixTimeSeconds()}:R>");
         }
         else
         {
-            var headerText = $"# {state.User.Mention} History\n\n" +
-                             $"-# Total Records: {state.TotalReprimands} • Filter: {state.TypeFilter.Humanize()}";
-            
-            components.WithTextDisplay(headerText);
-            usedComponents++; // TextDisplay
-            
-            components.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
-            usedComponents++; // Separator
+            var timeoutReprimand = state.AllReprimands.OfType<Timeout>().FirstOrDefault(r => r.IsActive());
+            if (timeoutReprimand is not null)
+            {
+                var ts = timeoutReprimand.ExpireAt ?? timeoutReprimand.StartedAt;
+                indicators.Add($"Timed out <t:{ts.ToUnixTimeSeconds()}:R>");
+            }
         }
+        
+        var activeMute = state.AllReprimands.OfType<Mute>().Where(r => r is not HardMute).FirstOrDefault(r => r.IsActive());
+        if (activeMute is not null)
+            indicators.Add($"Muted <t:{(activeMute.Action?.Date ?? activeMute.StartedAt).ToUnixTimeSeconds()}:R>");
+        
+        var activeHardMute = state.AllReprimands.OfType<HardMute>().FirstOrDefault(r => r.IsActive());
+        if (activeHardMute is not null)
+            indicators.Add($"Hard Muted <t:{(activeHardMute.Action?.Date ?? activeHardMute.StartedAt).ToUnixTimeSeconds()}:R>");
+        
+        if (indicators.Count > 0)
+            headerBuilder.Append($"\n-# {string.Join(" • ", indicators)}");
+        
+        var headerText = headerBuilder.ToString();
+        
+        var avatarUrl = state.User.GetDisplayAvatarUrl(size: 256)
+            ?? state.User.GetDefaultAvatarUrl();
+        var headerContainer = new ContainerBuilder()
+            .WithSection(
+                [new TextDisplayBuilder(headerText)],
+                new ThumbnailBuilder(new UnfurledMediaItemProperties(avatarUrl)));
+        components.WithContainer(headerContainer);
 
-        // Reserve components for footer elements:
-        // - 4-5 ActionRows (type filter, category filter if exists, mod actions, navigation)
-        // - 1 TextDisplay (footer)
-        var hasCategories = state.Guild.ModerationCategories.Any();
-        var reservedForFooter = (hasCategories ? 5 : 4) + 1; // ActionRows + footer TextDisplay
-        var availableForContent = maxTotalComponents - usedComponents - reservedForFooter;
-
-        // Display reprimands or empty message
         if (!currentReprimands.Any())
         {
             components.WithTextDisplay("*No reprimands found matching your criteria.*\n\n" +
@@ -276,7 +350,8 @@ public class UserService(
         }
         else
         {
-            RenderGroupedReprimands(components, currentReprimands, availableForContent);
+            RenderGroupedReprimands(components, currentReprimands, state.FilteredReprimands,
+                headerText.Length, $"-# Requested by {state.RequestedBy.Mention}");
         }
 
         // Build reprimand type filter select menu (outside container, in top-level action row)
@@ -336,14 +411,6 @@ public class UserService(
             .AddStopButton(p, "Close", ButtonStyle.Danger)
         );
 
-        // Footer (outside container)
-        components.WithTextDisplay($"-# Requested by {state.RequestedBy.Mention}");
-
-        // Create attachment from cached bytes only on first page
-        Func<IEnumerable<FileAttachment>> attachmentFactory = p.CurrentPageIndex == 0
-            ? () => [new FileAttachment(new MemoryStream(state.HistoryImageBytes), "reprimand_history.png")]
-            : Array.Empty<FileAttachment>;
-
         var builtComponents = components.Build();
 
         ComponentsV2Validator.AssertValid(builtComponents, $"UserHistory page {p.CurrentPageIndex}");
@@ -351,7 +418,6 @@ public class UserService(
         return new PageBuilder()
             .WithComponents(builtComponents)
             .WithAllowedMentions(AllowedMentions.None)
-            .WithAttachmentsFactory(attachmentFactory)
             .Build();
     }
 

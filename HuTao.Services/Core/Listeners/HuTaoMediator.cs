@@ -16,6 +16,7 @@ public class HuTaoMediator(IServiceProvider provider) : Mediator(provider)
         IEnumerable<NotificationHandlerExecutor> handlers,
         INotification notification, CancellationToken cancellationToken)
     {
+        Log.Debug("Publishing notification: {Notification}", notification);
         var priorities = handlers.Select(h => (Handler: h, GetOrderAttribute(h.HandlerCallback)?.Priority));
         var ordered = priorities.OrderBy(h => !h.Priority.HasValue).ThenBy(h => h.Priority);
         foreach (var (handler, _) in ordered)
