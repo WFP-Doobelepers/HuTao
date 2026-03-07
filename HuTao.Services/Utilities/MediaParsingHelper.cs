@@ -28,6 +28,10 @@ public static class MediaParsingHelper
         @"https?://[^\s<>\)\]]+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex DiscordMessageLinkPattern = new(
+        @"(?:\[(?<label>[^\]]+)\]\()?(?<url>https?://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/channels/\d+/\d+/\d+)\)?",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private static readonly IReadOnlyCollection<string> ImageExtensions =
     [
         ".jpg", ".jpeg", ".png", ".gif", ".webp"
@@ -51,8 +55,14 @@ public static class MediaParsingHelper
     /// </summary>
     private static readonly HashSet<string> NsfwKeywords =
     [
-        "nsfw", "nsfl", "spoiler", "gore", "blood", "explicit", "18+", "adult",
-        "lewd", "sexual", "nude", "porn", "hentai", "xxx", "suggestive"
+        "nsfw", "nsfl", "nsfr", "spoiler", "cw", "tw",
+        "gore", "blood", "guro", "death", "corpse", "mutilation", "dismember",
+        "explicit", "18+", "adult", "r18", "r-18", "mature",
+        "lewd", "sexual", "nude", "nudity", "naked", "topless", "bottomless",
+        "porn", "hentai", "xxx", "erotic", "erotica", "ecchi", "ahegao",
+        "suggestive", "risque", "risqué", "provocative", "lingerie", "bikini",
+        "fetish", "bondage", "bdsm", "kink",
+        "drugs", "self-harm", "selfharm", "suicide", "graphic"
     ];
 
     /// <summary>
@@ -60,6 +70,15 @@ public static class MediaParsingHelper
     /// </summary>
     /// <param name="text">Text to parse for image URLs</param>
     /// <returns>List of distinct image URLs found in the text</returns>
+    public static (string Url, string Label)? ExtractFirstMessageLink(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var match = DiscordMessageLinkPattern.Match(text);
+        if (!match.Success) return null;
+        var label = match.Groups["label"] is { Success: true, Value: var l } ? l : "Jump";
+        return (match.Groups["url"].Value, label);
+    }
+
     public static List<string> ExtractImageUrls(string text)
     {
         if (string.IsNullOrWhiteSpace(text))

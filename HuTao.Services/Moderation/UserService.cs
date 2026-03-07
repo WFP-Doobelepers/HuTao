@@ -137,12 +137,14 @@ public class UserService(
     /// </summary>
     private static ContainerBuilder? RenderGroupedReprimands(
         IEnumerable<Reprimand> pageReprimands, IEnumerable<Reprimand> allReprimands,
-        int usedTextLength, int reservedLength = 0, bool showImages = true)
+        int usedTextLength, int reservedLength = 0, bool showImages = true,
+        int componentBudget = 20)
     {
         const int maxCumulativeText = 4000;
         var reprimandList = pageReprimands.ToList();
         var cumulativeTextLength = usedTextLength;
         var footerLength = reservedLength;
+        var componentsUsed = 0;
         
         var allByType = allReprimands
             .GroupBy(r => r.GetTitle(showId: false))
@@ -156,6 +158,7 @@ public class UserService(
         var container = new ContainerBuilder();
         var hasContent = false;
         var pendingText = new StringBuilder();
+        var budgetExhausted = false;
 
         void FlushText()
         {
@@ -164,15 +167,24 @@ public class UserService(
             pendingText.Clear();
         }
 
-        void AppendText(string text)
+        bool AppendText(string text)
         {
-            if (pendingText.Length > 0)
+            if (pendingText.Length == 0)
+            {
+                if (componentsUsed >= componentBudget) return false;
+                componentsUsed++;
+            }
+            else
                 pendingText.AppendLine();
             pendingText.Append(text);
+            return true;
         }
         
+        var isFirstGroup = true;
         foreach (var group in grouped)
         {
+            if (budgetExhausted) break;
+
             var entries = group
                 .OrderByDescending(r => IsActive(r))
                 .ThenByDescending(r => r.Action?.Date)
@@ -196,8 +208,17 @@ public class UserService(
             
             if (cumulativeTextLength + headerText.Length + footerLength >= maxCumulativeText)
                 break;
+
+            if (!isFirstGroup)
+            {
+                if (componentsUsed + 2 > componentBudget) break;
+                FlushText();
+                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+                componentsUsed++;
+            }
+            isFirstGroup = false;
             
-            AppendText(headerText.ToString());
+            if (!AppendText(headerText.ToString())) break;
             cumulativeTextLength += headerText.Length;
             hasContent = true;
             
@@ -254,26 +275,62 @@ public class UserService(
                 cumulativeTextLength += entryStr.Length;
 
                 var entryMedia = MediaParsingHelper.ExtractAndCreateMediaItems(reason);
+                var messageLink = MediaParsingHelper.ExtractFirstMessageLink(reason);
+
+                const int sectionCost = 3;
+                const int galleryCost = 1;
 
                 if (entryMedia.Count > 0)
                 {
                     if (showImages)
                     {
-                        AppendText(entryStr);
-                        FlushText();
-                        container.WithMediaGallery(entryMedia);
+                        if (messageLink is { } link && componentsUsed + sectionCost + galleryCost <= componentBudget)
+                        {
+                            FlushText();
+                            container.WithSection(new SectionBuilder()
+                                .WithTextDisplay(entryStr)
+                                .WithAccessory(ButtonBuilder.CreateLinkButton(link.Label, link.Url)));
+                            componentsUsed += sectionCost;
+                            container.WithMediaGallery(entryMedia);
+                            componentsUsed += galleryCost;
+                        }
+                        else if (componentsUsed + 1 + galleryCost <= componentBudget)
+                        {
+                            FlushText();
+                            container.WithTextDisplay(entryStr);
+                            componentsUsed++;
+                            container.WithMediaGallery(entryMedia);
+                            componentsUsed += galleryCost;
+                        }
+                        else if (!AppendText(entryStr))
+                        {
+                            budgetExhausted = true; break;
+                        }
                     }
-                    else
+                    else if (componentsUsed + sectionCost <= componentBudget)
                     {
                         FlushText();
                         container.WithSection(new SectionBuilder()
                             .WithTextDisplay(entryStr)
                             .WithAccessory(new ThumbnailBuilder(entryMedia[0].Media)));
+                        componentsUsed += sectionCost;
+                    }
+                    else if (!AppendText(entryStr))
+                    {
+                        budgetExhausted = true; break;
                     }
                 }
-                else
+                else if (messageLink is { } link && componentsUsed + sectionCost <= componentBudget)
                 {
-                    AppendText(entryStr);
+                    FlushText();
+                    container.WithSection(new SectionBuilder()
+                        .WithTextDisplay(entryStr)
+                        .WithAccessory(ButtonBuilder.CreateLinkButton(link.Label, link.Url)));
+                    componentsUsed += sectionCost;
+                }
+                else if (!AppendText(entryStr))
+                {
+                    budgetExhausted = true; break;
                 }
             }
         }
@@ -383,9 +440,17 @@ public class UserService(
         else
         {
             var footerText = $"-# Requested by {state.RequestedBy.Mention}";
+            var fixedOverhead = 4  // header container (container + section + text + thumbnail)
+                + 1                // reprimand container itself
+                + 3                // footer section (section + text + button)
+                + 2                // mod menu row (actionrow + selectmenu)
+                + 4                // nav row (actionrow + 3 buttons)
+                + (state.Guild.ModerationCategories.Any() ? 2 : 0);
+            var contentBudget = ComponentsV2Validator.MaxTotalComponents - fixedOverhead;
             var reprimandContainer = RenderGroupedReprimands(
                 currentReprimands, state.FilteredReprimands,
-                headerText.Length, footerText.Length, state.ShowImages);
+                headerText.Length, footerText.Length, state.ShowImages,
+                contentBudget);
 
             if (reprimandContainer is not null)
             {
@@ -393,27 +458,13 @@ public class UserService(
                     .WithTextDisplay(footerText)
                     .WithAccessory(new ButtonBuilder(
                         customId: "history-toggle-images",
-                        style: state.ShowImages ? ButtonStyle.Secondary : ButtonStyle.Primary,
-                        emote: new Emoji("🖼️"),
+                        style: ButtonStyle.Secondary,
+                        emote: new Emoji("🛂"),
                         isDisabled: p.ShouldDisable())));
 
                 components.WithContainer(reprimandContainer);
             }
         }
-
-        // Build reprimand type filter select menu (outside container, in top-level action row)
-        var types = Enum.GetValues<LogReprimandType>()[1..^1];
-        var typeOptions = types.Select(t =>
-        {
-            var name = t.ToString();
-            var title = t.Humanize(LetterCasing.Title);
-            var selected = state.TypeFilter.HasFlag(t) && state.TypeFilter is not LogReprimandType.None;
-            return new SelectMenuOptionBuilder(title, name, isDefault: selected);
-        }).ToList();
-
-        components.WithActionRow(new ActionRowBuilder()
-            .WithSelectMenu($"reprimand:{state.UserEntity.Id}:{state.CategoryFilter?.Name ?? "None"}", 
-                typeOptions, "Filter...", 0, types.Length, disabled: p.ShouldDisable()));
 
         // Category filter if available (outside container)
         if (state.Guild.ModerationCategories.Any())
@@ -454,8 +505,6 @@ public class UserService(
             .AddPreviousButton(p, "◀", ButtonStyle.Secondary)
             .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
             .AddNextButton(p, "▶", ButtonStyle.Secondary)
-            .WithButton("Refresh", "history-refresh", ButtonStyle.Primary, new Emoji("🔄"), disabled: p.ShouldDisable())
-            .AddStopButton(p, "Close", ButtonStyle.Danger)
         );
 
         var builtComponents = components.Build();
@@ -489,9 +538,7 @@ public class UserService(
                 container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
         }
 
-        container
-            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
-            .WithTextDisplay($"-# Requested by {context.User.Mention}");
+        container.WithTextDisplay($"-# Requested by {context.User.Mention}");
 
         var builder = new ComponentBuilderV2()
             .WithContainer(container);

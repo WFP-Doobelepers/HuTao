@@ -434,34 +434,6 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
     }
 
-    [ComponentInteraction("history-refresh")]
-    public async Task HandleHistoryRefreshAsync()
-    {
-        var interaction = (IComponentInteraction)Context.Interaction;
-
-        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
-            !paginator.CanInteract(interaction.User))
-        {
-            await DeferAsync();
-            return;
-        }
-
-        await DeferAsync();
-
-        var state = paginator.GetUserState<UserHistoryPaginatorState>();
-
-        // Refresh data from database
-        var guild = await Db.Guilds.Include(g => g.ReprimandHistory).FirstAsync(g => g.Id == Context.Guild.Id);
-        var refreshedHistory = guild.ReprimandHistory
-            .Where(r => r.UserId == state.User.Id)
-            .OrderByDescending(r => r.Action?.Date)
-            .ToList();
-
-        state.UpdateData(refreshedHistory);
-        paginator.PageCount = state.TotalPages;
-
-        await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
-    }
 }
 
 public class MuteExtendModal : IModal
