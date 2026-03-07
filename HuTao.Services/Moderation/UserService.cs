@@ -250,6 +250,29 @@ public class UserService(
                 subtitleParts.Add($"Showing {showingCount}/{totalCount}");
             if (inactiveCount > 0)
                 subtitleParts.Add($"{inactiveCount} inactive");
+
+            if (!showImages)
+            {
+                var totalImages = entries.Sum(r =>
+                {
+                    var reason = r.Action?.Reason ?? "";
+                    var count = MediaParsingHelper.ExtractImageUrls(reason).Count;
+                    if (attachedNotes.TryGetValue(r.Id, out var notes))
+                        count += notes.Sum(n => MediaParsingHelper.ExtractImageUrls(n.Action?.Reason ?? "").Count);
+                    return count;
+                });
+                var entriesWithImages = entries.Count(r =>
+                {
+                    var reason = r.Action?.Reason ?? "";
+                    var has = MediaParsingHelper.ExtractImageUrls(reason).Count > 0;
+                    if (!has && attachedNotes.TryGetValue(r.Id, out var notes))
+                        has = notes.Any(n => MediaParsingHelper.ExtractImageUrls(n.Action?.Reason ?? "").Count > 0);
+                    return has;
+                });
+                if (totalImages > entriesWithImages)
+                    subtitleParts.Add($"Showing {entriesWithImages}/{totalImages} images");
+            }
+
             if (subtitleParts.Count > 0)
                 headerText.Append($"\n-# {string.Join(" • ", subtitleParts)}");
             
