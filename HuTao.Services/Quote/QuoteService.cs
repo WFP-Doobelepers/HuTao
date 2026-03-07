@@ -30,9 +30,11 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 {
     private const int MaxReplyDepth = 3;
     private const int MaxReplyContentLength = 200;
-    private const string ReplyStart = "<:reply_right:1479704185980321955>";
-    private const string ReplyChain = "<:reply_t:1479694155528536106>";
-    private const string ReplyLine = "<:reply_line:1479699141226529024>";
+    private const string ReplyStart = "<:reply_right:1479788099457519758>";
+    private const string ReplyChain = "<:reply_t:1479788095183261880>";
+    private const string ReplyLine = "<:reply_line:1479788104394080326>";
+    private const string ReplyDash = "<:reply_dash:1479788133800214701>";
+    private const string ReplySpacer = "<:reply_spacer:1479788137512177716>";
 
     public async Task<MessageComponent?> BuildQuoteAsync(
         Context context, IUser requester,
