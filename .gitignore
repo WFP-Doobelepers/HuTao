@@ -351,3 +351,7 @@ healthchecksdb
 MigrationBackup/
 
 .idea/
+.specstory/
+.cursor/
+scripts/
+backups/
