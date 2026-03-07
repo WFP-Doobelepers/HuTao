@@ -5,7 +5,6 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
-using Fergun.Interactive;
 using HuTao.Data.Config;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
@@ -22,7 +21,6 @@ public class MessageLinkBehavior(
     AuthorizationService auth,
     CommandErrorHandler error,
     DiscordSocketClient discordClient,
-    InteractiveService interactive,
     IQuoteService quoteService)
     : INotificationHandler<MessageReceivedNotification>
 {
@@ -40,7 +38,7 @@ public class MessageLinkBehavior(
 
         try
         {
-            await SendQuoteEmbedAsync(context, source, cancellationToken);
+            await SendQuoteAsync(context, source);
         }
         catch (HttpException ex)
         {
@@ -48,20 +46,21 @@ public class MessageLinkBehavior(
         }
     }
 
-    private async Task SendQuoteEmbedAsync(
-        Context context, SocketMessage source,
-        CancellationToken cancellationToken)
+    private async Task SendQuoteAsync(Context context, SocketMessage source)
     {
         var urls = MessageExtensions.GetJumpMessages(source.Content).ToList();
         if (!urls.Any()) return;
 
-        var paginator = await quoteService.GetPaginatorAsync(context, source, urls);
-        if (paginator is null) return;
+        var components = await quoteService.BuildQuoteAsync(context, context.User, urls);
+        if (components is null) return;
 
         if (MessageExtensions.IsJumpUrls(source.Content)) source.DeleteAsync().SafeFireAndForget();
 
-        await interactive.SendPaginatorAsync(paginator, source.Channel,
-            cancellationToken: cancellationToken,
-            resetTimeoutOnInput: true);
+        var allowedMentions = new AllowedMentions(AllowedMentionTypes.None) { MentionRepliedUser = true };
+
+        await source.Channel.SendMessageAsync(
+            components: components,
+            allowedMentions: allowedMentions,
+            messageReference: source.Reference);
     }
 }
