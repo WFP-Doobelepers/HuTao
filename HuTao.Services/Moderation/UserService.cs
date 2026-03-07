@@ -332,11 +332,8 @@ public class UserService(
                 var entryStr = entryBuilder.ToString().TrimEnd();
                 cumulativeTextLength += entryStr.Length;
 
-                var entryMedia = MediaParsingHelper.ExtractAndCreateMediaItems(reason);
-                var messageLink = MediaParsingHelper.ExtractFirstMessageLink(reason);
-
-                if (messageLink is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
-                    entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(label, reason));
+                var entryMedia = new List<MediaGalleryItemProperties>();
+                (string Url, string Label)? messageLink = null;
 
                 if (attachedNotes.TryGetValue(reprimandOrGroup.Id, out var noteMedia))
                 {
@@ -344,8 +341,18 @@ public class UserService(
                     {
                         var noteReason = note.Action?.Reason ?? "";
                         entryMedia.AddRange(MediaParsingHelper.ExtractAndCreateMediaItems(noteReason));
+                        messageLink ??= MediaParsingHelper.ExtractFirstMessageLink(noteReason);
+
+                        if (messageLink is { Label: var noteLabel } && MediaParsingHelper.IsLikelyImageUrl(noteLabel))
+                            entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(noteLabel, noteReason));
                     }
                 }
+
+                entryMedia.AddRange(MediaParsingHelper.ExtractAndCreateMediaItems(reason));
+                messageLink ??= MediaParsingHelper.ExtractFirstMessageLink(reason);
+
+                if (messageLink is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
+                    entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(label, reason));
 
                 const int sectionCost = 3;
                 const int galleryCost = 1;
