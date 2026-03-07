@@ -8,7 +8,6 @@ using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
 using HuTao.Services.Logging;
-using HuTao.Services.Utilities;
 using Embed = HuTao.Data.Models.Discord.Message.Embeds.Embed;
 
 namespace HuTao.Services.Quote;
@@ -97,7 +96,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
-            var content = FormatUtilities.SanitizeAllMentions(message.Content);
+            var content = message.Content;
             if (content.Length > 2500) content = $"{content[..2500]}…";
             sb.Append(content);
         }
@@ -130,7 +129,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (!string.IsNullOrWhiteSpace(log.Content))
         {
-            var content = FormatUtilities.SanitizeAllMentions(log.Content);
+            var content = log.Content;
             if (content.Length > 2500) content = $"{content[..2500]}…";
             sb.Append(content);
         }
@@ -233,10 +232,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
-            var content = FormatUtilities.SanitizeAllMentions(message.Content);
-            return content.Length > maxLength
-                ? $"{content[..maxLength]}…"
-                : content;
+            return message.Content.Length > maxLength
+                ? $"{message.Content[..maxLength]}…"
+                : message.Content;
         }
 
         var embedContent = ExtractEmbedContent(maxLength,
@@ -256,10 +254,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         if (!string.IsNullOrWhiteSpace(log.Content))
         {
-            var content = FormatUtilities.SanitizeAllMentions(log.Content);
-            return content.Length > maxLength
-                ? $"{content[..maxLength]}…"
-                : content;
+            return log.Content.Length > maxLength
+                ? $"{log.Content[..maxLength]}…"
+                : log.Content;
         }
 
         return ExtractEmbedContent(maxLength,
@@ -289,10 +286,10 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 parts.Add($"**{embed.Title}**");
 
             if (!string.IsNullOrWhiteSpace(embed.Description))
-                parts.Add(FormatUtilities.SanitizeAllMentions(embed.Description));
+                parts.Add(embed.Description);
 
             foreach (var (name, value) in embed.Fields)
-                parts.Add($"**{name}:** {FormatUtilities.SanitizeAllMentions(value)}");
+                parts.Add($"**{name}:** {value}");
 
             if (!string.IsNullOrWhiteSpace(embed.FooterText))
                 parts.Add($"-# {embed.FooterText}");
@@ -315,7 +312,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (parts.Count == 0) return;
 
-        var combined = FormatUtilities.SanitizeAllMentions(string.Join("\n", parts));
+        var combined = string.Join("\n", parts);
         if (combined.Length > 3000) combined = $"{combined[..3000]}…";
         container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
         container.WithTextDisplay(combined);
@@ -330,7 +327,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (parts.Count == 0) return "";
 
-        var combined = FormatUtilities.SanitizeAllMentions(string.Join("\n", parts));
+        var combined = string.Join("\n", parts);
         return combined.Length > maxLength ? $"{combined[..maxLength]}…" : combined;
     }
 
@@ -380,16 +377,12 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (!string.IsNullOrWhiteSpace(description))
         {
-            var safe = FormatUtilities.SanitizeAllMentions(description);
-            if (safe.Length > 2500) safe = $"{safe[..2500]}…";
-            sb.AppendLine(safe);
+            var desc = description.Length > 2500 ? $"{description[..2500]}…" : description;
+            sb.AppendLine(desc);
         }
 
         foreach (var (name, value) in fields)
-        {
-            var safeValue = FormatUtilities.SanitizeAllMentions(value);
-            sb.AppendLine($"**{name}**\n{safeValue}");
-        }
+            sb.AppendLine($"**{name}**\n{value}");
 
         if (!string.IsNullOrWhiteSpace(footerText))
             sb.AppendLine($"-# {footerText}");
