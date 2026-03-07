@@ -135,14 +135,14 @@ public class UserService(
     /// Categories are sorted by their latest reprimand date.
     /// Duplicate reasons are auto-collapsed.
     /// </summary>
-    private static void RenderGroupedReprimands(ComponentBuilderV2 components, 
+    private static ContainerBuilder? RenderGroupedReprimands(
         IEnumerable<Reprimand> pageReprimands, IEnumerable<Reprimand> allReprimands,
-        int usedTextLength, string? footer = null)
+        int usedTextLength, int reservedLength = 0, bool showImages = true)
     {
         const int maxCumulativeText = 4000;
         var reprimandList = pageReprimands.ToList();
         var cumulativeTextLength = usedTextLength;
-        var footerLength = footer?.Length ?? 0;
+        var footerLength = reservedLength;
         
         var allByType = allReprimands
             .GroupBy(r => r.GetTitle(showId: false))
@@ -155,6 +155,21 @@ public class UserService(
         
         var container = new ContainerBuilder();
         var hasContent = false;
+        var pendingText = new StringBuilder();
+
+        void FlushText()
+        {
+            if (pendingText.Length <= 0) return;
+            container.WithTextDisplay(pendingText.ToString().Truncate(MaxTextDisplayLength));
+            pendingText.Clear();
+        }
+
+        void AppendText(string text)
+        {
+            if (pendingText.Length > 0)
+                pendingText.AppendLine();
+            pendingText.Append(text);
+        }
         
         foreach (var group in grouped)
         {
@@ -168,8 +183,8 @@ public class UserService(
             var (totalCount, inactiveCount) = allByType.GetValueOrDefault(typeName, (entries.Count, 0));
             var showingCount = entries.Count;
             
-            var groupText = new StringBuilder();
-            groupText.Append($"### {typeName.ToQuantity(totalCount)}");
+            var headerText = new StringBuilder();
+            headerText.Append($"### {typeName.ToQuantity(totalCount)}");
             
             var subtitleParts = new List<string>();
             if (showingCount < totalCount)
@@ -177,14 +192,14 @@ public class UserService(
             if (inactiveCount > 0)
                 subtitleParts.Add($"{inactiveCount} inactive");
             if (subtitleParts.Count > 0)
-                groupText.Append($"\n-# {string.Join(" • ", subtitleParts)}");
-            groupText.AppendLine();
+                headerText.Append($"\n-# {string.Join(" • ", subtitleParts)}");
             
-            if (cumulativeTextLength + groupText.Length + footerLength >= maxCumulativeText)
+            if (cumulativeTextLength + headerText.Length + footerLength >= maxCumulativeText)
                 break;
             
-            if (hasContent)
-                container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+            AppendText(headerText.ToString());
+            cumulativeTextLength += headerText.Length;
+            hasContent = true;
             
             var collapsedList = CollapseIdenticalReasons(entries).ToList();
             string? lastModerator = null;
@@ -232,23 +247,40 @@ public class UserService(
                     entryBuilder.AppendLine(FormatQuotedContent(reason, isActive));
                 }
                 
-                if (cumulativeTextLength + groupText.Length + entryBuilder.Length + footerLength >= maxCumulativeText)
+                if (cumulativeTextLength + entryBuilder.Length + footerLength >= maxCumulativeText)
                     break;
-                
-                groupText.Append(entryBuilder);
+
+                var entryStr = entryBuilder.ToString().TrimEnd();
+                cumulativeTextLength += entryStr.Length;
+
+                var entryMedia = MediaParsingHelper.ExtractAndCreateMediaItems(reason);
+
+                if (entryMedia.Count > 0)
+                {
+                    if (showImages)
+                    {
+                        AppendText(entryStr);
+                        FlushText();
+                        container.WithMediaGallery(entryMedia);
+                    }
+                    else
+                    {
+                        FlushText();
+                        container.WithSection(new SectionBuilder()
+                            .WithTextDisplay(entryStr)
+                            .WithAccessory(new ThumbnailBuilder(entryMedia[0].Media)));
+                    }
+                }
+                else
+                {
+                    AppendText(entryStr);
+                }
             }
-            
-            var groupStr = groupText.ToString().TrimEnd();
-            container.WithTextDisplay(groupStr.Truncate(MaxTextDisplayLength));
-            cumulativeTextLength += groupStr.Length;
-            hasContent = true;
         }
         
-        if (footer is not null)
-            container.WithTextDisplay(footer);
+        FlushText();
         
-        if (hasContent)
-            components.WithContainer(container);
+        return hasContent ? container : null;
     }
     
     private static string FormatQuotedContent(string content, bool isActive)
@@ -350,8 +382,23 @@ public class UserService(
         }
         else
         {
-            RenderGroupedReprimands(components, currentReprimands, state.FilteredReprimands,
-                headerText.Length, $"-# Requested by {state.RequestedBy.Mention}");
+            var footerText = $"-# Requested by {state.RequestedBy.Mention}";
+            var reprimandContainer = RenderGroupedReprimands(
+                currentReprimands, state.FilteredReprimands,
+                headerText.Length, footerText.Length, state.ShowImages);
+
+            if (reprimandContainer is not null)
+            {
+                reprimandContainer.WithSection(new SectionBuilder()
+                    .WithTextDisplay(footerText)
+                    .WithAccessory(new ButtonBuilder(
+                        customId: "history-toggle-images",
+                        style: state.ShowImages ? ButtonStyle.Secondary : ButtonStyle.Primary,
+                        emote: new Emoji("🖼️"),
+                        isDisabled: p.ShouldDisable())));
+
+                components.WithContainer(reprimandContainer);
+            }
         }
 
         // Build reprimand type filter select menu (outside container, in top-level action row)

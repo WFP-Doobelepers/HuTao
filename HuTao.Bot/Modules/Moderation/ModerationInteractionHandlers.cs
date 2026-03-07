@@ -355,6 +355,26 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
     }
 
     // User History V2 Interaction Handlers
+    [ComponentInteraction("history-toggle-images")]
+    public async Task HandleHistoryToggleImagesAsync()
+    {
+        var interaction = (IComponentInteraction)Context.Interaction;
+
+        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
+            !paginator.CanInteract(interaction.User))
+        {
+            await DeferAsync();
+            return;
+        }
+
+        await DeferAsync();
+
+        var state = paginator.GetUserState<UserHistoryPaginatorState>();
+        state.ShowImages = !state.ShowImages;
+
+        await paginator.RenderPageAsync(interaction, InteractionResponseType.DeferredUpdateMessage, false);
+    }
+
     [ComponentInteraction("history-type-filter")]
     public async Task HandleHistoryTypeFilterAsync(string typeFilter)
     {

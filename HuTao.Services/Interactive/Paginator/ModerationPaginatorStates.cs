@@ -120,6 +120,7 @@ public class UserHistoryPaginatorState
     
     public bool IsBanned { get; set; }
     public DateTimeOffset? TimedOutUntil { get; set; }
+    public bool ShowImages { get; set; }
     
     private List<int> PageStartIndices { get; set; } = new() { 0 };
 
