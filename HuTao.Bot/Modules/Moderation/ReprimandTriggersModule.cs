@@ -70,6 +70,15 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
         await TryAddTriggerAsync(action, source, options);
     }
 
+    [Command("timeout")]
+    public async Task TimeoutTriggerAsync(
+        TriggerSource source,
+        TimeSpan? length = null, TriggerOptions? options = null)
+    {
+        var action = new TimeoutAction(length);
+        await TryAddTriggerAsync(action, source, options);
+    }
+
     [Command("role")]
     public async Task RoleTriggerAsync(TriggerSource source, RoleReprimandOptions options)
     {

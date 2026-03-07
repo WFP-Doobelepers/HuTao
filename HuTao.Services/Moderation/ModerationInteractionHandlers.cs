@@ -17,6 +17,7 @@ using HuTao.Services.Interactive.Paginator;
 using HuTao.Services.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Timeout = HuTao.Data.Models.Moderation.Infractions.Reprimands.Timeout;
 
 namespace HuTao.Services.Moderation;
 
@@ -260,6 +261,196 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         var guild = await Db.Guilds.Include(g => g.ReprimandHistory).FirstAsync(g => g.Id == Context.Guild.Id);
 
         return guild.ReprimandHistory.OfType<Mute>()
+            .Where(r => r.IsActive())
+            .Where(r => r.Status
+                is not ReprimandStatus.Expired
+            and not ReprimandStatus.Pardoned
+            and not ReprimandStatus.Deleted)
+            .Where(r => category == null || r.Category?.Id == category.Id)
+            .OrderByDescending(r => r.Action?.Date)
+            .ToList();
+    }
+
+    [ComponentInteraction("timeout-action:remove:*")]
+    public async Task HandleTimeoutRemoveAsync(string timeoutIdString)
+    {
+        var interaction = (IComponentInteraction)Context.Interaction;
+
+        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
+            !paginator.CanInteract(interaction.User))
+        {
+            await RespondAsync("❌ Only the person who opened this can interact with it.", ephemeral: true);
+            return;
+        }
+
+        await DeferAsync(ephemeral: true);
+
+        try
+        {
+            if (!Guid.TryParse(timeoutIdString, out var timeoutId))
+            {
+                await FollowupAsync("❌ Could not find that timeout record.", ephemeral: true);
+                return;
+            }
+
+            var timeout = await Db.Set<Timeout>().FirstOrDefaultAsync(t => t.Id == timeoutId);
+            if (timeout == null)
+            {
+                await FollowupAsync("❌ This timeout was already removed or doesn't exist.", ephemeral: true);
+                return;
+            }
+
+            var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Timeout);
+            if (!hasPermission)
+            {
+                await FollowupAsync("❌ You don't have permission to remove timeouts.", ephemeral: true);
+                return;
+            }
+
+            var user = await Context.Client.Rest.GetUserAsync(timeout.UserId);
+            var details = new ReprimandDetails(user, (IGuildUser)Context.User, "Manual timeout removal via paginator");
+
+            var result = await ModerationService.TryUntimeoutAsync(details);
+            if (result)
+            {
+                var state = paginator.GetUserState<TimeoutListPaginatorState>();
+                var refreshed = await RefreshTimeoutData(state.Category);
+                state.UpdateData(refreshed, state.Category);
+                paginator.PageCount = state.TotalPages;
+
+                await paginator.RenderPageAsync(interaction);
+                await FollowupAsync($"✅ **<@{user.Id}>** timeout has been removed.", ephemeral: true);
+            }
+            else
+            {
+                await FollowupAsync("❌ Could not remove timeout. The user may not be timed out.", ephemeral: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Error removing timeout {TimeoutId}", timeoutIdString);
+            await FollowupAsync("❌ Something went wrong. Please try again or contact an admin.", ephemeral: true);
+        }
+    }
+
+    [ComponentInteraction("timeout-action:details:*")]
+    public async Task HandleTimeoutDetailsAsync(string timeoutIdString)
+    {
+        var interaction = (IComponentInteraction)Context.Interaction;
+
+        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
+            !paginator.CanInteract(interaction.User))
+        {
+            await RespondAsync("❌ Only the person who opened this can interact with it.", ephemeral: true);
+            return;
+        }
+
+        await DeferAsync(ephemeral: true);
+
+        try
+        {
+            if (!Guid.TryParse(timeoutIdString, out var timeoutId))
+            {
+                await FollowupAsync("❌ Could not find that timeout record.", ephemeral: true);
+                return;
+            }
+
+            var timeout = await Db.Set<Timeout>()
+                .Include(t => t.Action)
+                .Include(t => t.Category)
+                .FirstOrDefaultAsync(t => t.Id == timeoutId);
+
+            if (timeout == null)
+            {
+                await FollowupAsync("❌ This timeout was already removed or doesn't exist.", ephemeral: true);
+                return;
+            }
+
+            var embed = new EmbedBuilder()
+                .WithTitle($"Timeout Details - <@{timeout.UserId}>")
+                .WithColor(Color.Orange)
+                .AddField("User ID", timeout.UserId, true)
+                .AddField("Status", timeout.Status.ToString(), true)
+                .AddField("Duration", timeout.Length?.Humanize() ?? "Permanent", true)
+                .AddField("Reason", timeout.Action?.Reason ?? "No reason provided")
+                .AddField("Moderator", timeout.Action?.Moderator is { } mod ? $"<@{mod.Id}>" : "System", true)
+                .AddField("Date", timeout.Action?.Date.ToString("MMM dd, yyyy HH:mm") ?? "Unknown", true)
+                .WithFooter($"Timeout ID: {timeout.Id}")
+                .WithTimestamp(DateTimeOffset.UtcNow);
+
+            if (timeout.Category != null)
+                embed.AddField("Category", timeout.Category.Name, true);
+
+            await FollowupAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None,
+                ephemeral: true);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Error fetching timeout details {TimeoutId}", timeoutIdString);
+            await FollowupAsync("❌ Something went wrong. Please try again or contact an admin.", ephemeral: true);
+        }
+    }
+
+    [ComponentInteraction("timeout-category-filter")]
+    public async Task HandleTimeoutCategoryFilterAsync(string categoryValue)
+    {
+        var interaction = (IComponentInteraction)Context.Interaction;
+
+        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
+            !paginator.CanInteract(interaction.User))
+        {
+            await DeferAsync();
+            return;
+        }
+
+        await DeferAsync();
+
+        var state = paginator.GetUserState<TimeoutListPaginatorState>();
+
+        ModerationCategory? newCategory = null;
+        if (categoryValue != "all" && Guid.TryParse(categoryValue, out var categoryGuid))
+        {
+            newCategory = state.Guild.ModerationCategories.FirstOrDefault(c => c.Id == categoryGuid);
+        }
+
+        var filtered = await RefreshTimeoutData(newCategory);
+        state.UpdateData(filtered, newCategory);
+        paginator.PageCount = state.TotalPages;
+        paginator.SetPage(0);
+
+        await paginator.RenderPageAsync(interaction);
+    }
+
+    [ComponentInteraction("timeout-refresh")]
+    public async Task HandleTimeoutRefreshAsync()
+    {
+        var interaction = (IComponentInteraction)Context.Interaction;
+
+        if (!Interactive.TryGetComponentPaginator(interaction.Message, out var paginator) ||
+            !paginator.CanInteract(interaction.User))
+        {
+            await DeferAsync();
+            return;
+        }
+
+        await DeferAsync(ephemeral: true);
+
+        var state = paginator.GetUserState<TimeoutListPaginatorState>();
+        var refreshed = await RefreshTimeoutData(state.Category);
+        state.UpdateData(refreshed, state.Category);
+        paginator.PageCount = state.TotalPages;
+
+        await paginator.RenderPageAsync(interaction);
+        await FollowupAsync("🔄 Timeout list updated.", ephemeral: true);
+    }
+
+    private async Task<IReadOnlyList<Timeout>> RefreshTimeoutData(ModerationCategory? category)
+    {
+        var guild = await Db.Guilds.Include(g => g.ReprimandHistory).FirstAsync(g => g.Id == Context.Guild.Id);
+
+        return guild.ReprimandHistory.OfType<Timeout>()
             .Where(r => r.IsActive())
             .Where(r => r.Status
                 is not ReprimandStatus.Expired

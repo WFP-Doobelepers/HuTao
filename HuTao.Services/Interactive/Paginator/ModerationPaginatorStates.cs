@@ -82,6 +82,69 @@ public class MuteListPaginatorState
 }
 
 /// <summary>
+/// State management class for the timeout list paginator in Components V2
+/// </summary>
+public class TimeoutListPaginatorState
+{
+    private const int TimeoutsPerPage = 3;
+
+    public TimeoutListPaginatorState(IReadOnlyList<Timeout> timeouts, ModerationCategory? category, GuildEntity guild)
+    {
+        AllTimeouts = timeouts;
+        Category = category;
+        Guild = guild;
+        TotalTimeouts = timeouts.Count;
+        TotalPages = Math.Max(1, (int)Math.Ceiling((double)TotalTimeouts / TimeoutsPerPage));
+    }
+
+    public IReadOnlyList<Timeout> AllTimeouts { get; private set; }
+    public ModerationCategory? Category { get; set; }
+    public GuildEntity Guild { get; }
+    public int TotalTimeouts { get; private set; }
+    public int TotalPages { get; private set; }
+
+    public IEnumerable<Timeout> GetTimeoutsForPage(int pageIndex)
+        => AllTimeouts.Skip(pageIndex * TimeoutsPerPage).Take(TimeoutsPerPage);
+
+    public void UpdateData(IReadOnlyList<Timeout> timeouts, ModerationCategory? category)
+    {
+        AllTimeouts = timeouts;
+        Category = category;
+        TotalTimeouts = timeouts.Count;
+        TotalPages = Math.Max(1, (int)Math.Ceiling((double)TotalTimeouts / TimeoutsPerPage));
+    }
+
+    public TimeoutDisplayInfo GetTimeoutDisplayInfo(Timeout timeout)
+    {
+        var duration = timeout.Length?.Humanize() ?? "Permanent";
+        var expiry = timeout.Length != null
+            ? $"<t:{((DateTimeOffset)(timeout.StartedAt + timeout.Length)).ToUnixTimeSeconds()}:R>"
+            : "Never";
+
+        var username = $"User {timeout.UserId}";
+        var avatarUrl = "https://cdn.discordapp.com/embed/avatars/0.png";
+
+        return new TimeoutDisplayInfo
+        {
+            Username = username,
+            AvatarUrl = avatarUrl,
+            Reason = timeout.Action?.Reason?.Truncate(100) ?? "No reason provided",
+            Duration = duration,
+            ExpiryDisplay = expiry
+        };
+    }
+
+    public record TimeoutDisplayInfo
+    {
+        public string Username { get; init; } = "";
+        public string AvatarUrl { get; init; } = "";
+        public string Reason { get; init; } = "";
+        public string Duration { get; init; } = "";
+        public string ExpiryDisplay { get; init; } = "";
+    }
+}
+
+/// <summary>
 /// State management class for user history paginator in Components V2
 /// </summary>
 public class UserHistoryPaginatorState

@@ -88,6 +88,19 @@ public class InteractiveTemplatesModule(HuTaoContext db) : InteractionEntity<Mod
         await AddTemplateAsync(name, action, reason, scope, category, ephemeral);
     }
 
+    [SlashCommand("timeout", "Create a timeout template.")]
+    public async Task TimeoutTemplateAsync(
+        string name, string? reason = null, TimeSpan? length = null,
+        AuthorizationScope scope = AuthorizationScope.Timeout,
+        [Autocomplete(typeof(CategoryAutocomplete))]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
+    {
+        await DeferAsync(ephemeral);
+        var action = new TimeoutAction(length);
+        await AddTemplateAsync(name, action, reason, scope, category, ephemeral);
+    }
+
     [SlashCommand("list", "View all moderation templates.")]
     public async Task ListTemplatesAsync([RequireEphemeralScope] bool ephemeral = false)
     {

@@ -326,6 +326,14 @@ public class ModerationModule(
     public Task MuteListAsync(ModerationCategory? category = null)
         => moderation.SendMuteListAsync(Context, category, false);
 
+    [Priority(1)]
+    [Command("timeouts")]
+    [Alias("timeout list", "timeoutlist")]
+    [Summary("View currently active timeouts.")]
+    [RequireAuthorization(AuthorizationScope.History)]
+    public Task TimeoutListAsync(ModerationCategory? category = null)
+        => moderation.SendTimeoutListAsync(Context, category, false);
+
     [Command("note")]
     [Summary("Add a note to a user. Notes are always silent.")]
     public async Task NoteAsync(

@@ -77,6 +77,7 @@ public static class ReprimandExtensions
         NoteAction     => Color.Blue,
         NoticeAction   => Color.Gold,
         RoleAction     => Color.Orange,
+        TimeoutAction  => Color.Orange,
         WarningAction  => Color.Gold,
         _ => throw new ArgumentOutOfRangeException(
             nameof(reprimand), reprimand, "An unknown reprimand was given.")

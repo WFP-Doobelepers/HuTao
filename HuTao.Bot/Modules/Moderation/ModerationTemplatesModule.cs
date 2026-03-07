@@ -59,6 +59,13 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
         await AddTemplateAsync(name, action, options);
     }
 
+    [Command("timeout")]
+    public async Task TimeoutTemplateAsync(string name, TimeoutTemplateOptions options)
+    {
+        var action = new TimeoutAction(options.Length);
+        await AddTemplateAsync(name, action, options);
+    }
+
     [Command("role")]
     public async Task RoleTemplateAsync(string name, RoleTemplateOptions options)
     {
@@ -212,6 +219,18 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
         public uint Amount { get; set; } = 1;
 
         public AuthorizationScope Scope { get; set; } = AuthorizationScope.Warning;
+
+        public ModerationCategory? Category { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    [NamedArgumentType]
+    public class TimeoutTemplateOptions : ITemplateOptions
+    {
+        public TimeSpan? Length { get; set; }
+
+        public AuthorizationScope Scope { get; set; } = AuthorizationScope.Timeout;
 
         public ModerationCategory? Category { get; set; }
 

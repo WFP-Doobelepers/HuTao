@@ -605,6 +605,7 @@ public class UserService(
             modActions.Add(new SelectMenuOptionBuilder("Kick", nameof(LogReprimandType.Kick), "Kick the user"));
             modActions.Add(new SelectMenuOptionBuilder("Mute", nameof(LogReprimandType.Mute), "Mute the user"));
             modActions.Add(new SelectMenuOptionBuilder("Hard Mute", nameof(LogReprimandType.HardMute), "Hard Mute the user"));
+            modActions.Add(new SelectMenuOptionBuilder("Timeout", nameof(LogReprimandType.Timeout), "Timeout the user"));
         }
 
         components.WithActionRow(new ActionRowBuilder()
@@ -697,7 +698,8 @@ public class UserService(
             menu.AddOption("Warn", nameof(LogReprimandType.Warning), "Warn the user")
                 .AddOption("Kick", nameof(LogReprimandType.Kick), "Kick the user")
                 .AddOption("Mute", nameof(LogReprimandType.Mute), "Mute the user")
-                .AddOption("Hard Mute", nameof(LogReprimandType.HardMute), "Hard Mute the user");
+                .AddOption("Hard Mute", nameof(LogReprimandType.HardMute), "Hard Mute the user")
+                .AddOption("Timeout", nameof(LogReprimandType.Timeout), "Timeout the user");
         }
 
         return menu;

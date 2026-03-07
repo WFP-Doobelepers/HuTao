@@ -5,5 +5,6 @@ public enum TriggerSource
     Notice,
     Warning,
     Censored,
-    Filtered
+    Filtered,
+    Timeout
 }

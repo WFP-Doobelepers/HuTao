@@ -223,6 +223,14 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             await FollowupAsync("Could not timeout this user. Check that the bot has permission and outranks them.");
     }
 
+    [SlashCommand("timeoutlist", "View currently active timeouts.")]
+    [RequireAuthorization(AuthorizationScope.History)]
+    public Task TimeoutListAsync(
+        [Autocomplete(typeof(CategoryAutocomplete))]
+        ModerationCategory? category = null,
+        [RequireEphemeralScope] bool ephemeral = false)
+        => moderation.SendTimeoutListAsync(Context, category, ephemeral);
+
     [SlashCommand("timeout-menu", "Open a menu to timeout a user.")]
     public Task TimeoutMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Timeout);
@@ -337,7 +345,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
     [ModalInteraction("timeout:*")]
     public async Task TimeoutAsync([RequireHigherRole] IGuildUser user,
-        [CheckCategory(AuthorizationScope.Mute)] [RequireEphemeralScope]
+        [CheckCategory(AuthorizationScope.Timeout)] [RequireEphemeralScope]
         TimeoutModal modal)
         => await TimeoutAsync(user, modal.Length!.Value, modal.Reason, modal.Category, modal.Ephemeral);
 

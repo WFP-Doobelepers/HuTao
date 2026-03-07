@@ -315,6 +315,142 @@ public class ModerationService(
             .Build();
     }
 
+    public async Task SendTimeoutListAsync(Context context, ModerationCategory? category, bool ephemeral)
+    {
+        await context.DeferAsync(ephemeral);
+        var guild = await _db.Guilds.TrackGuildAsync(context.Guild);
+
+        var activeTimeouts = guild.ReprimandHistory.OfType<Timeout>()
+            .Where(r => r.IsActive())
+            .Where(r => r.Status
+                is not ReprimandStatus.Expired
+            and not ReprimandStatus.Pardoned
+            and not ReprimandStatus.Deleted)
+            .Where(r => category is null || r.Category?.Id == category.Id)
+            .OrderByDescending(r => r.Action?.Date)
+            .ToList();
+
+        var state = new TimeoutListPaginatorState(activeTimeouts, category, guild);
+        var paginator = new ComponentPaginatorBuilder()
+            .WithUsers(context.User)
+            .WithPageFactory(p => GenerateTimeoutListPage(p, state))
+            .WithPageCount(state.TotalPages)
+            .WithUserState(state)
+            .WithActionOnTimeout(ActionOnStop.DisableInput)
+            .WithActionOnCancellation(ActionOnStop.DisableInput)
+            .Build();
+
+        await (context switch
+        {
+            CommandContext command => interactive.SendPaginatorAsync(paginator, command.Channel,
+                timeout: TimeSpan.FromMinutes(15),
+                resetTimeoutOnInput: true),
+
+            InteractionContext { Interaction: SocketInteraction interaction }
+                => interactive.SendPaginatorAsync(paginator, interaction,
+                    ephemeral: ephemeral,
+                    timeout: TimeSpan.FromMinutes(15),
+                    responseType: InteractionResponseType.DeferredChannelMessageWithSource),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(context), context, "Invalid context.")
+        });
+    }
+
+    private static IPage GenerateTimeoutListPage(IComponentPaginator p, TimeoutListPaginatorState state)
+    {
+        var currentTimeouts = state.GetTimeoutsForPage(p.CurrentPageIndex).ToList();
+        var container = new ContainerBuilder();
+
+        var categoryText = state.Category?.Name != null ? $" in {state.Category.Name}" : "";
+        var headerText = $"## Active Timeouts{categoryText}\n" +
+                         $"**Total:** {state.TotalTimeouts} timeouts • **Page:** {p.CurrentPageIndex + 1}/{p.PageCount}";
+
+        container.WithTextDisplay(headerText);
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+
+        if (!currentTimeouts.Any())
+        {
+            container.WithTextDisplay("*No active timeouts found matching your criteria.*\n\n" +
+                                    "Timeouts may have been automatically expired or manually removed.");
+        }
+        else
+        {
+            foreach (var (timeout, index) in currentTimeouts.Select((t, i) => (t, i)))
+            {
+                var info = state.GetTimeoutDisplayInfo(timeout);
+
+                var section = new SectionBuilder()
+                    .WithTextDisplay($"### {info.Username}\n" +
+                                   $"**User ID:** `{timeout.UserId}`\n" +
+                                   $"**Reason:** {info.Reason}\n" +
+                                   $"**Duration:** {info.Duration}\n" +
+                                   $"**Expires:** {info.ExpiryDisplay}")
+                    .WithAccessory(new ThumbnailBuilder(new UnfurledMediaItemProperties(info.AvatarUrl)));
+
+                container.WithSection(section);
+
+                var actionRow = new ActionRowBuilder();
+
+                if (timeout.IsActive())
+                {
+                    actionRow.WithButton("Remove", $"timeout-action:remove:{timeout.Id}",
+                        ButtonStyle.Success, new Emoji("\uD83D\uDD13"), disabled: p.ShouldDisable());
+                }
+
+                actionRow.WithButton("Details", $"timeout-action:details:{timeout.Id}",
+                    ButtonStyle.Primary, new Emoji("\u2139\uFE0F"), disabled: p.ShouldDisable());
+
+                container.WithActionRow(actionRow);
+
+                if (index < currentTimeouts.Count - 1)
+                    container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+            }
+        }
+
+        if (state.Guild.ModerationCategories.Count > 0)
+        {
+            container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+
+            var categoryOptions = state.Guild.ModerationCategories
+                .Select(c => new SelectMenuOptionBuilder(
+                    c.Name.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength),
+                    c.Id.ToString(),
+                    isDefault: c.Id == state.Category?.Id))
+                .Prepend(new SelectMenuOptionBuilder("All Categories", "all", "Show all timeouts",
+                    isDefault: state.Category == null))
+                .ToList();
+
+            container.WithActionRow(new ActionRowBuilder()
+                .WithSelectMenu("timeout-category-filter", categoryOptions,
+                    "Filter by moderation category", disabled: p.ShouldDisable()));
+        }
+
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(true).WithSpacing(SeparatorSpacingSize.Small));
+        container.WithActionRow(new ActionRowBuilder()
+            .AddPreviousButton(p, "\u25C0", ButtonStyle.Secondary)
+            .AddJumpButton(p, $"{p.CurrentPageIndex + 1} / {p.PageCount}")
+            .AddNextButton(p, "\u25B6", ButtonStyle.Secondary)
+            .WithButton("Refresh", "timeout-refresh", ButtonStyle.Primary, new Emoji("\uD83D\uDD04"), disabled: p.ShouldDisable())
+            .AddStopButton(p, "Close", ButtonStyle.Danger));
+
+        container.WithSeparator(new SeparatorBuilder().WithIsDivider(false).WithSpacing(SeparatorSpacingSize.Small));
+        var footerText = $"-# Last updated: {DateTimeOffset.UtcNow:MMM dd, HH:mm} UTC";
+        if (state.Category != null)
+            footerText += $" • Category: {state.Category.Name}";
+
+        container.WithTextDisplay(footerText)
+            .WithAccentColor(0x9B59FF);
+
+        var components = new ComponentBuilderV2().WithContainer(container).Build();
+
+        ComponentsV2Validator.AssertValid(components, $"TimeoutList page {p.CurrentPageIndex}");
+
+        return new PageBuilder()
+            .WithComponents(components)
+            .WithAllowedMentions(AllowedMentions.None)
+            .Build();
+    }
+
     public static async Task ShowSlowmodeChannelsAsync(Context context)
     {
         var textChannels = await context.Guild.GetTextChannelsAsync();
@@ -735,6 +871,7 @@ public class ModerationService(
             Notice   => TriggerSource.Notice,
             Warning  => TriggerSource.Warning,
             Filtered => TriggerSource.Filtered,
+            Timeout  => TriggerSource.Timeout,
             _        => null
         };
 
