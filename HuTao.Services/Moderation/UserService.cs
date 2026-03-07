@@ -76,7 +76,20 @@ public class UserService(
         LogReprimandType type, IUser user,
         bool update, bool ephemeral = false)
     {
-        await context.DeferAsync(ephemeral);
+        IUserMessage? loadingMessage = null;
+        if (context is CommandContext cmd)
+        {
+            var loading = new ComponentBuilderV2()
+                .WithContainer(new ContainerBuilder()
+                    .WithTextDisplay("Loading history..."))
+                .Build();
+
+            loadingMessage = await cmd.Channel.SendMessageAsync(
+                components: loading,
+                messageReference: new MessageReference(cmd.Message.Id));
+        }
+        else
+            await context.DeferAsync(ephemeral);
 
         var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
@@ -110,6 +123,12 @@ public class UserService(
 
         await (context switch
         {
+            CommandContext when loadingMessage is not null
+                => interactive.SendPaginatorAsync(
+                    paginator, loadingMessage,
+                    timeout: TimeSpan.FromMinutes(15),
+                    resetTimeoutOnInput: true),
+
             CommandContext command => interactive.SendPaginatorAsync(
                 paginator, command.Channel,
                 timeout: TimeSpan.FromMinutes(15),
@@ -277,6 +296,9 @@ public class UserService(
                 var entryMedia = MediaParsingHelper.ExtractAndCreateMediaItems(reason);
                 var messageLink = MediaParsingHelper.ExtractFirstMessageLink(reason);
 
+                if (messageLink is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
+                    entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(label, reason));
+
                 const int sectionCost = 3;
                 const int galleryCost = 1;
 
@@ -312,7 +334,7 @@ public class UserService(
                         FlushText();
                         container.WithSection(new SectionBuilder()
                             .WithTextDisplay(entryStr)
-                            .WithAccessory(new ThumbnailBuilder(entryMedia[0].Media)));
+                            .WithAccessory(new ThumbnailBuilder(entryMedia[0].Media, isSpoiler: entryMedia[0].IsSpoiler)));
                         componentsUsed += sectionCost;
                     }
                     else if (!AppendText(entryStr))
@@ -434,15 +456,18 @@ public class UserService(
 
         if (!currentReprimands.Any())
         {
-            components.WithTextDisplay("*No reprimands found matching your criteria.*\n\n" +
-                                      "This user has a clean record with the current filters applied.");
+            components.WithContainer(new ContainerBuilder()
+                .WithTextDisplay("*No reprimands found matching your criteria.*\n\n" +
+                                 "This user has a clean record with the current filters applied."));
         }
         else
         {
             var footerText = $"-# Requested by {state.RequestedBy.Mention}";
+            var hasImages = currentReprimands.Any(r =>
+                MediaParsingHelper.ExtractImageUrls(r.Action?.Reason ?? "").Count > 0);
             var fixedOverhead = 4  // header container (container + section + text + thumbnail)
                 + 1                // reprimand container itself
-                + 3                // footer section (section + text + button)
+                + (hasImages ? 3 : 1) // footer section or text display
                 + 2                // mod menu row (actionrow + selectmenu)
                 + 4                // nav row (actionrow + 3 buttons)
                 + (state.Guild.ModerationCategories.Any() ? 2 : 0);
@@ -454,13 +479,20 @@ public class UserService(
 
             if (reprimandContainer is not null)
             {
-                reprimandContainer.WithSection(new SectionBuilder()
-                    .WithTextDisplay(footerText)
-                    .WithAccessory(new ButtonBuilder(
-                        customId: "history-toggle-images",
-                        style: ButtonStyle.Secondary,
-                        emote: new Emoji("🛂"),
-                        isDisabled: p.ShouldDisable())));
+                if (hasImages)
+                {
+                    reprimandContainer.WithSection(new SectionBuilder()
+                        .WithTextDisplay(footerText)
+                        .WithAccessory(new ButtonBuilder(
+                            customId: "history-toggle-images",
+                            style: ButtonStyle.Secondary,
+                            emote: new Emoji("🛂"),
+                            isDisabled: p.ShouldDisable())));
+                }
+                else
+                {
+                    reprimandContainer.WithTextDisplay(footerText);
+                }
 
                 components.WithContainer(reprimandContainer);
             }

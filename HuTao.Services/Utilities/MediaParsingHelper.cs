@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
+using Humanizer;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 
 namespace HuTao.Services.Utilities;
@@ -75,7 +76,7 @@ public static class MediaParsingHelper
         if (string.IsNullOrWhiteSpace(text)) return null;
         var match = DiscordMessageLinkPattern.Match(text);
         if (!match.Success) return null;
-        var label = match.Groups["label"] is { Success: true, Value: var l } ? l : "Jump";
+        var label = match.Groups["label"] is { Success: true, Value: var l } ? l.Truncate(25) : "Jump";
         return (match.Groups["url"].Value, label);
     }
 
@@ -219,7 +220,7 @@ public static class MediaParsingHelper
         return trimmed.TrimEnd(TrailingUrlPunctuation);
     }
 
-    private static bool IsLikelyImageUrl(string url)
+    public static bool IsLikelyImageUrl(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return false;
