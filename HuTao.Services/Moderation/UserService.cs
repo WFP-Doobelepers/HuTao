@@ -165,11 +165,39 @@ public class UserService(
         var footerLength = reservedLength;
         var componentsUsed = 0;
         
+        var attachedNotes = new Dictionary<Guid, List<Note>>();
+        var claimedNotes = new HashSet<Guid>();
+
+        var nonNotes = reprimandList
+            .Where(r => r is not Note)
+            .Where(r => r.Action?.Date is not null && r.Action?.Moderator is not null)
+            .ToList();
+
+        foreach (var note in reprimandList.OfType<Note>())
+        {
+            var noteDate = note.Action?.Date;
+            var noteMod = note.Action?.Moderator?.Id;
+            if (noteDate is null || noteMod is null) continue;
+
+            var parent = nonNotes
+                .Where(r => r.Action!.Moderator.Id == noteMod)
+                .Where(r => Math.Abs((noteDate.Value - r.Action!.Date).TotalMinutes) <= 10)
+                .MinBy(r => Math.Abs((noteDate.Value - r.Action!.Date).TotalMinutes));
+
+            if (parent is null) continue;
+
+            if (!attachedNotes.ContainsKey(parent.Id))
+                attachedNotes[parent.Id] = [];
+            attachedNotes[parent.Id].Add(note);
+            claimedNotes.Add(note.Id);
+        }
+
         var allByType = allReprimands
             .GroupBy(r => r.GetTitle(showId: false))
             .ToDictionary(g => g.Key, g => (Total: g.Count(), Inactive: g.Count(r => !IsActive(r))));
         
         var grouped = reprimandList
+            .Where(r => !claimedNotes.Contains(r.Id))
             .GroupBy(r => r.GetTitle(showId: false))
             .OrderByDescending(g => g.Max(r => r.Action?.Date))
             .ToList();
@@ -286,7 +314,18 @@ public class UserService(
                     }
                     entryBuilder.AppendLine(FormatQuotedContent(reason, isActive));
                 }
-                
+
+                if (attachedNotes.TryGetValue(reprimandOrGroup.Id, out var notes))
+                {
+                    entryBuilder.AppendLine("-# Notes");
+                    foreach (var note in notes)
+                    {
+                        var noteContent = note.Action?.Reason ?? "No content";
+                        foreach (var line in noteContent.Split('\n'))
+                            entryBuilder.AppendLine($"-# - {line}");
+                    }
+                }
+
                 if (cumulativeTextLength + entryBuilder.Length + footerLength >= maxCumulativeText)
                     break;
 
@@ -298,6 +337,15 @@ public class UserService(
 
                 if (messageLink is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
                     entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(label, reason));
+
+                if (attachedNotes.TryGetValue(reprimandOrGroup.Id, out var noteMedia))
+                {
+                    foreach (var note in noteMedia)
+                    {
+                        var noteReason = note.Action?.Reason ?? "";
+                        entryMedia.AddRange(MediaParsingHelper.ExtractAndCreateMediaItems(noteReason));
+                    }
+                }
 
                 const int sectionCost = 3;
                 const int galleryCost = 1;

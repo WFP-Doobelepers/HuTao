@@ -56,7 +56,7 @@ public static class MediaParsingHelper
     /// </summary>
     private static readonly HashSet<string> NsfwKeywords =
     [
-        "nsfw", "nsfl", "nsfr", "spoiler", "cw", "tw",
+        "nsfw", "nsfl", "nsfr", "spoiler",
         "gore", "blood", "guro", "death", "corpse", "mutilation", "dismember",
         "explicit", "18+", "adult", "r18", "r-18", "mature",
         "lewd", "sexual", "nude", "nudity", "naked", "topless", "bottomless",
@@ -106,18 +106,16 @@ public static class MediaParsingHelper
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
-        // Check text content (case-insensitive word boundaries)
-        var textLower = text.ToLowerInvariant();
-        if (NsfwKeywords.Any(keyword => textLower.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+        if (NsfwKeywords.Any(keyword =>
+                text.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
             return true;
 
-        // Check image URLs if provided
         if (imageUrls != null)
         {
             foreach (var url in imageUrls)
             {
-                var urlLower = url.ToLowerInvariant();
-                if (NsfwKeywords.Any(keyword => urlLower.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+                if (NsfwKeywords.Any(keyword =>
+                        url.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
                     return true;
             }
         }
