@@ -30,6 +30,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 {
     private const int MaxReplyDepth = 3;
     private const int MaxReplyContentLength = 200;
+    private const string ReplyChain = "<:reply_t:1479694155528536106>";
+    private const string ReplyLine = "<:reply_line:1479699141226529024>";
 
     public async Task<MessageComponent?> BuildQuoteAsync(
         Context context, IUser requester,
@@ -90,7 +92,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var container = new ContainerBuilder();
 
-        await AppendReplyChain(container, message);
+        var hasReplies = await AppendReplyChain(container, message);
+        if (hasReplies) container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         var sb = new StringBuilder();
         sb.AppendLine(FormatHeader(message.Author.Mention, message.Timestamp));
@@ -122,7 +125,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var container = new ContainerBuilder();
 
-        await AppendLogReplyChain(container, log);
+        var hasReplies = await AppendLogReplyChain(container, log);
+        if (hasReplies) container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
 
         var sb = new StringBuilder();
         sb.Append(FormatHeader($"<@{log.UserId}>", log.Timestamp));
@@ -152,8 +156,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         foreach (var embed in log.Embeds)
         {
             if (media.Count >= 10) break;
-            if (embed.Image?.Url is { } url && media.All(m => m.Media.Url != url))
-                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(url)));
+            var imageUrl = embed.Image?.Url ?? embed.Url;
+            if (imageUrl is not null && IsImageUrl(imageUrl) && media.All(m => m.Media.Url != imageUrl))
+                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(imageUrl)));
         }
 
         if (media.Count > 0)
@@ -171,7 +176,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return container;
     }
 
-    private static async Task AppendReplyChain(ContainerBuilder container, IMessage message)
+    private static async Task<bool> AppendReplyChain(ContainerBuilder container, IMessage message)
     {
         var replies = new List<IMessage>();
         var current = message;
@@ -189,18 +194,20 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         {
             var reply = replies[i];
             var sb = new StringBuilder();
-            sb.AppendLine(FormatHeader(reply.Author.Mention, reply.Timestamp));
+            sb.AppendLine($"{ReplyChain} {FormatHeader(reply.Author.Mention, reply.Timestamp)}");
 
             var content = ExtractDisplayContent(reply);
             if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(content);
+                sb.Append(PrefixLines(content, $"{ReplyLine} "));
 
             container.WithTextDisplay(sb.ToString().TrimEnd());
-            container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+            AppendMedia(container, reply.Attachments, reply.Embeds);
         }
+
+        return replies.Count > 0;
     }
 
-    private async Task AppendLogReplyChain(ContainerBuilder container, MessageLog log)
+    private async Task<bool> AppendLogReplyChain(ContainerBuilder container, MessageLog log)
     {
         var replies = new List<MessageLog>();
         var current = log;
@@ -218,15 +225,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         {
             var reply = replies[i];
             var sb = new StringBuilder();
-            sb.AppendLine(FormatHeader($"<@{reply.UserId}>", reply.Timestamp));
+            sb.AppendLine($"{ReplyChain} {FormatHeader($"<@{reply.UserId}>", reply.Timestamp)}");
 
             var content = ExtractLogContent(reply);
             if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(content);
+                sb.Append(PrefixLines(content, $"{ReplyLine} "));
 
             container.WithTextDisplay(sb.ToString().TrimEnd());
-            container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+
+            var replyMedia = reply.Attachments
+                .Where(a => IsImageUrl(a.Url))
+                .Take(10)
+                .Select(a => new MediaGalleryItemProperties(new UnfurledMediaItemProperties(a.Url)))
+                .ToList();
+
+            if (replyMedia.Count > 0)
+                container.WithMediaGallery(replyMedia);
         }
+
+        return replies.Count > 0;
     }
 
     private static string ExtractDisplayContent(IMessage message, int maxLength = MaxReplyContentLength)
@@ -418,19 +435,31 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         {
             if (media.Count >= 10) break;
             if (IsImageAttachment(attachment))
-                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(attachment.Url)));
+            {
+                var url = attachment.ProxyUrl ?? attachment.Url;
+                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(url)));
+            }
         }
 
         foreach (var embed in embeds)
         {
             if (media.Count >= 10) break;
-            if (embed.Image?.Url is { } url && media.All(m => m.Media.Url != url))
-                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(url)));
+
+            var imageUrl = embed.Image?.ProxyUrl ?? embed.Image?.Url;
+
+            if (imageUrl is null && embed.Type == EmbedType.Image)
+                imageUrl = embed.Url;
+
+            if (imageUrl is not null && media.All(m => m.Media.Url != imageUrl))
+                media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(imageUrl)));
         }
 
         if (media.Count > 0)
             container.WithMediaGallery(media);
     }
+
+    private static string PrefixLines(string text, string prefix)
+        => prefix + text.Replace("\n", $"\n{prefix}");
 
     private static string FormatHeader(string mention, DateTimeOffset timestamp)
         => $"{mention} · <t:{timestamp.ToUnixTimeSeconds()}:R>";
