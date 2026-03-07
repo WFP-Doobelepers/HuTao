@@ -30,6 +30,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 {
     private const int MaxReplyDepth = 3;
     private const int MaxReplyContentLength = 200;
+    private const string ReplyStart = "<:reply_right:1479704185980321955>";
     private const string ReplyChain = "<:reply_t:1479694155528536106>";
     private const string ReplyLine = "<:reply_line:1479699141226529024>";
 
@@ -92,8 +93,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var container = new ContainerBuilder();
 
-        var hasReplies = await AppendReplyChain(container, message);
-        if (hasReplies) container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+        await AppendReplyChain(container, message);
 
         var sb = new StringBuilder();
         sb.AppendLine(FormatHeader(message.Author.Mention, message.Timestamp));
@@ -125,8 +125,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var container = new ContainerBuilder();
 
-        var hasReplies = await AppendLogReplyChain(container, log);
-        if (hasReplies) container.WithSeparator(isDivider: true, spacing: SeparatorSpacingSize.Small);
+        await AppendLogReplyChain(container, log);
 
         var sb = new StringBuilder();
         sb.Append(FormatHeader($"<@{log.UserId}>", log.Timestamp));
@@ -193,12 +192,13 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         for (var i = replies.Count - 1; i >= 0; i--)
         {
             var reply = replies[i];
+            var connector = i == replies.Count - 1 ? ReplyStart : ReplyChain;
             var sb = new StringBuilder();
-            sb.AppendLine($"{ReplyChain} {FormatHeader(reply.Author.Mention, reply.Timestamp)}");
+            sb.AppendLine($"-# {connector} {FormatHeader(reply.Author.Mention, reply.Timestamp)}");
 
             var content = ExtractDisplayContent(reply);
             if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(PrefixLines(content, $"{ReplyLine} "));
+                sb.Append(PrefixLines(content, $"-# {ReplyLine} "));
 
             container.WithTextDisplay(sb.ToString().TrimEnd());
             AppendMedia(container, reply.Attachments, reply.Embeds);
@@ -224,12 +224,13 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         for (var i = replies.Count - 1; i >= 0; i--)
         {
             var reply = replies[i];
+            var connector = i == replies.Count - 1 ? ReplyStart : ReplyChain;
             var sb = new StringBuilder();
-            sb.AppendLine($"{ReplyChain} {FormatHeader($"<@{reply.UserId}>", reply.Timestamp)}");
+            sb.AppendLine($"-# {connector} {FormatHeader($"<@{reply.UserId}>", reply.Timestamp)}");
 
             var content = ExtractLogContent(reply);
             if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(PrefixLines(content, $"{ReplyLine} "));
+                sb.Append(PrefixLines(content, $"-# {ReplyLine} "));
 
             container.WithTextDisplay(sb.ToString().TrimEnd());
 
