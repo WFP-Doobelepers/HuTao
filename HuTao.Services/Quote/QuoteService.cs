@@ -8,6 +8,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
 using HuTao.Services.Logging;
+using HuTao.Services.Utilities;
 using Embed = HuTao.Data.Models.Discord.Message.Embeds.Embed;
 
 namespace HuTao.Services.Quote;
