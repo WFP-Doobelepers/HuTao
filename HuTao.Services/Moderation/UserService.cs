@@ -574,7 +574,15 @@ public class UserService(
         {
             var footerText = $"-# Requested by {state.RequestedBy.Mention}";
             var hasImages = currentReprimands.Any(r =>
-                MediaParsingHelper.ExtractImageUrls(r.Action?.Reason ?? "").Count > 0);
+            {
+                var reason = r.Action?.Reason ?? "";
+                if (MediaParsingHelper.ExtractImageUrls(reason).Count > 0)
+                    return true;
+                var link = MediaParsingHelper.ExtractFirstMessageLink(reason);
+                if (link is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
+                    return true;
+                return link is { } l && state.ResolvedMessageImages.ContainsKey(l.Url);
+            });
             var fixedOverhead = 4  // header container (container + section + text + thumbnail)
                 + 1                // reprimand container itself
                 + (hasImages ? 3 : 1) // footer section or text display
