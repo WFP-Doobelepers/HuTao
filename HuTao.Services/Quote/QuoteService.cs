@@ -51,31 +51,49 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         private readonly List<ContainerBuilder> _containers = [];
         private ContainerBuilder _current = new();
         private int _currentTextSize;
+        private readonly StringBuilder _textBuffer = new();
 
-        public void AddTextDisplay(string text)
+        public void AppendText(string text)
         {
+            if (_textBuffer.Length > 0)
+                _textBuffer.AppendLine();
+            _textBuffer.Append(text);
+        }
+
+        public void FlushText()
+        {
+            if (_textBuffer.Length == 0) return;
+            var text = _textBuffer.ToString();
+            _textBuffer.Clear();
             if (_currentTextSize + text.Length > MaxDisplayTextSize)
-                Flush();
+                FlushContainer();
             _current.WithTextDisplay(text);
             _currentTextSize += text.Length;
         }
 
-        public void AddSeparator(bool isDivider = true, SeparatorSpacingSize spacing = SeparatorSpacingSize.Small)
-            => _current.WithSeparator(isDivider: isDivider, spacing: spacing);
-
         public void AddMediaGallery(List<MediaGalleryItemProperties> media)
-            => _current.WithMediaGallery(media);
+        {
+            FlushText();
+            _current.WithMediaGallery(media);
+        }
+
+        public void AddSeparator(bool isDivider = true, SeparatorSpacingSize spacing = SeparatorSpacingSize.Small)
+        {
+            FlushText();
+            _current.WithSeparator(isDivider: isDivider, spacing: spacing);
+        }
 
         public ContainerBuilder Current => _current;
 
         public void AddSection(SectionBuilder section)
         {
+            FlushText();
             _current
                 .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
                 .WithSection(section);
         }
 
-        private void Flush()
+        private void FlushContainer()
         {
             _containers.Add(_current);
             _current = new ContainerBuilder();
@@ -84,6 +102,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         public List<ContainerBuilder> Build()
         {
+            FlushText();
             _containers.Add(_current);
             return _containers;
         }
@@ -219,7 +238,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 sb.Append(content);
             }
 
-            acc.AddTextDisplay(sb.ToString().TrimEnd());
+            acc.AppendText(sb.ToString().TrimEnd());
+            acc.FlushText();
 
             foreach (var embed in message.Embeds)
                 AppendRenderedEmbed(acc.Current, embed.Author?.Name, embed.Author?.Url,
@@ -228,7 +248,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                     embed.Footer?.Text);
 
             AppendComponentsV2Text(acc.Current, message.Components);
-            AppendMedia(acc.Current, message.Attachments, message.Embeds);
+            AppendMedia(acc, message.Attachments, message.Embeds);
             AppendFileAttachments(acc.Current, message.Attachments);
         }
 
@@ -347,25 +367,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var rootContent = ExtractDisplayContent(root);
         if (!string.IsNullOrWhiteSpace(rootContent))
             sb.Append(PrefixLines(rootContent, $"-# {ReplyLine} "));
-        container.AddTextDisplay(sb.ToString().TrimEnd());
-        AppendMedia(container.Current, root.Attachments, root.Embeds);
+        container.AppendText(sb.ToString().TrimEnd());
+        AppendMedia(container, root.Attachments, root.Embeds);
         AppendFlatStandalones(container, root, attached);
 
         for (var i = 1; i < ordered.Count; i++)
         {
             var node = ordered[i];
-            container.AddTextDisplay($"-# {ReplyLine}");
+            container.AppendText($"-# {ReplyLine}");
             var nsb = new StringBuilder();
             nsb.AppendLine($"-# {ReplyChain} {FormatHeader(node.Author.Mention, node.Timestamp)}");
             var nodeContent = ExtractDisplayContent(node);
             if (!string.IsNullOrWhiteSpace(nodeContent))
                 nsb.Append(PrefixLines(nodeContent, $"-# {ReplyLine} "));
-            container.AddTextDisplay(nsb.ToString().TrimEnd());
-            AppendMedia(container.Current, node.Attachments, node.Embeds);
+            container.AppendText(nsb.ToString().TrimEnd());
+            AppendMedia(container, node.Attachments, node.Embeds);
             AppendFlatStandalones(container, node, attached);
         }
 
-        AppendQuotedMessage(container, message, $"-# ");
+        AppendPlainMessage(container, message);
     }
 
     private static void AppendFlatStandalones(
@@ -385,8 +405,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 ssb.Append(PrefixLines(content, $"-# {ReplyLine} "));
             if (ssb.Length > 0)
             {
-                container.AddTextDisplay(ssb.ToString().TrimEnd());
-                AppendMedia(container.Current, stan.Attachments, stan.Embeds);
+                container.AppendText(ssb.ToString().TrimEnd());
+                AppendMedia(container, stan.Attachments, stan.Embeds);
             }
         }
     }
@@ -484,14 +504,14 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var rootContent = ExtractDisplayContent(root.Message);
         if (!string.IsNullOrWhiteSpace(rootContent))
             sb.Append(PrefixLines(rootContent, $"-# {ReplyLine} "));
-        container.AddTextDisplay(sb.ToString().TrimEnd());
-        AppendMedia(container.Current, root.Message.Attachments, root.Message.Embeds);
+        container.AppendText(sb.ToString().TrimEnd());
+        AppendMedia(container, root.Message.Attachments, root.Message.Embeds);
         RenderTreeStandalones(container, root.Message, $"-# {ReplyLine} ", attachedStandalones);
 
         for (var i = 0; i < items.Count; i++)
         {
             var isLast = i == items.Count - 1;
-            container.AddTextDisplay($"-# {ReplyLine}");
+            container.AppendText($"-# {ReplyLine}");
             RenderTreeNode(container, items[i], [], isLast, attachedStandalones, message.Id);
         }
     }
@@ -511,7 +531,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (isQuoted)
         {
-            AppendQuotedMessage(container, node.Message, $"-# {prefix}");
+            AppendQuotedMessage(container, node.Message, prefix);
             return;
         }
 
@@ -522,14 +542,14 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         if (!string.IsNullOrWhiteSpace(content))
             sb.Append(PrefixLines(content, $"{contentPfx} "));
 
-        container.AddTextDisplay(sb.ToString().TrimEnd());
-        AppendMedia(container.Current, node.Message.Attachments, node.Message.Embeds);
+        container.AppendText(sb.ToString().TrimEnd());
+        AppendMedia(container, node.Message.Attachments, node.Message.Embeds);
         RenderTreeStandalones(container, node.Message, $"{contentPfx} ", attached);
 
         for (var j = 0; j < node.Children.Count; j++)
         {
             var childIsLast = j == node.Children.Count - 1;
-            container.AddTextDisplay($"{contentPfx}{ReplyLine}");
+            container.AppendText($"{contentPfx}{ReplyLine}");
             RenderTreeNode(container, node.Children[j], [.. ancestorCols, !isLast], childIsLast, attached, quotedMessageId);
         }
     }
@@ -552,27 +572,29 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 ssb.Append(PrefixLines(sContent, contentPfx));
             if (ssb.Length > 0)
             {
-                container.AddTextDisplay(ssb.ToString().TrimEnd());
-                AppendMedia(container.Current, stan.Attachments, stan.Embeds);
+                container.AppendText(ssb.ToString().TrimEnd());
+                AppendMedia(container, stan.Attachments, stan.Embeds);
             }
         }
     }
 
-    private static void AppendQuotedMessage(
-        ContainerAccumulator container, IMessage message, string depthPrefix)
+    private static void AppendPlainMessage(ContainerAccumulator container, IMessage message)
     {
-        var qsb = new StringBuilder();
-        qsb.AppendLine($"{depthPrefix}{ReplyEnd} {FormatHeader(message.Author.Mention, message.Timestamp)}");
+        container.FlushText();
+
+        var sb = new StringBuilder();
+        sb.AppendLine(FormatHeader(message.Author.Mention, message.Timestamp));
 
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
             var content = message.Content.Length > 2500
                 ? $"{message.Content[..2500]}…"
                 : message.Content;
-            qsb.Append(PrefixLines(content, $"{depthPrefix}{ReplySpacer} "));
+            sb.Append(content);
         }
 
-        container.AddTextDisplay(qsb.ToString().TrimEnd());
+        container.AppendText(sb.ToString().TrimEnd());
+        container.FlushText();
 
         foreach (var embed in message.Embeds)
             AppendRenderedEmbed(container.Current, embed.Author?.Name, embed.Author?.Url,
@@ -581,7 +603,35 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 embed.Footer?.Text);
 
         AppendComponentsV2Text(container.Current, message.Components);
-        AppendMedia(container.Current, message.Attachments, message.Embeds);
+        AppendMedia(container, message.Attachments, message.Embeds);
+        AppendFileAttachments(container.Current, message.Attachments);
+    }
+
+    private static void AppendQuotedMessage(
+        ContainerAccumulator container, IMessage message, string emojiPrefix)
+    {
+        var qsb = new StringBuilder();
+        qsb.AppendLine($"-# {emojiPrefix}{ReplyEnd} {FormatHeader(message.Author.Mention, message.Timestamp)}");
+
+        if (!string.IsNullOrWhiteSpace(message.Content))
+        {
+            var content = message.Content.Length > 2500
+                ? $"{message.Content[..2500]}…"
+                : message.Content;
+            qsb.Append(PrefixLines(content, $"{emojiPrefix}{ReplySpacer} "));
+        }
+
+        container.AppendText(qsb.ToString().TrimEnd());
+        container.FlushText();
+
+        foreach (var embed in message.Embeds)
+            AppendRenderedEmbed(container.Current, embed.Author?.Name, embed.Author?.Url,
+                embed.Title, embed.Url, embed.Description,
+                embed.Fields.Select(f => (f.Name, f.Value)),
+                embed.Footer?.Text);
+
+        AppendComponentsV2Text(container.Current, message.Components);
+        AppendMedia(container, message.Attachments, message.Embeds);
         AppendFileAttachments(container.Current, message.Attachments);
     }
 
@@ -845,8 +895,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             container.WithTextDisplay(string.Join("\n", files));
     }
 
-    private static void AppendMedia(
-        ContainerBuilder container,
+    private static List<MediaGalleryItemProperties> CollectMedia(
         IReadOnlyCollection<IAttachment> attachments,
         IReadOnlyCollection<IEmbed> embeds)
     {
@@ -875,6 +924,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 media.Add(new MediaGalleryItemProperties(new UnfurledMediaItemProperties(imageUrl)));
         }
 
+        return media;
+    }
+
+    private static void AppendMedia(
+        ContainerAccumulator acc,
+        IReadOnlyCollection<IAttachment> attachments,
+        IReadOnlyCollection<IEmbed> embeds)
+    {
+        var media = CollectMedia(attachments, embeds);
+        if (media.Count > 0)
+            acc.AddMediaGallery(media);
+    }
+
+    private static void AppendMedia(
+        ContainerBuilder container,
+        IReadOnlyCollection<IAttachment> attachments,
+        IReadOnlyCollection<IEmbed> embeds)
+    {
+        var media = CollectMedia(attachments, embeds);
         if (media.Count > 0)
             container.WithMediaGallery(media);
     }
