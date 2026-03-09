@@ -231,12 +231,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             sb.AppendLine($"-# {FormatHeader(message.Author.Mention, message.Timestamp)}");
 
             if (!string.IsNullOrWhiteSpace(message.Content))
-            {
-                var content = message.Content.Length > 2500
-                    ? $"{message.Content[..2500]}…"
-                    : message.Content;
-                sb.Append(content);
-            }
+                sb.Append(message.Content);
 
             acc.AppendText(sb.ToString().TrimEnd());
             acc.FlushText();
@@ -586,12 +581,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         sb.AppendLine(FormatHeader(message.Author.Mention, message.Timestamp));
 
         if (!string.IsNullOrWhiteSpace(message.Content))
-        {
-            var content = message.Content.Length > 2500
-                ? $"{message.Content[..2500]}…"
-                : message.Content;
-            sb.Append(content);
-        }
+            sb.Append(message.Content);
 
         container.AppendText(sb.ToString().TrimEnd());
         container.FlushText();
@@ -614,12 +604,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         qsb.AppendLine($"-# {emojiPrefix}{ReplyEnd} {FormatHeader(message.Author.Mention, message.Timestamp)}");
 
         if (!string.IsNullOrWhiteSpace(message.Content))
-        {
-            var content = message.Content.Length > 2500
-                ? $"{message.Content[..2500]}…"
-                : message.Content;
-            qsb.Append(PrefixLines(content, $"{emojiPrefix}{ReplySpacer} "));
-        }
+            qsb.Append(PrefixLines(message.Content, $"{emojiPrefix}{ReplySpacer} "));
 
         container.AppendText(qsb.ToString().TrimEnd());
         container.FlushText();
