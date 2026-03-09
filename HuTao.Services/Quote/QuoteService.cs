@@ -28,10 +28,11 @@ public interface IQuoteService
 
 public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteService
 {
-    private const int MaxReplyDepth = 3;
+    private const int MaxReplyDepth = 10;
     private const int MaxReplyContentLength = 200;
     private const string ReplyStart = "<:reply_right:1479788099457519758>";
     private const string ReplyChain = "<:reply_t:1479788095183261880>";
+    private const string ReplyEnd = "<:reply:1479788090942820476>";
     private const string ReplyLine = "<:reply_line:1479788104394080326>";
     private const string ReplyDash = "<:reply_dash:1479788133800214701>";
     private const string ReplySpacer = "<:reply_spacer:1479788137512177716>";
@@ -191,23 +192,63 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             current = reply;
         }
 
-        for (var i = replies.Count - 1; i >= 0; i--)
-        {
-            var reply = replies[i];
-            var connector = i == replies.Count - 1 ? ReplyStart : ReplyChain;
-            var sb = new StringBuilder();
-            sb.AppendLine($"-# {connector} {FormatHeader(reply.Author.Mention, reply.Timestamp)}");
+        if (replies.Count == 0) return false;
 
-            var content = ExtractDisplayContent(reply);
-            if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(PrefixLines(content, $"-# {ReplyLine} "));
-
-            container.WithTextDisplay(sb.ToString().TrimEnd());
-            AppendMedia(container, reply.Attachments, reply.Embeds);
-        }
-
-        return replies.Count > 0;
+        // replies[0] = direct parent, replies[^1] = oldest ancestor
+        // We render oldest first, so iterate from end to start
+        // Track per-depth whether that level still has siblings below → determines │ vs spacer indent
+        AppendReplyNodes(container, replies, 0, []);
+        return true;
     }
+
+    private static void AppendReplyNodes(
+        ContainerBuilder container,
+        List<IMessage> replies, // replies[0]=direct parent, replies[^1]=oldest
+        int depth,
+        List<bool> parentHasMore) // per depth: true = │ continuing, false = spacer
+    {
+        // replies are collected nearest-first; render oldest-first
+        // At depth 0 we render replies[^1], at depth 1 replies[^2], etc.
+        var idx = replies.Count - 1 - depth;
+        if (idx < 0) return;
+
+        var reply = replies[idx];
+        var isLast = depth == replies.Count - 1; // no deeper nesting after this
+        var hasMore = !isLast; // this level continues with nested replies below
+
+        // Build the indent prefix from parent states
+        var indent = BuildIndent(parentHasMore);
+
+        // Connector for this reply
+        var connector = depth == 0
+            ? (replies.Count == 1 ? ReplyEnd : ReplyStart)
+            : hasMore ? ReplyChain : ReplyEnd;
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"-# {indent}{connector} {FormatHeader(reply.Author.Mention, reply.Timestamp)}");
+
+        var content = ExtractDisplayContent(reply);
+        // Content indent: same parent indent + line if this level continues, spacer if done
+        var contentIndent = BuildIndent(parentHasMore) + (hasMore ? $"{ReplyLine} " : $"{ReplySpacer} ");
+        if (!string.IsNullOrWhiteSpace(content))
+            sb.Append(PrefixLines(content, $"-# {contentIndent}"));
+
+        container.WithTextDisplay(sb.ToString().TrimEnd());
+        AppendMedia(container, reply.Attachments, reply.Embeds);
+
+        // Recurse deeper if there are more replies
+        if (!isLast)
+        {
+            // Blank separator line at this indent level
+            var sepIndent = BuildIndent(parentHasMore) + (hasMore ? $"{ReplyLine}" : $"{ReplySpacer}");
+            container.WithTextDisplay($"-# {sepIndent}");
+
+            AppendReplyNodes(container, replies, depth + 1, [..parentHasMore, hasMore]);
+        }
+    }
+
+    private static string BuildIndent(IEnumerable<bool> parentHasMore)
+        => string.Concat(parentHasMore.Select(hasMore => hasMore ? $"{ReplyLine} " : $"{ReplySpacer} "));
 
     private async Task<bool> AppendLogReplyChain(ContainerBuilder container, MessageLog log)
     {
@@ -223,30 +264,56 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             current = reply;
         }
 
-        for (var i = replies.Count - 1; i >= 0; i--)
+        if (replies.Count == 0) return false;
+
+        AppendLogReplyNodes(container, replies, 0, []);
+        return true;
+    }
+
+    private void AppendLogReplyNodes(
+        ContainerBuilder container,
+        List<MessageLog> replies,
+        int depth,
+        List<bool> parentHasMore)
+    {
+        var idx = replies.Count - 1 - depth;
+        if (idx < 0) return;
+
+        var reply = replies[idx];
+        var isLast = depth == replies.Count - 1;
+        var hasMore = !isLast;
+
+        var indent = BuildIndent(parentHasMore);
+        var connector = depth == 0
+            ? (replies.Count == 1 ? ReplyEnd : ReplyStart)
+            : hasMore ? ReplyChain : ReplyEnd;
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"-# {indent}{connector} {FormatHeader($"<@{reply.UserId}>", reply.Timestamp)}");
+
+        var content = ExtractLogContent(reply);
+        var contentIndent = BuildIndent(parentHasMore) + (hasMore ? $"{ReplyLine} " : $"{ReplySpacer} ");
+        if (!string.IsNullOrWhiteSpace(content))
+            sb.Append(PrefixLines(content, $"-# {contentIndent}"));
+
+        container.WithTextDisplay(sb.ToString().TrimEnd());
+
+        var replyMedia = reply.Attachments
+            .Where(a => IsImageUrl(a.Url))
+            .Take(10)
+            .Select(a => new MediaGalleryItemProperties(new UnfurledMediaItemProperties(a.Url)))
+            .ToList();
+
+        if (replyMedia.Count > 0)
+            container.WithMediaGallery(replyMedia);
+
+        if (!isLast)
         {
-            var reply = replies[i];
-            var connector = i == replies.Count - 1 ? ReplyStart : ReplyChain;
-            var sb = new StringBuilder();
-            sb.AppendLine($"-# {connector} {FormatHeader($"<@{reply.UserId}>", reply.Timestamp)}");
+            var sepIndent = BuildIndent(parentHasMore) + (hasMore ? $"{ReplyLine}" : $"{ReplySpacer}");
+            container.WithTextDisplay($"-# {sepIndent}");
 
-            var content = ExtractLogContent(reply);
-            if (!string.IsNullOrWhiteSpace(content))
-                sb.Append(PrefixLines(content, $"-# {ReplyLine} "));
-
-            container.WithTextDisplay(sb.ToString().TrimEnd());
-
-            var replyMedia = reply.Attachments
-                .Where(a => IsImageUrl(a.Url))
-                .Take(10)
-                .Select(a => new MediaGalleryItemProperties(new UnfurledMediaItemProperties(a.Url)))
-                .ToList();
-
-            if (replyMedia.Count > 0)
-                container.WithMediaGallery(replyMedia);
+            AppendLogReplyNodes(container, replies, depth + 1, [..parentHasMore, hasMore]);
         }
-
-        return replies.Count > 0;
     }
 
     private static string ExtractDisplayContent(IMessage message, int maxLength = MaxReplyContentLength)
