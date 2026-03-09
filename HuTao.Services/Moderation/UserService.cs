@@ -112,6 +112,26 @@ public class UserService(
             IsBanned = await context.Guild.GetBanAsync(user) is not null,
             TimedOutUntil = (user as IGuildUser)?.TimedOutUntil
         };
+
+        var messageUrls = history
+            .Select(r => r.Action?.Reason ?? "")
+            .SelectMany(reason =>
+            {
+                var urls = new List<string>();
+                var linkMatch = MediaParsingHelper.ExtractFirstMessageLink(reason);
+                if (linkMatch is { } link) urls.Add(link.Url);
+                return urls;
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var url in messageUrls)
+        {
+            if (state.ResolvedMessageImages.ContainsKey(url)) continue;
+            var images = await MediaParsingHelper.ResolveMessageImagesAsync(context.Guild, url);
+            if (images.Count > 0) state.ResolvedMessageImages[url] = images;
+        }
+
         var paginator = new ComponentPaginatorBuilder()
             .WithUsers(context.User)
             .WithPageFactory(p => GenerateUserHistoryPage(p, state))
@@ -157,7 +177,7 @@ public class UserService(
     private static ContainerBuilder? RenderGroupedReprimands(
         IEnumerable<Reprimand> pageReprimands, IEnumerable<Reprimand> allReprimands,
         int usedTextLength, int reservedLength = 0, bool showImages = true,
-        int componentBudget = 20)
+        int componentBudget = 20, Dictionary<string, List<string>>? resolvedMessageImages = null)
     {
         const int maxCumulativeText = 4000;
         var reprimandList = pageReprimands.ToList();
@@ -251,6 +271,7 @@ public class UserService(
             if (inactiveCount > 0)
                 subtitleParts.Add($"{inactiveCount} inactive");
 
+            string? imageCountText = null;
             if (!showImages)
             {
                 var totalImages = entries.Sum(r =>
@@ -270,11 +291,16 @@ public class UserService(
                     return has;
                 });
                 if (totalImages > entriesWithImages)
-                    subtitleParts.Add($"Showing {entriesWithImages}/{totalImages} images");
+                    imageCountText = $"Showing {entriesWithImages}/{totalImages} images";
             }
 
-            if (subtitleParts.Count > 0)
-                headerText.Append($"\n-# {string.Join(" • ", subtitleParts)}");
+            if (subtitleParts.Count > 0 || imageCountText is not null)
+            {
+                var subtitle = string.Join(" · ", subtitleParts);
+                if (imageCountText is not null)
+                    subtitle += (subtitle.Length > 0 ? " | " : "") + imageCountText;
+                headerText.Append($"\n-# {subtitle}");
+            }
             
             if (cumulativeTextLength + headerText.Length + footerLength >= maxCumulativeText)
                 break;
@@ -376,6 +402,12 @@ public class UserService(
 
                 if (messageLink is { Label: var label } && MediaParsingHelper.IsLikelyImageUrl(label))
                     entryMedia.Insert(0, MediaParsingHelper.CreateMediaItem(label, reason));
+
+                if (messageLink is { } resolvedLink && resolvedMessageImages?.TryGetValue(resolvedLink.Url, out var resolvedImages) == true)
+                {
+                    foreach (var img in resolvedImages)
+                        entryMedia.Add(MediaParsingHelper.CreateMediaItem(img, reason));
+                }
 
                 const int sectionCost = 3;
                 const int galleryCost = 1;
@@ -553,7 +585,7 @@ public class UserService(
             var reprimandContainer = RenderGroupedReprimands(
                 currentReprimands, state.FilteredReprimands,
                 headerText.Length, footerText.Length, state.ShowImages,
-                contentBudget);
+                contentBudget, state.ResolvedMessageImages);
 
             if (reprimandContainer is not null)
             {

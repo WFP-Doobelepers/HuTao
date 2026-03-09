@@ -184,6 +184,7 @@ public class UserHistoryPaginatorState
     public bool IsBanned { get; set; }
     public DateTimeOffset? TimedOutUntil { get; set; }
     public bool ShowImages { get; set; }
+    public Dictionary<string, List<string>> ResolvedMessageImages { get; } = new(StringComparer.OrdinalIgnoreCase);
     
     private List<int> PageStartIndices { get; set; } = new() { 0 };
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Discord;
 using Humanizer;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
@@ -23,6 +24,10 @@ public static class MediaParsingHelper
 
     private static readonly Regex MarkdownLinkPattern = new(
         @"\[[^\]]*]\(\s*<?(?<url>https?://[^\s)]+)>?\s*\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex MarkdownLinkLabelImagePattern = new(
+        @"\[(?<url>https?://[^\]\s]+)[^\]]*\]\([^\)]+\)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex RawUrlPattern = new(
@@ -88,6 +93,7 @@ public static class MediaParsingHelper
         var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         ExtractFromPattern(MarkdownImagePattern, text, urls);
+        ExtractFromPattern(MarkdownLinkLabelImagePattern, text, urls);
         ExtractFromPattern(MarkdownLinkPattern, text, urls);
         ExtractFromPattern(RawUrlPattern, text, urls);
 
@@ -198,6 +204,57 @@ public static class MediaParsingHelper
             })
             .OrderBy(n => n.Action?.Date)
             .ToList();
+    }
+
+    public static (ulong GuildId, ulong ChannelId, ulong MessageId)? ParseMessageLinkIds(string url)
+    {
+        var match = Regex.Match(url,
+            @"https?://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)",
+            RegexOptions.IgnoreCase);
+        if (!match.Success) return null;
+        if (!ulong.TryParse(match.Groups[1].Value, out var guildId)) return null;
+        if (!ulong.TryParse(match.Groups[2].Value, out var channelId)) return null;
+        if (!ulong.TryParse(match.Groups[3].Value, out var messageId)) return null;
+        return (guildId, channelId, messageId);
+    }
+
+    public static async Task<List<string>> ResolveMessageImagesAsync(IGuild guild, string messageUrl)
+    {
+        var ids = ParseMessageLinkIds(messageUrl);
+        if (ids is not { } parsed) return [];
+        try
+        {
+            var channel = await guild.GetTextChannelAsync(parsed.ChannelId);
+            if (channel is null) return [];
+
+            var message = await channel.GetMessageAsync(parsed.MessageId);
+            if (message is null) return [];
+
+            var images = new List<string>();
+
+            foreach (var attachment in message.Attachments)
+            {
+                if (IsLikelyImageUrl(attachment.Url))
+                    images.Add(attachment.Url);
+            }
+
+            foreach (var embed in message.Embeds)
+            {
+                if (embed.Image is { } img && !string.IsNullOrWhiteSpace(img.Url))
+                    images.Add(img.Url);
+                if (embed.Thumbnail is { } thumb && !string.IsNullOrWhiteSpace(thumb.Url))
+                    images.Add(thumb.Url);
+            }
+
+            if (!string.IsNullOrWhiteSpace(message.Content))
+                images.AddRange(ExtractImageUrls(message.Content));
+
+            return images.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private static void ExtractFromPattern(Regex pattern, string text, ISet<string> urls)
