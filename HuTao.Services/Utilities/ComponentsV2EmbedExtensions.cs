@@ -14,6 +14,12 @@ public static class ComponentsV2EmbedExtensions
     {
         var sb = new StringBuilder();
 
+        // The embed author carries "who" the entry is about (e.g. the message author in
+        // logs). Components V2 has no native author slot, so render it as leading subtext.
+        var author = embed.Author?.Name;
+        if (!string.IsNullOrWhiteSpace(author))
+            sb.AppendLine($"-# {author}");
+
         if (!string.IsNullOrWhiteSpace(embed.Title))
             sb.AppendLine($"### {embed.Title}");
 
@@ -29,6 +35,11 @@ public static class ComponentsV2EmbedExtensions
             var value = string.IsNullOrWhiteSpace(field.Value) ? " " : field.Value;
             sb.AppendLine($"**{name}**: {value}");
         }
+
+        // Footer mirrors the embed footer (e.g. "Requested by", attachment metadata) as trailing subtext.
+        var footer = embed.Footer?.Text;
+        if (!string.IsNullOrWhiteSpace(footer))
+            sb.AppendLine($"-# {footer}");
 
         var text = sb.ToString().Trim();
         return string.IsNullOrWhiteSpace(text) ? "-" : text.Truncate(maxChars);
