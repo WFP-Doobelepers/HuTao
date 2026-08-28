@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using HuTao.Data;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Logging;
@@ -36,6 +37,7 @@ public interface IQuoteService
 public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteService
 {
     private const int MaxReplyDepth = 10;
+    private const int WindowSize = 100;
     private const int MaxReplyContentLength = 200;
     private const string ReplyStart = "<:reply_right:1479788099457519758>";
     private const string ReplyEnd = "<:reply:1479788090942820476>";
@@ -252,7 +254,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         entry.Container.WithActionRow(row);
     }
 
-    private static async Task<List<ContainerBuilder>> BuildMessageContainer(IMessage message, bool expanded = false)
+    internal static async Task<List<ContainerBuilder>> BuildMessageContainer(IMessage message, bool expanded = false)
     {
         var acc = new ContainerAccumulator();
 
@@ -337,298 +339,218 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return container;
     }
 
-    private record TreeNode(IMessage Message, List<TreeNode> Children);
-
     private static async Task<bool> AppendReplyChain(
         ContainerAccumulator container, IMessage message, bool expanded = false)
     {
-        Log.Debug("[Quote] Walking reply chain from {MessageId} (expanded={Expanded})",
-            message.Id, expanded);
+        var (chain, quoted, blockOf) = await ResolveBlocksAsync(message);
 
-        var chain = new List<IMessage>();
-        var current = message;
-        while (chain.Count < MaxReplyDepth && current.Reference?.MessageId.IsSpecified == true)
-        {
-            var parent = (current as IUserMessage)?.ReferencedMessage
-                ?? await current.Channel.GetMessageAsync(current.Reference.MessageId.Value);
-            if (parent is null) break;
-            chain.Add(parent);
-            current = parent;
-        }
+        Log.Debug("[Quote] {MessageId}: {Ancestors} ancestor block(s), quoted block of {Members}, {Blocks} block(s) in window (expanded={Expanded})",
+            message.Id, chain.Count, quoted.Messages.Count, blockOf.Values.Distinct().Count(), expanded);
 
         if (chain.Count == 0) return false;
 
-        var oldest = chain[^1];
-        var window = (await message.Channel
-                .GetMessagesAsync(oldest.Id, Direction.After, 100)
-                .FlattenAsync())
-            .Where(m => m.Timestamp <= message.Timestamp && m.Id != message.Id)
-            .ToList();
-
-        var chainIdSet = new HashSet<ulong>(chain.Select(m => m.Id));
-        var standalones = window
-            .Where(m => !chainIdSet.Contains(m.Id) && GetReferencedMessageId(m) is null)
-            .OrderBy(m => m.Timestamp)
-            .ToList();
-
-        Log.Debug("[Quote] Chain: {Count} ancestors, Window: {WindowCount}, Standalones: {StandaloneCount}",
-            chain.Count, window.Count, standalones.Count);
-
         if (expanded)
-            AppendTreeMode(container, message, chain, window, chainIdSet, standalones);
+            AppendTreeMode(container, message.Id, chain, quoted, blockOf);
         else
-            AppendFlatMode(container, message, chain, standalones);
+            AppendFlatMode(container, message.Id, chain, quoted);
 
         return true;
     }
 
-    private static void AppendFlatMode(
-        ContainerAccumulator container, IMessage message,
-        List<IMessage> chain, List<IMessage> standalones)
+    private static async Task<(List<MessageBlock> Chain, MessageBlock Quoted, Dictionary<ulong, MessageBlock> BlockOf)>
+        ResolveBlocksAsync(IMessage message)
     {
-        var ordered = chain.AsEnumerable().Reverse().ToList();
-        var attached = AttachStandalonesToMessages(ordered, standalones);
-
-        var root = ordered[0];
-        var sb = new StringBuilder();
-        sb.AppendLine($"-# {ReplyStart} {FormatHeader(root.Author.Mention, root.Timestamp)}");
-        var rootContent = ExtractDisplayContent(root);
-        if (!string.IsNullOrWhiteSpace(rootContent))
-            sb.Append(PrefixLines(rootContent, $"-# {ReplyLine} "));
-        container.AppendText(sb.ToString().TrimEnd());
-        var lastNodeHadMedia = AppendMedia(container, root.Attachments, root.Embeds);
-        AppendFlatStandalones(container, root, attached);
-
-        for (var i = 1; i < ordered.Count; i++)
+        IEnumerable<IMessage> window = [];
+        try
         {
-            var node = ordered[i];
-            container.AppendText($"-# {ReplyLine}");
-            var nsb = new StringBuilder();
-            nsb.AppendLine($"-# {ReplyChain} {FormatHeader(node.Author.Mention, node.Timestamp)}");
-            var nodeContent = ExtractDisplayContent(node);
-            if (!string.IsNullOrWhiteSpace(nodeContent))
-                nsb.Append(PrefixLines(nodeContent, $"-# {ReplyLine} "));
-            container.AppendText(nsb.ToString().TrimEnd());
-            lastNodeHadMedia = AppendMedia(container, node.Attachments, node.Embeds);
-            AppendFlatStandalones(container, node, attached);
+            // ponytail: one contiguous page ending at the quoted message. Ancestors further back are fetched
+            // one at a time and lose their continuations; page backwards if that ever matters.
+            window = await message.Channel
+                .GetMessagesAsync(message.Id, Direction.Before, WindowSize)
+                .FlattenAsync();
+        }
+        catch (HttpException ex)
+        {
+            Log.Warning(ex, "[Quote] Cannot read history before {MessageId}; quoting without continuations", message.Id);
         }
 
-        if (lastNodeHadMedia)
-            AppendQuotedMessage(container, message, "");
-        else
-            AppendPlainMessage(container, message);
+        var blockOf = MessageBlock.Partition(window.Append(message));
+        var quoted = blockOf[message.Id];
+        var chain = await MessageBlock.WalkChainAsync(quoted, blockOf, MaxReplyDepth, FetchParent);
+
+        return (chain, quoted, blockOf);
+
+        async Task<IMessage?> FetchParent(ulong id)
+        {
+            try
+            {
+                return await message.Channel.GetMessageAsync(id);
+            }
+            catch (HttpException ex)
+            {
+                Log.Warning(ex, "[Quote] Cannot fetch parent {ParentId} of {MessageId}; chain ends here", id, message.Id);
+                return null;
+            }
+        }
     }
 
-    private static void AppendFlatStandalones(
-        ContainerAccumulator container, IMessage host, Dictionary<ulong, List<IMessage>> attached)
+    private static void AppendFlatMode(
+        ContainerAccumulator container, ulong quotedId,
+        List<MessageBlock> chain, MessageBlock quoted)
     {
-        if (!attached.TryGetValue(host.Id, out var list)) return;
-        foreach (var stan in list)
+        var lastHadMedia = false;
+        for (var i = chain.Count - 1; i >= 0; i--)
         {
-            var ssb = new StringBuilder();
-            if (stan.Author.Id != host.Author.Id)
-            {
-                ssb.AppendLine($"-# {ReplyLine}");
-                ssb.AppendLine($"-# {ReplyLine} {FormatHeader(stan.Author.Mention, stan.Timestamp)}");
-            }
-            var content = ExtractDisplayContent(stan);
-            if (!string.IsNullOrWhiteSpace(content))
-                ssb.Append(PrefixLines(content, $"-# {ReplyLine} "));
-            if (ssb.Length > 0)
-            {
-                container.AppendText(ssb.ToString().TrimEnd());
-                AppendMedia(container, stan.Attachments, stan.Embeds);
-            }
+            var isRoot = i == chain.Count - 1;
+            if (!isRoot) container.AppendText($"-# {ReplyLine}");
+
+            lastHadMedia = AppendBlock(container, chain[i],
+                $"-# {(isRoot ? ReplyStart : ReplyChain)} ", $"-# {ReplyLine} ");
         }
+
+        if (lastHadMedia)
+            AppendQuotedBlock(container, quoted, quotedId, "");
+        else
+            AppendPlainBlock(container, quoted, quotedId);
     }
 
     private static void AppendTreeMode(
-        ContainerAccumulator container, IMessage message,
-        List<IMessage> chain, List<IMessage> window,
-        HashSet<ulong> chainIdSet, List<IMessage> standalones)
+        ContainerAccumulator container, ulong quotedId,
+        List<MessageBlock> chain, MessageBlock quoted,
+        Dictionary<ulong, MessageBlock> blockOf)
     {
-        var nodes = new Dictionary<ulong, TreeNode>();
-        foreach (var m in chain)
-            nodes[m.Id] = new TreeNode(m, []);
+        var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
+        MessageBlock.LinkChildren(blockOf, trunk);
 
-        var processed = new HashSet<ulong>();
-        bool changed;
-        do
-        {
-            changed = false;
-            foreach (var m in window)
-            {
-                if (processed.Contains(m.Id) || nodes.ContainsKey(m.Id)) continue;
-                var parentId = GetReferencedMessageId(m);
-                if (parentId is null) { processed.Add(m.Id); continue; }
-                if (nodes.ContainsKey(parentId.Value))
-                {
-                    nodes[m.Id] = new TreeNode(m, []);
-                    changed = true;
-                }
-            }
-        } while (changed);
+        var root = chain[^1];
 
-        foreach (var node in nodes.Values)
-        {
-            var parentId = GetReferencedMessageId(node.Message);
-            if (parentId is not null && nodes.TryGetValue(parentId.Value, out var parent))
-                parent.Children.Add(node);
-        }
-
-        foreach (var node in nodes.Values)
-            node.Children.Sort((a, b) =>
-            {
-                var ac = chainIdSet.Contains(a.Message.Id) ? 1 : 0;
-                var bc = chainIdSet.Contains(b.Message.Id) ? 1 : 0;
-                if (ac != bc) return ac - bc;
-                return a.Message.Timestamp.CompareTo(b.Message.Timestamp);
-            });
-
-        var root = nodes[chain[^1].Id];
-
-        var allTreeNodes = nodes.Values.OrderBy(n => n.Message.Timestamp).ToList();
-        var attachedStandalones = new Dictionary<ulong, List<IMessage>>();
-        foreach (var stan in standalones)
-        {
-            TreeNode? host = null;
-            foreach (var n in allTreeNodes)
-            {
-                if (n.Message.Timestamp <= stan.Timestamp) host = n;
-                else break;
-            }
-            if (host is null) continue;
-            if (!attachedStandalones.ContainsKey(host.Message.Id))
-                attachedStandalones[host.Message.Id] = [];
-            attachedStandalones[host.Message.Id].Add(stan);
-        }
-
-        var flatItems = new List<TreeNode>();
+        // Keep the trunk flat until the first branch, then nest from there on.
+        // The quoted block always stays nested under its parent so "reply to X" reads differently from "sibling of X".
+        var items = new List<MessageBlock>();
         var walk = root;
-        while (true)
+        while (walk.Children.Count == 1
+               && trunk.Contains(walk.Children[0].Head.Id)
+               && !walk.Children[0].Contains(quotedId))
         {
-            var cc = walk.Children.FirstOrDefault(c => chainIdSet.Contains(c.Message.Id));
-            if (cc is null || walk.Children.Count != 1) break;
-            walk.Children.Remove(cc);
-            flatItems.Add(cc);
-            walk = cc;
+            var next = walk.Children[0];
+            walk.Children.Clear();
+            items.Add(next);
+            walk = next;
         }
 
-        // Insert quoted message into the tree as last child of its parent
-        var quotedNode = new TreeNode(message, []);
-        var parentNode = nodes[chain[0].Id];
-        parentNode.Children.Add(quotedNode);
-
-        var items = new List<TreeNode>();
-        items.AddRange(flatItems);
         items.AddRange(root.Children);
-        items.Sort((a, b) =>
-        {
-            var ac = chainIdSet.Contains(a.Message.Id) ? 1 : 0;
-            var bc = chainIdSet.Contains(b.Message.Id) ? 1 : 0;
-            if (ac != bc) return ac - bc;
-            return a.Message.Timestamp.CompareTo(b.Message.Timestamp);
-        });
 
-        var sb = new StringBuilder();
-        sb.AppendLine($"-# {ReplyStart} {FormatHeader(root.Message.Author.Mention, root.Message.Timestamp)}");
-        var rootContent = ExtractDisplayContent(root.Message);
-        if (!string.IsNullOrWhiteSpace(rootContent))
-            sb.Append(PrefixLines(rootContent, $"-# {ReplyLine} "));
-        container.AppendText(sb.ToString().TrimEnd());
-        AppendMedia(container, root.Message.Attachments, root.Message.Embeds);
-        RenderTreeStandalones(container, root.Message, $"-# {ReplyLine} ", attachedStandalones);
+        AppendBlock(container, root, $"-# {ReplyStart} ", $"-# {ReplyLine} ");
 
         for (var i = 0; i < items.Count; i++)
         {
-            var isLast = i == items.Count - 1;
             container.AppendText($"-# {ReplyLine}");
-            RenderTreeNode(container, items[i], [], isLast, attachedStandalones, message.Id);
+            RenderTreeNode(container, items[i], [], i == items.Count - 1, quotedId);
         }
     }
 
     private static void RenderTreeNode(
-        ContainerAccumulator container, TreeNode node,
-        List<bool> ancestorCols, bool isLast,
-        Dictionary<ulong, List<IMessage>> attached,
-        ulong quotedMessageId = 0)
+        ContainerAccumulator container, MessageBlock node,
+        List<bool> ancestorCols, bool isLast, ulong quotedId)
     {
-        var isQuoted = node.Message.Id == quotedMessageId;
         var prefix = string.Concat(ancestorCols.Select(c => c ? ReplyLine : ReplySpacer));
 
-        if (isQuoted)
+        if (node.Contains(quotedId))
         {
-            AppendQuotedMessage(container, node.Message, prefix);
+            AppendQuotedBlock(container, node, quotedId, prefix);
             return;
         }
 
-        var hasMedia = CollectMedia(node.Message.Attachments, node.Message.Embeds).Count > 0;
+        var hasMedia = node.Messages.Any(m => CollectMedia(m.Attachments, m.Embeds).Count > 0);
         var effectiveLast = isLast && !(hasMedia && node.Children.Count > 0);
 
         var connector = effectiveLast ? ReplyEnd : ReplyChain;
         var contentCol = effectiveLast ? ReplySpacer : ReplyLine;
-        var contentPfx = $"-# {prefix}{contentCol}";
 
-        var sb = new StringBuilder();
-        sb.AppendLine($"-# {prefix}{connector} {FormatHeader(node.Message.Author.Mention, node.Message.Timestamp)}");
-
-        var content = ExtractDisplayContent(node.Message);
-        if (!string.IsNullOrWhiteSpace(content))
-            sb.Append(PrefixLines(content, $"{contentPfx} "));
-
-        container.AppendText(sb.ToString().TrimEnd());
-        AppendMedia(container, node.Message.Attachments, node.Message.Embeds);
+        AppendBlock(container, node, $"-# {prefix}{connector} ", $"-# {prefix}{contentCol} ");
 
         var outdent = isLast && hasMedia && node.Children.Count > 0;
         var childPfx = outdent ? $"-# {prefix}" : $"-# {prefix}{(isLast ? ReplySpacer : ReplyLine)}";
 
-        RenderTreeStandalones(container, node.Message, $"{childPfx} ", attached);
-
         for (var j = 0; j < node.Children.Count; j++)
         {
-            var childIsLast = j == node.Children.Count - 1;
             container.AppendText($"{childPfx}{ReplyLine}");
-            RenderTreeNode(container, node.Children[j], outdent ? [.. ancestorCols] : [.. ancestorCols, !isLast], childIsLast, attached, quotedMessageId);
+            RenderTreeNode(container, node.Children[j],
+                outdent ? [.. ancestorCols] : [.. ancestorCols, !isLast],
+                j == node.Children.Count - 1, quotedId);
         }
     }
 
-    private static void RenderTreeStandalones(
-        ContainerAccumulator container, IMessage host, string contentPfx,
-        Dictionary<ulong, List<IMessage>> attached)
+    /// <summary>One header for the block, then every member's content and media in channel order.</summary>
+    /// <returns>Whether the last thing rendered was a media gallery (the text column is broken).</returns>
+    private static bool AppendBlock(
+        ContainerAccumulator container, MessageBlock block,
+        string headerPrefix, string contentPrefix)
     {
-        if (!attached.TryGetValue(host.Id, out var list)) return;
-        foreach (var stan in list)
+        container.AppendText($"{headerPrefix}{FormatHeader(block.Head.Author.Mention, block.Head.Timestamp)}");
+
+        var lastHadMedia = false;
+        foreach (var message in block.Messages)
         {
-            var ssb = new StringBuilder();
-            if (stan.Author.Id != host.Author.Id)
+            var content = ExtractDisplayContent(message).TrimEnd();
+            if (!string.IsNullOrWhiteSpace(content))
             {
-                ssb.AppendLine(contentPfx.TrimEnd());
-                ssb.AppendLine($"{contentPfx}{FormatHeader(stan.Author.Mention, stan.Timestamp)}");
+                container.AppendText(PrefixLines(content, contentPrefix));
+                lastHadMedia = false;
             }
-            var sContent = ExtractDisplayContent(stan);
-            if (!string.IsNullOrWhiteSpace(sContent))
-                ssb.Append(PrefixLines(sContent, contentPfx));
-            if (ssb.Length > 0)
-            {
-                container.AppendText(ssb.ToString().TrimEnd());
-                AppendMedia(container, stan.Attachments, stan.Embeds);
-            }
+
+            if (AppendMedia(container, message.Attachments, message.Embeds))
+                lastHadMedia = true;
+        }
+
+        return lastHadMedia;
+    }
+
+    /// <summary>Block members Discord grouped before the quoted message, shown truncated as context.</summary>
+    private static void AppendEarlierMembers(
+        ContainerAccumulator container, MessageBlock block, ulong quotedId, string contentPrefix)
+    {
+        foreach (var message in block.Messages.TakeWhile(m => m.Id != quotedId))
+        {
+            var content = ExtractDisplayContent(message).TrimEnd();
+            if (!string.IsNullOrWhiteSpace(content))
+                container.AppendText(PrefixLines(content, contentPrefix));
+
+            AppendMedia(container, message.Attachments, message.Embeds);
         }
     }
 
-    private static void AppendPlainMessage(ContainerAccumulator container, IMessage message)
+    private static void AppendPlainBlock(ContainerAccumulator container, MessageBlock block, ulong quotedId)
     {
         container.FlushText();
+        container.AppendText(FormatHeader(block.Head.Author.Mention, block.Head.Timestamp));
+        AppendEarlierMembers(container, block, quotedId, "-# ");
 
-        var sb = new StringBuilder();
-        sb.AppendLine(FormatHeader(message.Author.Mention, message.Timestamp));
-
+        var message = block.Messages.First(m => m.Id == quotedId);
         if (!string.IsNullOrWhiteSpace(message.Content))
-            sb.Append(message.Content);
+            container.AppendText(message.Content.TrimEnd());
 
-        container.AppendText(sb.ToString().TrimEnd());
         container.FlushText();
+        AppendMessageDetails(container, message);
+    }
 
+    private static void AppendQuotedBlock(
+        ContainerAccumulator container, MessageBlock block, ulong quotedId, string emojiPrefix)
+    {
+        container.AppendText(
+            $"-# {emojiPrefix}{ReplyEnd} {FormatHeader(block.Head.Author.Mention, block.Head.Timestamp)}");
+        AppendEarlierMembers(container, block, quotedId, $"-# {emojiPrefix}{ReplySpacer} ");
+
+        var message = block.Messages.First(m => m.Id == quotedId);
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            container.AppendText(PrefixLines(message.Content.TrimEnd(), $"{emojiPrefix}{ReplySpacer} "));
+
+        container.FlushText();
+        AppendMessageDetails(container, message);
+    }
+
+    private static void AppendMessageDetails(ContainerAccumulator container, IMessage message)
+    {
         foreach (var embed in message.Embeds)
             AppendRenderedEmbed(container.Current, embed.Author?.Name, embed.Author?.Url,
                 embed.Title, embed.Url, embed.Description,
@@ -638,48 +560,6 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         AppendComponentsV2Text(container.Current, message.Components);
         AppendMedia(container, message.Attachments, message.Embeds);
         AppendFileAttachments(container.Current, message.Attachments);
-    }
-
-    private static void AppendQuotedMessage(
-        ContainerAccumulator container, IMessage message, string emojiPrefix)
-    {
-        var qsb = new StringBuilder();
-        qsb.AppendLine($"-# {emojiPrefix}{ReplyEnd} {FormatHeader(message.Author.Mention, message.Timestamp)}");
-
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            qsb.Append(PrefixLines(message.Content, $"{emojiPrefix}{ReplySpacer} "));
-
-        container.AppendText(qsb.ToString().TrimEnd());
-        container.FlushText();
-
-        foreach (var embed in message.Embeds)
-            AppendRenderedEmbed(container.Current, embed.Author?.Name, embed.Author?.Url,
-                embed.Title, embed.Url, embed.Description,
-                embed.Fields.Select(f => (f.Name, f.Value)),
-                embed.Footer?.Text);
-
-        AppendComponentsV2Text(container.Current, message.Components);
-        AppendMedia(container, message.Attachments, message.Embeds);
-        AppendFileAttachments(container.Current, message.Attachments);
-    }
-
-    private static Dictionary<ulong, List<IMessage>> AttachStandalonesToMessages(
-        List<IMessage> hosts, List<IMessage> standalones)
-    {
-        var attached = new Dictionary<ulong, List<IMessage>>();
-        foreach (var stan in standalones)
-        {
-            IMessage? host = null;
-            foreach (var h in hosts)
-            {
-                if (h.Timestamp <= stan.Timestamp) host = h;
-                else break;
-            }
-            if (host is null) continue;
-            if (!attached.ContainsKey(host.Id)) attached[host.Id] = [];
-            attached[host.Id].Add(stan);
-        }
-        return attached;
     }
 
     private async Task<bool> AppendLogReplyChain(ContainerBuilder container, MessageLog log)
@@ -977,15 +857,6 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var media = CollectMedia(attachments, embeds);
         if (media.Count > 0)
             container.WithMediaGallery(media);
-    }
-
-    private static ulong? GetReferencedMessageId(IMessage message)
-    {
-        var messageId = message.Reference?.MessageId;
-        if (messageId is null || !messageId.Value.IsSpecified)
-            return null;
-
-        return messageId.Value.Value;
     }
 
     private static string PrefixLines(string text, string prefix)
