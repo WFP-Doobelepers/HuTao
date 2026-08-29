@@ -212,6 +212,56 @@ public class QuoteRenderingTests
             """.ReplaceLineEndings("\n"), await Render(h3.Object, expanded: true));
     }
 
+    /// <summary>
+    ///     Same author, nobody in between, but seven minutes later: Discord draws a second header and still shows
+    ///     the message, so the quote must too.
+    /// </summary>
+    [Fact]
+    public async Task A_long_pause_gives_the_late_message_its_own_header_instead_of_dropping_it()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var a = Msg(channel.Object, 1, PersonA, 0, "something");
+        var h1 = Msg(channel.Object, 2, Hime, 60, "I see, if that's the case we should do that", replyTo: 1);
+        var h2 = Msg(channel.Object, 3, Hime, 60 + 7 * 60, "And then we should also do this");
+        var quoted = Msg(channel.Object, 4, PersonB, 60 + 8 * 60, "Ohh really? This is interesting!", replyTo: 2);
+        History(channel, 4, a, h1, h2);
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ something
+            -# │
+            -# ├ <@200> · <t>
+            -# │ I see, if that's the case we should do that
+            -# │
+            -# │ <@200> · <t>
+            -# │ And then we should also do this
+            <@300> · <t>
+            Ohh really? This is interesting!
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object));
+    }
+
+    [Fact]
+    public async Task A_long_pause_inside_the_quoted_message_own_turn_also_gets_its_own_header()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var a = Msg(channel.Object, 1, PersonA, 0, "something");
+        var h1 = Msg(channel.Object, 2, Hime, 60, "I see, if that's the case we should do that", replyTo: 1);
+        var h2 = Msg(channel.Object, 3, Hime, 60 + 7 * 60, "And then we should also do this");
+        History(channel, 3, a, h1);
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ something
+            <@200> · <t>
+            -# I see, if that's the case we should do that
+            -#
+            -# <@200> · <t>
+            And then we should also do this
+            """.ReplaceLineEndings("\n"), await Render(h2.Object));
+    }
+
     [Fact]
     public async Task Plain_message_without_a_chain_renders_alone()
     {

@@ -108,8 +108,11 @@ public class MessageBlockTests
         Assert.Equal([1UL], chain.Select(b => b.Head.Id));
     }
 
+    private static IEnumerable<(ulong Id, bool StartsHeader)> Headers(MessageBlock block)
+        => block.Flattened().Select(f => (f.Message.Id, f.StartsHeader));
+
     [Fact]
-    public void Same_author_exactly_seven_minutes_later_starts_a_new_block()
+    public void A_pause_of_exactly_seven_minutes_keeps_the_turn_but_starts_a_new_header()
     {
         var blockOf = MessageBlock.Partition(
         [
@@ -118,12 +121,12 @@ public class MessageBlockTests
             Msg(3, Hime, 60 + 7 * 60),
         ]);
 
-        Assert.NotSame(blockOf[2], blockOf[3]);
-        Assert.Null(blockOf[3].ParentId);
+        Assert.Same(blockOf[2], blockOf[3]);
+        Assert.Equal([(2UL, true), (3UL, true)], Headers(blockOf[2]));
     }
 
     [Fact]
-    public void Same_author_just_under_seven_minutes_stays_in_the_block()
+    public void A_pause_just_under_seven_minutes_stays_under_the_same_header()
     {
         var blockOf = MessageBlock.Partition(
         [
@@ -133,10 +136,11 @@ public class MessageBlockTests
         ]);
 
         Assert.Same(blockOf[2], blockOf[3]);
+        Assert.Equal([(2UL, true), (3UL, false)], Headers(blockOf[2]));
     }
 
     [Fact]
-    public void Gap_is_measured_from_the_block_head_not_the_previous_message()
+    public void Header_gap_is_measured_from_the_current_header_not_the_previous_message()
     {
         var blockOf = MessageBlock.Partition(
         [
@@ -145,7 +149,20 @@ public class MessageBlockTests
             Msg(3, Hime, 12 * 60),
         ]);
 
-        Assert.Same(blockOf[1], blockOf[2]);
+        // Measured from the previous message every gap is 6 minutes and nothing would split.
+        Assert.Equal([(1UL, true), (2UL, false), (3UL, true)], Headers(blockOf[1]));
+    }
+
+    [Fact]
+    public void Another_author_in_between_ends_the_turn_even_within_seven_minutes()
+    {
+        var blockOf = MessageBlock.Partition(
+        [
+            Msg(1, Hime, 0),
+            Msg(2, PersonB, 10),
+            Msg(3, Hime, 20),
+        ]);
+
         Assert.NotSame(blockOf[1], blockOf[3]);
     }
 

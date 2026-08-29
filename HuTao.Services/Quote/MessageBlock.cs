@@ -7,13 +7,14 @@ using Discord;
 namespace HuTao.Services.Quote;
 
 /// <summary>
-///     One visual group in the Discord client: a head message plus the follow-ups Discord draws under the same
-///     author header (same author, not a reply, sent less than <see cref="MaxGroupGap" /> after the head).
+///     One author's uninterrupted turn: a head message plus the messages that same author sent straight after it,
+///     with nobody else in between and no new reply among them.
 /// </summary>
 /// <remarks>
-///     Mirrors the client's <c>shouldStartNewGroup</c>: the gap is measured from the group head, not the previous
-///     message, and is strict. Skipped on purpose: the viewer-local "same calendar day" check (the bot has no
-///     viewer timezone), webhook username comparison, ephemeral/silent/scheduled flags.
+///     A long pause does not end the turn, it only makes the Discord client draw a second header — see
+///     <see cref="Flattened" />, which mirrors the client's <c>shouldStartNewGroup</c>: the gap is measured from
+///     the group's first message, not the previous one, and is strict. Skipped on purpose: the viewer-local
+///     "same calendar day" check (the bot has no viewer timezone), ephemeral/silent/scheduled flags.
 /// </remarks>
 public sealed class MessageBlock(IMessage head)
 {
@@ -39,13 +40,29 @@ public sealed class MessageBlock(IMessage head)
             ? id.Value
             : null;
 
+    /// <summary>Whether <paramref name="current" /> is the same author still talking, uninterrupted.</summary>
     public static bool IsContinuation(IMessage head, IMessage current)
         => current.Type == MessageType.Default
             && current.Flags?.HasFlag(MessageFlags.HasThread) is not true
             && IsUserMessage(head)
             && current.Author.Id == head.Author.Id
-            && (!current.Author.IsWebhook || current.Author.Username == head.Author.Username)
-            && current.Timestamp - head.Timestamp < MaxGroupGap;
+            && (!current.Author.IsWebhook || current.Author.Username == head.Author.Username);
+
+    /// <summary>
+    ///     Every message in the turn, flagged with whether Discord would draw a fresh author header above it
+    ///     because it landed <see cref="MaxGroupGap" /> or more after the current header's message.
+    /// </summary>
+    public IEnumerable<(IMessage Message, bool StartsHeader)> Flattened()
+    {
+        IMessage? groupHead = null;
+        foreach (var message in Messages)
+        {
+            var starts = groupHead is null || message.Timestamp - groupHead.Timestamp >= MaxGroupGap;
+            if (starts) groupHead = message;
+
+            yield return (message, starts);
+        }
+    }
 
     private static bool IsUserMessage(IMessage message)
         => message.Type is MessageType.Default or MessageType.Reply

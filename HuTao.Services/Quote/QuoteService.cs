@@ -481,17 +481,26 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         }
     }
 
-    /// <summary>One header for the block, then every member's content and media in channel order.</summary>
+    /// <summary>
+    ///     The whole turn: the author's header, their messages, and a fresh header wherever a long pause makes
+    ///     Discord draw one. The extra headers sit in the content column, unconnected to the reply tree.
+    /// </summary>
     /// <returns>Whether the last thing rendered was a media gallery (the text column is broken).</returns>
     private static bool AppendBlock(
         ContainerAccumulator container, MessageBlock block,
         string headerPrefix, string contentPrefix)
     {
-        container.AppendText($"{headerPrefix}{FormatHeader(block.Head.Author.Mention, block.Head.Timestamp)}");
-
         var lastHadMedia = false;
-        foreach (var message in block.Messages)
+        var first = true;
+
+        foreach (var (message, startsHeader) in block.Flattened())
         {
+            if (startsHeader)
+            {
+                AppendGroupHeader(container, message, first ? headerPrefix : contentPrefix, first, contentPrefix);
+                first = false;
+            }
+
             var content = ExtractDisplayContent(message).TrimEnd();
             if (!string.IsNullOrWhiteSpace(content))
             {
@@ -506,12 +515,33 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return lastHadMedia;
     }
 
-    /// <summary>Block members Discord grouped before the quoted message, shown truncated as context.</summary>
-    private static void AppendEarlierMembers(
-        ContainerAccumulator container, MessageBlock block, ulong quotedId, string contentPrefix)
+    private static void AppendGroupHeader(
+        ContainerAccumulator container, IMessage message, string prefix, bool first, string contentPrefix)
     {
-        foreach (var message in block.Messages.TakeWhile(m => m.Id != quotedId))
+        if (!first) container.AppendText(contentPrefix.TrimEnd());
+        container.AppendText($"{prefix}{FormatHeader(message.Author.Mention, message.Timestamp)}");
+    }
+
+    /// <summary>
+    ///     Renders the quoted message's own turn: earlier messages of that turn as truncated context, extra
+    ///     headers where Discord would draw them, then the quoted message itself at full length.
+    /// </summary>
+    private static void AppendOwnBlock(
+        ContainerAccumulator container, MessageBlock block, ulong quotedId,
+        string firstHeaderPrefix, string contentPrefix)
+    {
+        var first = true;
+
+        foreach (var (message, startsHeader) in block.Flattened())
         {
+            if (startsHeader)
+            {
+                AppendGroupHeader(container, message, first ? firstHeaderPrefix : contentPrefix, first, contentPrefix);
+                first = false;
+            }
+
+            if (message.Id == quotedId) break;
+
             var content = ExtractDisplayContent(message).TrimEnd();
             if (!string.IsNullOrWhiteSpace(content))
                 container.AppendText(PrefixLines(content, contentPrefix));
@@ -523,8 +553,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     private static void AppendPlainBlock(ContainerAccumulator container, MessageBlock block, ulong quotedId)
     {
         container.FlushText();
-        container.AppendText(FormatHeader(block.Head.Author.Mention, block.Head.Timestamp));
-        AppendEarlierMembers(container, block, quotedId, "-# ");
+        AppendOwnBlock(container, block, quotedId, "", "-# ");
 
         var message = block.Messages.First(m => m.Id == quotedId);
         if (!string.IsNullOrWhiteSpace(message.Content))
@@ -537,9 +566,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     private static void AppendQuotedBlock(
         ContainerAccumulator container, MessageBlock block, ulong quotedId, string emojiPrefix)
     {
-        container.AppendText(
-            $"-# {emojiPrefix}{ReplyEnd} {FormatHeader(block.Head.Author.Mention, block.Head.Timestamp)}");
-        AppendEarlierMembers(container, block, quotedId, $"-# {emojiPrefix}{ReplySpacer} ");
+        AppendOwnBlock(container, block, quotedId,
+            $"-# {emojiPrefix}{ReplyEnd} ", $"-# {emojiPrefix}{ReplySpacer} ");
 
         var message = block.Messages.First(m => m.Id == quotedId);
         if (!string.IsNullOrWhiteSpace(message.Content))
