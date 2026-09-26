@@ -145,4 +145,18 @@ public sealed class MessageBlock(IMessage head)
             });
         }
     }
+
+    /// <summary>Links only the reply chain: each ancestor gets the block below it as its one child.</summary>
+    /// <param name="chain">Ancestors of <paramref name="quoted" />, nearest first.</param>
+    public static void LinkChain(IEnumerable<MessageBlock> chain, MessageBlock quoted)
+    {
+        quoted.Children.Clear();
+        var below = quoted;
+        foreach (var ancestor in chain)
+        {
+            ancestor.Children.Clear();
+            ancestor.Children.Add(below);
+            below = ancestor;
+        }
+    }
 }

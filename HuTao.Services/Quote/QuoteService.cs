@@ -54,6 +54,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         private ContainerBuilder _current = new();
         private int _currentTextSize;
         private readonly StringBuilder _textBuffer = new();
+        private readonly List<int> _breaks = [];
 
         public void AppendText(string text)
         {
@@ -62,11 +63,21 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             _textBuffer.Append(text);
         }
 
+        /// <summary>Marks the start of the next text as a good place to end a message, because a turn starts there.</summary>
+        public void MarkBreak()
+        {
+            if (_textBuffer.Length > 0)
+                _breaks.Add(_textBuffer.Length);
+        }
+
         public void FlushText()
         {
             if (_textBuffer.Length == 0) return;
             var remaining = _textBuffer.ToString();
+            var breaks = _breaks.ToList();
+            var consumed = 0;
             _textBuffer.Clear();
+            _breaks.Clear();
 
             Log.Debug("[Quote] FlushText: buffer={BufferLen}, currentSize={CurrentSize}, budget={Budget}",
                 remaining.Length, _currentTextSize, MaxDisplayTextSize - _currentTextSize);
@@ -90,11 +101,20 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                     break;
                 }
 
-                var splitIdx = remaining.LastIndexOf('\n', Math.Min(budget, remaining.Length) - 1);
+                // Rails cannot cross from one message to the next, so end the message where a turn starts: the header
+                // then stays with its text. Fall back to any line break when no turn starts in the second half.
+                var splitIdx = breaks
+                    .Select(b => b - consumed)
+                    .Where(b => b > budget / 2 && b <= budget)
+                    .DefaultIfEmpty(-1)
+                    .Max();
+                if (splitIdx <= 0) splitIdx = remaining.LastIndexOf('\n', Math.Min(budget, remaining.Length) - 1);
                 if (splitIdx <= 0) splitIdx = budget;
 
-                var chunk = remaining[..splitIdx];
-                remaining = remaining[splitIdx..].TrimStart('\n');
+                var chunk = remaining[..splitIdx].TrimEnd('\r', '\n');
+                var rest = remaining[splitIdx..];
+                remaining = rest.TrimStart('\r', '\n');
+                consumed += splitIdx + rest.Length - remaining.Length;
 
                 Log.Debug("[Quote] FlushText: splitting at {SplitIdx}, chunk={ChunkLen}, remaining={RemainingLen}",
                     splitIdx, chunk.Length, remaining.Length);
@@ -349,11 +369,15 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (chain.Count == 0) return false;
 
+        // The modes differ only in what they collect: collapsed links the reply chain alone, expanded links every
+        // block in the window. One layout draws both.
+        var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
         if (expanded)
-            AppendTreeMode(container, message.Id, chain, quoted, blockOf);
+            MessageBlock.LinkChildren(blockOf, trunk);
         else
-            AppendFlatMode(container, message.Id, chain, quoted);
+            MessageBlock.LinkChain(chain, quoted);
 
+        AppendRail(container, chain[^1], trunk, message.Id);
         return true;
     }
 
@@ -394,90 +418,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         }
     }
 
-    private static void AppendFlatMode(
-        ContainerAccumulator container, ulong quotedId,
-        List<MessageBlock> chain, MessageBlock quoted)
+    private static void AppendRail(
+        ContainerAccumulator container, MessageBlock root, IReadOnlySet<ulong> trunk, ulong quotedId)
     {
-        var lastHadMedia = false;
-        for (var i = chain.Count - 1; i >= 0; i--)
+        foreach (var row in QuoteLayout.Layout(root, trunk))
         {
-            var isRoot = i == chain.Count - 1;
-            if (!isRoot) container.AppendText($"-# {ReplyLine}");
-
-            lastHadMedia = AppendBlock(container, chain[i],
-                $"-# {(isRoot ? ReplyStart : ReplyChain)} ", $"-# {ReplyLine} ");
-        }
-
-        if (lastHadMedia)
-            AppendQuotedBlock(container, quoted, quotedId, "");
-        else
-            AppendPlainBlock(container, quoted, quotedId);
-    }
-
-    private static void AppendTreeMode(
-        ContainerAccumulator container, ulong quotedId,
-        List<MessageBlock> chain, MessageBlock quoted,
-        Dictionary<ulong, MessageBlock> blockOf)
-    {
-        var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
-        MessageBlock.LinkChildren(blockOf, trunk);
-
-        var root = chain[^1];
-
-        // Keep the trunk flat until the first branch, then nest from there on.
-        // The quoted block always stays nested under its parent so "reply to X" reads differently from "sibling of X".
-        var items = new List<MessageBlock>();
-        var walk = root;
-        while (walk.Children.Count == 1
-               && trunk.Contains(walk.Children[0].Head.Id)
-               && !walk.Children[0].Contains(quotedId))
-        {
-            var next = walk.Children[0];
-            walk.Children.Clear();
-            items.Add(next);
-            walk = next;
-        }
-
-        items.AddRange(root.Children);
-
-        AppendBlock(container, root, $"-# {ReplyStart} ", $"-# {ReplyLine} ");
-
-        for (var i = 0; i < items.Count; i++)
-        {
-            container.AppendText($"-# {ReplyLine}");
-            RenderTreeNode(container, items[i], [], i == items.Count - 1, quotedId);
-        }
-    }
-
-    private static void RenderTreeNode(
-        ContainerAccumulator container, MessageBlock node,
-        List<bool> ancestorCols, bool isLast, ulong quotedId)
-    {
-        var prefix = string.Concat(ancestorCols.Select(c => c ? ReplyLine : ReplySpacer));
-
-        if (node.Contains(quotedId))
-        {
-            AppendQuotedBlock(container, node, quotedId, prefix);
-            return;
-        }
-
-        var hasMedia = node.Messages.Any(m => CollectMedia(m.Attachments, m.Embeds).Count > 0);
-        var effectiveLast = isLast && !(hasMedia && node.Children.Count > 0);
-
-        var connector = effectiveLast ? ReplyEnd : ReplyChain;
-        var contentCol = effectiveLast ? ReplySpacer : ReplyLine;
-
-        AppendBlock(container, node, $"-# {prefix}{connector} ", $"-# {prefix}{contentCol} ");
-
-        var outdent = isLast && hasMedia && node.Children.Count > 0;
-        var childPfx = outdent ? $"-# {prefix}" : $"-# {prefix}{(isLast ? ReplySpacer : ReplyLine)}";
-
-        for (var j = 0; j < node.Children.Count; j++)
-        {
-            container.AppendText($"{childPfx}{ReplyLine}");
-            RenderTreeNode(container, node.Children[j],
-                outdent ? [.. ancestorCols] : [.. ancestorCols, !isLast],
-                j == node.Children.Count - 1, quotedId);
+            switch (row)
+            {
+                case QuoteLayout.GapRow gap:
+                    container.AppendText($"-# {Emoji(gap.Cells)}");
+                    break;
+                case QuoteLayout.TurnRow turn when turn.Block.Contains(quotedId):
+                    container.MarkBreak();
+                    AppendQuotedTurn(container, turn, quotedId);
+                    break;
+                case QuoteLayout.TurnRow turn:
+                    container.MarkBreak();
+                    AppendBlock(container, turn.Block, Prefix(turn.Cells), Prefix(turn.ContentCells));
+                    break;
+            }
         }
     }
 
@@ -485,12 +444,11 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     ///     The whole turn: the author's header, their messages, and a fresh header wherever a long pause makes
     ///     Discord draw one. The extra headers sit in the content column, unconnected to the reply tree.
     /// </summary>
-    /// <returns>Whether the last thing rendered was a media gallery (the text column is broken).</returns>
-    private static bool AppendBlock(
+    /// <remarks>An image breaks the text, so the rails stop above it and carry on below it.</remarks>
+    private static void AppendBlock(
         ContainerAccumulator container, MessageBlock block,
         string headerPrefix, string contentPrefix)
     {
-        var lastHadMedia = false;
         var first = true;
 
         foreach (var (message, startsHeader) in block.Flattened())
@@ -503,16 +461,10 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
             var content = ExtractDisplayContent(message).TrimEnd();
             if (!string.IsNullOrWhiteSpace(content))
-            {
                 container.AppendText(PrefixLines(content, contentPrefix));
-                lastHadMedia = false;
-            }
 
-            if (AppendMedia(container, message.Attachments, message.Embeds))
-                lastHadMedia = true;
+            AppendMedia(container, message.Attachments, message.Embeds);
         }
-
-        return lastHadMedia;
     }
 
     private static void AppendGroupHeader(
@@ -550,28 +502,21 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         }
     }
 
-    private static void AppendPlainBlock(ContainerAccumulator container, MessageBlock block, ulong quotedId)
+    /// <summary>
+    ///     The quoted message's turn. At the end of the main rail it has no gutter, so the line above runs straight
+    ///     into its header, and the quoted message itself is full size.
+    /// </summary>
+    private static void AppendQuotedTurn(ContainerAccumulator container, QuoteLayout.TurnRow turn, ulong quotedId)
     {
-        container.FlushText();
-        AppendOwnBlock(container, block, quotedId, "", "-# ");
+        var header = turn.Cells.Count == 0 ? "" : Prefix(turn.Cells);
+        AppendOwnBlock(container, turn.Block, quotedId, header, Prefix(turn.ContentCells));
 
-        var message = block.Messages.First(m => m.Id == quotedId);
+        var message = turn.Block.Messages.First(m => m.Id == quotedId);
         if (!string.IsNullOrWhiteSpace(message.Content))
-            container.AppendText(message.Content.TrimEnd());
-
-        container.FlushText();
-        AppendMessageDetails(container, message);
-    }
-
-    private static void AppendQuotedBlock(
-        ContainerAccumulator container, MessageBlock block, ulong quotedId, string emojiPrefix)
-    {
-        AppendOwnBlock(container, block, quotedId,
-            $"-# {emojiPrefix}{ReplyEnd} ", $"-# {emojiPrefix}{ReplySpacer} ");
-
-        var message = block.Messages.First(m => m.Id == quotedId);
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            container.AppendText(PrefixLines(message.Content.TrimEnd(), $"{emojiPrefix}{ReplySpacer} "));
+        {
+            var body = turn.ContentCells.Count == 0 ? "" : $"{Emoji(turn.ContentCells)} ";
+            container.AppendText(PrefixLines(message.Content.TrimEnd(), body));
+        }
 
         container.FlushText();
         AppendMessageDetails(container, message);
@@ -863,18 +808,14 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return media;
     }
 
-    private static bool AppendMedia(
+    private static void AppendMedia(
         ContainerAccumulator acc,
         IReadOnlyCollection<IAttachment> attachments,
-        IReadOnlyCollection<IEmbed> embeds,
-        string? connectorBefore = null)
+        IReadOnlyCollection<IEmbed> embeds)
     {
         var media = CollectMedia(attachments, embeds);
-        if (media.Count == 0) return false;
-        if (connectorBefore is not null)
-            acc.AppendText(connectorBefore);
-        acc.AddMediaGallery(media);
-        return true;
+        if (media.Count > 0)
+            acc.AddMediaGallery(media);
     }
 
     private static void AppendMedia(
@@ -889,6 +830,19 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
     private static string PrefixLines(string text, string prefix)
         => prefix + text.Replace("\n", $"\n{prefix}");
+
+    /// <summary>The subtext prefix for a line after these gutter cells: <c>-# </c>, the emoji, then a space.</summary>
+    private static string Prefix(IReadOnlyList<RailCell> cells)
+        => cells.Count == 0 ? "-# " : $"-# {Emoji(cells)} ";
+
+    private static string Emoji(IEnumerable<RailCell> cells) => string.Concat(cells.Select(cell => cell switch
+    {
+        RailCell.Line => ReplyLine,
+        RailCell.Tee  => ReplyChain,
+        RailCell.Top  => ReplyStart,
+        RailCell.End  => ReplyEnd,
+        _             => ReplySpacer
+    }));
 
     private static string FormatHeader(string mention, DateTimeOffset timestamp)
         => $"{mention} · <t:{timestamp.ToUnixTimeSeconds()}:R>";

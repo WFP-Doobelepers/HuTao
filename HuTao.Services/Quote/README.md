@@ -7,8 +7,8 @@ This document is written in ASD-STE100 Simplified Technical English.
 This document tells you how the bot builds a quote. It gives the main rule, the
 other rules, and the reason for each rule.
 
-Read this document before you change `MessageBlock.cs` or the reply-chain part of
-`QuoteService.cs`.
+Read this document before you change `MessageBlock.cs`, `QuoteLayout.cs` or the
+reply-chain part of `QuoteService.cs`.
 
 ## 2 Technical names and technical verbs
 
@@ -38,13 +38,19 @@ in all parts of the document.
 | header | The line that shows the author and the time above a group of messages. |
 | header group | The messages below one header. See paragraph 4.2. |
 | reply chain | The turns above the quoted turn. See paragraph 4.3. |
+| root | The first turn of the reply chain. It is the oldest turn in the quote. |
+| trunk | The reply chain and the quoted turn. |
 | window | The messages that the bot reads before the quoted message. See paragraph 5.1. |
-| collapsed mode | The first quote. The bot shows the reply chain as a straight line. |
-| expanded mode | The quote after a user pushes the Expand button. The bot shows a tree. |
+| collapsed mode | The first quote. The bot shows only the trunk. |
+| expanded mode | The quote after a user pushes the Expand button. The bot shows all the turns in the window that the root connects. |
 | tree | The arrangement of the turns in expanded mode. A turn is below the turn that it replies to. |
 | parent | The turn that contains the message at the reply reference. |
 | child | A turn whose first message replies to a message in a different turn. |
+| sibling | A turn that has the same parent as a different turn. |
+| fork | A turn that has two or more children. |
 | connector | The symbol at the start of a line that shows the shape of the reply chain. |
+| rail | A vertical line of connectors. A rail connects the turns that are on it. |
+| main rail | The rail at the left side of the quote. The trunk is on it. |
 | content column | The part of a line to the right of the connector. The bot puts the message text there. |
 | class | A named part of the code. |
 | function | A named part of the code that does one operation. |
@@ -162,30 +168,66 @@ If the reply chain is empty, the bot shows the quoted message alone. The bot doe
 not show the window. This is also the result when the bot cannot get the parent
 message.
 
-### 5.4 Step 4: Show the turns
+### 5.4 Step 4: Link the turns
 
-In collapsed mode, the bot shows the turns of the reply chain in a straight line.
-The oldest turn is first. The quoted turn is last.
+The two modes are different only in this step.
 
-In expanded mode, the bot shows a tree. A turn is a child of the turn that
-contains its reply reference. The bot shows all the turns of the tree. When a turn
-has more than one child, the bot puts the child that is in the reply chain last.
+- In collapsed mode, the bot links only the trunk. Each turn of the reply chain
+  has one child. This child is the next turn of the trunk.
+- In expanded mode, the bot links all the turns in the window. A turn is a child
+  of the turn that contains its reply reference. When a turn has more than one
+  child, the child in the trunk is last.
+
+A turn that the root does not connect is not in the quote.
+
+The code for this step is the `MessageBlock.LinkChain` function and the
+`MessageBlock.LinkChildren` function.
+
+### 5.5 Step 5: Put the turns on rails
+
+The two modes use the same layout. The layout uses these rules:
+
+1. The trunk is on the main rail.
+2. Siblings are on the same rail.
+3. If a turn is not in the trunk and has a sibling on its rail, the children of
+   that turn go on a new rail. The new rail is one column to the right, below the
+   text of that turn.
+4. If a turn has no sibling on its rail, its child continues on the same rail. A
+   turn in the trunk always continues on the main rail.
+5. The quoted turn is the last turn on the main rail. It has no connector. The
+   main rail goes directly into its header.
+
+Each turn, except the quoted turn, has one of these connectors at its header:
+
+- `reply_right` (`┌`): the first turn of the quote.
+- `reply_t` (`├`): a turn that has more turns below it on its rail.
+- `reply` (`└`): the last turn of a rail that is not the main rail.
+
+A `reply_line` (`│`) continues a rail. A `reply_spacer` (`·`) fills a column where
+a rail stopped.
 
 In the two modes, the bot shows each header group with its own header. The extra
 headers are in the content column. They do not have a connector, thus they do not
-look like a new turn in the reply chain.
+look like a new turn.
 
-### 5.5 Step 5: Send the quote
+An image stops the text. The rails stop above the image and continue below it.
+
+The code for this step is the `QuoteLayout` class.
+
+### 5.6 Step 6: Send the quote
 
 The bot puts the text in a container. A container holds a maximum of 3800
 characters of text. If the text is longer, the bot sends more than one container.
+Each container is a different Discord message, thus a rail cannot go from one
+container to the next. The bot ends a container where a turn starts, if possible.
+The rails then stop at the end of one container and continue in the next.
 
 For each message, the bot also shows the images. For the quoted message only, the
 bot also shows the other files, the text of the embeds, and the text of the
 components.
 
 The quote has a Jump button and an Expand button. When a user pushes the Expand
-button, the bot does step 1 to step 5 again in expanded mode. It then changes the
+button, the bot does step 1 to step 6 again in expanded mode. It then changes the
 same quote. The button then becomes a Collapse button.
 
 If the bot cannot find the message at the link, and the message is in the deleted
@@ -259,20 +301,43 @@ This is the second defect in the first report. A message such as `Good morning!`
 came into the quote, because the earlier code put each message below the nearest
 author above it.
 
-### 6.6 Why the quoted turn stays below its parent in the tree
+### 6.6 Why a straight reply chain stays on one rail
 
-In expanded mode, the bot moves a turn up to the level of its parent if that
-parent has only one child, and that child is in the reply chain. This prevents too
-many levels in a long reply chain.
+An earlier version of the bot moved each reply one column to the right. A long
+reply chain then went far to the right, and the text became narrow. A straight
+reply chain has no fork, thus a new column does not give the user more
+information.
 
-The bot does not move the quoted turn up. The position of the quoted turn shows
-the user which message the author answered.
+The bot adds a column only below a turn that has a sibling after it. The new
+column keeps the children of that turn apart from the sibling. Without the new
+column, the children look like replies to the sibling.
 
-If the bot moves the quoted turn up, two different conversations look the same. A
-reply to the first author and a reply to the second author then give the same
-text.
+This rule has a cost. Two different conversations can give the same text:
 
-### 6.7 Why the window is the 100 messages before the quoted message
+- Turn B replies to turn A, and turn C replies to turn B.
+- Turn B and turn C both reply to turn A.
+
+In the two conversations, the quote shows turn A, turn B and turn C on one rail.
+This cost is accepted, because a quote with fewer columns is easier to read.
+
+### 6.7 Why the quoted turn has no connector
+
+The Discord client shows a reply below the message that it replies to. A line
+goes from the reply up to that message. The reply itself has no connector.
+
+The quoted turn is the reply that the user asks for. Thus the bot shows it in the
+same shape: the main rail goes directly into its header.
+
+### 6.8 Why the two modes use one layout
+
+An earlier version of the bot had a different layout for each mode. The same
+turns then had different connectors in the two modes.
+
+Now the two modes are different only in the turns that they link (step 4). The
+layout (step 5) is the same. Thus collapsed mode shows the same text as expanded
+mode, without the turns that are not in the trunk.
+
+### 6.9 Why the window is the 100 messages before the quoted message
 
 The bot must know if the quoted message is part of a longer turn. The quoted
 message can be a message that is not a reply. The parent then comes from the first
@@ -281,7 +346,7 @@ message of its turn.
 The bot cannot find the turn without the messages before the quoted message. Thus
 the bot reads them first.
 
-### 6.8 Why a forwarded message and a system message are not replies
+### 6.10 Why a forwarded message and a system message are not replies
 
 Discord puts a reference on a forwarded message, on a pin message and on a
 thread-start message. These references are not reply references.
@@ -290,7 +355,7 @@ The bot accepts a reference only from a message with the Discord type Reply. If
 the bot accepts the other references, the bot shows a reply chain that does not
 exist.
 
-### 6.9 Why the bot must compare the webhook name
+### 6.11 Why the bot must compare the webhook name
 
 All messages from one webhook have the same author identification. A webhook can
 send each message with a different display name.
@@ -303,7 +368,13 @@ them.
 If the bot does not compare the display name, the bot shows the words of one
 person below the name of a different person.
 
-## 7 Example
+## 7 Examples
+
+In the text below, these symbols replace the Discord emoji: `┌` is `reply_right`,
+`├` is `reply_t`, `└` is `reply`, `│` is `reply_line`, and `·` is `reply_spacer`.
+The bot shows a mention and a relative time in each header.
+
+### 7.1 A straight reply chain
 
 The channel has these messages:
 
@@ -324,10 +395,6 @@ The turns are:
 
 A user quotes message 5. The reply chain is turn 2 and turn 1.
 
-In the text below, these symbols replace the Discord emoji: `┌` is `reply_right`,
-`├` is `reply_t`, `└` is `reply`, `│` is `reply_line`, and `·` is `reply_spacer`.
-The bot shows a mention and a relative time in each header.
-
 The quote in collapsed mode is:
 
 ```
@@ -337,11 +404,13 @@ The quote in collapsed mode is:
 -# ├ <@200> · <t:1756468860:R>
 -# │ I see
 -# │ And then
+-# │
 <@300> · <t:1756469010:R>
 Ohh really?
 ```
 
-Message 4 is not in the quote. Turn 3 is not in the reply chain.
+Message 4 is not in the quote. The root does not connect turn 3. The quote in
+expanded mode is the same, because the conversation has no fork.
 
 If message 3 comes 7 minutes after message 2, the quote is:
 
@@ -354,11 +423,61 @@ If message 3 comes 7 minutes after message 2, the quote is:
 -# │
 -# │ <@200> · <t:1756469280:R>
 -# │ And then
+-# │
 <@300> · <t:1756469340:R>
 Ohh really?
 ```
 
 Message 3 stays in the quote. It has a second header and a second time.
+
+### 7.2 A fork
+
+The channel has these messages:
+
+| Number | Author | Message | Reply to |
+|---|---|---|---|
+| 1 | person A (100) | something | - |
+| 2 | hime-san (200) | I see | 1 |
+| 3 | person B (300) | Good point | 1 |
+| 4 | person C (400) | Agreed | 3 |
+| 5 | person D (500) | Ohh really? | 1 |
+
+A user quotes message 5. Turn 1 is a fork: message 2, message 3 and message 5
+reply to it. The trunk is turn 1 and turn 5.
+
+The quote in expanded mode is:
+
+```
+-# ┌ <@100> · <t:1756468800:R>
+-# │ something
+-# │
+-# ├ <@200> · <t:1756468860:R>
+-# │ I see
+-# │
+-# ├ <@300> · <t:1756468920:R>
+-# │ Good point
+-# ││
+-# │└ <@400> · <t:1756468950:R>
+-# │· Agreed
+-# │
+<@500> · <t:1756468980:R>
+Ohh really?
+```
+
+Message 2, message 3 and message 5 are siblings, thus they are on the main rail.
+Message 3 has a sibling after it, thus its child (message 4) goes on a new rail.
+
+The quote in collapsed mode is:
+
+```
+-# ┌ <@100> · <t:1756468800:R>
+-# │ something
+-# │
+<@500> · <t:1756468980:R>
+Ohh really?
+```
+
+This is the text of expanded mode, without the turns that are not in the trunk.
 
 ## 8 Limits
 
@@ -367,6 +486,9 @@ These limits are known. Change them only with a test.
 - The window is 100 messages. If a turn starts before the window, the bot shows
   only the part of that turn that is in the window. The bot also does not get the
   reply reference of the first message of that turn.
+- The window has only messages before the quoted message. Thus the quote does not
+  show a reply that a user sends after the quoted message. This is also true in
+  expanded mode.
 - If the bot gets a parent message from outside the window, that turn has one
   message only. The bot does not show the other messages of that turn.
 - The reply chain has a maximum of 10 turns above the quoted turn. Thus the quote
@@ -374,6 +496,9 @@ These limits are known. Change them only with a test.
 - For each message before the quoted message, the bot shows a maximum of 200
   characters and then an ellipsis. This limit applies to the message content, to
   the text of the embeds, and to the text of the components.
+- The Discord client wraps a long line of text. The wrapped part has no
+  connector, thus the rail has a gap there. The 200-character limit keeps most
+  lines short.
 - The bot does not use the calendar-day rule of the Discord client, because the
   bot does not know the time zone of the user.
 - The bot reads the window with the permissions of the bot. It does not read the
@@ -386,6 +511,8 @@ These test files test the rules of this document:
 - `HuTao.Tests/Services/Quote/MessageBlockTests.cs` — the turns, the header
   groups, and the reply chain.
 - `HuTao.Tests/Services/Quote/QuoteRenderingTests.cs` — the text of the quote.
-  Most of these tests compare the full text, character by character.
+  Most of these tests compare the full text, character by character. Each test
+  without an image also makes sure that each connector touches a different
+  connector, or the text directly above it, or the header of the quoted turn.
 
 Add a test to these files when you change a rule in this document.
