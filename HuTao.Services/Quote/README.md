@@ -238,13 +238,20 @@ quote again. The bot stops when the quote fits.
 3. The bot hides the first turn too. Only the quoted turn stays.
 4. The bot shortens the text of the quoted message, and adds an ellipsis.
 
-Where the bot removes something, it puts a marker: a separator, one line, and a
-separator again. The line tells what is not shown, for example
-`truncated (12 messages)`. If the bot only removes loose turns, or only shortens
-the quoted message, the marker is at the end of the quote.
+Where the bot removes something, it puts one line at the same place. The line
+tells what is not shown, for example `truncated (12 messages)`.
 
-The marker has a Show all button. When a user pushes it, the bot sends the full
-quote to that user only. The full quote has no limit, thus it can be more than
+- Where the bot hides turns in the middle, the line has a separator above it and
+  a separator below it.
+- Where the bot removes only loose turns, the line is in the content column where
+  the loose turns were. It has no separators, thus the rails stay connected. A
+  separator is a component, and a message can have a maximum of 40 components.
+- Where the bot shortens the quoted message, the line is directly below the
+  shortened text, for example `truncated (1,234 characters)`.
+
+When the bot removes something, the quote also gets a Show all button, next to
+the Jump button. When a user pushes it, the bot sends the full quote to that user
+only. The full quote has no limit, thus it can be more than
 one message. Each message is a different Discord message, thus a rail cannot go
 from one message to the next. The bot ends a message where a turn starts, if
 possible. The bot sends the full quote only to a user who can read the channel of

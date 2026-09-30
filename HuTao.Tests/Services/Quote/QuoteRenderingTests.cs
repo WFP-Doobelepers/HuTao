@@ -86,9 +86,6 @@ public class QuoteRenderingTests
     private static int TextLength(IEnumerable<ContainerBuilder> containers)
         => containers.SelectMany(c => c.Components).SelectMany(TextOf).Sum(t => t.Length);
 
-    private static ButtonBuilder? ShowAllButton(IEnumerable<ContainerBuilder> containers)
-        => containers.SelectMany(c => c.Components).OfType<SectionBuilder>()
-            .Select(s => s.Accessory).OfType<ButtonBuilder>().SingleOrDefault();
 
     /// <summary>
     ///     Replaces the connector emoji with box characters and timestamps with &lt;t&gt; so assertions stay readable.
@@ -728,31 +725,30 @@ public class QuoteRenderingTests
 
         for (ulong id = 2; id <= 61; id++)
             Assert.Contains($"{id}: {text}", rendered);
-        Assert.Null(ShowAllButton(containers));
+        Assert.DoesNotContain("truncated", rendered);
     }
 
     /// <summary>
-    ///     The posted quote always fits in one message. The root and the quoted turn stay, the middle is hidden
-    ///     behind a marker, and the marker's button asks for everything.
+    ///     The posted quote always fits in one message. The root and the quoted turn stay, and the middle is hidden
+    ///     behind one "truncated" line between two separators.
     /// </summary>
     [Fact]
     public async Task A_long_quote_hides_its_middle_to_fit_in_one_message()
     {
         var (quoted, text) = LongConversation();
 
-        var containers = await QuoteService.BuildMessageContainer(quoted, expanded: true);
+        var built = await QuoteService.BuildQuote(quoted, expanded: true);
         var rendered = await Render(quoted, expanded: true);
 
-        Assert.Single(containers);
-        Assert.True(TextLength(containers) <= 3800);
+        Assert.True(built.Truncated);
+        Assert.Single(built.Containers);
+        Assert.True(TextLength(built.Containers) <= 3800);
         Assert.StartsWith("-# ┌ <@100> · <t>\n-# │ the parser is too slow\n", rendered);
         Assert.EndsWith("<@100> · <t>\nok", rendered);
         Assert.Contains($"2: {text}", rendered);
         Assert.Contains($"61: {text}", rendered);
         Assert.Matches(@"\n-# truncated \(\d+ messages\)\n", rendered);
         Assert.DoesNotContain($"31: {text}", rendered);
-        Assert.Equal("quote:all:0:62:1", ShowAllButton(containers)?.CustomId);
-        Assert.Equal("Show all", ShowAllButton(containers)?.Label);
     }
 
     /// <summary>Hiding one turn is enough here, and the turn hidden is the one in the middle.</summary>
@@ -760,9 +756,10 @@ public class QuoteRenderingTests
     public async Task A_quote_slightly_too_long_hides_only_the_middle_turn()
     {
         var full = TextLength(await QuoteService.BuildMessageContainer(Quote(20)));
-        var containers = await QuoteService.BuildMessageContainer(Quote(20), budget: full - 1);
-        AssertLinesConnect(containers);
+        var built = await QuoteService.BuildQuote(Quote(20), budget: full - 1);
+        AssertLinesConnect(built.Containers);
 
+        Assert.True(built.Truncated);
         Assert.Equal(
             """
             -# ┌ <@100> · <t>
@@ -789,24 +786,34 @@ public class QuoteRenderingTests
             -# │
             <@200> · <t>
             great, let's ship the fix
-            """.ReplaceLineEndings("\n"), Sym(Text(containers)));
-        Assert.Equal("quote:all:0:20:0", ShowAllButton(containers)?.CustomId);
+            """.ReplaceLineEndings("\n"), Sym(Text(built.Containers)));
     }
 
-    /// <summary>Unrelated turns go first, before any turn of the conversation is hidden.</summary>
+    /// <summary>
+    ///     Unrelated turns go first, before any turn of the conversation is hidden. The line that says so stands in
+    ///     the rail, exactly where Cyra's messages were.
+    /// </summary>
     [Fact]
-    public async Task A_quote_too_long_drops_unrelated_messages_first()
+    public async Task A_quote_too_long_drops_unrelated_messages_first_and_marks_the_spot()
     {
         var full = TextLength(await QuoteService.BuildMessageContainer(Quote(19), expanded: true));
-        var containers = await QuoteService.BuildMessageContainer(Quote(19), expanded: true, budget: full - 1);
-        AssertLinesConnect(containers);
-        var text = Sym(Text(containers));
+        var built = await QuoteService.BuildQuote(Quote(19), expanded: true, budget: full - 1);
+        AssertLinesConnect(built.Containers);
+        var text = Sym(Text(built.Containers));
 
+        Assert.True(built.Truncated);
         Assert.DoesNotContain("good morning everyone", text);
-        Assert.DoesNotContain("truncated", text);
         Assert.Contains("what about the lexer?", text);
-        Assert.EndsWith("<@200> · <t>\nnice, ship it\n-# 2 unrelated left out", text);
-        Assert.Equal("quote:all:0:19:1", ShowAllButton(containers)?.CustomId);
+        Assert.Contains(
+            """
+            -# ││ did you profile it?
+            -# ││
+            -# ││ *truncated (2 messages)*
+            -# ││
+            -# │├ <@200> · <t>
+            -# ││ yes, forty percent of runtime
+            """.ReplaceLineEndings("\n"), text);
+        Assert.EndsWith("<@200> · <t>\nnice, ship it", text);
     }
 
     /// <summary>When the quoted message alone is too long, its text is shortened as the last resort.</summary>
@@ -817,23 +824,42 @@ public class QuoteRenderingTests
         var quoted = Msg(channel.Object, 1, Hime, 0, string.Concat(Enumerable.Repeat("0123456789", 50)));
         History(channel, 1);
 
-        var containers = await QuoteService.BuildMessageContainer(quoted.Object, budget: 200);
-        var text = Sym(Text(containers));
+        var built = await QuoteService.BuildQuote(quoted.Object, budget: 200);
+        var text = Sym(Text(built.Containers));
 
-        Assert.Single(containers);
-        Assert.True(TextLength(containers) <= 200);
-        Assert.Contains("…", text);
-        Assert.EndsWith("-# quoted message shortened", text);
-        Assert.NotNull(ShowAllButton(containers));
+        Assert.True(built.Truncated);
+        Assert.Single(built.Containers);
+        Assert.True(TextLength(built.Containers) <= 200);
+        Assert.Matches(@"…\n-# \*truncated \(\d+ characters\)\*$", text);
     }
 
     [Fact]
-    public async Task A_quote_that_fits_has_no_marker()
+    public async Task A_quote_that_fits_is_not_truncated()
     {
-        var containers = await QuoteService.BuildMessageContainer(Quote(19), expanded: true);
+        var built = await QuoteService.BuildQuote(Quote(19), expanded: true);
 
-        Assert.Null(ShowAllButton(containers));
-        Assert.DoesNotContain("truncated", Sym(Text(containers)));
+        Assert.False(built.Truncated);
+        Assert.DoesNotContain("truncated", Sym(Text(built.Containers)));
+    }
+
+    /// <summary>A truncated quote gets a "Show all" button in its footer, next to Jump and Expand.</summary>
+    [Theory]
+    [InlineData(true, false, "quote:all:20:30:0")]
+    [InlineData(true, true, "quote:all:20:30:1")]
+    [InlineData(false, false, null)]
+    public void The_footer_offers_show_all_only_for_a_truncated_quote(bool truncated, bool expanded, string? id)
+    {
+        var container = new ContainerBuilder();
+        var requester = new Mock<IUser>();
+        requester.SetupGet(u => u.Mention).Returns("<@9>");
+
+        QuoteService.AppendFooter(
+            (container, "https://discord.com/channels/10/20/30", new JumpMessage(10, 20, 30, false), truncated),
+            requester.Object, expanded);
+
+        var buttons = container.Components.OfType<ActionRowBuilder>().Single().Components.OfType<ButtonBuilder>().ToList();
+        Assert.Equal(id, buttons.SingleOrDefault(b => b.Label == "Show all")?.CustomId);
+        Assert.Contains(buttons, b => b.Label == (expanded ? "Collapse" : "Expand"));
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -51,7 +52,10 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
     private const int MaxDisplayTextSize = 3800;
     private const int MaxComponents = 40;
-    private const int FooterComponents = 5;
+    private const int FooterComponents = 6;
+
+    /// <param name="Truncated">Whether the quote left something out to fit in one message.</param>
+    internal sealed record BuiltQuote(List<ContainerBuilder> Containers, bool Truncated);
 
     /// <summary>What a quote leaves out so that it fits in one message.</summary>
     /// <param name="DroppedLoose">How many loose turns to leave out, oldest first.</param>
@@ -195,16 +199,16 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             .DistinctBy(j => j.MessageId)
             .ToList();
 
-        var containers = new List<(ContainerBuilder Container, string JumpUrl, JumpMessage? Jump)>();
+        var containers = new List<(ContainerBuilder Container, string JumpUrl, JumpMessage? Jump, bool Truncated)>();
 
         foreach (var jump in jumpMessages)
         {
             var message = await jump.GetMessageAsync(context);
             if (message is not null)
             {
-                var built = await BuildMessageContainer(message, expanded);
-                foreach (var c in built)
-                    containers.Add((c, message.GetJumpUrl(), jump));
+                var built = await BuildQuote(message, expanded);
+                foreach (var c in built.Containers)
+                    containers.Add((c, message.GetJumpUrl(), jump, built.Truncated));
                 continue;
             }
 
@@ -222,7 +226,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             var log = await logging.GetLatestMessage(jump.GuildId, jump.ChannelId, jump.MessageId);
             if (log is null || log.Guild.Id != context.Guild.Id) continue;
 
-            containers.Add((await BuildLogContainer(log), log.GetJumpUrl(), null));
+            containers.Add((await BuildLogContainer(log), log.GetJumpUrl(), null, false));
         }
 
         if (containers.Count == 0)
@@ -231,7 +235,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         AppendFooter(containers[^1], requester, expanded);
 
         var results = new List<MessageComponent>();
-        foreach (var (container, _, _) in containers)
+        foreach (var (container, _, _, _) in containers)
         {
             var builder = new ComponentBuilderV2();
             builder.WithContainer(container);
@@ -252,14 +256,14 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var message = await channel.GetMessageAsync(messageId);
         if (message is null) return [];
 
-        var containers = await BuildMessageContainer(message, expanded);
-        if (containers.Count == 0) return [];
+        var built = await BuildQuote(message, expanded);
+        if (built.Containers.Count == 0) return [];
 
         var jumpUrl = $"https://discord.com/channels/{guild.Id}/{channelId}/{messageId}";
         var jump = new JumpMessage(guild.Id, channelId, messageId, false);
 
-        var tagged = containers
-            .Select(c => (Container: c, JumpUrl: jumpUrl, Jump: (JumpMessage?) jump))
+        var tagged = built.Containers
+            .Select(c => (Container: c, JumpUrl: jumpUrl, Jump: (JumpMessage?) jump, built.Truncated))
             .ToList();
 
         AppendFooter(tagged[^1], requester, expanded);
@@ -288,8 +292,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return containers.Select(c => new ComponentBuilderV2().WithContainer(c).Build()).ToList();
     }
 
-    private static void AppendFooter(
-        (ContainerBuilder Container, string JumpUrl, JumpMessage? Jump) entry,
+    /// <remarks>A quote that had to leave something out gets a "Show all" button.</remarks>
+    internal static void AppendFooter(
+        (ContainerBuilder Container, string JumpUrl, JumpMessage? Jump, bool Truncated) entry,
         IUser requester, bool expanded)
     {
         entry.Container
@@ -307,39 +312,54 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 label,
                 $"quote:{action}:{entry.Jump.ChannelId}:{entry.Jump.MessageId}:{requester.Id}",
                 ButtonStyle.Secondary));
+
+            if (entry.Truncated)
+            {
+                row.WithButton(new ButtonBuilder(
+                    "Show all",
+                    $"quote:all:{entry.Jump.ChannelId}:{entry.Jump.MessageId}:{(expanded ? 1 : 0)}",
+                    ButtonStyle.Secondary));
+            }
         }
 
         entry.Container.WithActionRow(row);
     }
 
+    internal static async Task<List<ContainerBuilder>> BuildMessageContainer(
+        IMessage message, bool expanded = false, bool oneMessage = true, int budget = MaxDisplayTextSize)
+        => (await BuildQuote(message, expanded, oneMessage, budget)).Containers;
+
     /// <summary>
     ///     Builds the quote of <paramref name="message" />. With <paramref name="oneMessage" />, the quote always fits in
     ///     one Discord message: it leaves out loose turns first (oldest first), then hides turns from the middle, then
-    ///     the root, and last shortens the quoted message, until it fits. A marker with a "Show all" button stands
-    ///     where something was left out. Without <paramref name="oneMessage" />, nothing is left out, and a long quote
-    ///     takes several containers.
+    ///     the root, and last shortens the quoted message, until it fits. A "truncated" line stands where something was
+    ///     left out. Without <paramref name="oneMessage" />, nothing is left out, and a long quote takes several
+    ///     containers.
     /// </summary>
-    internal static async Task<List<ContainerBuilder>> BuildMessageContainer(
+    internal static async Task<BuiltQuote> BuildQuote(
         IMessage message, bool expanded = false, bool oneMessage = true, int budget = MaxDisplayTextSize)
     {
         var conversation = await CollectAsync(message, expanded);
 
-        var quote = Render(message, conversation, expanded, QuoteCut.None);
-        if (!oneMessage || Fits(quote, budget)) return quote;
+        var quote = Render(message, conversation, QuoteCut.None);
+        if (!oneMessage || Fits(quote, budget)) return new BuiltQuote(quote, false);
 
         var loose = conversation?.Loose.Count ?? 0;
         var turns = conversation?.TurnCount ?? 1;
         foreach (var cut in Cuts(loose, turns))
         {
-            quote = Render(message, conversation, expanded, cut);
-            if (Fits(quote, budget)) return quote;
+            quote = Render(message, conversation, cut);
+            if (Fits(quote, budget)) return new BuiltQuote(quote, true);
         }
 
         // The quoted turn alone is still too long, so its text gets the room that is left.
         var smallest = new QuoteCut(loose, 0, turns - 1);
-        var room = budget - Measure(Render(message, conversation, expanded, smallest with { QuotedTextLimit = 0 })).Text;
+        var room = budget - Measure(Render(message, conversation, smallest with { QuotedTextLimit = 0 })).Text;
         var limit = room - "…".Length - Environment.NewLine.Length;
-        return limit > 0 ? Render(message, conversation, expanded, smallest with { QuotedTextLimit = limit }) : quote;
+        if (limit > 0)
+            quote = Render(message, conversation, smallest with { QuotedTextLimit = limit });
+
+        return new BuiltQuote(quote, true);
     }
 
     /// <summary>The ways to shrink a quote, from the least left out to the most.</summary>
@@ -357,14 +377,13 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             yield return new QuoteCut(loose, 0, turns - 1);
     }
 
-    private static List<ContainerBuilder> Render(
-        IMessage message, Conversation? conversation, bool expanded, QuoteCut cut)
+    private static List<ContainerBuilder> Render(IMessage message, Conversation? conversation, QuoteCut cut)
     {
         var acc = new ContainerAccumulator();
         if (conversation is null)
-            AppendPlain(acc, message, expanded, cut);
+            AppendPlain(acc, message, cut);
         else
-            AppendRail(acc, conversation, message, expanded, cut);
+            AppendRail(acc, conversation, message, cut);
 
         return acc.Build();
     }
@@ -409,34 +428,33 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         return (text, count);
     }
 
+    private static string Truncated(int messages)
+        => $"truncated ({messages} {(messages == 1 ? "message" : "messages")})";
+
+    private static string Truncated(string what, int count)
+        => $"truncated ({count.ToString("N0", CultureInfo.InvariantCulture)} {what})";
+
     /// <summary>
-    ///     Stands where a quote left something out: a separator, one line that says what is missing with a "Show all"
-    ///     button, and a separator again.
+    ///     Stands where turns were hidden from the middle: a separator, one "truncated" line, and a separator again.
+    ///     The rails stop above it and carry on below it.
     /// </summary>
-    private static void AppendMarker(
-        ContainerAccumulator acc, IMessage message, bool expanded, int hidden, int dropped, bool shortened)
+    private static void AppendCut(ContainerAccumulator acc, int messages)
     {
-        var parts = new List<string>();
-        if (hidden > 0) parts.Add($"truncated ({hidden} {(hidden == 1 ? "message" : "messages")})");
-        if (dropped > 0) parts.Add($"{dropped} unrelated left out");
-        if (shortened) parts.Add("quoted message shortened");
-
-        var showAll = new ButtonBuilder(
-            "Show all", $"quote:all:{message.Channel.Id}:{message.Id}:{(expanded ? 1 : 0)}", ButtonStyle.Secondary);
-
         acc.AddSeparator();
-        acc.Current.WithSection([new TextDisplayBuilder($"-# {string.Join(" · ", parts)}")], showAll);
+        acc.Current.WithTextDisplay($"-# {Truncated(messages)}");
         acc.AddSeparator();
     }
 
-    private static void AppendPlain(ContainerAccumulator acc, IMessage message, bool expanded, QuoteCut cut)
+    private static void AppendPlain(ContainerAccumulator acc, IMessage message, QuoteCut cut)
     {
-        var (content, shortened) = Shorten(message.Content, cut.QuotedTextLimit);
+        var (content, removed) = Shorten(message.Content, cut.QuotedTextLimit);
 
         var sb = new StringBuilder();
         sb.AppendLine($"-# {FormatHeader(AuthorLabel(message.Author), message.Timestamp)}");
         if (!string.IsNullOrWhiteSpace(content))
-            sb.Append(content);
+            sb.AppendLine(content);
+        if (removed > 0)
+            sb.Append($"-# *{Truncated("characters", removed)}*");
 
         acc.AppendText(sb.ToString().TrimEnd());
         acc.FlushText();
@@ -450,17 +468,17 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         AppendComponentsV2Text(acc.Current, message.Components);
         AppendMedia(acc, message.Attachments, message.Embeds);
         AppendFileAttachments(acc.Current, message.Attachments);
-
-        if (shortened)
-            AppendMarker(acc, message, expanded, 0, 0, shortened: true);
     }
 
-    /// <summary>The quoted message's text, cut to <paramref name="limit" /> characters with an ellipsis if longer.</summary>
-    private static (string Text, bool Shortened) Shorten(string? text, int? limit)
+    /// <summary>
+    ///     The quoted message's text, cut to <paramref name="limit" /> characters with an ellipsis if longer, and how
+    ///     many characters were cut.
+    /// </summary>
+    private static (string Text, int Removed) Shorten(string? text, int? limit)
     {
         var trimmed = text?.TrimEnd() ?? "";
-        if (limit is not { } max || trimmed.Length <= max) return (trimmed, false);
-        return (max > 0 ? $"{trimmed[..max]}…" : "", true);
+        if (limit is not { } max || trimmed.Length <= max) return (trimmed, 0);
+        return (max > 0 ? $"{trimmed[..max]}…" : "", trimmed.Length - Math.Max(max, 0));
     }
 
     private async Task<ContainerBuilder> BuildLogContainer(MessageLog log)
@@ -594,63 +612,90 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     }
 
     private static void AppendRail(
-        ContainerAccumulator container, Conversation conversation, IMessage message, bool expanded, QuoteCut cut)
+        ContainerAccumulator container, Conversation conversation, IMessage message, QuoteCut cut)
     {
-        var rows = QuoteLayout.Layout(conversation.Root, conversation.Trunk, conversation.Loose.Skip(cut.DroppedLoose));
+        var dropped = conversation.Loose.Take(cut.DroppedLoose).ToHashSet();
 
-        // A segment is one turn with the gap rows below it; hiding a turn hides its segment.
-        var segments = new List<List<QuoteLayout.Row>>();
-        foreach (var row in rows)
+        // A segment is one turn with the gap rows below it. The loose turns stay in the layout even when they are
+        // left out, so that the line saying so stands where they were.
+        var segments = new List<(List<QuoteLayout.Row> Rows, bool Removed, bool Hidden)>();
+        var turn = 0;
+        foreach (var row in QuoteLayout.Layout(conversation.Root, conversation.Trunk, conversation.Loose))
         {
-            if (row is QuoteLayout.TurnRow or QuoteLayout.LooseRow || segments.Count == 0)
-                segments.Add([row]);
-            else
-                segments[^1].Add(row);
-        }
-
-        var hidden = segments.Skip(cut.HiddenStart).Take(cut.HiddenCount).Sum(s => BlockOf(s[0])?.Messages.Count ?? 0);
-        var dropped = conversation.Loose.Take(cut.DroppedLoose).Sum(b => b.Messages.Count);
-        var shortened = Shorten(message.Content, cut.QuotedTextLimit).Shortened;
-
-        for (var i = 0; i < segments.Count; i++)
-        {
-            if (cut.HiddenCount > 0 && i == cut.HiddenStart)
-                AppendMarker(container, message, expanded, hidden, dropped, shortened);
-
-            if (i >= cut.HiddenStart && i < cut.HiddenStart + cut.HiddenCount)
-                continue;
-
-            foreach (var row in segments[i])
+            switch (row)
             {
-                switch (row)
-                {
-                    case QuoteLayout.GapRow gap:
-                        container.AppendText($"-# {Emoji(gap.Cells)}");
-                        break;
-                    case QuoteLayout.LooseRow turn:
-                        container.MarkBreak();
-                        AppendBlock(container, turn.Block, Prefix(turn.Cells), Prefix(turn.Cells));
-                        break;
-                    case QuoteLayout.TurnRow turn when turn.Block.Contains(message.Id):
-                        container.MarkBreak();
-                        AppendQuotedTurn(container, turn, message.Id, cut.QuotedTextLimit);
-                        break;
-                    case QuoteLayout.TurnRow turn:
-                        container.MarkBreak();
-                        AppendBlock(container, turn.Block, Prefix(turn.Cells), Prefix(turn.ContentCells));
-                        break;
-                }
+                case QuoteLayout.TurnRow:
+                    var hidden = turn >= cut.HiddenStart && turn < cut.HiddenStart + cut.HiddenCount;
+                    segments.Add(([row], hidden, hidden));
+                    turn++;
+                    break;
+                case QuoteLayout.LooseRow loose:
+                    segments.Add(([row], dropped.Contains(loose.Block), false));
+                    break;
+                default:
+                    if (segments.Count == 0)
+                        segments.Add(([row], false, false));
+                    else
+                        segments[^1].Rows.Add(row);
+                    break;
             }
         }
 
-        if (cut.HiddenCount == 0 && (dropped > 0 || shortened))
-            AppendMarker(container, message, expanded, 0, dropped, shortened);
+        for (var i = 0; i < segments.Count; i++)
+        {
+            if (!segments[i].Removed)
+            {
+                foreach (var row in segments[i].Rows)
+                    AppendRow(row);
+                continue;
+            }
+
+            // Segments removed next to each other become one "truncated" line, where they were.
+            var end = i;
+            while (end + 1 < segments.Count && segments[end + 1].Removed) end++;
+            var run = segments.GetRange(i, end - i + 1);
+            var messages = run.Sum(s => BlockOf(s.Rows[0])?.Messages.Count ?? 0);
+
+            if (run.Any(s => s.Hidden))
+                AppendCut(container, messages);
+            else
+            {
+                // Only loose turns: one line in the text column they sat in, so the rails stay whole.
+                container.AppendText($"{Prefix(run[0].Rows[0].Cells)}*{Truncated(messages)}*");
+                foreach (var row in run[^1].Rows.Skip(1))
+                    AppendRow(row);
+            }
+
+            i = end;
+        }
+
+        void AppendRow(QuoteLayout.Row row)
+        {
+            switch (row)
+            {
+                case QuoteLayout.GapRow gap:
+                    container.AppendText($"-# {Emoji(gap.Cells)}");
+                    break;
+                case QuoteLayout.LooseRow loose:
+                    container.MarkBreak();
+                    AppendBlock(container, loose.Block, Prefix(loose.Cells), Prefix(loose.Cells));
+                    break;
+                case QuoteLayout.TurnRow quoted when quoted.Block.Contains(message.Id):
+                    container.MarkBreak();
+                    AppendQuotedTurn(container, quoted, message.Id, cut.QuotedTextLimit);
+                    break;
+                case QuoteLayout.TurnRow other:
+                    container.MarkBreak();
+                    AppendBlock(container, other.Block, Prefix(other.Cells), Prefix(other.ContentCells));
+                    break;
+            }
+        }
 
         static MessageBlock? BlockOf(QuoteLayout.Row row) => row switch
         {
-            QuoteLayout.TurnRow turn  => turn.Block,
-            QuoteLayout.LooseRow turn => turn.Block,
-            _                         => null
+            QuoteLayout.TurnRow t  => t.Block,
+            QuoteLayout.LooseRow t => t.Block,
+            _                      => null
         };
     }
 
@@ -727,12 +772,15 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         AppendOwnBlock(container, turn.Block, quotedId, header, Prefix(turn.ContentCells));
 
         var message = turn.Block.Messages.First(m => m.Id == quotedId);
-        var content = Shorten(message.Content, textLimit).Text;
+        var (content, removed) = Shorten(message.Content, textLimit);
         if (!string.IsNullOrWhiteSpace(content))
         {
             var body = turn.ContentCells.Count == 0 ? "" : $"{Emoji(turn.ContentCells)} ";
             container.AppendText(PrefixLines(content, body));
         }
+
+        if (removed > 0)
+            container.AppendText($"{Prefix(turn.ContentCells)}*{Truncated("characters", removed)}*");
 
         container.FlushText();
         AppendMessageDetails(container, message);
