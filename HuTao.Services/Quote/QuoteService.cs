@@ -74,7 +74,11 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     private sealed record Conversation(
         MessageBlock Root, IReadOnlySet<ulong> Trunk, List<MessageBlock> Loose, int TurnCount);
 
-    private class ContainerAccumulator
+    /// <param name="target">
+    ///     When set, each container aims at this much text instead of filling up to the limit, so the parts of a long
+    ///     quote come out about the same size.
+    /// </param>
+    private class ContainerAccumulator(int? target = null)
     {
         private readonly List<ContainerBuilder> _containers = [];
         private ContainerBuilder _current = new();
@@ -119,7 +123,12 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                     budget = MaxDisplayTextSize;
                 }
 
-                if (remaining.Length <= budget)
+                // With a target, a container ends near it and never past the limit. A little over the target is
+                // allowed, so that the last part does not spill into a small extra one.
+                var goal = Math.Min(budget, (target ?? MaxDisplayTextSize) - _currentTextSize);
+                var room = target is { } share ? Math.Min(budget, goal + share / 4) : budget;
+
+                if (remaining.Length <= room)
                 {
                     _current.WithTextDisplay(remaining);
                     _currentTextSize += remaining.Length;
@@ -127,14 +136,20 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                     break;
                 }
 
+                if (goal <= 0)
+                {
+                    FlushContainer();
+                    continue;
+                }
+
                 // Rails cannot cross from one message to the next, so end the message where a turn starts: the header
-                // then stays with its text. Fall back to any line break when no turn starts in the second half.
-                var splitIdx = breaks
-                    .Select(b => b - consumed)
-                    .Where(b => b > budget / 2 && b <= budget)
-                    .DefaultIfEmpty(-1)
-                    .Max();
-                if (splitIdx <= 0) splitIdx = remaining.LastIndexOf('\n', Math.Min(budget, remaining.Length) - 1);
+                // then stays with its text. Without a target, take the last turn start in the second half; with one,
+                // the turn start nearest to it. Fall back to any line break.
+                var starts = breaks.Select(b => b - consumed).Where(b => b > 0 && b <= budget).ToList();
+                var splitIdx = target is null
+                    ? starts.Where(b => b > budget / 2).DefaultIfEmpty(-1).Max()
+                    : starts.OrderBy(b => Math.Abs(b - goal)).DefaultIfEmpty(-1).First();
+                if (splitIdx <= 0) splitIdx = remaining.LastIndexOf('\n', Math.Min(goal, remaining.Length) - 1);
                 if (splitIdx <= 0) splitIdx = budget;
 
                 var chunk = remaining[..splitIdx].TrimEnd('\r', '\n');
@@ -333,7 +348,19 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var conversation = await CollectAsync(message, expanded);
 
         var quote = Render(message, conversation, expanded, QuoteCut.None);
-        if (!oneMessage || Fits(quote, budget)) return new BuiltQuote(quote, false);
+        if (!oneMessage)
+        {
+            // Nothing is left out, so a long quote takes several messages. They share the text about evenly,
+            // instead of one full message followed by a scrap.
+            var text = Measure(quote).Text;
+            var parts = (int) Math.Ceiling(text / (double) MaxDisplayTextSize);
+            if (parts > 1)
+                quote = Render(message, conversation, expanded, QuoteCut.None, text / parts + 1);
+
+            return new BuiltQuote(quote, false);
+        }
+
+        if (Fits(quote, budget)) return new BuiltQuote(quote, false);
 
         var loose = conversation?.Loose.Count ?? 0;
         var turns = conversation?.TurnCount ?? 1;
@@ -368,11 +395,12 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             yield return new QuoteCut(loose, 0, turns - 1);
     }
 
+    /// <param name="target">The text each container aims at, when a long quote is split into several.</param>
     private static List<ContainerBuilder> Render(
-        IMessage message, Conversation? conversation, bool expanded, QuoteCut cut)
+        IMessage message, Conversation? conversation, bool expanded, QuoteCut cut, int? target = null)
     {
         var showAll = $"quote:all:{message.Channel.Id}:{message.Id}:{(expanded ? 1 : 0)}";
-        var acc = new ContainerAccumulator();
+        var acc = new ContainerAccumulator(target);
         if (conversation is null)
             AppendPlain(acc, message, cut, showAll);
         else

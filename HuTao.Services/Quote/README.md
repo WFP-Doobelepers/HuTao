@@ -250,8 +250,9 @@ middle, so that the quote has fewer lines of this type.
 Each line of this type has a Show all button beside it. When a user pushes it,
 the bot sends the full quote to that user only. The full quote has no limit, thus it can be more than
 one message. Each message is a different Discord message, thus a rail cannot go
-from one message to the next. The bot ends a message where a turn starts, if
-possible. The bot sends the full quote only to a user who can read the channel of
+from one message to the next. The bot divides the text into messages of
+approximately the same size. It ends each message where a turn starts, as near as
+possible to that size. The bot sends the full quote only to a user who can read the channel of
 the quoted message.
 
 For each message, the bot also shows the images. For the quoted message only, the

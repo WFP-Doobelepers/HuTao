@@ -688,18 +688,38 @@ public class QuoteRenderingTests
         Assert.ThrowsAny<Exception>(() => AssertLinesConnect(broken));
     }
 
-    /// <summary>A root, a 60-turn side branch, and a quoted reply to the root: far too long for one message.</summary>
-    private static (IUserMessage Quoted, string LineText) LongConversation()
+    /// <summary>A root, a side branch of <paramref name="turns" /> turns, and a quoted reply to the root.</summary>
+    private static (IUserMessage Quoted, string LineText) LongConversation(int turns = 60)
     {
         var channel = new Mock<IMessageChannel>();
         var c = channel.Object;
         var text = string.Concat(Enumerable.Repeat("a long line of text that fills the message ", 2)).TrimEnd();
         var history = new List<Mock<IUserMessage>> { Msg(c, 1, Aria, 0, "the parser is too slow") };
-        for (ulong id = 2; id <= 61; id++)
+        var last = (ulong) turns + 1;
+        for (ulong id = 2; id <= last; id++)
             history.Add(Msg(c, id, id % 2 == 0 ? Blaise : Cyra, (int) id, $"{id}: {text}", replyTo: id - 1));
-        var quoted = Msg(c, 62, Aria, 90, "ok", replyTo: 1);
-        History(channel, 62, history.ToArray());
+        var quoted = Msg(c, last + 1, Aria, 200, "ok", replyTo: 1);
+        History(channel, last + 1, history.ToArray());
         return (quoted.Object, text);
+    }
+
+    /// <summary>
+    ///     A quote a little too long for one message splits into two parts of about the same size, not one full part
+    ///     and a scrap.
+    /// </summary>
+    [Fact]
+    public async Task Show_all_splits_a_quote_into_parts_of_about_the_same_size()
+    {
+        var (quoted, _) = LongConversation(turns: 13);
+
+        var containers = await QuoteService.BuildMessageContainer(quoted, expanded: true, oneMessage: false);
+        AssertLinesConnect(containers);
+
+        var total = TextLength(containers);
+        Assert.InRange(total, 3801, 7600);
+        Assert.Equal(2, containers.Count);
+        foreach (var part in containers)
+            Assert.InRange(TextLength([part]), total * 3 / 10, total * 7 / 10);
     }
 
     /// <summary>
