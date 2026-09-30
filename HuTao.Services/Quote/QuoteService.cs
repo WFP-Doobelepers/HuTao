@@ -429,19 +429,19 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     }
 
     private static string Truncated(int messages)
-        => $"truncated ({messages} {(messages == 1 ? "message" : "messages")})";
+        => $"{messages} {(messages == 1 ? "message" : "messages")} truncated";
 
     private static string Truncated(string what, int count)
-        => $"truncated ({count.ToString("N0", CultureInfo.InvariantCulture)} {what})";
+        => $"{count.ToString("N0", CultureInfo.InvariantCulture)} {what} truncated";
 
     /// <summary>
-    ///     Stands where turns were hidden from the middle: a separator, one "truncated" line, and a separator again.
+    ///     Stands exactly where a quote left something out: a separator, one "truncated" line, and a separator again.
     ///     The rails stop above it and carry on below it.
     /// </summary>
-    private static void AppendCut(ContainerAccumulator acc, int messages)
+    private static void AppendCut(ContainerAccumulator acc, string line)
     {
         acc.AddSeparator();
-        acc.Current.WithTextDisplay($"-# {Truncated(messages)}");
+        acc.Current.WithTextDisplay($"-# {line}");
         acc.AddSeparator();
     }
 
@@ -452,12 +452,13 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var sb = new StringBuilder();
         sb.AppendLine($"-# {FormatHeader(AuthorLabel(message.Author), message.Timestamp)}");
         if (!string.IsNullOrWhiteSpace(content))
-            sb.AppendLine(content);
-        if (removed > 0)
-            sb.Append($"-# *{Truncated("characters", removed)}*");
+            sb.Append(content);
 
         acc.AppendText(sb.ToString().TrimEnd());
         acc.FlushText();
+
+        if (removed > 0)
+            AppendCut(acc, Truncated("characters", removed));
 
         foreach (var embed in message.Embeds)
             AppendRenderedEmbed(acc.Current, embed.Author?.Name, embed.Author?.Url,
@@ -616,25 +617,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var dropped = conversation.Loose.Take(cut.DroppedLoose).ToHashSet();
 
+
         // A segment is one turn with the gap rows below it. The loose turns stay in the layout even when they are
         // left out, so that the line saying so stands where they were.
-        var segments = new List<(List<QuoteLayout.Row> Rows, bool Removed, bool Hidden)>();
+        var segments = new List<(List<QuoteLayout.Row> Rows, bool Removed)>();
         var turn = 0;
         foreach (var row in QuoteLayout.Layout(conversation.Root, conversation.Trunk, conversation.Loose))
         {
             switch (row)
             {
                 case QuoteLayout.TurnRow:
-                    var hidden = turn >= cut.HiddenStart && turn < cut.HiddenStart + cut.HiddenCount;
-                    segments.Add(([row], hidden, hidden));
+                    segments.Add(([row], turn >= cut.HiddenStart && turn < cut.HiddenStart + cut.HiddenCount));
                     turn++;
                     break;
                 case QuoteLayout.LooseRow loose:
-                    segments.Add(([row], dropped.Contains(loose.Block), false));
+                    segments.Add(([row], dropped.Contains(loose.Block)));
                     break;
                 default:
                     if (segments.Count == 0)
-                        segments.Add(([row], false, false));
+                        segments.Add(([row], false));
                     else
                         segments[^1].Rows.Add(row);
                     break;
@@ -656,16 +657,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             var run = segments.GetRange(i, end - i + 1);
             var messages = run.Sum(s => BlockOf(s.Rows[0])?.Messages.Count ?? 0);
 
-            if (run.Any(s => s.Hidden))
-                AppendCut(container, messages);
-            else
-            {
-                // Only loose turns: one line in the text column they sat in, so the rails stay whole.
-                container.AppendText($"{Prefix(run[0].Rows[0].Cells)}*{Truncated(messages)}*");
-                foreach (var row in run[^1].Rows.Skip(1))
-                    AppendRow(row);
-            }
-
+            AppendCut(container, Truncated(messages));
             i = end;
         }
 
@@ -780,7 +772,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         }
 
         if (removed > 0)
-            container.AppendText($"{Prefix(turn.ContentCells)}*{Truncated("characters", removed)}*");
+            AppendCut(container, Truncated("characters", removed));
 
         container.FlushText();
         AppendMessageDetails(container, message);

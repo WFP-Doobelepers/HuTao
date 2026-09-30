@@ -747,7 +747,7 @@ public class QuoteRenderingTests
         Assert.EndsWith("<@100> · <t>\nok", rendered);
         Assert.Contains($"2: {text}", rendered);
         Assert.Contains($"61: {text}", rendered);
-        Assert.Matches(@"\n-# truncated \(\d+ messages\)\n", rendered);
+        Assert.Matches(@"\n-# \d+ messages truncated\n", rendered);
         Assert.DoesNotContain($"31: {text}", rendered);
     }
 
@@ -774,7 +774,7 @@ public class QuoteRenderingTests
             -# ├ <@100> · <t>
             -# │ did you profile it?
             -# │
-            -# truncated (1 message)
+            -# 1 message truncated
             -# ├ <@100> · <t>
             -# │ numbers or it did not happen
             -# │
@@ -790,8 +790,8 @@ public class QuoteRenderingTests
     }
 
     /// <summary>
-    ///     Unrelated turns go first, before any turn of the conversation is hidden. The line that says so stands in
-    ///     the rail, exactly where Cyra's messages were.
+    ///     Unrelated turns go first, before any turn of the conversation is hidden. The "truncated" line stands
+    ///     between two separators, exactly where Cyra's messages were.
     /// </summary>
     [Fact]
     public async Task A_quote_too_long_drops_unrelated_messages_first_and_marks_the_spot()
@@ -808,8 +808,7 @@ public class QuoteRenderingTests
             """
             -# ││ did you profile it?
             -# ││
-            -# ││ *truncated (2 messages)*
-            -# ││
+            -# 2 messages truncated
             -# │├ <@200> · <t>
             -# ││ yes, forty percent of runtime
             """.ReplaceLineEndings("\n"), text);
@@ -830,7 +829,7 @@ public class QuoteRenderingTests
         Assert.True(built.Truncated);
         Assert.Single(built.Containers);
         Assert.True(TextLength(built.Containers) <= 200);
-        Assert.Matches(@"…\n-# \*truncated \(\d+ characters\)\*$", text);
+        Assert.Matches(@"…\n-# \d+ characters truncated$", text);
     }
 
     [Fact]

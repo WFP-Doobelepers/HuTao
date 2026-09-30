@@ -238,16 +238,14 @@ quote again. The bot stops when the quote fits.
 3. The bot hides the first turn too. Only the quoted turn stays.
 4. The bot shortens the text of the quoted message, and adds an ellipsis.
 
-Where the bot removes something, it puts one line at the same place. The line
-tells what is not shown, for example `truncated (12 messages)`.
+Where the bot removes something, it puts a separator, one line, and a separator
+again, at the same place. The line tells what is not shown, for example
+`12 messages truncated`. Where the bot shortens the quoted message, the line is
+directly below the shortened text, for example `1,234 characters truncated`.
 
-- Where the bot hides turns in the middle, the line has a separator above it and
-  a separator below it.
-- Where the bot removes only loose turns, the line is in the content column where
-  the loose turns were. It has no separators, thus the rails stay connected. A
-  separator is a component, and a message can have a maximum of 40 components.
-- Where the bot shortens the quoted message, the line is directly below the
-  shortened text, for example `truncated (1,234 characters)`.
+Each separator is a component, and a message can have a maximum of 40 components.
+Thus, in a channel with many loose turns, the bot can hide more turns in the
+middle, so that the quote has fewer lines of this type.
 
 When the bot removes something, the quote also gets a Show all button, next to
 the Jump button. When a user pushes it, the bot sends the full quote to that user
@@ -402,6 +400,10 @@ message of its turn.
 
 The bot cannot find the turn without the messages before the quoted message. Thus
 the bot reads them first.
+
+The bot does not read the messages after the quoted message, also in expanded
+mode. A quote shows the quoted message and the conversation that comes before it.
+A user who wants to show a later message quotes that later message.
 
 ### 6.11 Why a forwarded message and a system message are not replies
 
