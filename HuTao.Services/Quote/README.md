@@ -247,9 +247,8 @@ Each separator is a component, and a message can have a maximum of 40 components
 Thus, in a channel with many loose turns, the bot can hide more turns in the
 middle, so that the quote has fewer lines of this type.
 
-When the bot removes something, the quote also gets a Show all button, next to
-the Jump button. When a user pushes it, the bot sends the full quote to that user
-only. The full quote has no limit, thus it can be more than
+Each line of this type has a Show all button beside it. When a user pushes it,
+the bot sends the full quote to that user only. The full quote has no limit, thus it can be more than
 one message. Each message is a different Discord message, thus a rail cannot go
 from one message to the next. The bot ends a message where a turn starts, if
 possible. The bot sends the full quote only to a user who can read the channel of

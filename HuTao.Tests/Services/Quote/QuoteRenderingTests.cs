@@ -841,24 +841,23 @@ public class QuoteRenderingTests
         Assert.DoesNotContain("truncated", Sym(Text(built.Containers)));
     }
 
-    /// <summary>A truncated quote gets a "Show all" button in its footer, next to Jump and Expand.</summary>
-    [Theory]
-    [InlineData(true, false, "quote:all:20:30:0")]
-    [InlineData(true, true, "quote:all:20:30:1")]
-    [InlineData(false, false, null)]
-    public void The_footer_offers_show_all_only_for_a_truncated_quote(bool truncated, bool expanded, string? id)
+    /// <summary>Each "truncated" line has a "Show all" button beside it, in a section between the separators.</summary>
+    [Fact]
+    public async Task Each_truncated_line_has_a_show_all_button_beside_it()
     {
-        var container = new ContainerBuilder();
-        var requester = new Mock<IUser>();
-        requester.SetupGet(u => u.Mention).Returns("<@9>");
+        var full = TextLength(await QuoteService.BuildMessageContainer(Quote(20)));
+        var built = await QuoteService.BuildQuote(Quote(20), budget: full - 1);
 
-        QuoteService.AppendFooter(
-            (container, "https://discord.com/channels/10/20/30", new JumpMessage(10, 20, 30, false), truncated),
-            requester.Object, expanded);
+        var section = built.Containers.SelectMany(c => c.Components).OfType<SectionBuilder>().Single();
+        Assert.Equal("-# 1 message truncated", section.Components.OfType<TextDisplayBuilder>().Single().Content);
+        var button = Assert.IsType<ButtonBuilder>(section.Accessory);
+        Assert.Equal("Show all", button.Label);
+        Assert.Equal("quote:all:0:20:0", button.CustomId);
 
-        var buttons = container.Components.OfType<ActionRowBuilder>().Single().Components.OfType<ButtonBuilder>().ToList();
-        Assert.Equal(id, buttons.SingleOrDefault(b => b.Label == "Show all")?.CustomId);
-        Assert.Contains(buttons, b => b.Label == (expanded ? "Collapse" : "Expand"));
+        var components = built.Containers.Single().Components;
+        var at = components.IndexOf(section);
+        Assert.IsType<SeparatorBuilder>(components[at - 1]);
+        Assert.IsType<SeparatorBuilder>(components[at + 1]);
     }
 
     [Fact]
