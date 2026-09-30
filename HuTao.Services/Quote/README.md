@@ -223,13 +223,32 @@ An image stops the text. The rails stop above the image and continue below it.
 
 The code for this step is the `QuoteLayout` class.
 
-### 5.6 Step 6: Send the quote
+### 5.6 Step 6: Fit the quote into one message
 
-The bot puts the text in a container. A container holds a maximum of 3800
-characters of text. If the text is longer, the bot sends more than one container.
-Each container is a different Discord message, thus a rail cannot go from one
-container to the next. The bot ends a container where a turn starts, if possible.
-The rails then stop at the end of one container and continue in the next.
+The quote is always one Discord message, in collapsed mode and in expanded mode.
+The text of the quote can have a maximum of 3800 characters. If the quote is too
+long, the bot does these steps in sequence. After each step, the bot measures the
+quote again. The bot stops when the quote fits.
+
+1. The bot removes the loose turns, one at a time. The oldest loose turn goes
+   first.
+2. The bot hides turns in the middle of the quote. It hides one turn, then two
+   turns, and continues. The hidden turns are always in the middle. The first
+   turn and the quoted turn stay.
+3. The bot hides the first turn too. Only the quoted turn stays.
+4. The bot shortens the text of the quoted message, and adds an ellipsis.
+
+Where the bot removes something, it puts a marker: a separator, one line, and a
+separator again. The line tells what is not shown, for example
+`truncated (12 messages)`. If the bot only removes loose turns, or only shortens
+the quoted message, the marker is at the end of the quote.
+
+The marker has a Show all button. When a user pushes it, the bot sends the full
+quote to that user only. The full quote has no limit, thus it can be more than
+one message. Each message is a different Discord message, thus a rail cannot go
+from one message to the next. The bot ends a message where a turn starts, if
+possible. The bot sends the full quote only to a user who can read the channel of
+the quoted message.
 
 For each message, the bot also shows the images. For the quoted message only, the
 bot also shows the other files, the text of the embeds, and the text of the
@@ -237,7 +256,8 @@ components.
 
 The quote has a Jump button and an Expand button. When a user pushes the Expand
 button, the bot does step 1 to step 6 again in expanded mode. It then changes the
-same quote. The button then becomes a Collapse button.
+same quote. The button then becomes a Collapse button. Because of step 6, the
+changed quote always fits in the same message.
 
 If the bot cannot find the message at the link, and the message is in the deleted
 message log, the bot builds the quote from the log. This path uses different code
@@ -352,7 +372,22 @@ Now the two modes are different only in the turns that they link (step 4). The
 layout (step 5) is the same. Thus collapsed mode shows the same text as expanded
 mode, without the turns that are not in the trunk.
 
-### 6.9 Why the window is the 100 messages before the quoted message
+### 6.9 Why a quote is always one message
+
+The Expand button changes one message. A message cannot become two messages.
+Thus an expanded quote that needs two messages cannot show in full. An earlier
+version of the bot then showed only the last part.
+
+The steps in paragraph 5.6 remove the least important text first. A loose turn
+is not part of the conversation, thus it goes first. The middle of the quote goes
+next, because the first turn tells how the conversation starts, and the turns
+near the quoted message tell what it answers. The quoted message goes last,
+because it is the reason for the quote.
+
+The Show all button gives the full quote to the user who asks for it. Other users
+in the channel do not see the long text.
+
+### 6.10 Why the window is the 100 messages before the quoted message
 
 The bot must know if the quoted message is part of a longer turn. The quoted
 message can be a message that is not a reply. The parent then comes from the first
@@ -361,7 +396,7 @@ message of its turn.
 The bot cannot find the turn without the messages before the quoted message. Thus
 the bot reads them first.
 
-### 6.10 Why a forwarded message and a system message are not replies
+### 6.11 Why a forwarded message and a system message are not replies
 
 Discord puts a reference on a forwarded message, on a pin message and on a
 thread-start message. These references are not reply references.
@@ -370,7 +405,7 @@ The bot accepts a reference only from a message with the Discord type Reply. If
 the bot accepts the other references, the bot shows a reply chain that does not
 exist.
 
-### 6.11 Why the bot must compare the webhook name
+### 6.12 Why the bot must compare the webhook name
 
 All messages from one webhook have the same author identification. A webhook can
 send each message with a different display name.

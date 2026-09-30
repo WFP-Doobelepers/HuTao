@@ -59,9 +59,8 @@ public static class QuoteLayout
         return rows;
     }
 
-    /// <summary>Keys each loose turn by the conversation turn sent just before it.</summary>
-    private static Dictionary<MessageBlock, List<MessageBlock>> PlaceLoose(
-        MessageBlock root, IEnumerable<MessageBlock> loose)
+    /// <summary>The root and every block linked below it.</summary>
+    public static HashSet<MessageBlock> Reachable(MessageBlock root)
     {
         var conversation = new HashSet<MessageBlock>();
         var pending = new Stack<MessageBlock>([root]);
@@ -71,6 +70,14 @@ public static class QuoteLayout
                 block.Children.ForEach(pending.Push);
         }
 
+        return conversation;
+    }
+
+    /// <summary>Keys each loose turn by the conversation turn sent just before it.</summary>
+    private static Dictionary<MessageBlock, List<MessageBlock>> PlaceLoose(
+        MessageBlock root, IEnumerable<MessageBlock> loose)
+    {
+        var conversation = Reachable(root);
         var byTime = conversation.OrderBy(b => b.Head.Id).ToList();
         var after = new Dictionary<MessageBlock, List<MessageBlock>>();
 
