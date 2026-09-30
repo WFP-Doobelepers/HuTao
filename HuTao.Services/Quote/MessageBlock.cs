@@ -64,7 +64,7 @@ public sealed class MessageBlock(IMessage head)
         }
     }
 
-    private static bool IsUserMessage(IMessage message)
+    internal static bool IsUserMessage(IMessage message)
         => message.Type is MessageType.Default or MessageType.Reply
             or MessageType.ApplicationCommand or MessageType.ContextMenuCommand;
 

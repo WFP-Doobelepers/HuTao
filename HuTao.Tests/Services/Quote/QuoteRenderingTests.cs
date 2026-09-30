@@ -240,20 +240,13 @@ public class QuoteRenderingTests
         Assert.Contains("Ohh really?", text);
     }
 
+    /// <summary>
+    ///     "Good morning!" replies to nothing. Collapsed mode leaves it out; expanded mode shows it right after the
+    ///     turn sent before it, with its own header and no connector.
+    /// </summary>
     [Fact]
-    public async Task Expanded_quote_of_a_straight_chain_is_the_collapsed_picture()
+    public async Task Expanded_quote_shows_a_message_that_replies_to_nothing_without_a_connector()
     {
-        Assert.Equal(
-            await Render(Scenario(personBRepliesTo: 2)),
-            await Render(Scenario(personBRepliesTo: 2), expanded: true));
-    }
-
-    /// <summary>A reply to the root and a reply to hime both stay on the one rail, so they look the same.</summary>
-    [Fact]
-    public async Task Expanded_quote_keeps_a_reply_to_the_root_on_the_same_rail_as_hime()
-    {
-        var text = await Render(Scenario(personBRepliesTo: 1), expanded: true);
-
         Assert.Equal(
             """
             -# ┌ <@100> · <t>
@@ -263,9 +256,21 @@ public class QuoteRenderingTests
             -# │ I see, if that's the case we should do that
             -# │ And then we should also do this
             -# │
+            -# │ <@300> · <t>
+            -# │ Good morning!
+            -# │
             <@300> · <t>
             Ohh really? This is interesting!
-            """.ReplaceLineEndings("\n"), text);
+            """.ReplaceLineEndings("\n"), await Render(Scenario(personBRepliesTo: 2), expanded: true));
+    }
+
+    /// <summary>A reply to the root and a reply to hime both stay on the one rail, so they look the same.</summary>
+    [Fact]
+    public async Task Expanded_quote_draws_a_reply_to_the_root_like_a_reply_to_hime()
+    {
+        Assert.Equal(
+            await Render(Scenario(personBRepliesTo: 2), expanded: true),
+            await Render(Scenario(personBRepliesTo: 1), expanded: true));
     }
 
     [Fact]
@@ -374,6 +379,10 @@ public class QuoteRenderingTests
             -# │├ <@100> · <t>
             -# ││ did you profile it?
             -# ││
+            -# ││ <@300> · <t>
+            -# ││ good morning everyone
+            -# ││ anyone up for lunch later?
+            -# ││
             -# │├ <@200> · <t>
             -# ││ yes, forty percent of runtime
             -# ││
@@ -441,6 +450,10 @@ public class QuoteRenderingTests
             -# ├ <@100> · <t>
             -# │ did you profile it?
             -# │
+            -# │ <@300> · <t>
+            -# │ good morning everyone
+            -# │ anyone up for lunch later?
+            -# │
             -# ├ <@200> · <t>
             -# │ yes, forty percent of runtime
             -# │
@@ -459,7 +472,7 @@ public class QuoteRenderingTests
     }
 
     [Fact]
-    public async Task Collapsed_quote_is_the_expanded_picture_without_the_side_branches()
+    public async Task Collapsed_quote_is_the_expanded_picture_without_the_side_branches_and_loose_turns()
     {
         var collapsed = await Render(Quote(20));
         var expanded = await Render(Quote(20), expanded: true);
@@ -494,9 +507,13 @@ public class QuoteRenderingTests
             great, let's ship the fix
             """.ReplaceLineEndings("\n"), collapsed);
 
+        const string cyra = "-# │\n-# │ <@300> · <t>\n-# │ good morning everyone\n-# │ anyone up for lunch later?\n";
+        Assert.Contains(cyra, expanded);
+
         var lines = collapsed.Split('\n');
-        Assert.StartsWith(string.Join("\n", lines.Take(4)) + "\n", expanded);
-        Assert.EndsWith("\n" + string.Join("\n", lines.Skip(4)), expanded);
+        var withoutLoose = expanded.Replace(cyra, "");
+        Assert.StartsWith(string.Join("\n", lines.Take(4)) + "\n", withoutLoose);
+        Assert.EndsWith("\n" + string.Join("\n", lines.Skip(4)), withoutLoose);
     }
 
     [Fact]
@@ -564,28 +581,88 @@ public class QuoteRenderingTests
             """.ReplaceLineEndings("\n"), await Render(m5.Object));
     }
 
-    /// <summary>The history window ends at the quoted message, so replies sent after it never appear.</summary>
+    /// <summary>
+    ///     The history window ends at the quoted message, so the lexer branch (sent later) never appears. Cyra's
+    ///     messages were sent before it, so they show, unconnected.
+    /// </summary>
     [Fact]
     public async Task Expanded_quote_only_reads_messages_sent_before_the_quoted_one()
     {
-        var expanded = await Render(Quote(13), expanded: true);
-
-        Assert.DoesNotContain("what about the lexer?", expanded);
-        Assert.Equal(await Render(Quote(13)), expanded);
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ the parser is too slow
+            -# │ mostly in the tokenizer
+            -# │
+            -# ├ <@200> · <t>
+            -# │ agreed
+            -# │ it allocates on every call
+            -# │ and it re-scans the same span twice
+            -# │
+            -# ├ <@100> · <t>
+            -# │ did you profile it?
+            -# │
+            -# │ <@300> · <t>
+            -# │ good morning everyone
+            -# │ anyone up for lunch later?
+            -# │
+            -# ├ <@200> · <t>
+            -# │ yes, forty percent of runtime
+            -# │
+            -# ├ <@100> · <t>
+            -# │ numbers or it did not happen
+            -# │
+            -# ├ <@200> · <t>
+            -# │ the allocation shows up in three places
+            -# │
+            <@100> · <t>
+            ok, that is convincing
+            """.ReplaceLineEndings("\n"), await Render(Quote(13), expanded: true));
     }
 
     [Theory]
     [InlineData(13UL)]
     [InlineData(19UL)]
     [InlineData(20UL)]
-    public async Task Messages_that_reply_to_nothing_never_appear(ulong quoted)
+    public async Task Messages_that_reply_to_nothing_stay_out_of_collapsed_quotes(ulong quoted)
     {
-        foreach (var expanded in new[] { false, true })
-        {
-            var text = await Render(Quote(quoted), expanded);
-            Assert.DoesNotContain("good morning everyone", text);
-            Assert.DoesNotContain("anyone up for lunch later?", text);
-        }
+        var text = await Render(Quote(quoted));
+
+        Assert.DoesNotContain("good morning everyone", text);
+        Assert.DoesNotContain("anyone up for lunch later?", text);
+    }
+
+    /// <summary>
+    ///     Loose turns show only from the root on. A bot's post stays out, so the bot's own earlier quotes never appear
+    ///     inside a new one; a webhook's post shows, under the display name it was sent with.
+    /// </summary>
+    [Fact]
+    public async Task Expanded_quote_shows_loose_webhook_posts_but_not_bot_posts_or_earlier_chat()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var c = channel.Object;
+        var earlier = Msg(c, 1, 300, 0, "earlier chat");
+        var root = Msg(c, 2, 100, 10, "root");
+        var bot = Msg(c, 3, 500, 20, "a quote the bot posted");
+        Mock.Get(bot.Object.Author).SetupGet(u => u.IsBot).Returns(true);
+        var webhook = Msg(c, 4, 400, 30, "webhook chat");
+        Mock.Get(webhook.Object.Author).SetupGet(u => u.IsBot).Returns(true);
+        Mock.Get(webhook.Object.Author).SetupGet(u => u.IsWebhook).Returns(true);
+        Mock.Get(webhook.Object.Author).SetupGet(u => u.Username).Returns("Cyra");
+        var quoted = Msg(c, 5, 200, 40, "quoted", replyTo: 2);
+        History(channel, 5, earlier, root, bot, webhook);
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ root
+            -# │
+            -# │ **Cyra** · <t>
+            -# │ webhook chat
+            -# │
+            <@200> · <t>
+            quoted
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object, expanded: true));
     }
 
     /// <summary>

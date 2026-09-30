@@ -283,7 +283,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         if (!hasChain)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"-# {FormatHeader(message.Author.Mention, message.Timestamp)}");
+            sb.AppendLine($"-# {FormatHeader(AuthorLabel(message.Author), message.Timestamp)}");
 
             if (!string.IsNullOrWhiteSpace(message.Content))
                 sb.Append(message.Content);
@@ -370,16 +370,28 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         if (chain.Count == 0) return false;
 
         // The modes differ only in what they collect: collapsed links the reply chain alone, expanded links every
-        // block in the window. One layout draws both.
+        // block in the window and also shows the loose turns in between. One layout draws both.
         var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
+        IEnumerable<MessageBlock> loose = [];
         if (expanded)
+        {
             MessageBlock.LinkChildren(blockOf, trunk);
+            loose = blockOf.Values.Distinct().Where(IsLooseTurn);
+        }
         else
             MessageBlock.LinkChain(chain, quoted);
 
-        AppendRail(container, chain[^1], trunk, message.Id);
+        AppendRail(container, chain[^1], trunk, message.Id, loose);
         return true;
     }
+
+    /// <summary>
+    ///     Whether an unconnected turn shows in expanded mode. Posts by bots stay out, so the bot's own earlier quotes
+    ///     do not appear inside a new one. Webhook posts stay in, because people talk through webhooks.
+    /// </summary>
+    private static bool IsLooseTurn(MessageBlock block)
+        => MessageBlock.IsUserMessage(block.Head)
+            && !(block.Head.Author.IsBot && !block.Head.Author.IsWebhook);
 
     private static async Task<(List<MessageBlock> Chain, MessageBlock Quoted, Dictionary<ulong, MessageBlock> BlockOf)>
         ResolveBlocksAsync(IMessage message)
@@ -419,14 +431,19 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     }
 
     private static void AppendRail(
-        ContainerAccumulator container, MessageBlock root, IReadOnlySet<ulong> trunk, ulong quotedId)
+        ContainerAccumulator container, MessageBlock root, IReadOnlySet<ulong> trunk, ulong quotedId,
+        IEnumerable<MessageBlock> loose)
     {
-        foreach (var row in QuoteLayout.Layout(root, trunk))
+        foreach (var row in QuoteLayout.Layout(root, trunk, loose))
         {
             switch (row)
             {
                 case QuoteLayout.GapRow gap:
                     container.AppendText($"-# {Emoji(gap.Cells)}");
+                    break;
+                case QuoteLayout.LooseRow turn:
+                    container.MarkBreak();
+                    AppendBlock(container, turn.Block, Prefix(turn.Cells), Prefix(turn.Cells));
                     break;
                 case QuoteLayout.TurnRow turn when turn.Block.Contains(quotedId):
                     container.MarkBreak();
@@ -471,7 +488,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         ContainerAccumulator container, IMessage message, string prefix, bool first, string contentPrefix)
     {
         if (!first) container.AppendText(contentPrefix.TrimEnd());
-        container.AppendText($"{prefix}{FormatHeader(message.Author.Mention, message.Timestamp)}");
+        container.AppendText($"{prefix}{FormatHeader(AuthorLabel(message.Author), message.Timestamp)}");
     }
 
     /// <summary>
@@ -843,6 +860,10 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         RailCell.End  => ReplyEnd,
         _             => ReplySpacer
     }));
+
+    /// <summary>A webhook has no member to mention, so its post shows the display name it was sent with.</summary>
+    private static string AuthorLabel(IUser author)
+        => author.IsWebhook ? $"**{author.Username}**" : author.Mention;
 
     private static string FormatHeader(string mention, DateTimeOffset timestamp)
         => $"{mention} · <t:{timestamp.ToUnixTimeSeconds()}:R>";

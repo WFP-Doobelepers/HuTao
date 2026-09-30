@@ -42,7 +42,8 @@ in all parts of the document.
 | trunk | The reply chain and the quoted turn. |
 | window | The messages that the bot reads before the quoted message. See paragraph 5.1. |
 | collapsed mode | The first quote. The bot shows only the trunk. |
-| expanded mode | The quote after a user pushes the Expand button. The bot shows all the turns in the window that the root connects. |
+| expanded mode | The quote after a user pushes the Expand button. The bot shows all the turns in the window that the root connects, and the loose turns between them. |
+| loose turn | A turn that no reply connects to the conversation, but that a user sent after the root and before the quoted message. |
 | tree | The arrangement of the turns in expanded mode. A turn is below the turn that it replies to. |
 | parent | The turn that contains the message at the reply reference. |
 | child | A turn whose first message replies to a message in a different turn. |
@@ -64,11 +65,13 @@ this conversation in the same shape as the Discord client.
 
 Two rules come from this main rule:
 
-- Rule 1: Show a message only if the reply chain connects it.
+- Rule 1: Show a message only if the reply chain connects it. Expanded mode also
+  shows the loose turns, without a connector.
 - Rule 2: Show the messages in the same shape as the Discord client.
 
-Rule 1 removes the messages of other conversations from the quote. Two users can
-speak in one channel at the same time.
+Rule 1 removes the messages of other conversations from collapsed mode. Two users
+can speak in one channel at the same time. Expanded mode shows all the messages
+of that time, but only the reply chain connects them.
 
 Rule 2 makes the quote easy to read. The user knows this shape, because the
 Discord client uses it.
@@ -178,7 +181,11 @@ The two modes are different only in this step.
   of the turn that contains its reply reference. When a turn has more than one
   child, the child in the trunk is last.
 
-A turn that the root does not connect is not in the quote.
+In expanded mode, the bot also collects the loose turns. It does not collect a
+loose turn from a bot, because the earlier quotes of the bot are posts from a
+bot. It collects a loose turn from a webhook, because persons speak through
+webhooks. In collapsed mode, a turn that the root does not connect is not in the
+quote.
 
 The code for this step is the `MessageBlock.LinkChain` function and the
 `MessageBlock.LinkChildren` function.
@@ -196,6 +203,8 @@ The two modes use the same layout. The layout uses these rules:
    turn in the trunk always continues on the main rail.
 5. The quoted turn is the last turn on the main rail. It has no connector. The
    main rail goes directly into its header.
+6. A loose turn goes directly after the turn that a user sent before it. It is in
+   the content column of that turn, with its own header and no connector.
 
 Each turn, except the quoted turn, has one of these connectors at its header:
 
@@ -292,14 +301,20 @@ makes six header groups.
 A reply points to a different message. It is a different action. The Discord
 client also shows a new header at each reply.
 
-### 6.5 Why a message from a different author is not in the quote
+### 6.5 Why a message from a different author is not connected
 
 A message from a different author is not part of the turn. No reply points to it.
-Thus the reply chain does not connect it, and Rule 1 removes it.
+Thus the reply chain does not connect it. Collapsed mode does not show it.
 
 This is the second defect in the first report. A message such as `Good morning!`
 came into the quote, because the earlier code put each message below the nearest
 author above it.
+
+Expanded mode shows all the messages of the conversation time, thus it shows
+`Good morning!` as a loose turn. The loose turn has no connector, because no
+reply connects it. It has its own header, as a message after a long time does
+(paragraph 6.2). A webhook post shows the display name of the webhook in bold,
+because Discord cannot show a mention of a webhook.
 
 ### 6.6 Why a straight reply chain stays on one rail
 
@@ -409,8 +424,24 @@ The quote in collapsed mode is:
 Ohh really?
 ```
 
-Message 4 is not in the quote. The root does not connect turn 3. The quote in
-expanded mode is the same, because the conversation has no fork.
+Message 4 is not in the quote. The root does not connect turn 3.
+
+The quote in expanded mode shows message 4 as a loose turn, after turn 2:
+
+```
+-# ┌ <@100> · <t:1756468800:R>
+-# │ something
+-# │
+-# ├ <@200> · <t:1756468860:R>
+-# │ I see
+-# │ And then
+-# │
+-# │ <@300> · <t:1756468920:R>
+-# │ Good morning!
+-# │
+<@300> · <t:1756469010:R>
+Ohh really?
+```
 
 If message 3 comes 7 minutes after message 2, the quote is:
 
