@@ -570,8 +570,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
         if (chain.Count == 0) return null;
 
-        // The modes differ only in what they collect: collapsed links the reply chain alone, expanded links every
-        // block in the window and also shows the loose turns in between. One layout draws both.
+        // The modes differ only in what they collect. Collapsed links the reply chain and the direct replies to it,
+        // everything on one straight rail. Expanded links every block in the window, so the threads under those
+        // replies show too, and adds the loose turns in between. One layout draws both.
         var root = chain[^1];
         var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
         List<MessageBlock> loose = [];
@@ -585,7 +586,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 .ToList();
         }
         else
-            MessageBlock.LinkChain(chain, quoted);
+            MessageBlock.LinkMainRail(blockOf, trunk);
 
         var turns = QuoteLayout.Layout(root, trunk).Count(row => row is QuoteLayout.TurnRow);
         return new Conversation(root, trunk, loose, turns);

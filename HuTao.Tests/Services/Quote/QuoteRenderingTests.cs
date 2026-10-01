@@ -239,15 +239,65 @@ public class QuoteRenderingTests
             """.ReplaceLineEndings("\n"), text);
     }
 
+    /// <summary>Collapsed shows every direct reply to the root on the one rail, but not "Good morning!".</summary>
     [Fact]
-    public async Task Collapsed_quote_of_a_reply_to_the_root_skips_the_side_branch()
+    public async Task Collapsed_quote_of_a_reply_to_the_root_shows_the_other_reply_to_the_root()
     {
-        var text = await Render(Scenario(personBRepliesTo: 1));
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ something
+            -# │
+            -# ├ <@200> · <t>
+            -# │ I see, if that's the case we should do that
+            -# │ And then we should also do this
+            -# │
+            <@300> · <t>
+            Ohh really? This is interesting!
+            """.ReplaceLineEndings("\n"), await Render(Scenario(personBRepliesTo: 1)));
+    }
 
-        Assert.DoesNotContain($"<@{Hime}>", text);
-        Assert.DoesNotContain("Good morning!", text);
-        Assert.Contains("something", text);
-        Assert.Contains("Ohh really?", text);
+    /// <summary>
+    ///     Two replies to one message are one straight line, so collapsed shows both. A reply to the first reply is a
+    ///     thread of its own, so only expanded shows it, on a rail under the first reply.
+    /// </summary>
+    [Fact]
+    public async Task Collapsed_shows_the_other_direct_replies_and_expanded_adds_their_threads()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var c = channel.Object;
+        var root = Msg(c, 1, PersonA, 0, "something");
+        var first = Msg(c, 2, Hime, 60, "first reply", replyTo: 1);
+        var thread = Msg(c, 3, PersonA, 90, "a reply to the first reply", replyTo: 2);
+        var quoted = Msg(c, 4, PersonB, 120, "second reply", replyTo: 1);
+        History(channel, 4, root, first, thread);
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ something
+            -# │
+            -# ├ <@200> · <t>
+            -# │ first reply
+            -# │
+            <@300> · <t>
+            second reply
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object));
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ something
+            -# │
+            -# ├ <@200> · <t>
+            -# │ first reply
+            -# ││
+            -# │└ <@100> · <t>
+            -# │· a reply to the first reply
+            -# │
+            <@300> · <t>
+            second reply
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object, expanded: true));
     }
 
     /// <summary>
@@ -481,8 +531,9 @@ public class QuoteRenderingTests
             """.ReplaceLineEndings("\n"), await Render(Quote(20), expanded: true));
     }
 
+    /// <summary>Collapsed is the expanded picture without the threads (the inner rails) and the loose turns.</summary>
     [Fact]
-    public async Task Collapsed_quote_is_the_expanded_picture_without_the_side_branches_and_loose_turns()
+    public async Task Collapsed_quote_is_the_expanded_picture_without_threads_and_loose_turns()
     {
         var collapsed = await Render(Quote(20));
         var expanded = await Render(Quote(20), expanded: true);
@@ -492,6 +543,9 @@ public class QuoteRenderingTests
             -# ┌ <@100> · <t>
             -# │ the parser is too slow
             -# │ mostly in the tokenizer
+            -# │
+            -# ├ <@200> · <t>
+            -# │ what about the lexer?
             -# │
             -# ├ <@200> · <t>
             -# │ agreed
@@ -520,12 +574,14 @@ public class QuoteRenderingTests
         const string cyra = "-# │\n-# │ <@300> · <t>\n-# │ good morning everyone\n-# │ anyone up for lunch later?\n";
         Assert.Contains(cyra, expanded);
 
-        var lines = collapsed.Split('\n');
-        var withoutLoose = expanded.Replace(cyra, "");
-        Assert.StartsWith(string.Join("\n", lines.Take(4)) + "\n", withoutLoose);
-        Assert.EndsWith("\n" + string.Join("\n", lines.Skip(4)), withoutLoose);
+        var mainRail = expanded.Replace(cyra, "").Split('\n').Where(l => !Regex.IsMatch(l, @"^-# [│·][├└│·]"));
+        Assert.Equal(collapsed, string.Join("\n", mainRail));
     }
 
+    /// <summary>
+    ///     Collapsed follows the reply chain and keeps every other direct reply to it on the same rail ("agreed",
+    ///     "the lexer is fine"), but not the threads under those replies.
+    /// </summary>
     [Fact]
     public async Task Collapsed_quote_follows_the_reply_chain_through_a_fork()
     {
@@ -536,7 +592,15 @@ public class QuoteRenderingTests
             -# │ mostly in the tokenizer
             -# │
             -# ├ <@200> · <t>
+            -# │ agreed
+            -# │ it allocates on every call
+            -# │ and it re-scans the same span twice
+            -# │
+            -# ├ <@200> · <t>
             -# │ what about the lexer?
+            -# │
+            -# ├ <@100> · <t>
+            -# │ the lexer is fine
             -# │
             -# ├ <@200> · <t>
             -# │ two separate questions here
@@ -585,6 +649,12 @@ public class QuoteRenderingTests
             """
             -# ┌ <@100> · <t>
             -# │ something
+            -# │
+            -# ├ <@200> · <t>
+            -# │ I see
+            -# │
+            -# ├ <@300> · <t>
+            -# │ Good point
             -# │
             <@500> · <t>
             Ohh really?
@@ -785,6 +855,9 @@ public class QuoteRenderingTests
             -# ┌ <@100> · <t>
             -# │ the parser is too slow
             -# │ mostly in the tokenizer
+            -# │
+            -# ├ <@200> · <t>
+            -# │ what about the lexer?
             -# │
             -# ├ <@200> · <t>
             -# │ agreed

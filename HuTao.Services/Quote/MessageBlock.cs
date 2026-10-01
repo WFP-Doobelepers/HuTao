@@ -146,17 +146,15 @@ public sealed class MessageBlock(IMessage head)
         }
     }
 
-    /// <summary>Links only the reply chain: each ancestor gets the block below it as its one child.</summary>
-    /// <param name="chain">Ancestors of <paramref name="quoted" />, nearest first.</param>
-    public static void LinkChain(IEnumerable<MessageBlock> chain, MessageBlock quoted)
+    /// <summary>
+    ///     Links the <paramref name="trunk" /> and every direct reply to a trunk block, but not the replies to those
+    ///     replies. That is everything on one straight rail, which is what collapsed mode shows.
+    /// </summary>
+    public static void LinkMainRail(Dictionary<ulong, MessageBlock> blockOf, HashSet<ulong> trunk)
     {
-        quoted.Children.Clear();
-        var below = quoted;
-        foreach (var ancestor in chain)
-        {
-            ancestor.Children.Clear();
-            ancestor.Children.Add(below);
-            below = ancestor;
-        }
+        LinkChildren(blockOf, trunk);
+
+        foreach (var block in blockOf.Values.Distinct().Where(b => !trunk.Contains(b.Head.Id)))
+            block.Children.Clear();
     }
 }

@@ -41,7 +41,7 @@ in all parts of the document.
 | root | The first turn of the reply chain. It is the oldest turn in the quote. |
 | trunk | The reply chain and the quoted turn. |
 | window | The messages that the bot reads before the quoted message. See paragraph 5.1. |
-| collapsed mode | The first quote. The bot shows only the trunk. |
+| collapsed mode | The first quote. The bot shows the trunk and the other direct replies to the turns of the trunk. All of them are on the main rail. |
 | expanded mode | The quote after a user pushes the Expand button. The bot shows all the turns in the window that the root connects, and the loose turns between them. |
 | loose turn | A turn that no reply connects to the conversation, but that a user sent after the root and before the quoted message. |
 | tree | The arrangement of the turns in expanded mode. A turn is below the turn that it replies to. |
@@ -175,8 +175,9 @@ message.
 
 The two modes are different only in this step.
 
-- In collapsed mode, the bot links only the trunk. Each turn of the reply chain
-  has one child. This child is the next turn of the trunk.
+- In collapsed mode, the bot links the trunk and each direct reply to a turn of
+  the trunk. It does not link the replies to those replies. Thus all the turns of
+  collapsed mode are on the main rail.
 - In expanded mode, the bot links all the turns in the window. A turn is a child
   of the turn that contains its reply reference. When a turn has more than one
   child, the child in the trunk is last.
@@ -187,7 +188,7 @@ bot. It collects a loose turn from a webhook, because persons speak through
 webhooks. In collapsed mode, a turn that the root does not connect is not in the
 quote.
 
-The code for this step is the `MessageBlock.LinkChain` function and the
+The code for this step is the `MessageBlock.LinkMainRail` function and the
 `MessageBlock.LinkChildren` function.
 
 ### 5.5 Step 5: Put the turns on rails
@@ -375,7 +376,11 @@ turns then had different connectors in the two modes.
 
 Now the two modes are different only in the turns that they link (step 4). The
 layout (step 5) is the same. Thus collapsed mode shows the same text as expanded
-mode, without the turns that are not in the trunk.
+mode, without the turns on the inner rails and without the loose turns.
+
+Collapsed mode shows each direct reply to a turn of the trunk. Many replies to
+one message are reactions to that message, and they are on one straight rail. A
+reply to one of these replies starts a new thread. Only expanded mode shows it.
 
 ### 6.9 Why a quote is always one message
 
@@ -548,11 +553,18 @@ The quote in collapsed mode is:
 -# ┌ <@100> · <t:1756468800:R>
 -# │ something
 -# │
+-# ├ <@200> · <t:1756468860:R>
+-# │ I see
+-# │
+-# ├ <@300> · <t:1756468920:R>
+-# │ Good point
+-# │
 <@500> · <t:1756468980:R>
 Ohh really?
 ```
 
-This is the text of expanded mode, without the turns that are not in the trunk.
+This is the text of expanded mode, without message 4. Message 4 replies to
+message 3, thus it is a thread on an inner rail.
 
 ## 8 Limits
 
