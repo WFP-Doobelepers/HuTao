@@ -399,7 +399,10 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     private static List<ContainerBuilder> Render(
         IMessage message, Conversation? conversation, bool expanded, QuoteCut cut, int? target = null)
     {
-        var showAll = $"quote:all:{message.Channel.Id}:{message.Id}:{(expanded ? 1 : 0)}";
+        // Discord rejects a message with two buttons of the same custom id, so each "truncated" line numbers its
+        // button: quote:all:<channel>:<message>:<mode>.<n>. The handler reads the mode before the dot.
+        var buttons = 0;
+        string showAll() => $"quote:all:{message.Channel.Id}:{message.Id}:{(expanded ? 1 : 0)}.{++buttons}";
         var acc = new ContainerAccumulator(target);
         if (conversation is null)
             AppendPlain(acc, message, cut, showAll);
@@ -459,17 +462,17 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     ///     Stands exactly where a quote left something out: a separator, one "truncated" line with a "Show all" button
     ///     beside it, and a separator again. The rails stop above it and carry on below it.
     /// </summary>
-    /// <param name="showAll">The button's custom id: it sends the whole quote to the person who presses it.</param>
-    private static void AppendCut(ContainerAccumulator acc, string line, string showAll)
+    /// <param name="showAll">Gives the button's custom id; the button sends the whole quote to whoever presses it.</param>
+    private static void AppendCut(ContainerAccumulator acc, string line, Func<string> showAll)
     {
         acc.AddSeparator();
         acc.Current.WithSection(
             [new TextDisplayBuilder($"-# {line}")],
-            new ButtonBuilder("Show all", showAll, ButtonStyle.Secondary));
+            new ButtonBuilder("Show all", showAll(), ButtonStyle.Secondary));
         acc.AddSeparator();
     }
 
-    private static void AppendPlain(ContainerAccumulator acc, IMessage message, QuoteCut cut, string showAll)
+    private static void AppendPlain(ContainerAccumulator acc, IMessage message, QuoteCut cut, Func<string> showAll)
     {
         var (content, removed) = Shorten(message.Content, cut.QuotedTextLimit);
 
@@ -638,7 +641,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     }
 
     private static void AppendRail(
-        ContainerAccumulator container, Conversation conversation, IMessage message, QuoteCut cut, string showAll)
+        ContainerAccumulator container, Conversation conversation, IMessage message, QuoteCut cut,
+        Func<string> showAll)
     {
         var dropped = conversation.Loose.Take(cut.DroppedLoose).ToHashSet();
 
@@ -783,7 +787,8 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     ///     into its header, and the quoted message itself is full size.
     /// </summary>
     private static void AppendQuotedTurn(
-        ContainerAccumulator container, QuoteLayout.TurnRow turn, ulong quotedId, int? textLimit, string showAll)
+        ContainerAccumulator container, QuoteLayout.TurnRow turn, ulong quotedId, int? textLimit,
+        Func<string> showAll)
     {
         var header = turn.Cells.Count == 0 ? "" : Prefix(turn.Cells);
         AppendOwnBlock(container, turn.Block, quotedId, header, Prefix(turn.ContentCells));

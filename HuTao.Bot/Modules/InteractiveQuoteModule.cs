@@ -43,7 +43,9 @@ public class InteractiveQuoteModule(IQuoteService quoteService)
             return;
         }
 
-        var messages = await quoteService.BuildFullQuoteAsync(Context.Guild, channelId, messageId, mode == "1");
+        // The mode is "1" or "0", numbered after a dot ("1.2") so that two buttons in one quote never share an id.
+        var expanded = mode.Split('.')[0] == "1";
+        var messages = await quoteService.BuildFullQuoteAsync(Context.Guild, channelId, messageId, expanded);
         if (messages.Count == 0)
         {
             await FollowupAsync("Could not load the quote.", ephemeral: true);

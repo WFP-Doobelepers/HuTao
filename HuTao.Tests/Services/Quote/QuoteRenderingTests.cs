@@ -105,7 +105,20 @@ public class QuoteRenderingTests
     {
         var containers = await QuoteService.BuildMessageContainer(quoted, expanded);
         AssertLinesConnect(containers);
+        AssertButtonIdsUnique(containers);
         return Sym(Text(containers));
+    }
+
+    /// <summary>Discord rejects a message in which two buttons share a custom id.</summary>
+    private static void AssertButtonIdsUnique(IEnumerable<ContainerBuilder> containers)
+    {
+        foreach (var container in containers)
+        {
+            var ids = container.Components.OfType<SectionBuilder>().Select(s => s.Accessory)
+                .Concat(container.Components.OfType<ActionRowBuilder>().SelectMany(r => r.Components))
+                .OfType<ButtonBuilder>().Select(b => b.CustomId).Where(id => id is not null).ToList();
+            Assert.Equal(ids.Count, ids.Distinct().Count());
+        }
     }
 
     /// <summary>
@@ -759,7 +772,7 @@ public class QuoteRenderingTests
     }
 
     /// <summary>A root, a side branch of <paramref name="turns" /> turns, and a quoted reply to the root.</summary>
-    private static (IUserMessage Quoted, string LineText) LongConversation(int turns = 60)
+    private static (IUserMessage Quoted, string LineText) LongConversation(int turns = 60, string quotedText = "ok")
     {
         var channel = new Mock<IMessageChannel>();
         var c = channel.Object;
@@ -768,7 +781,7 @@ public class QuoteRenderingTests
         var last = (ulong) turns + 1;
         for (ulong id = 2; id <= last; id++)
             history.Add(Msg(c, id, id % 2 == 0 ? Blaise : Cyra, (int) id, $"{id}: {text}", replyTo: id - 1));
-        var quoted = Msg(c, last + 1, Aria, 200, "ok", replyTo: 1);
+        var quoted = Msg(c, last + 1, Aria, 200, quotedText, replyTo: 1);
         History(channel, last + 1, history.ToArray());
         return (quoted.Object, text);
     }
@@ -934,6 +947,23 @@ public class QuoteRenderingTests
         Assert.DoesNotContain("truncated", Sym(Text(built.Containers)));
     }
 
+    /// <summary>
+    ///     Hidden turns and a shortened quoted message give two "truncated" lines, each with its own button. Their
+    ///     custom ids must differ, or Discord rejects the whole message.
+    /// </summary>
+    [Fact]
+    public async Task Two_truncated_lines_get_buttons_with_different_ids()
+    {
+        var (quoted, _) = LongConversation(turns: 5, quotedText: string.Concat(Enumerable.Repeat("0123456789", 450)));
+
+        var built = await QuoteService.BuildQuote(quoted, expanded: true);
+        var ids = built.Containers.SelectMany(c => c.Components).OfType<SectionBuilder>()
+            .Select(s => Assert.IsType<ButtonBuilder>(s.Accessory).CustomId).ToList();
+
+        Assert.Equal(["quote:all:0:7:1.1", "quote:all:0:7:1.2"], ids);
+        AssertButtonIdsUnique(built.Containers);
+    }
+
     /// <summary>Each "truncated" line has a "Show all" button beside it, in a section between the separators.</summary>
     [Fact]
     public async Task Each_truncated_line_has_a_show_all_button_beside_it()
@@ -945,7 +975,7 @@ public class QuoteRenderingTests
         Assert.Equal("-# 1 message truncated", section.Components.OfType<TextDisplayBuilder>().Single().Content);
         var button = Assert.IsType<ButtonBuilder>(section.Accessory);
         Assert.Equal("Show all", button.Label);
-        Assert.Equal("quote:all:0:20:0", button.CustomId);
+        Assert.Equal("quote:all:0:20:0.1", button.CustomId);
 
         var components = built.Containers.Single().Components;
         var at = components.IndexOf(section);
