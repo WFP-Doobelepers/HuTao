@@ -713,6 +713,104 @@ public class QuoteRenderingTests
             """.ReplaceLineEndings("\n"), await Render(Quote(13), expanded: true));
     }
 
+    /// <summary>
+    ///     The reply comes 20 unrelated messages after its parent. Expanded shows the 5 right after the parent and the
+    ///     5 right before the reply, and one "truncated" line for the 10 in between. "Show all" shows all 20.
+    /// </summary>
+    [Fact]
+    public async Task Expanded_quote_shows_only_unrelated_messages_near_the_conversation()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var c = channel.Object;
+        var history = new List<Mock<IUserMessage>> { Msg(c, 1, PersonA, 0, "root") };
+        for (ulong id = 2; id <= 21; id++)
+            history.Add(Msg(c, id, id % 2 == 0 ? 300UL : 400UL, (int) id, $"chat {id}"));
+        var quoted = Msg(c, 22, Hime, 30, "quoted", replyTo: 1);
+        History(channel, 22, history.ToArray());
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ root
+            -# │
+            -# │ <@300> · <t>
+            -# │ chat 2
+            -# │
+            -# │ <@400> · <t>
+            -# │ chat 3
+            -# │
+            -# │ <@300> · <t>
+            -# │ chat 4
+            -# │
+            -# │ <@400> · <t>
+            -# │ chat 5
+            -# │
+            -# │ <@300> · <t>
+            -# │ chat 6
+            -# │
+            -# 10 messages truncated
+            -# │ <@400> · <t>
+            -# │ chat 17
+            -# │
+            -# │ <@300> · <t>
+            -# │ chat 18
+            -# │
+            -# │ <@400> · <t>
+            -# │ chat 19
+            -# │
+            -# │ <@300> · <t>
+            -# │ chat 20
+            -# │
+            -# │ <@400> · <t>
+            -# │ chat 21
+            -# │
+            <@200> · <t>
+            quoted
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object, expanded: true));
+
+        var everything = Sym(Text(await QuoteService.BuildMessageContainer(quoted.Object, expanded: true, oneMessage: false)));
+        for (var id = 2; id <= 21; id++)
+            Assert.Contains($"chat {id}\n", everything);
+        Assert.DoesNotContain("truncated", everything);
+    }
+
+    /// <summary>One person's run of messages is cut where it gets too far from the conversation, and picks up again.</summary>
+    [Fact]
+    public async Task A_long_unrelated_run_shows_only_its_ends_near_the_conversation()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var c = channel.Object;
+        var history = new List<Mock<IUserMessage>> { Msg(c, 1, PersonA, 0, "root") };
+        for (ulong id = 2; id <= 13; id++)
+            history.Add(Msg(c, id, PersonB, (int) id, $"line {id}"));
+        var quoted = Msg(c, 14, Hime, 20, "quoted", replyTo: 1);
+        History(channel, 14, history.ToArray());
+
+        Assert.Equal(
+            """
+            -# ┌ <@100> · <t>
+            -# │ root
+            -# │
+            -# │ <@300> · <t>
+            -# │ line 2
+            -# │ line 3
+            -# │ line 4
+            -# │ line 5
+            -# │ line 6
+            -# │
+            -# 2 messages truncated
+            -# │ <@300> · <t>
+            -# │ line 9
+            -# │ line 10
+            -# │ line 11
+            -# │ line 12
+            -# │ line 13
+            -# │
+            <@200> · <t>
+            quoted
+            """.ReplaceLineEndings("\n"), await Render(quoted.Object, expanded: true));
+    }
+
     [Theory]
     [InlineData(13UL)]
     [InlineData(19UL)]

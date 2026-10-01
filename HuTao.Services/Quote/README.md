@@ -188,6 +188,12 @@ bot. It collects a loose turn from a webhook, because persons speak through
 webhooks. In collapsed mode, a turn that the root does not connect is not in the
 quote.
 
+The quote shows a loose message only if it is a maximum of 5 messages before or
+after a message of the conversation. The other loose messages collapse into one
+`truncated` line, as paragraph 5.6 tells. A reply can come a long time after its
+parent, and the messages between them are then mostly a different conversation.
+The Show all button shows all the loose messages.
+
 The code for this step is the `MessageBlock.LinkMainRail` function and the
 `MessageBlock.LinkChildren` function.
 

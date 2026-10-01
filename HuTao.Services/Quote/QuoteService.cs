@@ -62,17 +62,30 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     /// <param name="HiddenStart">The first hidden turn, counted in drawing order.</param>
     /// <param name="HiddenCount">How many turns in a row to hide.</param>
     /// <param name="QuotedTextLimit">The most characters of the quoted message's text to show.</param>
+    /// <param name="ShowFar">Whether to show the loose messages far from the conversation (only "Show all" does).</param>
     private sealed record QuoteCut(
-        int DroppedLoose = 0, int HiddenStart = 0, int HiddenCount = 0, int? QuotedTextLimit = null)
+        int DroppedLoose = 0, int HiddenStart = 0, int HiddenCount = 0, int? QuotedTextLimit = null,
+        bool ShowFar = false)
     {
         public static readonly QuoteCut None = new();
+
+        public static readonly QuoteCut Everything = new(ShowFar: true);
     }
 
     /// <summary>The linked turns of a quote, collected once and drawn as many times as fitting it takes.</summary>
-    /// <param name="Loose">The loose turns that will show, oldest first.</param>
+    /// <param name="Loose">Every loose turn, oldest first. "Show all" draws these.</param>
+    /// <param name="Near">
+    ///     The loose messages within <see cref="LooseContext" /> messages of the conversation, as turns, oldest
+    ///     first. The posted quote shows these.
+    /// </param>
+    /// <param name="Far">The other loose messages, as turns. The posted quote collapses them into a line.</param>
     /// <param name="TurnCount">How many turns the layout draws without the loose turns.</param>
     private sealed record Conversation(
-        MessageBlock Root, IReadOnlySet<ulong> Trunk, List<MessageBlock> Loose, int TurnCount);
+        MessageBlock Root, IReadOnlySet<ulong> Trunk,
+        List<MessageBlock> Loose, List<MessageBlock> Near, List<MessageBlock> Far, int TurnCount);
+
+    /// <summary>How many unrelated messages an expanded quote shows before and after a message of the conversation.</summary>
+    private const int LooseContext = 5;
 
     /// <param name="target">
     ///     When set, each container aims at this much text instead of filling up to the limit, so the parts of a long
@@ -347,27 +360,29 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
     {
         var conversation = await CollectAsync(message, expanded);
 
-        var quote = Render(message, conversation, expanded, QuoteCut.None);
         if (!oneMessage)
         {
+            var quote = Render(message, conversation, expanded, QuoteCut.Everything);
+
             // Nothing is left out, so a long quote takes several messages. They share the text about evenly,
             // instead of one full message followed by a scrap.
             var text = Measure(quote).Text;
             var parts = (int) Math.Ceiling(text / (double) MaxDisplayTextSize);
             if (parts > 1)
-                quote = Render(message, conversation, expanded, QuoteCut.None, text / parts + 1);
+                quote = Render(message, conversation, expanded, QuoteCut.Everything, text / parts + 1);
 
             return new BuiltQuote(quote, false);
         }
 
-        if (Fits(quote, budget)) return new BuiltQuote(quote, false);
+        var posted = Render(message, conversation, expanded, QuoteCut.None);
+        if (Fits(posted, budget)) return new BuiltQuote(posted, conversation?.Far.Count > 0);
 
-        var loose = conversation?.Loose.Count ?? 0;
+        var loose = conversation?.Near.Count ?? 0;
         var turns = conversation?.TurnCount ?? 1;
         foreach (var cut in Cuts(loose, turns))
         {
-            quote = Render(message, conversation, expanded, cut);
-            if (Fits(quote, budget)) return new BuiltQuote(quote, true);
+            posted = Render(message, conversation, expanded, cut);
+            if (Fits(posted, budget)) return new BuiltQuote(posted, true);
         }
 
         // The quoted turn alone is still too long, so its text gets the room that is left.
@@ -375,9 +390,9 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         var room = budget - Measure(Render(message, conversation, expanded, smallest with { QuotedTextLimit = 0 })).Text;
         var limit = room - "…".Length - Environment.NewLine.Length;
         if (limit > 0)
-            quote = Render(message, conversation, expanded, smallest with { QuotedTextLimit = limit });
+            posted = Render(message, conversation, expanded, smallest with { QuotedTextLimit = limit });
 
-        return new BuiltQuote(quote, true);
+        return new BuiltQuote(posted, true);
     }
 
     /// <summary>The ways to shrink a quote, from the least left out to the most.</summary>
@@ -578,7 +593,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         // replies show too, and adds the loose turns in between. One layout draws both.
         var root = chain[^1];
         var trunk = chain.Select(b => b.Head.Id).Append(quoted.Head.Id).ToHashSet();
-        List<MessageBlock> loose = [];
+        List<MessageBlock> loose = [], near = [], far = [];
         if (expanded)
         {
             MessageBlock.LinkChildren(blockOf, trunk);
@@ -587,12 +602,49 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
                 .Where(b => !linked.Contains(b) && b.Head.Id > root.Head.Id && IsLooseTurn(b))
                 .OrderBy(b => b.Head.Id)
                 .ToList();
+            (near, far) = SplitByDistance(loose, linked);
         }
         else
             MessageBlock.LinkMainRail(blockOf, trunk);
 
         var turns = QuoteLayout.Layout(root, trunk).Count(row => row is QuoteLayout.TurnRow);
-        return new Conversation(root, trunk, loose, turns);
+        return new Conversation(root, trunk, loose, near, far, turns);
+    }
+
+    /// <summary>
+    ///     A reply can come long after its parent, and most of what was said in between is unrelated. Splits the loose
+    ///     turns into the messages within <see cref="LooseContext" /> messages of a conversation message (near) and the
+    ///     rest (far), keeping each part's messages together as a turn.
+    /// </summary>
+    private static (List<MessageBlock> Near, List<MessageBlock> Far) SplitByDistance(
+        List<MessageBlock> loose, HashSet<MessageBlock> conversation)
+    {
+        var spoken = conversation.SelectMany(b => b.Messages).Select(m => m.Id).ToHashSet();
+        var timeline = loose.SelectMany(b => b.Messages).Select(m => m.Id).Concat(spoken).Order().ToList();
+        var anchors = timeline.Select((id, i) => (id, i)).Where(x => spoken.Contains(x.id)).Select(x => x.i).ToList();
+
+        List<MessageBlock> near = [], far = [];
+        foreach (var block in loose)
+        {
+            MessageBlock? part = null;
+            var partIsNear = false;
+            foreach (var message in block.Messages)
+            {
+                var at = timeline.BinarySearch(message.Id);
+                var isNear = anchors.Any(a => Math.Abs(a - at) <= LooseContext);
+                if (part is not null && isNear == partIsNear)
+                {
+                    part.Messages.Add(message);
+                    continue;
+                }
+
+                part = new MessageBlock(message);
+                partIsNear = isNear;
+                (isNear ? near : far).Add(part);
+            }
+        }
+
+        return (near, far);
     }
 
     /// <summary>
@@ -644,14 +696,18 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         ContainerAccumulator container, Conversation conversation, IMessage message, QuoteCut cut,
         Func<string> showAll)
     {
-        var dropped = conversation.Loose.Take(cut.DroppedLoose).ToHashSet();
-
+        // The posted quote lays out the near and far parts and always leaves the far ones out; "Show all" shows every
+        // loose turn whole.
+        var shown = cut.ShowFar ? conversation.Loose : conversation.Near.Concat(conversation.Far).ToList();
+        var dropped = cut.ShowFar
+            ? []
+            : conversation.Far.Concat(conversation.Near.Take(cut.DroppedLoose)).ToHashSet();
 
         // A segment is one turn with the gap rows below it. The loose turns stay in the layout even when they are
         // left out, so that the line saying so stands where they were.
         var segments = new List<(List<QuoteLayout.Row> Rows, bool Removed)>();
         var turn = 0;
-        foreach (var row in QuoteLayout.Layout(conversation.Root, conversation.Trunk, conversation.Loose))
+        foreach (var row in QuoteLayout.Layout(conversation.Root, conversation.Trunk, shown))
         {
             switch (row)
             {
