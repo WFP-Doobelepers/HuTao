@@ -266,6 +266,11 @@ For each message, the bot also shows the images. For the quoted message only, th
 bot also shows the other files, the text of the embeds, and the text of the
 components.
 
+A forwarded message has no text and no files of its own. Its text and files are
+in a copy of the original message that Discord attaches to it. The bot shows
+that text below the line *Forwarded*, and it shows those files as the files of
+the forwarded message.
+
 The quote has a Jump button and an Expand button. When a user pushes the Expand
 button, the bot does step 1 to step 6 again in expanded mode. It then changes the
 same quote. The button then becomes a Collapse button. Because of step 6, the

@@ -489,7 +489,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
     private static void AppendPlain(ContainerAccumulator acc, IMessage message, QuoteCut cut, Func<string> showAll)
     {
-        var (content, removed) = Shorten(message.Content, cut.QuotedTextLimit);
+        var (content, removed) = Shorten(TextOf(message), cut.QuotedTextLimit);
 
         var sb = new StringBuilder();
         sb.AppendLine($"-# {FormatHeader(AuthorLabel(message.Author), message.Timestamp)}");
@@ -502,15 +502,15 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         if (removed > 0)
             AppendCut(acc, Truncated("characters", removed), showAll);
 
-        foreach (var embed in message.Embeds)
+        foreach (var embed in EmbedsOf(message))
             AppendRenderedEmbed(acc.Current, embed.Author?.Name, embed.Author?.Url,
                 embed.Title, embed.Url, embed.Description,
                 embed.Fields.Select(f => (f.Name, f.Value)),
                 embed.Footer?.Text);
 
         AppendComponentsV2Text(acc.Current, message.Components);
-        AppendMedia(acc, message.Attachments, message.Embeds);
-        AppendFileAttachments(acc.Current, message.Attachments);
+        AppendMedia(acc, AttachmentsOf(message), EmbedsOf(message));
+        AppendFileAttachments(acc.Current, AttachmentsOf(message));
     }
 
     /// <summary>
@@ -799,7 +799,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             if (!string.IsNullOrWhiteSpace(content))
                 container.AppendText(PrefixLines(content, contentPrefix));
 
-            AppendMedia(container, message.Attachments, message.Embeds);
+            AppendMedia(container, AttachmentsOf(message), EmbedsOf(message));
         }
     }
 
@@ -834,7 +834,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             if (!string.IsNullOrWhiteSpace(content))
                 container.AppendText(PrefixLines(content, contentPrefix));
 
-            AppendMedia(container, message.Attachments, message.Embeds);
+            AppendMedia(container, AttachmentsOf(message), EmbedsOf(message));
         }
     }
 
@@ -850,7 +850,7 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
         AppendOwnBlock(container, turn.Block, quotedId, header, Prefix(turn.ContentCells));
 
         var message = turn.Block.Messages.First(m => m.Id == quotedId);
-        var (content, removed) = Shorten(message.Content, textLimit);
+        var (content, removed) = Shorten(TextOf(message), textLimit);
         if (!string.IsNullOrWhiteSpace(content))
         {
             var body = turn.ContentCells.Count == 0 ? "" : $"{Emoji(turn.ContentCells)} ";
@@ -866,15 +866,15 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
     private static void AppendMessageDetails(ContainerAccumulator container, IMessage message)
     {
-        foreach (var embed in message.Embeds)
+        foreach (var embed in EmbedsOf(message))
             AppendRenderedEmbed(container.Current, embed.Author?.Name, embed.Author?.Url,
                 embed.Title, embed.Url, embed.Description,
                 embed.Fields.Select(f => (f.Name, f.Value)),
                 embed.Footer?.Text);
 
         AppendComponentsV2Text(container.Current, message.Components);
-        AppendMedia(container, message.Attachments, message.Embeds);
-        AppendFileAttachments(container.Current, message.Attachments);
+        AppendMedia(container, AttachmentsOf(message), EmbedsOf(message));
+        AppendFileAttachments(container.Current, AttachmentsOf(message));
     }
 
     private async Task<bool> AppendLogReplyChain(ContainerBuilder container, MessageLog log)
@@ -942,15 +942,12 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
 
     private static string ExtractDisplayContent(IMessage message, int maxLength = MaxReplyContentLength)
     {
-        if (!string.IsNullOrWhiteSpace(message.Content))
-        {
-            return message.Content.Length > maxLength
-                ? $"{message.Content[..maxLength]}…"
-                : message.Content;
-        }
+        var text = TextOf(message);
+        if (!string.IsNullOrWhiteSpace(text))
+            return text.Length > maxLength ? $"{text[..maxLength]}…" : text;
 
         var embedContent = ExtractEmbedContent(maxLength,
-            message.Embeds.Select(e => (
+            EmbedsOf(message).Select(e => (
                 AuthorName: e.Author?.Name,
                 Title: (string?) e.Title,
                 Description: (string?) e.Description,
@@ -961,6 +958,25 @@ public class QuoteService(LoggingService logging, HuTaoContext db) : IQuoteServi
             ? embedContent
             : ExtractV2Text(message.Components, maxLength);
     }
+
+    /// <summary>
+    ///     The message a forward carries. A forwarded message has no text or files of its own: they sit in its
+    ///     snapshot.
+    /// </summary>
+    private static IMessage? Forwarded(IMessage message)
+        => (message as IUserMessage)?.ForwardedMessages?.Select(s => s.Message).FirstOrDefault(m => m is not null);
+
+    /// <summary>The message's text, or for a forward, a "Forwarded" line and the forwarded text.</summary>
+    private static string TextOf(IMessage message)
+        => string.IsNullOrWhiteSpace(message.Content) && Forwarded(message) is { } forwarded
+            ? $"*Forwarded*\n{forwarded.Content}".TrimEnd()
+            : message.Content ?? "";
+
+    private static IReadOnlyCollection<IAttachment> AttachmentsOf(IMessage message)
+        => Forwarded(message) is { } forwarded ? [.. message.Attachments, .. forwarded.Attachments] : message.Attachments;
+
+    private static IReadOnlyCollection<IEmbed> EmbedsOf(IMessage message)
+        => Forwarded(message) is { } forwarded ? [.. message.Embeds, .. forwarded.Embeds] : message.Embeds;
 
     private static string ExtractLogContent(MessageLog log, int maxLength = MaxReplyContentLength)
     {

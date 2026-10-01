@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
@@ -1129,6 +1130,39 @@ public class QuoteRenderingTests
 
         Assert.Contains("quoted", text);
         Assert.DoesNotContain("┌", text);
+    }
+
+    /// <summary>
+    ///     A forwarded message has no text or files of its own; they sit in its snapshot. The quote shows them, with a
+    ///     "Forwarded" line first.
+    /// </summary>
+    [Fact]
+    public async Task A_forwarded_message_shows_its_text_and_images()
+    {
+        var channel = new Mock<IMessageChannel>();
+        var forwarded = new Mock<IMessage>();
+        forwarded.SetupGet(m => m.Content).Returns("look at this");
+        forwarded.SetupGet(m => m.Attachments).Returns(
+            [Image("https://cdn.discordapp.com/x/one.png"), Image("https://cdn.discordapp.com/x/two.png")]);
+        forwarded.SetupGet(m => m.Embeds).Returns(Array.Empty<IEmbed>());
+        var snapshot = (MessageSnapshot) Activator.CreateInstance(typeof(MessageSnapshot),
+            BindingFlags.Instance | BindingFlags.NonPublic, null, [forwarded.Object], null)!;
+
+        var forward = Msg(channel.Object, 1, PersonA, 0, "");
+        forward.SetupGet(m => m.ForwardedMessages).Returns([snapshot]);
+        var reply = Msg(channel.Object, 2, Hime, 60, "nice", replyTo: 1);
+        History(channel, 2, forward);
+
+        var containers = await QuoteService.BuildMessageContainer(reply.Object);
+        var components = containers.Single().Components;
+
+        Assert.Equal(
+            [nameof(TextDisplayBuilder), nameof(MediaGalleryBuilder), nameof(TextDisplayBuilder)],
+            components.Select(c => c.GetType().Name));
+        Assert.Equal("-# ┌ <@100> · <t>\n-# │ *Forwarded*\n-# │ look at this",
+            Sym(((TextDisplayBuilder) components[0]).Content));
+        Assert.Equal(2, ((MediaGalleryBuilder) components[1]).Items.Count);
+        Assert.Equal("-# │\n<@200> · <t>\nnice", Sym(((TextDisplayBuilder) components[2]).Content));
     }
 
     [Fact]
