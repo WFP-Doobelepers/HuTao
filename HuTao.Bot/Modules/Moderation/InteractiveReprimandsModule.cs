@@ -158,7 +158,7 @@ public class InteractiveReprimandsModule(
 
     [ComponentInteraction("reprimand-history:*:*", true)]
     [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    [RequireAnyCategoryAuthorization(History, Group = nameof(History))]
     public async Task ViewUserHistoryAsync(ulong userId, bool ephemeral)
     {
         var user = await Context.Client.Rest.GetUserAsync(userId);

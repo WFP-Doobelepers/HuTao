@@ -65,7 +65,7 @@ public class InteractiveUserModule(UserService userService, InteractiveService i
 
     [UserCommand("Reprimand History")]
     [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    [RequireAnyCategoryAuthorization(History, Group = nameof(History))]
     public Task UserHistoryAsync(IUser user) => SlashHistoryAsync(user, ephemeral: true);
 
     [UserCommand("User Mod Menu")]
@@ -74,7 +74,7 @@ public class InteractiveUserModule(UserService userService, InteractiveService i
 
     [ComponentInteraction("history:*")]
     [RequireAuthorization(History, Group = nameof(History))]
-    [RequireCategoryAuthorization(History, Group = nameof(History))]
+    [RequireAnyCategoryAuthorization(History, Group = nameof(History))]
     public Task ComponentHistoryAsync(IUser user) => SlashHistoryAsync(user);
 
     [ComponentInteraction("user:*")]
