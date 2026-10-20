@@ -93,7 +93,8 @@ public class InteractionHandlingService(
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
             var (message, errorId) = UserFacingError.Describe(
-                result.Error is InteractionCommandError.Exception, $"{result.Error}", result.ErrorReason);
+                result.Error is InteractionCommandError.Exception, $"{result.Error}", result.ErrorReason,
+                (result as ExecuteResult?)?.Exception);
 
             log.Log(
                 UserFacingError.LevelFor(errorId is not null),

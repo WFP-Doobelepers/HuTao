@@ -1,12 +1,15 @@
 using System;
+using System.Reflection;
+using Discord.Net;
 using Microsoft.Extensions.Logging;
 
 namespace HuTao.Services.Core.Listeners;
 
 /// <summary>
 ///     What a command failure shows to the person who ran it. A failure from a bad argument or a missing permission
-///     says why. An exception says only a short ID, because its text can name files, queries or other internals; the
-///     full exception goes to the log under the same ID.
+///     says why, and so do a <see cref="UserFacingException" /> and a refusal from Discord. Any other exception says
+///     only a short ID, because its text can name files, queries or other internals; the full exception goes to the
+///     log under the same ID.
 /// </summary>
 public static class UserFacingError
 {
@@ -27,11 +30,31 @@ public static class UserFacingError
     ///     The message to show for <paramref name="reason" />, and the ID to log the full exception under, which is
     ///     null when the reason is safe to show.
     /// </summary>
-    public static (string Message, string? Id) Describe(bool isException, string error, string? reason)
+    public static (string Message, string? Id) Describe(
+        bool isException, string error, string? reason, Exception? exception = null)
     {
         if (!isException) return ($"{error}: {reason}", null);
 
+        switch (Unwrap(exception))
+        {
+            case UserFacingException e:
+                return (e.Message, null);
+
+            // A missing permission or a role that is too low names nothing inside the bot, and staff need it to fix
+            // the server's settings.
+            case HttpException e:
+                return ($"Discord refused the request: {(string.IsNullOrWhiteSpace(e.Reason) ? e.Message : e.Reason)}", null);
+        }
+
         var id = NewId();
         return (ForException(id), id);
+    }
+
+    private static Exception? Unwrap(Exception? exception)
+    {
+        while (exception is TargetInvocationException or AggregateException && exception.InnerException is not null)
+            exception = exception.InnerException;
+
+        return exception;
     }
 }

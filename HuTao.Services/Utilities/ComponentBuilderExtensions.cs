@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Discord;
 using HuTao.Data.Models.Discord.Message.Components;
+using HuTao.Services.Core.Listeners;
 
 namespace HuTao.Services.Utilities;
 
@@ -29,7 +30,7 @@ public static class ComponentBuilderExtensions
         else if (row < MaxActionRowCount)
             rows.AddComponent(component, row + 1);
         else
-            throw new InvalidOperationException($"There is no more row to add this {nameof(component)}.");
+            throw new UserFacingException($"There is no more row to add this {nameof(component)}.");
 
         return rows;
     }

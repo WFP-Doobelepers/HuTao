@@ -139,7 +139,8 @@ public class CommandHandlingService(
         if (result.Error is not CommandError.UnknownCommand)
         {
             var (message, errorId) = UserFacingError.Describe(
-                result.Error is CommandError.Exception, $"{result.Error}", result.ErrorReason);
+                result.Error is CommandError.Exception, $"{result.Error}", result.ErrorReason,
+                (result as ExecuteResult?)?.Exception);
 
             log.Log(
                 UserFacingError.LevelFor(errorId is not null),

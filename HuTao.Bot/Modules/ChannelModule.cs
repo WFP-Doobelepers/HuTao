@@ -304,14 +304,14 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
         var max = positions.Max(p => p.Value);
 
         if (swapPosition < min)
-            throw new InvalidOperationException("Channel is already at the top of the category.");
+            throw new UserFacingException("Channel is already at the top of the category.");
 
         if (swapPosition > max)
-            throw new InvalidOperationException("Channel is already at the bottom of the category.");
+            throw new UserFacingException("Channel is already at the bottom of the category.");
 
         var swapEntry = positions.FirstOrDefault(p => p.Value == swapPosition);
         if (swapEntry.Key is null)
-            throw new InvalidOperationException("No channel found at the target position.");
+            throw new UserFacingException("No channel found at the target position.");
 
         var swapChannel = swapEntry.Key;
 

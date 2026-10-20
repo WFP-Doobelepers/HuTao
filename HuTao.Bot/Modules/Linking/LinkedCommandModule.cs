@@ -11,6 +11,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
 using HuTao.Services.Core;
+using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Linking;
@@ -110,7 +111,7 @@ public class LinkedCommandModule(HuTaoContext db, CommandService commands, Linke
     private async Task AddCommandAsync(LinkedCommand command)
     {
         if (commands.Search(Context, command.Name).IsSuccess)
-            throw new InvalidOperationException("A command with that name already exists.");
+            throw new UserFacingException("A command with that name already exists.");
 
         var commands1 = await GetCollectionAsync();
         var existing = commands1.FirstOrDefault(t => t.Name.Equals(command.Name, StringComparison.OrdinalIgnoreCase));
