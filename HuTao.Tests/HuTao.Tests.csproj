@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HuTao.Bot\HuTao.Bot.csproj" />
     <ProjectReference Include="..\HuTao.Services\HuTao.Services.csproj" />
     <ProjectReference Include="..\HuTao.Data\HuTao.Data.csproj" />
   </ItemGroup>
