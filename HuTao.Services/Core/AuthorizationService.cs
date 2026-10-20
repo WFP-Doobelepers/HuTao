@@ -12,6 +12,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Utilities;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
@@ -50,6 +51,42 @@ public class AuthorizationService(HuTaoContext db)
         return category == ModerationCategory.All || category == ModerationCategory.None
             ? await IsAuthorizedAsync(context, scope, cancellationToken)
             : IsAuthorized(context, scope, category);
+    }
+
+    /// <summary>
+    ///     Whether the user has the scope in the reprimand's category. A reprimand without a category belongs to the
+    ///     guild, so it is checked against the guild's rules, not the user's default category.
+    /// </summary>
+    public Task<bool> IsReprimandAuthorizedAsync(
+        Context context, AuthorizationScope scope, Reprimand reprimand,
+        CancellationToken cancellationToken = default)
+        => IsCategoryAuthorizedAsync(context, scope, reprimand.Category ?? ModerationCategory.None, cancellationToken);
+
+    /// <summary>
+    ///     The reprimands the user has the scope for, in their original order, checked as
+    ///     <see cref="IsReprimandAuthorizedAsync" /> does. A guild's history is long, so each category is checked once.
+    /// </summary>
+    public async Task<IReadOnlyList<Reprimand>> WhereReprimandsAuthorizedAsync(
+        Context context, AuthorizationScope scope, IEnumerable<Reprimand> reprimands,
+        CancellationToken cancellationToken = default)
+    {
+        var categories = new Dictionary<ModerationCategory, bool>();
+        var authorized = new List<Reprimand>();
+
+        foreach (var reprimand in reprimands)
+        {
+            var category = reprimand.Category ?? ModerationCategory.None;
+            if (!categories.TryGetValue(category, out var allowed))
+            {
+                allowed = await IsCategoryAuthorizedAsync(context, scope, category, cancellationToken);
+                categories[category] = allowed;
+            }
+
+            if (allowed)
+                authorized.Add(reprimand);
+        }
+
+        return authorized;
     }
 
     public async Task<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope, object? value)
@@ -136,6 +173,20 @@ public class AuthorizationService(HuTaoContext db)
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Whether the user has the scope at the guild level or in any moderation category. Commands that act on a
+    ///     record only learn its category once they look it up, so they use this to refuse members and then check the
+    ///     record's own category.
+    /// </summary>
+    public async Task<bool> IsAuthorizedInAnyAsync(
+        Context context, AuthorizationScope scope,
+        CancellationToken cancellationToken = default)
+    {
+        var guild = await AutoConfigureGuild(context.Guild, cancellationToken);
+        return IsAuthorized(context, guild.AuthorizationGroups.Scoped(scope).ToList())
+            || guild.ModerationCategories.Any(c => IsAuthorized(context, scope, c));
     }
 
     private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)

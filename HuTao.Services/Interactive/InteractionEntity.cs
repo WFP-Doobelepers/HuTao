@@ -125,6 +125,12 @@ public abstract class InteractionEntity<T> : InteractionModuleBase<SocketInterac
             return;
         }
 
+        await ConfirmRemoveEntityAsync(entity, ephemeral);
+    }
+
+    /// <summary>Shows the entity and removes it once the user confirms. The interaction must already be deferred.</summary>
+    protected async Task ConfirmRemoveEntityAsync(T entity, bool ephemeral)
+    {
         var confirmId = Guid.NewGuid();
         var embed = EntityViewer(entity).Build();
         var container = embed.ToComponentsV2Container(accentColor: 0x9B59FF, maxChars: 3800);

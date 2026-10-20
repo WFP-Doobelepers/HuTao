@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -23,9 +24,9 @@ public class RequireHigherRoleAttribute : ParameterPreconditionAttribute
                 : target.Hierarchy >= user.Hierarchy
                     ? PreconditionResult.FromError($"You cannot {parameter.Command.Name} {target}.")
                     : PreconditionResult.FromSuccess(),
-            IEnumerable<IUser> => PreconditionResult.FromSuccess(),
-            IUser              => PreconditionResult.FromSuccess(),
-            _                  => PreconditionResult.FromError("Invalid parameter type.")
+            IEnumerable<IUser> users => CheckUsers(users.OfType<IGuildUser>()),
+            IUser                    => PreconditionResult.FromSuccess(),
+            _                        => PreconditionResult.FromError("Invalid parameter type.")
         };
 
         PreconditionResult CheckUsers(IEnumerable<IGuildUser> users)

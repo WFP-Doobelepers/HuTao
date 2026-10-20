@@ -93,7 +93,17 @@ public class UserService(
 
         var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
-        category ??= userEntity.DefaultCategory ?? ModerationCategory.None;
+
+        // Open on a category the requester may view, not on the default category of the user being looked up.
+        category ??= await GetStartCategoryAsync(context, guild);
+        if (category is null)
+        {
+            if (loadingMessage is not null)
+                await loadingMessage.DeleteAsync();
+
+            await context.ReplyAsync("You are not authorized to view this history.", ephemeral: true);
+            return;
+        }
 
         if (type is LogReprimandType.None)
         {
@@ -110,7 +120,8 @@ public class UserService(
         var state = new UserHistoryPaginatorState(user, userEntity, history, category, type, guild, context.User)
         {
             IsBanned = await context.Guild.GetBanAsync(user) is not null,
-            TimedOutUntil = (user as IGuildUser)?.TimedOutUntil
+            TimedOutUntil = (user as IGuildUser)?.TimedOutUntil,
+            FilterCategories = await GetHistoryCategoriesAsync(context, guild)
         };
 
         var messageUrls = history
@@ -164,6 +175,52 @@ public class UserService(
             _ => throw new ArgumentOutOfRangeException(
                 nameof(context), context, "Invalid context.")
         });
+    }
+
+    /// <summary>
+    /// The categories the user may filter history by, with <see cref="ModerationCategory.All" /> when they may view
+    /// every category. Someone who may view every category may also narrow it down to any one of them.
+    /// </summary>
+    public async Task<IReadOnlyList<ModerationCategory>> GetHistoryCategoriesAsync(Context context, GuildEntity guild)
+    {
+        if (!guild.ModerationCategories.Any())
+            return [];
+
+        if (await authService.IsCategoryAuthorizedAsync(context, Scope, ModerationCategory.All))
+            return guild.ModerationCategories.Prepend(ModerationCategory.All).ToList();
+
+        var categories = new List<ModerationCategory>();
+        foreach (var category in guild.ModerationCategories)
+        {
+            if (await authService.IsCategoryAuthorizedAsync(context, Scope, category))
+                categories.Add(category);
+        }
+
+        return categories;
+    }
+
+    /// <summary>
+    /// The category history opens on when none is given: the user's own default category if they may view it, else
+    /// every category if they may view all of them, else the first category they may view. Null when they may view
+    /// none.
+    /// </summary>
+    public async Task<ModerationCategory?> GetStartCategoryAsync(Context context, GuildEntity guild)
+    {
+        var requester = await db.Users.TrackUserAsync(context.User, context.Guild);
+        var preferred = requester.DefaultCategory ?? ModerationCategory.None;
+        if (await authService.IsCategoryAuthorizedAsync(context, Scope, preferred))
+            return preferred;
+
+        if (await authService.IsCategoryAuthorizedAsync(context, Scope, ModerationCategory.All))
+            return ModerationCategory.All;
+
+        foreach (var category in guild.ModerationCategories)
+        {
+            if (await authService.IsCategoryAuthorizedAsync(context, Scope, category))
+                return category;
+        }
+
+        return null;
     }
 
     public const string SelectOptionId = "select_option";
@@ -588,7 +645,7 @@ public class UserService(
                 + (hasImages ? 3 : 1) // footer section or text display
                 + 2                // mod menu row (actionrow + selectmenu)
                 + 4                // nav row (actionrow + 3 buttons)
-                + (state.Guild.ModerationCategories.Any() ? 2 : 0);
+                + (state.FilterCategories.Any() ? 2 : 0);
             var contentBudget = ComponentsV2Validator.MaxTotalComponents - fixedOverhead;
             var reprimandContainer = RenderGroupedReprimands(
                 currentReprimands, state.FilteredReprimands,
@@ -616,15 +673,16 @@ public class UserService(
             }
         }
 
-        // Category filter if available (outside container)
-        if (state.Guild.ModerationCategories.Any())
+        // Category filter if available (outside container), offering only the categories the requester may view
+        if (state.FilterCategories.Any())
         {
-            var categoryOptions = state.Guild.ModerationCategories
-                .Select(c => new SelectMenuOptionBuilder(c.Name.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength), 
-                    c.Id.ToString(),
-                    isDefault: c.Id == state.CategoryFilter?.Id))
-                .Prepend(new SelectMenuOptionBuilder("All Categories", "all",
-                    isDefault: state.CategoryFilter == null))
+            var categoryOptions = state.FilterCategories
+                .Select(c => c == ModerationCategory.All
+                    ? new SelectMenuOptionBuilder("All Categories", "all",
+                        isDefault: state.CategoryFilter == null)
+                    : new SelectMenuOptionBuilder(c.Name.Truncate(SelectMenuOptionBuilder.MaxSelectLabelLength),
+                        c.Id.ToString(),
+                        isDefault: c.Id == state.CategoryFilter?.Id))
                 .ToList();
 
             components.WithActionRow(new ActionRowBuilder()

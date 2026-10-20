@@ -26,6 +26,7 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
 
     [Command("add")]
     [Summary("Add a new moderation category.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task AddModerationCategoryAsync(string name, ModerationCategoryOptions? options = null)
     {
         if (name.Equals("All", StringComparison.OrdinalIgnoreCase))
@@ -73,11 +74,13 @@ public class ModerationCategoryModule(CommandErrorHandler error, HuTaoContext db
     [Command("remove")]
     [Alias("delete", "del")]
     [Summary("Remove a moderation category.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
     [Command]
     [Alias("list", "view")]
     [Summary("View the moderation category list.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected override Task ViewEntityAsync() => base.ViewEntityAsync();
 
     protected override EmbedBuilder EntityViewer(ModerationCategory entity) => entity.ToEmbedBuilder();

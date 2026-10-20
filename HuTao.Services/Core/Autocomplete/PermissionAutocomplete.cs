@@ -10,9 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HuTao.Services.Core.Autocomplete;
 
-public class PermissionAutocomplete : AutocompleteHandler
+public class PermissionAutocomplete : AuthorizedAutocompleteHandler
 {
-    public override async Task<AutocompletionResult> GenerateSuggestionsAsync(
+    protected override async Task<AutocompletionResult> GetSuggestionsAsync(
         IInteractionContext context, IAutocompleteInteraction interaction,
         IParameterInfo parameter, IServiceProvider services)
     {

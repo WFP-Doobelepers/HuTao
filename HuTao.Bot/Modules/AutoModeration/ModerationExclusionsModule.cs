@@ -10,6 +10,7 @@ using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Auto.Configurations;
 using HuTao.Data.Models.Moderation.Auto.Exclusions;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
@@ -20,6 +21,7 @@ namespace HuTao.Bot.Modules.AutoModeration;
 
 [Name("Auto Moderation Exclusions")]
 [Group("auto")]
+[RequireAuthorization(AuthorizationScope.Configuration)]
 public class ModerationExclusionsModule(HuTaoContext db, IMemoryCache cache) : InteractiveEntity<ModerationExclusion>
 {
     [Command("exclude")]

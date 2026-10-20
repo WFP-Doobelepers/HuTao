@@ -23,6 +23,7 @@ namespace HuTao.Bot.Modules.AutoModeration;
 [Group("auto")]
 [Name("Auto Moderation")]
 [Summary("Configure rules that automatically act on spam and other violations.")]
+[RequireAuthorization(AuthorizationScope.Configuration)]
 public class AutoModerationModule(HuTaoContext db, IMemoryCache cache) : InteractiveTrigger<AutoConfiguration>
 {
     [Command("ban")]

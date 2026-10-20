@@ -46,7 +46,10 @@ public class UserHistoryComponentsV2Tests
             category: null,
             LogReprimandType.All,
             guild,
-            requestedBy);
+            requestedBy)
+        {
+            FilterCategories = [ModerationCategory.All, category]
+        };
 
         var paginator = InteractiveExtensions.CreateDefaultComponentPaginator()
             .WithUsers(requestedBy)
@@ -205,7 +208,10 @@ public class UserHistoryComponentsV2Tests
 
         return new UserHistoryPaginatorState(
             user, userEntity, reprimands,
-            null, LogReprimandType.All, guild, requestedBy);
+            null, LogReprimandType.All, guild, requestedBy)
+        {
+            FilterCategories = [ModerationCategory.All, category]
+        };
     }
 
     private static IComponentPaginator CreatePaginator(UserHistoryPaginatorState state)

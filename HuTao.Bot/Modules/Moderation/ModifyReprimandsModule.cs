@@ -36,18 +36,22 @@ public class ModifyReprimandsModule(
     [Command("pardon")]
     [Alias("hide")]
     [Summary("Pardon a reprimand, this would mean they are not counted towards triggers.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task PardonReprimandAsync(string id, [Remainder] string? reason = null)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, (r, d, t)
             => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
 
     [Command("update")]
     [Summary("Update a reprimand's reason.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, moderation.UpdateReprimandAsync, reason);
     }
 
@@ -68,16 +72,18 @@ public class ModifyReprimandsModule(
 
     [Command("reprimand")]
     [Summary("View the details of the reprimand.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task ViewReprimandAsync(string id)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, History);
         if (reprimand is null)
         {
             await error.AssociateError(Context.Message, EmptyMatchMessage);
             return;
         }
 
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, History, reprimand);
         if (!authorized)
             await error.AssociateError(Context, NotAuthorizedMessage);
         else
@@ -91,7 +97,22 @@ public class ModifyReprimandsModule(
     [Command("remove")]
     [Alias("delete", "purgewarn")]
     [Summary("Delete a reprimand, this completely removes the data.")]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    protected override async Task RemoveEntityAsync(string id)
+    {
+        var reprimand = await FindReprimandAsync(id, Scope);
+
+        if (reprimand is null)
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
+        else
+        {
+            await RemoveEntityAsync(reprimand);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+    }
 
     protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
 
@@ -99,7 +120,7 @@ public class ModifyReprimandsModule(
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, Scope, entity);
 
         if (!authorized)
             await error.AssociateError(Context.Message, NotAuthorizedMessage);
@@ -113,16 +134,17 @@ public class ModifyReprimandsModule(
         return guild.ReprimandHistory;
     }
 
+    private async Task<Reprimand?> FindReprimandAsync(string id, AuthorizationScope scope)
+        => await Service.TryFindReprimandAsync(auth, Context, await GetCollectionAsync(), scope, id);
+
     private async Task ModifyReprimandAsync(
         Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
-
-        if (!authorized)
-            await error.AssociateError(Context.Message, NotAuthorizedMessage);
-        else if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
+        if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
             await error.AssociateError(Context.Message, EmptyMatchMessage);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
         else
         {
             var user = await Context.Client.GetUserAsync(reprimand.UserId);

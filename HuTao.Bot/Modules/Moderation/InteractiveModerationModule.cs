@@ -45,6 +45,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("ban-menu", "Open a menu to ban a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Ban)]
     public Task BanMenuAsync([RequireHigherRole] IUser user)
         => RespondModMenuAsync(user, LogReprimandType.Ban);
 
@@ -70,6 +71,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("hardmute-menu", "Open a menu to hard mute a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.HardMute)]
     public Task HardMuteMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.HardMute);
 
@@ -90,6 +92,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("kick-menu", "Open a menu to kick a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Kick)]
     public Task KickMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Kick);
 
@@ -123,6 +126,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => moderation.SendMuteListAsync(Context, category, ephemeral);
 
     [SlashCommand("mute-menu", "Open a menu to mute a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Mute)]
     public Task MuteMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Mute);
 
@@ -140,6 +144,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("note-menu", "Open a menu to add a note for a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Note)]
     public Task NoteMenuAsync([RequireHigherRole] IUser user)
         => RespondModMenuAsync(user, LogReprimandType.Note);
 
@@ -157,6 +162,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("notice-menu", "Open a menu to give a user a notice.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Warning)]
     public Task NoticeMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Notice);
 
@@ -232,6 +238,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => moderation.SendTimeoutListAsync(Context, category, ephemeral);
 
     [SlashCommand("timeout-menu", "Open a menu to timeout a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Timeout)]
     public Task TimeoutMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Timeout);
 
@@ -298,6 +305,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     }
 
     [SlashCommand("warn-menu", "Open a menu to warn a user.")]
+    [RequireAnyCategoryAuthorization(AuthorizationScope.Warning)]
     public Task WarnMenuAsync([RequireHigherRole] IGuildUser user)
         => RespondModMenuAsync(user, LogReprimandType.Warning);
 
@@ -350,6 +358,9 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
         => await TimeoutAsync(user, modal.Length!.Value, modal.Reason, modal.Category, modal.Ephemeral);
 
     [ComponentInteraction("mod-menu:*")]
+    [RequireAnyCategoryAuthorization(
+        AuthorizationScope.Ban | AuthorizationScope.HardMute | AuthorizationScope.Kick | AuthorizationScope.Mute
+        | AuthorizationScope.Note | AuthorizationScope.Warning | AuthorizationScope.Timeout)]
     public async Task RespondModMenuAsync(IUser user, LogReprimandType[] options)
     {
         var selected = options.FirstOrDefault();
