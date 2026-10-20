@@ -17,6 +17,11 @@ public class ReprimandAutocomplete : AutocompleteHandler
         IInteractionContext context, IAutocompleteInteraction interaction,
         IParameterInfo parameter, IServiceProvider services)
     {
+        // Discord.Net does not run the command's preconditions for autocomplete, and suggestions show reasons.
+        var preconditions = await parameter.Command.CheckPreconditionsAsync(context, services);
+        if (!preconditions.IsSuccess)
+            return AutocompletionResult.FromSuccess([]);
+
         var db = services.GetRequiredService<HuTaoContext>();
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 
