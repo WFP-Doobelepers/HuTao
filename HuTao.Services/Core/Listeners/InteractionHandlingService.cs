@@ -92,10 +92,15 @@ public class InteractionHandlingService(
 
         if (result.Error is not InteractionCommandError.UnknownCommand)
         {
+            var (message, errorId) = UserFacingError.Describe(
+                result.Error is InteractionCommandError.Exception, $"{result.Error}", result.ErrorReason);
+
             log.LogError(
-                "Interaction execution failed (Error={Error}, Reason={ErrorReason}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId}, InteractionId={InteractionId}, InteractionType={InteractionType})",
+                (result as ExecuteResult?)?.Exception,
+                "Interaction execution failed (Error={Error}, Reason={ErrorReason}, ErrorId={ErrorId}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId}, InteractionId={InteractionId}, InteractionType={InteractionType})",
                 result.Error,
                 result.ErrorReason,
+                errorId,
                 command.Name,
                 context.User.Id,
                 context.Channel.Id,
@@ -104,9 +109,9 @@ public class InteractionHandlingService(
                 context.Interaction.Type);
 
             if (context.Interaction.HasResponded)
-                await context.Interaction.FollowupAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
+                await context.Interaction.FollowupAsync(message, ephemeral: true);
             else
-                await context.Interaction.RespondAsync($"{result.Error}: {result.ErrorReason}", ephemeral: true);
+                await context.Interaction.RespondAsync(message, ephemeral: true);
         }
     }
 }

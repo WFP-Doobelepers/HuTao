@@ -138,16 +138,21 @@ public class CommandHandlingService(
 
         if (result.Error is not CommandError.UnknownCommand)
         {
+            var (message, errorId) = UserFacingError.Describe(
+                result.Error is CommandError.Exception, $"{result.Error}", result.ErrorReason);
+
             log.LogError(
-                "Command execution failed (Error={Error}, Reason={ErrorReason}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId})",
+                (result as ExecuteResult?)?.Exception,
+                "Command execution failed (Error={Error}, Reason={ErrorReason}, ErrorId={ErrorId}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId})",
                 result.Error,
                 result.ErrorReason,
+                errorId,
                 command.Value?.Name,
                 context.User.Id,
                 context.Channel.Id,
                 context.Guild?.Id);
 
-            await errorHandler.AssociateError(context.Message, $"{result.Error}: {result.ErrorReason}");
+            await errorHandler.AssociateError(context.Message, message);
         }
     }
 }
