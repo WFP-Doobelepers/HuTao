@@ -93,7 +93,17 @@ public class UserService(
 
         var userEntity = await db.Users.TrackUserAsync(user, context.Guild);
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
-        category ??= userEntity.DefaultCategory ?? ModerationCategory.None;
+
+        // Open on a category the requester may view, not on the default category of the user being looked up.
+        category ??= await GetStartCategoryAsync(context, guild);
+        if (category is null)
+        {
+            if (loadingMessage is not null)
+                await loadingMessage.DeleteAsync();
+
+            await context.ReplyAsync("You are not authorized to view this history.", ephemeral: true);
+            return;
+        }
 
         if (type is LogReprimandType.None)
         {
@@ -187,6 +197,30 @@ public class UserService(
         }
 
         return categories;
+    }
+
+    /// <summary>
+    /// The category history opens on when none is given: the user's own default category if they may view it, else
+    /// every category if they may view all of them, else the first category they may view. Null when they may view
+    /// none.
+    /// </summary>
+    public async Task<ModerationCategory?> GetStartCategoryAsync(Context context, GuildEntity guild)
+    {
+        var requester = await db.Users.TrackUserAsync(context.User, context.Guild);
+        var preferred = requester.DefaultCategory ?? ModerationCategory.None;
+        if (await authService.IsCategoryAuthorizedAsync(context, Scope, preferred))
+            return preferred;
+
+        if (await authService.IsCategoryAuthorizedAsync(context, Scope, ModerationCategory.All))
+            return ModerationCategory.All;
+
+        foreach (var category in guild.ModerationCategories)
+        {
+            if (await authService.IsCategoryAuthorizedAsync(context, Scope, category))
+                return category;
+        }
+
+        return null;
     }
 
     public const string SelectOptionId = "select_option";
