@@ -445,6 +445,7 @@ public class GenshinModule
         }
 
         [SlashCommand("allow-user", "Allows a user to manage the Genshin Impact commands")]
+        [RequireAllowedUserInteraction]
         public async Task AllowAsync(IGuildUser user)
         {
             if (AllowedUsers.Add(user.Id))
@@ -454,6 +455,7 @@ public class GenshinModule
         }
 
         [SlashCommand("allow-role", "Allows a role to manage the Genshin Impact commands")]
+        [RequireAllowedUserInteraction]
         public async Task AllowAsync(IRole role)
         {
             if (AllowedRoles.Add(role.Id))
@@ -463,6 +465,7 @@ public class GenshinModule
         }
 
         [SlashCommand("allowed", "View and manage users and roles that can manage Genshin Impact commands")]
+        [RequireAllowedUserInteraction]
         public async Task AllowedAsync()
         {
             var container = new ContainerBuilder();
@@ -532,6 +535,7 @@ public class GenshinModule
         }
 
         [SlashCommand("disallow-user", "Disallows a user from managing the Genshin Impact commands")]
+        [RequireAllowedUserInteraction]
         public async Task DisallowAsync(IGuildUser user)
         {
             if (AllowedUsers.Remove(user.Id))
@@ -541,6 +545,7 @@ public class GenshinModule
         }
 
         [SlashCommand("disallow-role", "Disallows a role from managing the Genshin Impact commands")]
+        [RequireAllowedUserInteraction]
         public async Task DisallowAsync(IRole role)
         {
             if (AllowedRoles.Remove(role.Id))
