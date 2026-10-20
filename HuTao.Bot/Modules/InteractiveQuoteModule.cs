@@ -35,9 +35,7 @@ public class InteractiveQuoteModule(IQuoteService quoteService)
 
         // The whole quote shows more of the source channel than the posted one, so only people who can read that
         // channel get it.
-        var channel = Context.Guild.GetChannel(channelId);
-        if (channel is null || Context.User is not SocketGuildUser user
-            || user.GetPermissions(channel) is not { ViewChannel: true, ReadMessageHistory: true })
+        if (!await CanReadSourceAsync(Context.User as IGuildUser, Context.Guild.GetChannel(channelId)))
         {
             await FollowupAsync("You cannot read the channel this quote comes from.", ephemeral: true);
             return;
@@ -56,6 +54,26 @@ public class InteractiveQuoteModule(IQuoteService quoteService)
             await FollowupAsync(components: components, allowedMentions: AllowedMentions.None, ephemeral: true);
     }
 
+    /// <summary>
+    ///     Whether <paramref name="user" /> can see <paramref name="channel" /> and read its history. A thread has no
+    ///     permissions of its own, so its parent channel decides, and a private thread is also hidden from everyone who
+    ///     is not in it, unless they can manage threads.
+    /// </summary>
+    public static async Task<bool> CanReadSourceAsync(IGuildUser? user, IGuildChannel? channel)
+    {
+        if (user is null || channel is null) return false;
+        if (channel is not IThreadChannel thread) return CanRead(user, channel);
+
+        var parent = thread.CategoryId is { } parentId ? await user.Guild.GetChannelAsync(parentId) : null;
+        if (parent is null || !CanRead(user, parent)) return false;
+        if (thread.Type is not ThreadType.PrivateThread) return true;
+
+        return user.GetPermissions(parent).ManageThreads || await thread.GetUserAsync(user.Id) is not null;
+
+        static bool CanRead(IGuildUser user, IGuildChannel channel)
+            => user.GetPermissions(channel) is { ViewChannel: true, ReadMessageHistory: true };
+    }
+
     private async Task ToggleQuoteAsync(
         string channelIdStr, string messageIdStr, string requesterIdStr, bool expanded)
     {
@@ -64,6 +82,14 @@ public class InteractiveQuoteModule(IQuoteService quoteService)
             || !ulong.TryParse(requesterIdStr, out var requesterId))
         {
             await RespondAsync("Invalid quote reference.", ephemeral: true);
+            return;
+        }
+
+        // Expanding pulls the messages around the quote out of the source channel into a public message, so only
+        // people who can read that channel may do it. Collapsing shows less and stays open to everyone.
+        if (expanded && !await CanReadSourceAsync(Context.User as IGuildUser, Context.Guild.GetChannel(channelId)))
+        {
+            await RespondAsync("You cannot read the channel this quote comes from.", ephemeral: true);
             return;
         }
 
