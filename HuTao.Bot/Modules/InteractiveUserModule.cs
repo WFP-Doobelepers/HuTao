@@ -15,6 +15,7 @@ using static HuTao.Data.Models.Authorization.AuthorizationScope;
 
 namespace HuTao.Bot.Modules;
 
+[RequireContext(ContextType.Guild)]
 public class InteractiveUserModule(UserService userService, InteractiveService interactiveService) : InteractionModuleBase<SocketInteractionContext>
 {
     private static readonly GenericBitwise<LogReprimandType> InfractionTypeBitwise = new();

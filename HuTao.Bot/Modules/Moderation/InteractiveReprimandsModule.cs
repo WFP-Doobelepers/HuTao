@@ -22,6 +22,7 @@ using static HuTao.Data.Models.Moderation.Infractions.Reprimands.ReprimandStatus
 namespace HuTao.Bot.Modules.Moderation;
 
 [Group("reprimand", "View and manage moderation records.")]
+[RequireContext(ContextType.Guild)]
 public class InteractiveReprimandsModule(
     HuTaoContext db, AuthorizationService auth,
     ModerationService moderation, UserService userService)
