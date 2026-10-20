@@ -36,6 +36,8 @@ public class ModifyReprimandsModule(
     [Command("pardon")]
     [Alias("hide")]
     [Summary("Pardon a reprimand, this would mean they are not counted towards triggers.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task PardonReprimandAsync(string id, [Remainder] string? reason = null)
     {
         var reprimand = await TryFindEntityAsync(id);
@@ -45,6 +47,8 @@ public class ModifyReprimandsModule(
 
     [Command("update")]
     [Summary("Update a reprimand's reason.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
     {
         var reprimand = await TryFindEntityAsync(id);
@@ -68,6 +72,8 @@ public class ModifyReprimandsModule(
 
     [Command("reprimand")]
     [Summary("View the details of the reprimand.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task ViewReprimandAsync(string id)
     {
         var reprimand = await TryFindEntityAsync(id);
@@ -91,6 +97,8 @@ public class ModifyReprimandsModule(
     [Command("remove")]
     [Alias("delete", "purgewarn")]
     [Summary("Delete a reprimand, this completely removes the data.")]
+    [RequireAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
 
     protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
