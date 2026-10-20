@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
+using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,6 +18,7 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 
     [Command("delete")]
     [Summary("Deletes a trigger by ID. Associated reprimands will be deleted.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected async Task DeleteTriggerAsync(
         string id,
         [Summary("Silently delete the reprimands in case there are too many.")]
@@ -40,14 +43,17 @@ public abstract class InteractiveTrigger<T> : InteractiveEntity<T> where T : Tri
 
     [Command("enable")]
     [Summary("Enables a trigger by ID.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected Task EnableEntityAsync(string id) => ToggleEntityAsync(id, true);
 
     [Command("disable")]
     [Summary("Disables a trigger by ID. Associated reprimands will be kept.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected override Task RemoveEntityAsync(string id) => ToggleEntityAsync(id, false);
 
     [Command("toggle")]
     [Summary("Toggles a trigger by ID. Associated reprimands will be kept.")]
+    [RequireAuthorization(AuthorizationScope.Configuration)]
     protected async Task ToggleEntityAsync(
         [Summary("The ID of the trigger.")] string id,
         [Summary("Leave empty to toggle the state.")]
