@@ -117,6 +117,20 @@ public class AuthorizationService(HuTaoContext db)
         return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope).ToList());
     }
 
+    /// <summary>
+    ///     Whether the user has the scope at the guild level or in any moderation category. Commands that act on a
+    ///     record only learn its category once they look it up, so they use this to refuse members and then check the
+    ///     record's own category.
+    /// </summary>
+    public async Task<bool> IsAuthorizedInAnyAsync(
+        Context context, AuthorizationScope scope,
+        CancellationToken cancellationToken = default)
+    {
+        var guild = await AutoConfigureGuild(context.Guild, cancellationToken);
+        return IsAuthorized(context, guild.AuthorizationGroups.Scoped(scope).ToList())
+            || guild.ModerationCategories.Any(c => IsAuthorized(context, scope, c));
+    }
+
     private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
         => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
 

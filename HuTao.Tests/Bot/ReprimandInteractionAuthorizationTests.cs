@@ -81,7 +81,9 @@ public class ReprimandInteractionAuthorizationTests
             .Select(g => (IReadOnlyList<PreconditionAttribute>) g.Where(IsAuthorization).ToList());
 
     private static bool IsAuthorization(PreconditionAttribute precondition)
-        => precondition is RequireAuthorizationAttribute or RequireCategoryAuthorizationAttribute;
+        => precondition is RequireAuthorizationAttribute
+            or RequireCategoryAuthorizationAttribute
+            or RequireAnyCategoryAuthorizationAttribute;
 
     private static AuthorizationScope Scopes(PreconditionAttribute precondition)
     {

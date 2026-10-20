@@ -32,7 +32,7 @@ public class InteractiveReprimandsModule(
 
     [SlashCommand("pardon", "Pardon a reprimand so it no longer counts toward escalation rules.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task PardonReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
@@ -75,7 +75,7 @@ public class InteractiveReprimandsModule(
 
     [SlashCommand("update", "Update a reprimand's reason.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task UpdateReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
@@ -103,7 +103,7 @@ public class InteractiveReprimandsModule(
 
     [SlashCommand("view", "View the details of the reprimand.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task ViewReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
@@ -130,7 +130,7 @@ public class InteractiveReprimandsModule(
     [ComponentInteraction("reprimand-delete:*:*", true)]
     [SlashCommand("delete", "Permanently delete a reprimand and its data.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     protected override Task RemoveEntityAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
@@ -139,19 +139,19 @@ public class InteractiveReprimandsModule(
 
     [ModalInteraction("reprimand-pardon:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public Task PardonReprimandAsync(string id, bool ephemeral, PardonModal modal)
         => PardonReprimandAsync(id, modal.Reason, ephemeral);
 
     [ComponentInteraction("reprimand-pardon:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public Task PardonReprimandMenuAsync(string id, bool ephemeral)
         => UpdateReprimandAsync<PardonModal>($"reprimand-pardon:{id}:{ephemeral}", id);
 
     [ModalInteraction("reprimand-update:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public Task UpdateReprimandAsync(string id, bool ephemeral, UpdateModal modal)
         => UpdateReprimandAsync(id, modal.Reason, ephemeral);
 
@@ -172,7 +172,7 @@ public class InteractiveReprimandsModule(
 
     [ComponentInteraction("reprimand-update:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
-    [RequireCategoryAuthorization(History | Modify, Group = nameof(Modify))]
+    [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public Task UpdateReprimandMenuAsync(string id, bool ephemeral)
         => UpdateReprimandAsync<UpdateModal>($"reprimand-update:{id}:{ephemeral}", id);
 

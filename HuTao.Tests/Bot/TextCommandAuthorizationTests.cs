@@ -49,6 +49,7 @@ public class TextCommandAuthorizationTests
     [
         typeof(RequireAuthorizationAttribute),
         typeof(RequireCategoryAuthorizationAttribute),
+        typeof(RequireAnyCategoryAuthorizationAttribute),
         typeof(RequireTeamMemberAttribute),
         typeof(RequireUserPermissionAttribute),
         typeof(RequireOwnerAttribute),
