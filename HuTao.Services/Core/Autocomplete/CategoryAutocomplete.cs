@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -21,12 +22,20 @@ public class CategoryAutocomplete : AuthorizedAutocompleteHandler
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 
         var input = interaction.Data.Current.Value.ToString();
-        var templates = guild.ModerationCategories
+        var categories = guild.ModerationCategories
             .Prepend(ModerationCategory.None)
             .Append(ModerationCategory.All)
-            .Where(t => t.Name.StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase))
-            .Select(t => new AutocompleteResult(t.Name.Truncate(100), t.Name));
+            .Where(t => t.Name.StartsWith(input ?? string.Empty, StringComparison.OrdinalIgnoreCase));
 
-        return AutocompletionResult.FromSuccess(templates);
+        // The command checks the category with the parameter's own preconditions, so only suggest those that pass.
+        var suggestions = new List<AutocompleteResult>();
+        foreach (var category in categories)
+        {
+            var result = await parameter.CheckPreconditionsAsync(context, category, services);
+            if (result.IsSuccess)
+                suggestions.Add(new AutocompleteResult(category.Name.Truncate(100), category.Name));
+        }
+
+        return AutocompletionResult.FromSuccess(suggestions);
     }
 }
