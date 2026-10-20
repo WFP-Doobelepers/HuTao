@@ -20,6 +20,7 @@ using Hangfire;
 using Hangfire.Storage;
 using Humanizer;
 using HuTao.Data.Models.Discord;
+using HuTao.Services.Core.Preconditions;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Utilities;
 using CPreconditionAttribute = Discord.Commands.PreconditionAttribute;
@@ -1533,9 +1534,7 @@ public class GenshinModule
 
             var application = await context.Client.GetApplicationInfoAsync().ConfigureAwait(false);
 
-            if (context.User.Id == application.Owner.Id
-                || context.User.Id == application.Team.OwnerUserId
-                || application.Team.TeamMembers.Any(t => context.User.Id == t.User.Id))
+            if (TeamAccess.IsTeamMember(application, context.User.Id))
                 return CPreconditionResult.FromSuccess();
 
             return AllowedUsers.Contains(user.Id) || user.RoleIds.Any(AllowedRoles.Contains)
@@ -1561,9 +1560,7 @@ public class GenshinModule
 
             var application = await context.Client.GetApplicationInfoAsync().ConfigureAwait(false);
 
-            if (context.User.Id == application.Owner.Id
-                || context.User.Id == application.Team.OwnerUserId
-                || application.Team.TeamMembers.Any(t => context.User.Id == t.User.Id))
+            if (TeamAccess.IsTeamMember(application, context.User.Id))
                 return IPreconditionResult.FromSuccess();
 
             return AllowedUsers.Contains(user.Id) || user.RoleIds.Any(AllowedRoles.Contains)

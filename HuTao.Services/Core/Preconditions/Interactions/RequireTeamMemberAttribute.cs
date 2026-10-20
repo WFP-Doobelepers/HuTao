@@ -19,9 +19,7 @@ public class RequireTeamMemberAttribute : PreconditionAttribute
 
         var application = await context.Client.GetApplicationInfoAsync().ConfigureAwait(false);
 
-        if (context.User.Id == application.Owner.Id
-            || context.User.Id == application.Team.OwnerUserId
-            || application.Team.TeamMembers.Any(t => context.User.Id == t.User.Id))
+        if (TeamAccess.IsTeamMember(application, context.User.Id))
             return PreconditionResult.FromSuccess();
 
         return PreconditionResult.FromError("Command can only be run by team members of the bot.");
