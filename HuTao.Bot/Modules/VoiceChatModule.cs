@@ -31,6 +31,12 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
         if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
             return;
 
+        if (VoiceChatOwnership.CannotRemove((IGuildUser) Context.User, user) is { } refusal)
+        {
+            await ReplyAsync(refusal, allowedMentions: AllowedMentions.None);
+            return;
+        }
+
         if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
         {
             await user.VoiceChannel.AddPermissionOverwriteAsync(user,
@@ -138,6 +144,12 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 
         if (voiceChat is null || voiceChat.UserId != Context.User.Id || user.Id == Context.User.Id)
             return;
+
+        if (VoiceChatOwnership.CannotRemove((IGuildUser) Context.User, user) is { } refusal)
+        {
+            await ReplyAsync(refusal, allowedMentions: AllowedMentions.None);
+            return;
+        }
 
         if (user.VoiceChannel?.Id == voiceChat.VoiceChannelId)
         {

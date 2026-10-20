@@ -325,6 +325,14 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
+        if (VoiceChatOwnership.CannotRemove((IGuildUser) Context.User, guildTarget) is { } refusal)
+        {
+            state.Notice = refusal;
+            await DeferAsync();
+            await RenderAsync(paginator);
+            return;
+        }
+
         await DeferAsync();
 
         await voiceChannel.AddPermissionOverwriteAsync(guildTarget, OverwritePermissions.DenyAll(voiceChannel));

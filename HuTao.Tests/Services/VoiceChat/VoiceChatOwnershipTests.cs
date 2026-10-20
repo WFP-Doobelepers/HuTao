@@ -107,4 +107,30 @@ public class VoiceChatOwnershipTests
         channel.Verify(c => c.AddPermissionOverwriteAsync(
             It.IsAny<IUser>(), It.IsAny<OverwritePermissions>(), It.IsAny<RequestOptions>()), Times.Once);
     }
+    private static IGuildUser Member(int hierarchy, GuildPermissions? permissions = null)
+    {
+        var member = new Mock<IGuildUser>();
+        member.SetupGet(m => m.Hierarchy).Returns(hierarchy);
+        member.SetupGet(m => m.Mention).Returns($"<@{hierarchy}>");
+        member.SetupGet(m => m.GuildPermissions).Returns(permissions ?? GuildPermissions.None);
+        return member.Object;
+    }
+
+    // A voice owner cannot kick or ban a moderator from their voice chat.
+    [Theory]
+    [InlineData(GuildPermission.Administrator)]
+    [InlineData(GuildPermission.ModerateMembers)]
+    [InlineData(GuildPermission.MoveMembers)]
+    public void TheOwner_CannotRemoveAModerator(GuildPermission permission)
+        => Assert.NotNull(VoiceChatOwnership.CannotRemove(Member(5), Member(1, new GuildPermissions((ulong) permission))));
+
+    // Nor a member whose highest role is at or above the owner's. Two members with no roles may remove each other.
+    [Theory]
+    [InlineData(5, 4, true)]
+    [InlineData(5, 5, false)]
+    [InlineData(5, 6, false)]
+    [InlineData(0, 0, true)]
+    [InlineData(0, 1, false)]
+    public void TheOwner_CanOnlyRemoveAMemberBelowThem(int owner, int target, bool allowed)
+        => Assert.Equal(allowed, VoiceChatOwnership.CannotRemove(Member(owner), Member(target)) is null);
 }

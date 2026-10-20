@@ -19,6 +19,23 @@ public static class VoiceChatOwnership
             .Select(vc => (ulong?) vc.UserId)
             .FirstOrDefaultAsync();
 
+    /// <summary>
+    ///     Why the voice owner cannot kick or ban <paramref name="target" /> from their voice chat, or null when they can.
+    ///     A moderator, and a member whose highest role is at or above the owner's, cannot be removed. Two members with no
+    ///     roles at all are equals that may remove each other, or no member without a role could use the command.
+    /// </summary>
+    public static string? CannotRemove(IGuildUser owner, IGuildUser target)
+    {
+        var permissions = target.GuildPermissions;
+        if (permissions.Administrator || permissions.ModerateMembers || permissions.MoveMembers)
+            return $"{target.Mention} is a moderator, so you cannot kick or ban them from your voice chat.";
+
+        if (target.Hierarchy >= owner.Hierarchy && target.Hierarchy > 0)
+            return $"{target.Mention}'s highest role is at or above yours, so you cannot kick or ban them.";
+
+        return null;
+    }
+
     /// <summary>The @everyone overwrite of the channel with only the given bits changed.</summary>
     public static OverwritePermissions EveryoneOverwrite(
         IGuildChannel channel, IRole everyone,
