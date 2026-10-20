@@ -177,6 +177,12 @@ public class UserHistoryPaginatorState
     public ModerationCategory? CategoryFilter { get; set; }
     public LogReprimandType TypeFilter { get; set; }
     public GuildEntity Guild { get; }
+
+    /// <summary>
+    /// The categories the requester may filter by, where <see cref="ModerationCategory.All" /> is the
+    /// "All Categories" option. The filter is hidden when this is empty.
+    /// </summary>
+    public IReadOnlyList<ModerationCategory> FilterCategories { get; init; } = [];
     public int TotalReprimands { get; private set; }
     public int TotalPages { get; private set; }
     public bool PageCountChanged { get; private set; }

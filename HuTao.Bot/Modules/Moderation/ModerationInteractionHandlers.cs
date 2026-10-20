@@ -31,6 +31,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
     public InteractiveService Interactive { get; init; } = null!;
     public ModerationService ModerationService { get; init; } = null!;
     public AuthorizationService Auth { get; init; } = null!;
+    public UserService UserService { get; init; } = null!;
 
     [ComponentInteraction("mute-action:unmute:*")]
     public async Task HandleMuteUnmuteAsync(string muteIdString)
@@ -609,13 +610,21 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
 
         var state = paginator.GetUserState<UserHistoryPaginatorState>();
 
-        ModerationCategory? newCategory = null;
-        if (categoryValue != "all" && Guid.TryParse(categoryValue, out var categoryGuid))
+        // The paginator's guild was loaded by a request that has ended, so check against this request's guild.
+        // Anything that is not a known category asks for all of them.
+        var guild = await Db.Guilds.TrackGuildAsync(Context.Guild);
+        var newCategory = categoryValue != "all" && Guid.TryParse(categoryValue, out var categoryGuid)
+            ? guild.ModerationCategories.FirstOrDefault(c => c.Id == categoryGuid) ?? ModerationCategory.All
+            : ModerationCategory.All;
+
+        var categories = await UserService.GetHistoryCategoriesAsync(Context, guild);
+        if (!categories.Contains(newCategory))
         {
-            newCategory = state.Guild.ModerationCategories.FirstOrDefault(c => c.Id == categoryGuid);
+            await FollowupAsync("You are not authorized to view this moderation category.", ephemeral: true);
+            return;
         }
 
-        state.UpdateFilters(newCategory, state.TypeFilter);
+        state.UpdateFilters(newCategory == ModerationCategory.All ? null : newCategory, state.TypeFilter);
         paginator.PageCount = state.TotalPages;
         paginator.SetPage(0);
 
