@@ -66,6 +66,49 @@ public class GenshinModule
         ["HiFiveTraveler"]    = 100
     };
 
+    private static readonly Regex CodePattern = new("^[A-Za-z0-9]{4,24}$", RegexOptions.Compiled);
+
+    private static readonly ConcurrentDictionary<ulong, DateTimeOffset> CodesPostedAt = new();
+
+    /// <summary>How long a member waits between two `!codes #channel` posts.</summary>
+    public static readonly TimeSpan CodesPostCooldown = TimeSpan.FromSeconds(10);
+
+    /// <summary>Whether <paramref name="code" /> looks like a redeem code, so it is safe in a link and in markdown.</summary>
+    public static bool IsValidCode(string code) => CodePattern.IsMatch(code);
+
+    public static string RedeemUrl(string code)
+        => $"https://genshin.hoyoverse.com/en/gift?code={Uri.EscapeDataString(code)}";
+
+    /// <summary>
+    ///     Posting the codes through a webhook (which the bot creates in a channel that has none) takes Manage Webhooks
+    ///     there, or a place on the Genshin allow list.
+    /// </summary>
+    public static bool CanPostCodes(IGuildUser user, IGuildChannel channel)
+        => user.GetPermissions(channel).ManageWebhooks
+            || AllowedUsers.Contains(user.Id)
+            || user.RoleIds.Any(AllowedRoles.Contains);
+
+    /// <summary>Whether <paramref name="user" /> can read the messages of <paramref name="channel" />.</summary>
+    public static bool CanReadChannel(IGuildUser? user, IGuildChannel? channel)
+        => channel is not null
+            && user?.GetPermissions(channel) is { ViewChannel: true, ReadMessageHistory: true };
+
+    /// <summary>Starts the post cooldown of <paramref name="userId" />, or says it is still running.</summary>
+    public static bool TryStartCodesCooldown(ulong userId, DateTimeOffset now, out TimeSpan remaining)
+    {
+        foreach (var (id, at) in CodesPostedAt)
+        {
+            if (now - at >= CodesPostCooldown) CodesPostedAt.TryRemove(id, out _);
+        }
+
+        remaining = TimeSpan.Zero;
+        var started = CodesPostedAt.GetOrAdd(userId, now);
+        if (started == now) return true;
+
+        remaining = CodesPostCooldown - (now - started);
+        return false;
+    }
+
     public static HashSet<ulong> AllowedRoles { get; } =
     [
         784295266651471897,
@@ -268,7 +311,7 @@ public class GenshinModule
 
         var primo = Emote.Parse("<:E_Primogem:798510052583014400>");
         var codesList = string.Join("\n", Codes.Select(c =>
-            $"{primo} **{c.Value}** primogems • **[{c.Key}](https://genshin.hoyoverse.com/en/gift?code={c.Key})**"));
+            $"{primo} **{c.Value}** primogems • **[{c.Key}]({RedeemUrl(c.Key)})**"));
 
         container.WithTextDisplay(codesList);
         container.WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small);
@@ -284,7 +327,7 @@ public class GenshinModule
                 .WithLabel($"{code.Value} {code.Key}")
                 .WithEmote(primo)
                 .WithStyle(ButtonStyle.Link)
-                .WithUrl($"https://genshin.hoyoverse.com/en/gift?code={code.Key}"));
+                .WithUrl(RedeemUrl(code.Key)));
         }
 
         ActionRowBuilder? secondRow = null;
@@ -297,7 +340,7 @@ public class GenshinModule
                     .WithLabel($"{code.Value} {code.Key}")
                     .WithEmote(primo)
                     .WithStyle(ButtonStyle.Link)
-                    .WithUrl($"https://genshin.hoyoverse.com/en/gift?code={code.Key}"));
+                    .WithUrl(RedeemUrl(code.Key)));
             }
         }
 
@@ -315,15 +358,24 @@ public class GenshinModule
         if (send is not null && context.User is IGuildUser user)
         {
             var permissions = user.GetPermissions(send);
-            if (!permissions.Has(ChannelPermission.SendMessages))
+            if (!permissions.Has(ChannelPermission.SendMessages) || !CanPostCodes(user, send))
             {
                 var noPermComponents = new ComponentBuilderV2()
                     .WithContainer(new ContainerBuilder()
-                        .WithTextDisplay("## Genshin Codes\nYou don't have permission to send messages in that channel.")
+                        .WithTextDisplay(
+                            "## Genshin Codes\nYou need Send Messages and Manage Webhooks in that channel to post the codes there.")
                         .WithAccentColor(VersionColor))
                     .Build();
 
                 await context.ReplyAsync(components: noPermComponents, ephemeral: true, allowedMentions: AllowedMentions.None);
+                return;
+            }
+
+            if (!TryStartCodesCooldown(user.Id, DateTimeOffset.UtcNow, out var remaining))
+            {
+                await context.ReplyAsync(
+                    $"Please wait {Math.Ceiling(remaining.TotalSeconds)} seconds before posting the codes again.",
+                    ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
@@ -337,9 +389,15 @@ public class GenshinModule
 
             var client = new DiscordWebhookClient(webhook);
             if (update is not null)
-                await client.ModifyMessageAsync(update.Id, m => { m.Components = components; });
+            {
+                await client.ModifyMessageAsync(update.Id, m =>
+                {
+                    m.Components = components;
+                    m.AllowedMentions = AllowedMentions.None;
+                });
+            }
             else
-                await client.SendMessageAsync(components: components);
+                await client.SendMessageAsync(components: components, allowedMentions: AllowedMentions.None);
         }
         else
             await context.ReplyAsync(components: components, ephemeral: true);
@@ -425,6 +483,12 @@ public class GenshinModule
         [RequireAllowedUserInteraction]
         public async Task AddCode(string code, int gems)
         {
+            if (!IsValidCode(code))
+            {
+                await RespondAsync("A code is 4 to 24 letters and digits.", ephemeral: true);
+                return;
+            }
+
             Codes.AddOrUpdate(code, gems, (_, _) => gems);
             await ReplyCodesAsync(Context);
         }
@@ -723,8 +787,11 @@ public class GenshinModule
                 var channelId = ulong.Parse(match.Groups[2].Value);
                 var messageId = ulong.Parse(match.Groups[3].Value);
 
+                // Only a message the invoker could read themselves, in the server they ran the command in.
                 var guild = client.GetGuild(guildId);
-                if (guild?.GetTextChannel(channelId) is { } ch)
+                if (guildId == Context.Guild?.Id
+                    && guild?.GetTextChannel(channelId) is { } ch
+                    && CanReadChannel(Context.User as IGuildUser, ch))
                 {
                     var msg = await ch.GetMessageAsync(messageId);
                     var attachment = msg?.Attachments.FirstOrDefault();
@@ -1129,6 +1196,12 @@ public class GenshinModule
         [Summary("Adds a code to the Genshin Impact codes list")]
         public async Task AddCode(string code, int gems)
         {
+            if (!IsValidCode(code))
+            {
+                await ReplyGenshinAsync("Genshin Codes", "A code is 4 to 24 letters and digits.");
+                return;
+            }
+
             Codes.AddOrUpdate(code, gems, (_, _) => gems);
             await ReplyCodesAsync(Context);
         }
@@ -1293,7 +1366,10 @@ public class GenshinModule
                 {
                     var channelId = ulong.Parse(match.Groups[2].Value);
                     var messageId = ulong.Parse(match.Groups[3].Value);
-                    if (Context.Client.GetChannel(channelId) is ITextChannel ch)
+                    // Only a message the invoker could read themselves, in the server they ran the command in.
+                    if (Context.Client.GetChannel(channelId) is ITextChannel ch
+                        && ch.GuildId == Context.Guild?.Id
+                        && CanReadChannel(Context.User as IGuildUser, ch))
                     {
                         var msg = await ch.GetMessageAsync(messageId);
                         var att = msg?.Attachments.FirstOrDefault();
