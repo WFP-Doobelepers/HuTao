@@ -188,14 +188,15 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         ModerationCategory? category = null)
     {
         if (role is not null
-            && RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+            && RoleHierarchy.CheckMuteRole((IGuildUser) Context.User, role, Context.Guild.CurrentUser) is { } hierarchyError)
         {
             await ReplyConfigAsync("Moderation Rules", hierarchyError);
             return;
         }
 
         var rules = await GetRulesAsync(category);
-        await moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        await moderation.ConfigureHardMuteRoleAsync(
+            rules, Context.Guild, role, skipPermissions, (IGuildUser) Context.User);
         cache.InvalidateCaches(Context.Guild);
 
         if (role is null)
@@ -214,14 +215,15 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         ModerationCategory? category = null)
     {
         if (role is not null
-            && RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+            && RoleHierarchy.CheckMuteRole((IGuildUser) Context.User, role, Context.Guild.CurrentUser) is { } hierarchyError)
         {
             await ReplyConfigAsync("Moderation Rules", hierarchyError);
             return;
         }
 
         var rules = await GetRulesAsync(category);
-        await moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
+        await moderation.ConfigureMuteRoleAsync(
+            rules, Context.Guild, role, skipPermissions, (IGuildUser) Context.User);
         cache.InvalidateCaches(Context.Guild);
 
         if (role is null)

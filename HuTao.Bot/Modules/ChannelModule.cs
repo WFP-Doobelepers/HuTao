@@ -9,6 +9,8 @@ using Discord.Net;
 using HuTao.Data.Models.Authorization;
 using HuTao.Services.Channels;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core;
+using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Utilities;
 
@@ -187,6 +189,11 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     {
         if (givenChannels?.Length > 0)
         {
+            foreach (var channel in givenChannels)
+            {
+                ThrowIfCannotSync(channel);
+            }
+
             var failed = new Dictionary<IChannel, string>();
             foreach (var channel in givenChannels)
             {
@@ -219,6 +226,8 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
     [Summary("Synchronizes permissions of a specific channel to it's channel Category.")]
     public async Task SyncPermissionsAsync(INestedChannel givenChannel)
     {
+        ThrowIfCannotSync(givenChannel);
+
         try
         {
             await givenChannel.SyncPermissionsAsync();
@@ -244,6 +253,12 @@ public class ChannelModule : ModuleBase<SocketCommandContext>
 
             await ReplyAsync(components: components, allowedMentions: AllowedMentions.None);
         }
+    }
+
+    private void ThrowIfCannotSync(IGuildChannel channel)
+    {
+        if (ChannelSyncAccess.Check((IGuildUser) Context.User, channel) is { } error)
+            throw new UserFacingException(error);
     }
 
     private async Task ReplyWithChannelBrowserAsync(Embed embed)

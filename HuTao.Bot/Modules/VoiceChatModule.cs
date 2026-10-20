@@ -49,7 +49,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
     }
 
     [Command("claim")]
-    [Summary("Claim this VC as yours. Only works if there are no other people in the VC.")]
+    [Summary("Claim this VC as yours. Only works if its owner is not in the VC.")]
     public async Task ClaimAsync()
     {
         var voiceChat = await db.Set<VoiceChatLink>().AsQueryable()
@@ -124,7 +124,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
-            new OverwritePermissions(viewChannel: PermValue.Deny));
+            VoiceChatOwnership.EveryoneOverwrite(channel, Context.Guild.EveryoneRole, viewChannel: PermValue.Deny));
 
         await ReplyPanelAsync("Voice Chat", "Voice chat hidden.");
     }
@@ -180,7 +180,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             return;
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-        var overwrite = new OverwritePermissions(connect: PermValue.Deny);
+        var overwrite = VoiceChatOwnership.EveryoneOverwrite(channel, Context.Guild.EveryoneRole, connect: PermValue.Deny);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
 
@@ -215,7 +215,8 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             return;
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-        var overwrite = new OverwritePermissions(viewChannel: PermValue.Inherit);
+        var overwrite = VoiceChatOwnership.EveryoneOverwrite(
+            channel, Context.Guild.EveryoneRole, viewChannel: PermValue.Inherit);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
         await ReplyPanelAsync("Voice Chat", "Voice chat revealed.");
@@ -247,10 +248,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             return;
         }
 
-        await voiceChannel.RemovePermissionOverwriteAsync(Context.User);
-        await voiceChannel.AddPermissionOverwriteAsync(user, new OverwritePermissions(
-            manageChannel: PermValue.Allow,
-            muteMembers: PermValue.Allow));
+        await VoiceChatOwnership.TransferOverwritesAsync(voiceChannel, Context.Guild.GetUser(voiceChat.UserId), user);
 
         voiceChat.UserId = user.Id;
         await db.SaveChangesAsync();
@@ -294,9 +292,7 @@ public class VoiceChatModule(HuTaoContext db) : ModuleBase<SocketCommandContext>
             return;
 
         var channel = Context.Guild.GetVoiceChannel(voiceChat.VoiceChannelId);
-        var everyone = channel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
-        var overwrite = everyone?.Modify(connect: PermValue.Inherit)
-            ?? new OverwritePermissions(connect: PermValue.Inherit);
+        var overwrite = VoiceChatOwnership.EveryoneOverwrite(channel, Context.Guild.EveryoneRole, connect: PermValue.Inherit);
 
         await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, overwrite);
         await ReplyPanelAsync("Voice Chat", "Voice chat unlocked.");

@@ -403,7 +403,7 @@ public class InteractiveConfigurationModule(
             return;
         }
 
-        if (RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+        if (RoleHierarchy.CheckMuteRole((IGuildUser) Context.User, role, Context.Guild.CurrentUser) is { } hierarchyError)
         {
             await RespondAsync(hierarchyError, ephemeral: true);
             return;
@@ -419,9 +419,11 @@ public class InteractiveConfigurationModule(
         }
 
         if (state.PendingSettingKey == KeyMuteRole)
-            await moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, state.SkipRolePermissionSetup);
+            await moderation.ConfigureMuteRoleAsync(
+                rules, Context.Guild, role, state.SkipRolePermissionSetup, (IGuildUser) Context.User);
         else
-            await moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, state.SkipRolePermissionSetup);
+            await moderation.ConfigureHardMuteRoleAsync(
+                rules, Context.Guild, role, state.SkipRolePermissionSetup, (IGuildUser) Context.User);
 
         cache.InvalidateCaches(Context.Guild);
         await db.SaveChangesAsync();

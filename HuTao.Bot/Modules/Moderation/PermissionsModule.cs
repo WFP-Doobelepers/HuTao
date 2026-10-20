@@ -18,6 +18,7 @@ using HuTao.Services.Core.TypeReaders.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using DiscordCommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -45,6 +46,12 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
         }
 
         var moderator = (IGuildUser) Context.User;
+        if (await FindUnheldScopeAsync(moderator, scope) is { } unheld)
+        {
+            await error.AssociateError(Context.Message, UnheldScopeMessage(unheld));
+            return;
+        }
+
         var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
         await AddEntitiesAsync(group.WithModerator(moderator));
     }
@@ -80,6 +87,15 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
         var results = await prompts.GetAnswersAsync();
 
         var moderator = (IGuildUser) Context.User;
+
+        // The admin role gets every scope, and the moderator role gets the chosen ones.
+        var granted = AuthorizationScope.All | results.Get<AuthorizationScope>(ConfigureOptions.Permissions);
+        if (await FindUnheldScopeAsync(moderator, granted) is { } unheld)
+        {
+            await error.AssociateError(Context.Message, UnheldScopeMessage(unheld));
+            return;
+        }
+
         _ = await db.Users.TrackUserAsync(moderator);
         var guild = await auth.AutoConfigureGuild(Context.Guild);
 
@@ -109,6 +125,12 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
     [Alias("delete", "del")]
     [Summary("Remove an authorization group.")]
     protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+
+    private Task<AuthorizationScope?> FindUnheldScopeAsync(IGuildUser moderator, AuthorizationScope requested)
+        => auth.FindUnheldScopeAsync(new DiscordCommandContext(Context), moderator, requested);
+
+    private static string UnheldScopeMessage(AuthorizationScope scope)
+        => $"You cannot grant the {scope} scope, because you do not have it yourself.";
 
     protected override EmbedBuilder EntityViewer(AuthorizationGroup entity) => GetAuthorizationGroupDetails(entity);
 

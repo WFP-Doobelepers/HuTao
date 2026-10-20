@@ -11,6 +11,8 @@ public class RoleHierarchyTests
     private const int InvokerHierarchy = 10;
     private const ulong GuildOwnerId = 1;
     private const ulong MemberId = 2;
+    private const ulong GuildId = 77;
+    private const ulong BotRoleId = 600;
 
     [Fact]
     public void CheckRoles_RoleBelowInvoker_Passes()
@@ -123,9 +125,58 @@ public class RoleHierarchyTests
         Assert.Null(RoleHierarchy.CheckPermissions(owner, new GuildPermissions(administrator: true)));
     }
 
-    private static IRole Role(string name, int position)
+    [Fact]
+    public void CheckMuteRole_Everyone_Fails_EvenThoughItsPositionIsBelowEveryRole()
+    {
+        var everyone = Role("@everyone", 0, id: GuildId);
+
+        var error = RoleHierarchy.CheckMuteRole(Member(), everyone, Bot());
+
+        Assert.Equal("@everyone cannot be used as a mute role.", error);
+    }
+
+    [Fact]
+    public void CheckMuteRole_ManagedRole_Fails()
+    {
+        var error = RoleHierarchy.CheckMuteRole(Member(), Role("Booster", 1, managed: true), Bot());
+
+        Assert.Equal("Booster is managed by an integration and cannot be used as a mute role.", error);
+    }
+
+    [Fact]
+    public void CheckMuteRole_RoleTheBotHolds_Fails()
+    {
+        var error = RoleHierarchy.CheckMuteRole(Member(), Role("Hu Tao", 3, id: BotRoleId), Bot());
+
+        Assert.Equal("Hu Tao is one of the bot's roles and cannot be used as a mute role.", error);
+    }
+
+    [Fact]
+    public void CheckMuteRole_RoleAtInvoker_Fails()
+    {
+        var error = RoleHierarchy.CheckMuteRole(Member(), Role("Moderator", InvokerHierarchy), Bot());
+
+        Assert.Equal("Moderator is higher or equal than your roles.", error);
+    }
+
+    [Fact]
+    public void CheckMuteRole_PlainRoleBelowInvoker_Passes()
+    {
+        Assert.Null(RoleHierarchy.CheckMuteRole(Member(), Role("Muted", 2), Bot()));
+    }
+
+    private static IGuildUser Bot()
+    {
+        var bot = new Mock<IGuildUser>();
+        bot.SetupGet(u => u.RoleIds).Returns([BotRoleId]);
+        return bot.Object;
+    }
+
+    private static IRole Role(string name, int position, ulong id = 500, bool managed = false)
     {
         var role = new Mock<IRole>();
+        role.SetupGet(r => r.Id).Returns(id);
+        role.SetupGet(r => r.IsManaged).Returns(managed);
         role.SetupGet(r => r.Position).Returns(position);
         role.Setup(r => r.ToString()).Returns(name);
         return role.Object;
@@ -141,6 +192,7 @@ public class RoleHierarchyTests
         user.SetupGet(u => u.Id).Returns(id);
         user.SetupGet(u => u.Hierarchy).Returns(hierarchy);
         user.SetupGet(u => u.Guild).Returns(guild.Object);
+        user.SetupGet(u => u.GuildId).Returns(GuildId);
         user.SetupGet(u => u.GuildPermissions).Returns(permissions ?? GuildPermissions.None);
         return user.Object;
     }

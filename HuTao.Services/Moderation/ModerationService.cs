@@ -24,6 +24,7 @@ using HuTao.Data.Models.Moderation.Infractions.Censors;
 using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Services.Core;
+using HuTao.Services.Core.Listeners;
 using HuTao.Services.Expirable;
 using HuTao.Services.Interactive;
 using HuTao.Services.Interactive.Paginator;
@@ -47,49 +48,69 @@ public class ModerationService(
 
     public async Task ConfigureHardMuteRoleAsync(
         IModerationRules rules, IGuild guild, IRole? role,
-        bool skipPermissions)
+        bool skipPermissions, IGuildUser? invoker = null)
     {
-        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.MuteRoleId);
-        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.HardMuteRoleId);
-        role ??= guild.Roles.FirstOrDefault(r => r.Name == "Hard Muted");
-        role ??= await guild.CreateRoleAsync("Hard Muted", isMentionable: false);
+        role = await ResolveMuteRoleAsync(guild, role, [rules.MuteRoleId, rules.HardMuteRoleId], "Hard Muted", invoker);
 
         rules.HardMuteRoleId = role.Id;
         await _db.SaveChangesAsync();
 
         if (skipPermissions) return;
-        var permissions = new OverwritePermissions(
-            addReactions: PermValue.Deny,
-            sendMessages: PermValue.Deny,
-            speak: PermValue.Deny,
-            stream: PermValue.Deny);
-
-        var channels = await guild.GetChannelsAsync();
-        foreach (var channel in channels.Where(channel => channel is not IThreadChannel))
-        {
-            await channel.AddPermissionOverwriteAsync(role, permissions);
-        }
+        await AddMuteOverwritesAsync(guild, role);
     }
 
-    public async Task ConfigureMuteRoleAsync(IModerationRules rules, IGuild guild, IRole? role, bool skipPermissions)
+    public async Task ConfigureMuteRoleAsync(
+        IModerationRules rules, IGuild guild, IRole? role,
+        bool skipPermissions, IGuildUser? invoker = null)
     {
-        role ??= guild.Roles.FirstOrDefault(r => r.Id == rules.MuteRoleId);
-        role ??= guild.Roles.FirstOrDefault(r => r.Name == "Muted");
-        role ??= await guild.CreateRoleAsync("Muted", isMentionable: false);
+        role = await ResolveMuteRoleAsync(guild, role, [rules.MuteRoleId], "Muted", invoker);
 
         rules.MuteRoleId = role.Id;
         await _db.SaveChangesAsync();
 
         if (skipPermissions) return;
-        var permissions = new OverwritePermissions(
-            addReactions: PermValue.Deny,
-            sendMessages: PermValue.Deny,
-            speak: PermValue.Deny,
-            stream: PermValue.Deny);
+        await AddMuteOverwritesAsync(guild, role);
+    }
 
+    /// <summary>
+    ///     The given role, else the first configured role that exists, else the role with the name, else a new one. An
+    ///     existing role gets its overwrites changed in every channel, so when there is an invoker it must pass
+    ///     <see cref="RoleHierarchy.CheckMuteRole" />.
+    /// </summary>
+    public static async Task<IRole> ResolveMuteRoleAsync(
+        IGuild guild, IRole? role, IEnumerable<ulong?> configuredIds, string name, IGuildUser? invoker)
+    {
+        role ??= configuredIds
+            .Where(id => id is not null)
+            .Select(id => guild.Roles.FirstOrDefault(r => r.Id == id))
+            .FirstOrDefault(r => r is not null);
+        role ??= guild.Roles.FirstOrDefault(r => r.Name == name);
+
+        if (role is null)
+            return await guild.CreateRoleAsync(name, isMentionable: false);
+
+        if (invoker is not null
+            && RoleHierarchy.CheckMuteRole(invoker, role, await guild.GetCurrentUserAsync()) is { } error)
+            throw new UserFacingException(error);
+
+        return role;
+    }
+
+    /// <summary>
+    ///     Denies the mute permissions to the role in every channel on top of the overwrite it already has, since
+    ///     replacing the overwrite would drop everything else the role is allowed or denied there.
+    /// </summary>
+    public static async Task AddMuteOverwritesAsync(IGuild guild, IRole role)
+    {
         var channels = await guild.GetChannelsAsync();
         foreach (var channel in channels.Where(channel => channel is not IThreadChannel))
         {
+            var permissions = (channel.GetPermissionOverwrite(role) ?? new OverwritePermissions()).Modify(
+                addReactions: PermValue.Deny,
+                sendMessages: PermValue.Deny,
+                speak: PermValue.Deny,
+                stream: PermValue.Deny);
+
             await channel.AddPermissionOverwriteAsync(role, permissions);
         }
     }

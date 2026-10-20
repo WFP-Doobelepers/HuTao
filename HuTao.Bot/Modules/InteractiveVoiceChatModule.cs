@@ -59,7 +59,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -103,7 +103,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -159,7 +159,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -210,7 +210,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -308,7 +308,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -363,7 +363,7 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
             return;
         }
 
-        if (!CanManage(state, voiceChannel, out var reason))
+        if (await CanManageAsync(state, voiceChannel) is { } reason)
         {
             state.Notice = reason;
             await DeferAsync();
@@ -507,17 +507,22 @@ public sealed class InteractiveVoiceChatModule(HuTaoContext db, InteractiveServi
     private SocketTextChannel? GetTextChannel(VoiceChatPanelState state)
         => Context.Guild.GetTextChannel(state.TextChannelId);
 
-    private bool CanManage(VoiceChatPanelState state, SocketVoiceChannel voiceChannel, out string reason)
+    /// <summary>
+    ///     Why the clicker cannot manage the voice chat, or null. A transfer can happen after the panel opened, so the
+    ///     owner is read from the database on every click and the panel's copy is brought up to date.
+    /// </summary>
+    private async Task<string?> CanManageAsync(VoiceChatPanelState state, SocketVoiceChannel voiceChannel)
     {
         var canManage = Context.User is SocketGuildUser current && current.GetPermissions(voiceChannel).ManageChannel;
-        if (state.OwnerUserId == Context.User.Id || canManage)
-        {
-            reason = string.Empty;
-            return true;
-        }
+        var ownerId = await VoiceChatOwnership.GetOwnerIdAsync(db, state.TextChannelId);
 
-        reason = "You must be the owner (or have Manage Channels) to do that.";
-        return false;
+        if (ownerId is null)
+            return canManage ? null : "This voice chat is no longer linked.";
+
+        state.OwnerUserId = ownerId.Value;
+        return ownerId == Context.User.Id || canManage
+            ? null
+            : "You must be the owner (or have Manage Channels) to do that.";
     }
 
     private void RefreshStateFromDiscord(VoiceChatPanelState state)

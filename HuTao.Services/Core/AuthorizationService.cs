@@ -117,6 +117,27 @@ public class AuthorizationService(HuTaoContext db)
         return IsAuthorized(context, rules.AuthorizationGroups.Scoped(scope).ToList());
     }
 
+    /// <summary>
+    ///     The first of the requested scopes the member does not hold themselves, or null. Granting a scope saves a rule
+    ///     with the bot's authority, so the member may only grant what they have; the guild owner and Discord
+    ///     administrators may grant any.
+    /// </summary>
+    public async Task<AuthorizationScope?> FindUnheldScopeAsync(
+        Context context, IGuildUser member, AuthorizationScope requested,
+        CancellationToken cancellationToken = default)
+    {
+        if (member.Guild?.OwnerId == member.Id || member.GuildPermissions.Administrator)
+            return null;
+
+        foreach (var scope in Enum.GetValues<AuthorizationScope>())
+        {
+            if (scope == AuthorizationScope.None || !requested.HasFlag(scope)) continue;
+            if (!await IsAuthorizedAsync(context, scope, cancellationToken)) return scope;
+        }
+
+        return null;
+    }
+
     private static bool IsAuthorized(Context context, AuthorizationScope scope, ModerationCategory category)
         => IsAuthorized(context, category.Authorization.Scoped(scope).ToList());
 

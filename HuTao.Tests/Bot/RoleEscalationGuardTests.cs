@@ -10,6 +10,7 @@ using HuTao.Bot.Modules.Configuration;
 using HuTao.Bot.Modules.Linking;
 using HuTao.Bot.Modules.Moderation;
 using HuTao.Services.Core;
+using HuTao.Services.VoiceChat;
 using Xunit;
 
 namespace HuTao.Tests.Bot;
@@ -41,6 +42,27 @@ public class RoleEscalationGuardTests
         { typeof(InteractiveConfigurationModule), nameof(InteractiveConfigurationModule.SelectRoleAsync) }
     };
 
+    public static TheoryData<Type, string> MuteRoleMethods => new()
+    {
+        { typeof(ConfigureModule), nameof(ConfigureModule.ConfigureMuteAsync) },
+        { typeof(ConfigureModule), nameof(ConfigureModule.ConfigureHardMuteAsync) },
+        { typeof(InteractiveConfigurationModule), nameof(InteractiveConfigurationModule.SelectRoleAsync) }
+    };
+
+    public static TheoryData<Type, string, Type> OtherGuardedMethods => new()
+    {
+        { typeof(PermissionsModule), nameof(PermissionsModule.AddPermissionAsync), typeof(AuthorizationService) },
+        { typeof(PermissionsModule), nameof(PermissionsModule.InteractiveConfigureAsync), typeof(AuthorizationService) },
+        { typeof(ChannelModule), nameof(ChannelModule.SyncPermissionsAsync), typeof(ChannelSyncAccess) },
+        { typeof(ChannelModule), nameof(ChannelModule.SyncCategoryPermissionsAsync), typeof(ChannelSyncAccess) },
+        { typeof(VoiceChatModule), nameof(VoiceChatModule.HideAsync), typeof(VoiceChatOwnership) },
+        { typeof(VoiceChatModule), nameof(VoiceChatModule.LockAsync), typeof(VoiceChatOwnership) },
+        { typeof(VoiceChatModule), nameof(VoiceChatModule.RevealAsync), typeof(VoiceChatOwnership) },
+        { typeof(VoiceChatModule), nameof(VoiceChatModule.UnlockAsync), typeof(VoiceChatOwnership) },
+        { typeof(VoiceChatModule), nameof(VoiceChatModule.TransferAsync), typeof(VoiceChatOwnership) },
+        { typeof(InteractiveVoiceChatModule), "CanManageAsync", typeof(VoiceChatOwnership) }
+    };
+
     [Theory]
     [MemberData(nameof(GuardedMethods))]
     public void RoleGrantingMethod_ChecksTheInvokerAgainstRoleHierarchy(Type module, string method)
@@ -48,7 +70,32 @@ public class RoleEscalationGuardTests
         var info = module.GetMethod(method, All);
 
         Assert.NotNull(info);
-        Assert.True(CallsRoleHierarchy(info, []), $"{module.Name}.{method} never calls {nameof(RoleHierarchy)}.");
+        Assert.True(Calls(info, m => m.DeclaringType == typeof(RoleHierarchy), []),
+            $"{module.Name}.{method} never calls {nameof(RoleHierarchy)}.");
+    }
+
+    [Theory]
+    [MemberData(nameof(MuteRoleMethods))]
+    public void MuteRoleMethod_RefusesEveryoneManagedAndBotRoles(Type module, string method)
+    {
+        var info = module.GetMethod(method, All);
+
+        Assert.NotNull(info);
+        Assert.True(Calls(info, m => m.DeclaringType == typeof(RoleHierarchy) && m.Name == nameof(RoleHierarchy.CheckMuteRole), []),
+            $"{module.Name}.{method} never calls {nameof(RoleHierarchy.CheckMuteRole)}.");
+    }
+
+    [Theory]
+    [MemberData(nameof(OtherGuardedMethods))]
+    public void MethodThatActsWithTheBotsAuthority_ChecksTheMemberFirst(Type module, string method, Type check)
+    {
+        var info = module.GetMethod(method, All);
+
+        Assert.NotNull(info);
+        Assert.True(
+            Calls(info, m => m.DeclaringType == check
+                && (check != typeof(AuthorizationService) || m.Name == nameof(AuthorizationService.FindUnheldScopeAsync)), []),
+            $"{module.Name}.{method} never calls {check.Name}.");
     }
 
     [Fact]
@@ -65,7 +112,7 @@ public class RoleEscalationGuardTests
             optionTypes);
     }
 
-    private static bool CallsRoleHierarchy(MethodInfo method, HashSet<MethodBase> visited)
+    private static bool Calls(MethodInfo method, Func<MethodBase, bool> isCheck, HashSet<MethodBase> visited)
     {
         if (!visited.Add(method)) return false;
 
@@ -92,11 +139,11 @@ public class RoleEscalationGuardTests
                 continue;
             }
 
-            if (target?.DeclaringType == typeof(RoleHierarchy)) return true;
+            if (target is not null && isCheck(target)) return true;
 
             // Helpers on the same module, such as a private permission check shared by two commands.
             if (target is MethodInfo helper && target.DeclaringType == method.DeclaringType
-                && CallsRoleHierarchy(helper, visited))
+                && Calls(helper, isCheck, visited))
                 return true;
         }
 

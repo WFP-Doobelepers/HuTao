@@ -25,6 +25,24 @@ public static class RoleHierarchy
         => role.Position >= invoker.Hierarchy ? $"{role} is higher or equal than your roles." : null;
 
     /// <summary>
+    ///     Returns an error when the role cannot be a mute role: @everyone, a managed role and the bot's own roles would
+    ///     have their overwrites changed in every channel, and the invoker must outrank the role like any other.
+    /// </summary>
+    public static string? CheckMuteRole(IGuildUser invoker, IRole role, IGuildUser bot)
+    {
+        if (role.Id == invoker.GuildId)
+            return "@everyone cannot be used as a mute role.";
+
+        if (role.IsManaged)
+            return $"{role} is managed by an integration and cannot be used as a mute role.";
+
+        if (bot.RoleIds.Contains(role.Id))
+            return $"{role} is one of the bot's roles and cannot be used as a mute role.";
+
+        return CheckRole(invoker, role);
+    }
+
+    /// <summary>
     ///     Returns an error when the requested permissions include one the invoker lacks, or null. The guild owner and
     ///     administrators may request any permission.
     /// </summary>
