@@ -41,7 +41,7 @@ public class InteractiveReprimandsModule(
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, ephemeral, (r, d, t)
             => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
@@ -84,7 +84,7 @@ public class InteractiveReprimandsModule(
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, ephemeral, moderation.UpdateReprimandAsync, reason);
     }
 
@@ -110,7 +110,7 @@ public class InteractiveReprimandsModule(
         string id,
         bool ephemeral = false)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, History);
         if (reprimand is null)
         {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);
@@ -132,11 +132,22 @@ public class InteractiveReprimandsModule(
     [SlashCommand("delete", "Permanently delete a reprimand and its data.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    protected override Task RemoveEntityAsync(
+    protected override async Task RemoveEntityAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
         [RequireEphemeralScope] bool ephemeral = false)
-        => base.RemoveEntityAsync(id, ephemeral);
+    {
+        // The confirmation shows the reprimand, so check its category first.
+        await DeferAsync(ephemeral);
+        var reprimand = await FindReprimandAsync(id, Scope);
+
+        if (reprimand is null)
+            await FollowupAsync(EmptyMatchMessage, ephemeral: true);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await FollowupAsync(NotAuthorizedMessage, ephemeral: true);
+        else
+            await ConfirmRemoveEntityAsync(reprimand, ephemeral);
+    }
 
     [ModalInteraction("reprimand-pardon:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
@@ -196,6 +207,10 @@ public class InteractiveReprimandsModule(
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ReprimandHistory;
     }
+
+    private async Task<Reprimand?> FindReprimandAsync(string id, AuthorizationScope scope)
+        => await Interactive.TryFindReprimandAsync(
+            auth, Context, await GetCollectionAsync(), scope, id, ephemeral: true);
 
     private async Task ModifyReprimandAsync(
         Reprimand? reprimand, bool ephemeral,

@@ -62,6 +62,33 @@ public class AuthorizationService(HuTaoContext db)
         CancellationToken cancellationToken = default)
         => IsCategoryAuthorizedAsync(context, scope, reprimand.Category ?? ModerationCategory.None, cancellationToken);
 
+    /// <summary>
+    ///     The reprimands the user has the scope for, in their original order, checked as
+    ///     <see cref="IsReprimandAuthorizedAsync" /> does. A guild's history is long, so each category is checked once.
+    /// </summary>
+    public async Task<IReadOnlyList<Reprimand>> WhereReprimandsAuthorizedAsync(
+        Context context, AuthorizationScope scope, IEnumerable<Reprimand> reprimands,
+        CancellationToken cancellationToken = default)
+    {
+        var categories = new Dictionary<ModerationCategory, bool>();
+        var authorized = new List<Reprimand>();
+
+        foreach (var reprimand in reprimands)
+        {
+            var category = reprimand.Category ?? ModerationCategory.None;
+            if (!categories.TryGetValue(category, out var allowed))
+            {
+                allowed = await IsCategoryAuthorizedAsync(context, scope, category, cancellationToken);
+                categories[category] = allowed;
+            }
+
+            if (allowed)
+                authorized.Add(reprimand);
+        }
+
+        return authorized;
+    }
+
     public async Task<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope, object? value)
     {
         var user = await db.Users.TrackUserAsync(context.User, context.Guild);

@@ -40,7 +40,7 @@ public class ModifyReprimandsModule(
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task PardonReprimandAsync(string id, [Remainder] string? reason = null)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, (r, d, t)
             => moderation.TryExpireReprimandAsync(r, Pardoned, d, t), reason);
     }
@@ -51,7 +51,7 @@ public class ModifyReprimandsModule(
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task UpdateReprimandAsync(string id, [Remainder] string? reason = null)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, Scope);
         await ModifyReprimandAsync(reprimand, moderation.UpdateReprimandAsync, reason);
     }
 
@@ -76,7 +76,7 @@ public class ModifyReprimandsModule(
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
     public async Task ViewReprimandAsync(string id)
     {
-        var reprimand = await TryFindEntityAsync(id);
+        var reprimand = await FindReprimandAsync(id, History);
         if (reprimand is null)
         {
             await error.AssociateError(Context.Message, EmptyMatchMessage);
@@ -99,7 +99,20 @@ public class ModifyReprimandsModule(
     [Summary("Delete a reprimand, this completely removes the data.")]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+    protected override async Task RemoveEntityAsync(string id)
+    {
+        var reprimand = await FindReprimandAsync(id, Scope);
+
+        if (reprimand is null)
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
+        else
+        {
+            await RemoveEntityAsync(reprimand);
+            await Context.Message.AddReactionAsync(new Emoji("✅"));
+        }
+    }
 
     protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
 
@@ -120,6 +133,9 @@ public class ModifyReprimandsModule(
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         return guild.ReprimandHistory;
     }
+
+    private async Task<Reprimand?> FindReprimandAsync(string id, AuthorizationScope scope)
+        => await Service.TryFindReprimandAsync(auth, Context, await GetCollectionAsync(), scope, id);
 
     private async Task ModifyReprimandAsync(
         Reprimand? reprimand,
