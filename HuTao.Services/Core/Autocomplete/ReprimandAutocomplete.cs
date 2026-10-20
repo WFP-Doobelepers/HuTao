@@ -11,17 +11,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HuTao.Services.Core.Autocomplete;
 
-public class ReprimandAutocomplete : AutocompleteHandler
+public class ReprimandAutocomplete : AuthorizedAutocompleteHandler
 {
-    public override async Task<AutocompletionResult> GenerateSuggestionsAsync(
+    protected override async Task<AutocompletionResult> GetSuggestionsAsync(
         IInteractionContext context, IAutocompleteInteraction interaction,
         IParameterInfo parameter, IServiceProvider services)
     {
-        // Discord.Net does not run the command's preconditions for autocomplete, and suggestions show reasons.
-        var preconditions = await parameter.Command.CheckPreconditionsAsync(context, services);
-        if (!preconditions.IsSuccess)
-            return AutocompletionResult.FromSuccess([]);
-
         var db = services.GetRequiredService<HuTaoContext>();
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 

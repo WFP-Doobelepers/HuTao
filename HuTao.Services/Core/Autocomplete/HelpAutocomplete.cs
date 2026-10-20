@@ -11,9 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HuTao.Services.Core.Autocomplete;
 
-public class HelpAutocomplete : AutocompleteHandler
+public class HelpAutocomplete : AuthorizedAutocompleteHandler
 {
-    public override Task<AutocompletionResult> GenerateSuggestionsAsync(
+    protected override Task<AutocompletionResult> GetSuggestionsAsync(
         IInteractionContext context, IAutocompleteInteraction interaction,
         IParameterInfo parameter, IServiceProvider services)
     {
