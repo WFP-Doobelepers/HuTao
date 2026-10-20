@@ -363,10 +363,21 @@ public class LibenModule(
         else await RespondAsync("You did not have your box added to the list.", ephemeral: true);
     }
 
+    /// <summary>The most bytes an imported file may have.</summary>
+    public const int MaxImportBytes = 1024 * 1024;
+
+    public static bool IsImportSizeAllowed(int size) => size is >= 0 and <= MaxImportBytes;
+
     [SlashCommand("import", "Import data")]
     [Services.Core.Preconditions.Interactions.RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task ImportAsync(Attachment attachment)
     {
+        if (!IsImportSizeAllowed(attachment.Size))
+        {
+            await RespondAsync("That file is too large to import (1 MB at most).", ephemeral: true);
+            return;
+        }
+
         var stream = await http.GetStreamAsync(attachment.Url);
         var data = await JsonSerializer.DeserializeAsync<Export>(stream);
         if (data is null)
