@@ -39,6 +39,10 @@ public class TemplateAutocomplete : AuthorizedAutocompleteHandler
 
             templates.Add(new AutocompleteResult(
                 $"{t.Name}: [{(t.Action as IAction)?.CleanAction}] with reason [{t.Reason}]".Truncate(100), t.Name));
+
+            // Discord refuses more than 25 suggestions.
+            if (templates.Count == 25)
+                break;
         }
 
         return AutocompletionResult.FromSuccess(templates);
