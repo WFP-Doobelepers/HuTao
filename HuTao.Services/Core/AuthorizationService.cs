@@ -12,6 +12,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Moderation;
+using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Services.Utilities;
 using CommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
@@ -51,6 +52,15 @@ public class AuthorizationService(HuTaoContext db)
             ? await IsAuthorizedAsync(context, scope, cancellationToken)
             : IsAuthorized(context, scope, category);
     }
+
+    /// <summary>
+    ///     Whether the user has the scope in the reprimand's category. A reprimand without a category belongs to the
+    ///     guild, so it is checked against the guild's rules, not the user's default category.
+    /// </summary>
+    public Task<bool> IsReprimandAuthorizedAsync(
+        Context context, AuthorizationScope scope, Reprimand reprimand,
+        CancellationToken cancellationToken = default)
+        => IsCategoryAuthorizedAsync(context, scope, reprimand.Category ?? ModerationCategory.None, cancellationToken);
 
     public async Task<bool> IsCategoryAuthorizedAsync(Context context, AuthorizationScope scope, object? value)
     {

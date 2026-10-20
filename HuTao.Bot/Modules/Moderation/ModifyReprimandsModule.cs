@@ -83,7 +83,7 @@ public class ModifyReprimandsModule(
             return;
         }
 
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, History, reprimand);
         if (!authorized)
             await error.AssociateError(Context, NotAuthorizedMessage);
         else
@@ -107,7 +107,7 @@ public class ModifyReprimandsModule(
 
     protected override async Task RemoveEntityAsync(Reprimand entity)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, Scope, entity);
 
         if (!authorized)
             await error.AssociateError(Context.Message, NotAuthorizedMessage);
@@ -125,12 +125,10 @@ public class ModifyReprimandsModule(
         Reprimand? reprimand,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
-
-        if (!authorized)
-            await error.AssociateError(Context.Message, NotAuthorizedMessage);
-        else if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
+        if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
             await error.AssociateError(Context.Message, EmptyMatchMessage);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await error.AssociateError(Context.Message, NotAuthorizedMessage);
         else
         {
             var user = await Context.Client.GetUserAsync(reprimand.UserId);

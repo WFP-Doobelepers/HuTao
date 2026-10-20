@@ -116,7 +116,7 @@ public class InteractiveReprimandsModule(
             return;
         }
 
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, History, reprimand.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, History, reprimand);
         if (!authorized)
             await RespondAsync(NotAuthorizedMessage, ephemeral: true);
         else
@@ -182,7 +182,7 @@ public class InteractiveReprimandsModule(
 
     protected override async Task RemoveEntityAsync(Reprimand entity, bool ephemeral)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, entity.Category);
+        var authorized = await auth.IsReprimandAuthorizedAsync(Context, Scope, entity);
 
         if (!authorized)
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
@@ -200,12 +200,10 @@ public class InteractiveReprimandsModule(
         Reprimand? reprimand, bool ephemeral,
         UpdateReprimandDelegate update, string? reason = null)
     {
-        var authorized = await auth.IsCategoryAuthorizedAsync(Context, Scope, reprimand?.Category);
-
-        if (!authorized)
-            await FollowupAsync(NotAuthorizedMessage, ephemeral: true);
-        else if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
+        if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
+        else if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+            await FollowupAsync(NotAuthorizedMessage, ephemeral: true);
         else
         {
             var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
@@ -222,9 +220,16 @@ public class InteractiveReprimandsModule(
     private async Task UpdateReprimandAsync<T>(string customId, string id) where T : ReprimandModal
     {
         var reprimand = db.Set<Reprimand>().FirstOrDefault(r => r.Id.ToString() == id);
-        if (reprimand is null)
+        if (reprimand is null || reprimand.GuildId != Context.Guild.Id)
         {
             await RespondAsync(EmptyMatchMessage, ephemeral: true);
+            return;
+        }
+
+        // The modal shows the reprimand's reason, so check its category before opening it.
+        if (!await auth.IsReprimandAuthorizedAsync(Context, Scope, reprimand))
+        {
+            await RespondAsync(NotAuthorizedMessage, ephemeral: true);
             return;
         }
 
