@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -16,18 +15,45 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
     : INotificationHandler<ReactionAddedNotification>,
       INotificationHandler<ReactionRemovedNotification>
 {
+    /// <summary>How long an error stays available behind its reaction.</summary>
+    public static readonly TimeSpan ErrorLifetime = TimeSpan.FromHours(1);
+
     private const string AssociatedErrorsKey = nameof(CommandErrorHandler) + ".AssociatedErrors";
     private const string ErrorRepliesKey = nameof(CommandErrorHandler) + ".ErrorReplies";
     private const string Emoji = "⚠";
     private readonly IEmote _emote = new Emoji(Emoji);
+    private readonly object _gate = new();
 
-    private ConcurrentDictionary<ulong, string> AssociatedErrors =>
-        memoryCache.GetOrCreate(AssociatedErrorsKey, _ => new ConcurrentDictionary<ulong, string>())
-        ?? throw new InvalidOperationException($"Cache returned null for {nameof(AssociatedErrors)}");
+    // Each entry expires by itself, so nothing piles up for messages that nobody reacts to.
+    private string AssociatedKey(ulong messageId) => $"{AssociatedErrorsKey}.{messageId}";
 
-    private ConcurrentDictionary<ulong, ulong> ErrorReplies =>
-        memoryCache.GetOrCreate(ErrorRepliesKey, _ => new ConcurrentDictionary<ulong, ulong>())
-        ?? throw new InvalidOperationException($"Cache returned null for {nameof(ErrorReplies)}");
+    private string ReplyKey(ulong messageId) => $"{ErrorRepliesKey}.{messageId}";
+
+    internal bool TryGetError(ulong messageId, out string error)
+        => memoryCache.TryGetValue(AssociatedKey(messageId), out error!);
+
+    private bool TryGetReply(ulong messageId, out ulong replyId)
+        => memoryCache.TryGetValue(ReplyKey(messageId), out replyId);
+
+    private bool TryAddError(ulong messageId, string error)
+    {
+        lock (_gate)
+        {
+            if (memoryCache.TryGetValue(AssociatedKey(messageId), out _)) return false;
+            memoryCache.Set(AssociatedKey(messageId), error, ErrorLifetime);
+            return true;
+        }
+    }
+
+    private bool TryAddReply(ulong messageId, ulong replyId)
+    {
+        lock (_gate)
+        {
+            if (memoryCache.TryGetValue(ReplyKey(messageId), out _)) return false;
+            memoryCache.Set(ReplyKey(messageId), replyId, ErrorLifetime);
+            return true;
+        }
+    }
 
     public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
         => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(),
@@ -41,7 +67,7 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
 
     public async Task AssociateError(IUserMessage message, string error)
     {
-        if (AssociatedErrors.TryAdd(message.Id, error)) await message.AddReactionAsync(new Emoji(Emoji));
+        if (TryAddError(message.Id, error)) await message.AddReactionAsync(new Emoji(Emoji));
     }
 
     public Task AssociateError(Context context, string error) => context switch
@@ -55,12 +81,12 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         SocketReaction reaction)
     {
         if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;
-        if (reaction.Emote.Name != Emoji || ErrorReplies.ContainsKey(cachedMessage.Id)) return;
+        if (reaction.Emote.Name != Emoji || TryGetReply(cachedMessage.Id, out _)) return;
 
         var message = await cachedMessage.GetOrDownloadAsync();
         if (message.Author.Id != reaction.User.Value.Id) return;
 
-        if (AssociatedErrors.TryGetValue(cachedMessage.Id, out var value))
+        if (TryGetError(cachedMessage.Id, out var value))
         {
             const uint accentColor = 0x9B59FF;
             const int maxErrorChars = 3200;
@@ -82,7 +108,7 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
                 components: components,
                 allowedMentions: AllowedMentions.None);
 
-            if (ErrorReplies.TryAdd(cachedMessage.Id, msg.Id) == false) await msg.DeleteAsync();
+            if (TryAddReply(cachedMessage.Id, msg.Id) == false) await msg.DeleteAsync();
         }
     }
 
@@ -94,15 +120,15 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;
         if (reaction.Emote.Name != Emoji) return;
 
-        if (ErrorReplies.TryGetValue(cachedMessage.Id, out var botReplyId) == false) return;
+        if (TryGetReply(cachedMessage.Id, out var botReplyId) == false) return;
 
         await channel.DeleteMessageAsync(botReplyId);
 
-        if
-        (
-            AssociatedErrors.TryRemove(cachedMessage.Id, out _) &&
-            ErrorReplies.TryRemove(cachedMessage.Id, out _)
-        )
+        var hadError = TryGetError(cachedMessage.Id, out _);
+        memoryCache.Remove(AssociatedKey(cachedMessage.Id));
+        memoryCache.Remove(ReplyKey(cachedMessage.Id));
+
+        if (hadError)
         {
             var originalMessage = await cachedMessage.GetOrDownloadAsync();
 

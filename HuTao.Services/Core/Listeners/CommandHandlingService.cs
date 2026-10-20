@@ -141,7 +141,8 @@ public class CommandHandlingService(
             var (message, errorId) = UserFacingError.Describe(
                 result.Error is CommandError.Exception, $"{result.Error}", result.ErrorReason);
 
-            log.LogError(
+            log.Log(
+                UserFacingError.LevelFor(errorId is not null),
                 (result as ExecuteResult?)?.Exception,
                 "Command execution failed (Error={Error}, Reason={ErrorReason}, ErrorId={ErrorId}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId})",
                 result.Error,

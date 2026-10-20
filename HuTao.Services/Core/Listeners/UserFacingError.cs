@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace HuTao.Services.Core.Listeners;
 
@@ -11,6 +12,12 @@ public static class UserFacingError
 {
     /// <summary>A short ID that links the message a user saw to the log entry.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>
+    ///     A failed precondition or argument is the user's doing and a normal outcome, so it only reaches the debug log.
+    ///     An exception is a bug and is an error.
+    /// </summary>
+    public static LogLevel LevelFor(bool isException) => isException ? LogLevel.Error : LogLevel.Debug;
 
     /// <summary>The message for an unexpected failure.</summary>
     public static string ForException(string id)

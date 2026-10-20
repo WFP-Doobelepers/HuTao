@@ -95,7 +95,8 @@ public class InteractionHandlingService(
             var (message, errorId) = UserFacingError.Describe(
                 result.Error is InteractionCommandError.Exception, $"{result.Error}", result.ErrorReason);
 
-            log.LogError(
+            log.Log(
+                UserFacingError.LevelFor(errorId is not null),
                 (result as ExecuteResult?)?.Exception,
                 "Interaction execution failed (Error={Error}, Reason={ErrorReason}, ErrorId={ErrorId}, Command={CommandName}, UserId={UserId}, ChannelId={ChannelId}, GuildId={GuildId}, InteractionId={InteractionId}, InteractionType={InteractionType})",
                 result.Error,
