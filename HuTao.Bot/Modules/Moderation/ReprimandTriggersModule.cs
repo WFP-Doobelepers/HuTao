@@ -15,6 +15,7 @@ using HuTao.Data.Models.Moderation.Infractions.Reprimands;
 using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
@@ -85,6 +86,15 @@ public class ReprimandTriggersModule(CommandErrorHandler error, HuTaoContext db,
         if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
         {
             await error.AssociateError(Context, "No roles specified.");
+            return;
+        }
+
+        var hierarchyError = RoleHierarchy.CheckRoles(
+            (IGuildUser) Context.User, options.AddRoles, options.RemoveRoles, options.ToggleRoles);
+
+        if (hierarchyError is not null)
+        {
+            await error.AssociateError(Context, hierarchyError);
             return;
         }
 

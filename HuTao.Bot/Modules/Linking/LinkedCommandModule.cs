@@ -10,6 +10,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Linking;
@@ -35,6 +36,15 @@ public class LinkedCommandModule(HuTaoContext db, CommandService commands, Linke
         string name,
         [Remainder] LinkedCommandOptions options)
     {
+        var hierarchyError = RoleHierarchy.CheckRoles(
+            (IGuildUser) Context.User, options.AddRoles, options.RemoveRoles, options.ToggleRoles);
+
+        if (hierarchyError is not null)
+        {
+            await ReplyAsync(hierarchyError, allowedMentions: AllowedMentions.None);
+            return;
+        }
+
         var command = new LinkedCommand(name, options, (IGuildUser) Context.User);
         await AddCommandAsync(command);
     }

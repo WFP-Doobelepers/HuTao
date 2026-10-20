@@ -14,6 +14,7 @@ using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Logging;
 using HuTao.Data.Models.VoiceChat;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
@@ -186,6 +187,13 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         bool skipPermissions = false,
         ModerationCategory? category = null)
     {
+        if (role is not null
+            && RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+        {
+            await ReplyConfigAsync("Moderation Rules", hierarchyError);
+            return;
+        }
+
         var rules = await GetRulesAsync(category);
         await moderation.ConfigureHardMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
         cache.InvalidateCaches(Context.Guild);
@@ -205,6 +213,13 @@ public class ConfigureModule(HuTaoContext db, IMemoryCache cache, ModerationServ
         bool skipPermissions = false,
         ModerationCategory? category = null)
     {
+        if (role is not null
+            && RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+        {
+            await ReplyConfigAsync("Moderation Rules", hierarchyError);
+            return;
+        }
+
         var rules = await GetRulesAsync(category);
         await moderation.ConfigureMuteRoleAsync(rules, Context.Guild, role, skipPermissions);
         cache.InvalidateCaches(Context.Guild);

@@ -8,6 +8,7 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
@@ -32,6 +33,15 @@ public class LinkedButtonModule(CommandErrorHandler error, HuTaoContext db, Link
         IMessage link,
         [Remainder] LinkedMessageOptions options)
     {
+        var hierarchyError = RoleHierarchy.CheckRoles(
+            (IGuildUser) Context.User, options.AddRoles, options.RemoveRoles, options.ToggleRoles);
+
+        if (hierarchyError is not null)
+        {
+            await error.AssociateError(Context.Message, hierarchyError);
+            return;
+        }
+
         var message = await GetMessageAsync(link, options.Channel);
         var button = await linking.LinkMessageAsync(message, options);
 

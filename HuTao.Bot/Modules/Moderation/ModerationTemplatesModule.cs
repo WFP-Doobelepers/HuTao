@@ -10,6 +10,7 @@ using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Utilities;
@@ -72,6 +73,15 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
         if (options is { AddRoles: null, RemoveRoles: null, ToggleRoles: null })
         {
             await ReplyPanelAsync("Moderation Templates", "You must specify at least one role to add, remove, or toggle.");
+            return;
+        }
+
+        var hierarchyError = RoleHierarchy.CheckRoles(
+            (IGuildUser) Context.User, options.AddRoles, options.RemoveRoles, options.ToggleRoles);
+
+        if (hierarchyError is not null)
+        {
+            await ReplyPanelAsync("Moderation Templates", hierarchyError);
             return;
         }
 

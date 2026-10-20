@@ -6,6 +6,7 @@ using Discord.Commands;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Discord.Message.Linking;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Listeners;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
@@ -27,6 +28,15 @@ public class MessageTemplateModule(CommandErrorHandler error, HuTaoContext db, L
         string id,
         [Remainder] LinkedMessageOptions options)
     {
+        var hierarchyError = RoleHierarchy.CheckRoles(
+            (IGuildUser) Context.User, options.AddRoles, options.RemoveRoles, options.ToggleRoles);
+
+        if (hierarchyError is not null)
+        {
+            await error.AssociateError(Context.Message, hierarchyError);
+            return;
+        }
+
         var template = await TryFindEntityAsync(id, await GetCollectionAsync());
         if (template is null) return;
 

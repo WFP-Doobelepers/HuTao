@@ -17,6 +17,7 @@ using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.TimeTracking;
 using HuTao.Data.Models.VoiceChat;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Interactive.Paginator;
@@ -399,6 +400,12 @@ public class InteractiveConfigurationModule(
         {
             await DeferAsync();
             await RenderAsync(paginator);
+            return;
+        }
+
+        if (RoleHierarchy.CheckRole((IGuildUser) Context.User, role) is { } hierarchyError)
+        {
+            await RespondAsync(hierarchyError, ephemeral: true);
             return;
         }
 

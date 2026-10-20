@@ -11,6 +11,7 @@ using Discord.WebSocket;
 using Humanizer;
 using HuTao.Data.Models.Authorization;
 using HuTao.Services.CommandHelp;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Expirable;
 using HuTao.Services.Roles;
@@ -210,6 +211,8 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         public async Task CreateRoleAsync(string name, RoleCreationOptions? options = null)
         {
             var guildPermissions = options?.Permissions?.ToGuildPermissions();
+            if (await RefusePermissionsAsync(guildPermissions)) return;
+
             var role = await Context.Guild.CreateRoleAsync(name,
                 guildPermissions, options?.Color,
                 options?.IsHoisted ?? false,
@@ -328,6 +331,8 @@ public class RoleModule : ModuleBase<SocketCommandContext>
         public async Task TemporaryRoleCreateAsync(string name, TimeSpan length, RoleCreationOptions? options = null)
         {
             var permissions = options?.Permissions?.ToGuildPermissions();
+            if (await RefusePermissionsAsync(permissions)) return;
+
             var role = await Context.Guild.CreateRoleAsync(name,
                 permissions, options?.Color,
                 options?.IsHoisted ?? false,
@@ -342,6 +347,17 @@ public class RoleModule : ModuleBase<SocketCommandContext>
             => user.HasRole(role)
                 ? RemoveRolesAsync(user, role)
                 : AddRolesAsync(user, role);
+
+        // Replies with the reason and returns true when the requested permissions exceed the member's own.
+        private async Task<bool> RefusePermissionsAsync(GuildPermissions? permissions)
+        {
+            if (permissions is not { } requested
+                || RoleHierarchy.CheckPermissions((IGuildUser) Context.User, requested) is not { } error)
+                return false;
+
+            await ReplyAsync(error, allowedMentions: AllowedMentions.None);
+            return true;
+        }
 
         [NamedArgumentType]
         public class RoleCreationOptions
