@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Humanizer;
@@ -59,7 +60,10 @@ public class EvaluationService(IServiceProvider services)
         return embed;
     }
 
-    public async Task<EvaluationResult> EvaluateAsync(Context context, string code)
+    /// <summary>How long a script may run before the result is given as a timeout.</summary>
+    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+
+    public async Task<EvaluationResult> EvaluateAsync(Context context, string code, TimeSpan? timeout = null)
     {
         var sw = new Stopwatch();
 
@@ -85,7 +89,15 @@ public class EvaluationService(IServiceProvider services)
 
         try
         {
-            var state = await script.RunAsync(globals, _ => true).ConfigureAwait(false);
+            // The token stops a script that awaits. One that spins without awaiting ignores it, so the wait ends at the
+            // timeout either way, and the result says so.
+            var limit = timeout ?? DefaultTimeout;
+            using var cts = new CancellationTokenSource(limit);
+            var run = Task.Run(() => script.RunAsync(globals, _ => true, cts.Token), CancellationToken.None);
+            if (await Task.WhenAny(run, Task.Delay(limit, CancellationToken.None)).ConfigureAwait(false) != run)
+                return TimedOut(code, console.ToString(), compileTime, sw.Elapsed, limit);
+
+            var state = await run.ConfigureAwait(false);
             var result = new EvaluationResult(code, state, console.ToString(), sw.Elapsed, compileTime);
             sw.Stop();
 
@@ -114,5 +126,21 @@ public class EvaluationService(IServiceProvider services)
         {
             return EvaluationResult.CreateErrorResult(code, console.ToString(), sw.Elapsed, ex.Diagnostics);
         }
+        catch (OperationCanceledException)
+        {
+            return TimedOut(code, console.ToString(), compileTime, sw.Elapsed, timeout ?? DefaultTimeout);
+        }
     }
+
+    private static EvaluationResult TimedOut(
+        string code, string consoleOut, TimeSpan compileTime, TimeSpan elapsed, TimeSpan limit)
+        => new()
+        {
+            Code          = code,
+            CompileTime   = compileTime,
+            ConsoleOut    = consoleOut,
+            ExecutionTime = elapsed,
+            Exception     = $"The script did not finish within {limit.TotalSeconds:0.#} seconds.",
+            ExceptionType = nameof(TimeoutException)
+        };
 }

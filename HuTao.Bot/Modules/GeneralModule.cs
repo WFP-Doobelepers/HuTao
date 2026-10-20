@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Humanizer;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Evaluation;
@@ -18,10 +19,22 @@ public class GeneralModule(EvaluationService evaluation) : ModuleBase<SocketComm
         var context = new CommandContext(Context);
         var result = await evaluation.EvaluateAsync(context, code);
 
+        // The output can hold secrets such as the token, so it goes to the invoker's DMs and never to the channel.
         var embed = EvaluationService.BuildEmbed(context, result);
-        await ReplyAsync(
-            components: embed.Build().ToComponentsV2Message(),
-            allowedMentions: AllowedMentions.None);
+        try
+        {
+            await Context.User.SendMessageAsync(
+                components: embed.Build().ToComponentsV2Message(),
+                allowedMentions: AllowedMentions.None);
+
+            if (Context.Guild is not null)
+                await ReplyAsync("Sent the result to your DMs.", allowedMentions: AllowedMentions.None);
+        }
+        catch (HttpException ex) when (ex.DiscordCode is DiscordErrorCode.CannotSendMessageToUser)
+        {
+            await ReplyAsync("Could not DM the result, so it was not posted. Open your DMs and run it again.",
+                allowedMentions: AllowedMentions.None);
+        }
     }
 
     [Command("ping")]
