@@ -3,6 +3,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using HuTao.Services.Quote;
+using HuTao.Services.Utilities;
 using Serilog;
 
 namespace HuTao.Bot.Modules;
@@ -68,7 +69,7 @@ public class InteractiveQuoteModule(IQuoteService quoteService)
         if (parent is null || !CanRead(user, parent)) return false;
         if (thread.Type is not ThreadType.PrivateThread) return true;
 
-        return user.GetPermissions(parent).ManageThreads || await thread.GetUserAsync(user.Id) is not null;
+        return user.GetPermissions(parent).ManageThreads || await ThreadMembers.IsMemberAsync(thread, user.Id);
 
         static bool CanRead(IGuildUser user, IGuildChannel channel)
             => user.GetPermissions(channel) is { ViewChannel: true, ReadMessageHistory: true };

@@ -106,6 +106,12 @@ public static class MessageExtensions
         if (!channelPermissions.ViewChannel && !allowHidden)
             return null;
 
+        // Discord.Net resolves a thread's permissions from its parent channel, so a private thread also needs the
+        // member to be in it, or to manage threads.
+        if (!allowHidden && channel is IThreadChannel { Type: ThreadType.PrivateThread } thread
+            && !channelPermissions.ManageThreads && !await ThreadMembers.IsMemberAsync(thread, user.Id))
+            return null;
+
         var cacheMode = channelPermissions.ReadMessageHistory
             ? CacheMode.AllowDownload
             : CacheMode.CacheOnly;

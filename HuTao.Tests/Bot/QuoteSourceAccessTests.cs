@@ -1,6 +1,8 @@
+using System;
 using System.Threading.Tasks;
 using Discord;
 using HuTao.Bot.Modules;
+using HuTao.Services.Utilities;
 using Moq;
 using Xunit;
 
@@ -32,8 +34,9 @@ public class QuoteSourceAccessTests
         var thread = new Mock<IThreadChannel>();
         thread.SetupGet(t => t.CategoryId).Returns(ParentId);
         thread.SetupGet(t => t.Type).Returns(type);
-        thread.Setup(t => t.GetUserAsync(UserId, It.IsAny<CacheMode>(), It.IsAny<RequestOptions>()))
-            .ReturnsAsync(member ? Mock.Of<IGuildUser>() : null!);
+        thread.As<IThreadMemberList>()
+            .Setup(t => t.GetMemberIdsAsync())
+            .ReturnsAsync(member ? new[] { UserId } : Array.Empty<ulong>());
         return thread.Object;
     }
 
