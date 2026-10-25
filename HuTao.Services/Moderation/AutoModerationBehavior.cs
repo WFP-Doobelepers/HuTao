@@ -62,7 +62,7 @@ public class AutoModerationBehavior(
             return new ConcurrentQueue<ulong>();
         }) ?? throw new InvalidOperationException("Cache returned null");
 
-    private async Task ProcessMessage(IMessage source, CancellationToken cancellationToken = default)
+    internal async Task ProcessMessage(IMessage source, CancellationToken cancellationToken = default)
     {
         if (source is not IUserMessage
             {
@@ -224,8 +224,10 @@ public class AutoModerationBehavior(
             .Where(m => DateTimeOffset.Now - (m.EditedTimestamp ?? m.Timestamp) < config.Length)
             .Where(m => config.Global || m.Channel.Id == channel.Id);
 
+        // A filter that a moderator switched off with `auto toggle` does not act.
         IEnumerable<T> Rules<T>() where T : AutoConfiguration
-            => rules.Triggers.OfType<T>().ToList().Where(IsIncluded).Where(c => !IsConfigCooldown(c));
+            => rules.Triggers.OfType<T>().ToList()
+                .Where(c => c.IsActive).Where(IsIncluded).Where(c => !IsConfigCooldown(c));
 
         bool IsIncluded(AutoConfiguration config) => !config.Exclusions
             .OfType<CriterionExclusion>()
