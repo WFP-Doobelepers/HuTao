@@ -53,7 +53,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     public async Task HardMuteAsync(
         [RequireHigherRole] IGuildUser user,
         TimeSpan? length = null, string? reason = null,
-        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
         ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false,
         IAttachment? attachment = null)
