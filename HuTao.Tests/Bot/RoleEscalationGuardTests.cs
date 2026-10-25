@@ -101,7 +101,8 @@ public class RoleEscalationGuardTests
         { typeof(VoiceChatModule), nameof(VoiceChatModule.UnlockAsync), typeof(VoiceChatOwnership) },
         { typeof(VoiceChatModule), nameof(VoiceChatModule.TransferAsync), typeof(VoiceChatOwnership) },
         { typeof(InteractiveVoiceChatModule), "CanManageAsync", typeof(VoiceChatOwnership) },
-        { typeof(InteractiveGeneralModule), nameof(InteractiveGeneralModule.DeleteMessageAsync), typeof(MessageDeleteAccess) }
+        { typeof(InteractiveGeneralModule), nameof(InteractiveGeneralModule.DeleteMessageAsync), typeof(MessageDeleteAccess) },
+        { typeof(ModerationService), nameof(ModerationService.SlowmodeChannelAsync), typeof(SlowmodeAccess) }
     };
 
     [Theory]

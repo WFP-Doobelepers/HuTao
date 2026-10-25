@@ -178,7 +178,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     public Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         => length is null && channel is null
             ? ModerationService.ShowSlowmodeChannelsAsync(Context)
-            : ModerationService.SlowmodeChannelAsync(Context, length, channel);
+            : moderation.SlowmodeChannelAsync(Context, length, channel);
 
     [SlashCommand("template", "Apply a saved moderation template to a user.")]
     public async Task TemplateAsync(

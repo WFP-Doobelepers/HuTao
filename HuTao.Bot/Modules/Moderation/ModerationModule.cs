@@ -446,7 +446,7 @@ public class ModerationModule(
     public Task SlowmodeAsync(TimeSpan? length = null, ITextChannel? channel = null)
         => length is null && channel is null
             ? ModerationService.ShowSlowmodeChannelsAsync(Context)
-            : ModerationService.SlowmodeChannelAsync(Context, length, channel);
+            : moderation.SlowmodeChannelAsync(Context, length, channel);
 
     [HiddenFromHelp]
     [Command("slowmode")]

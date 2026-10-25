@@ -496,10 +496,17 @@ public class ModerationService(
             allowedMentions: AllowedMentions.None);
     }
 
-    public static async Task SlowmodeChannelAsync(Context context, TimeSpan? length, ITextChannel? channel)
+    public async Task SlowmodeChannelAsync(Context context, TimeSpan? length, ITextChannel? channel)
     {
         length  ??= TimeSpan.Zero;
         channel ??= (ITextChannel) context.Channel;
+
+        if (await auth.RefuseSlowmodeAsync(context, channel) is { } refusal)
+        {
+            await context.ReplyAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
+            return;
+        }
+
         var seconds = (int) length.Value.TotalSeconds;
         await channel.ModifyAsync(c => c.SlowModeInterval = seconds);
 
