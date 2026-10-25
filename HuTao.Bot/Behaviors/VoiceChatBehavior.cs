@@ -114,14 +114,7 @@ public class VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
 
             var voiceChat = rules.VoiceChats.FirstOrDefault(v => v.VoiceChannelId == newChannel.Id);
             if (voiceChat is not null)
-            {
-                var textChannel = guild.GetTextChannel(voiceChat.TextChannelId);
-                await textChannel.AddPermissionOverwriteAsync(user,
-                    new OverwritePermissions(viewChannel: PermValue.Allow));
-
-                if (rules.ShowJoinLeave)
-                    await textChannel.SendMessageAsync($"{user.Mention} has joined the VC. You can chat in here.");
-            }
+                await LetIntoChatAsync(guild.GetTextChannel(voiceChat.TextChannelId), user, rules.ShowJoinLeave);
         }
 
         if (oldChannel is not null && oldChannel.Id != newChannel?.Id)
@@ -156,5 +149,17 @@ public class VoiceChatBehavior(ICommandHelpService commandHelp, HuTaoContext db)
                 }
             }
         }
+    }
+
+    // Staff can delete a voice chat's text channel and leave its voice channel, and then there is no chat to let the
+    // member into. The handler goes on, so the voice chat the member left is still purged when it is empty.
+    public static async Task LetIntoChatAsync(ITextChannel? textChannel, IGuildUser user, bool showJoinLeave)
+    {
+        if (textChannel is null) return;
+
+        await textChannel.AddPermissionOverwriteAsync(user, new OverwritePermissions(viewChannel: PermValue.Allow));
+
+        if (showJoinLeave)
+            await textChannel.SendMessageAsync($"{user.Mention} has joined the VC. You can chat in here.");
     }
 }
