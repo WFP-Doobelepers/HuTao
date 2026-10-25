@@ -53,6 +53,39 @@ public class CommandErrorHandlerTests
         Assert.False(handler.TryGetError(1, out _));
     }
 
+    // Any member can put a warning sign on any message, so a message without a stored error is not downloaded.
+    [Fact]
+    public async Task AWarningOnAMessageWithoutAnError_DoesNotDownloadIt()
+    {
+        var handler = new CommandErrorHandler(new DiscordSocketClient(), new MemoryCache(new MemoryCacheOptions()));
+        var downloads = 0;
+        var channel = new Mock<IMessageChannel>();
+        var message = Message(5);
+        message.SetupGet(m => m.Author).Returns(Mock.Of<IUser>(u => u.Id == 7));
+
+        await handler.ShowErrorAsync(5, () =>
+        {
+            downloads++;
+            return Task.FromResult(message.Object);
+        }, () => Task.FromResult(channel.Object), userId: 7, "⚠");
+
+        Assert.Equal(0, downloads);
+    }
+
+    // The command's message can be deleted before its author reacts, and then there is nothing to answer.
+    [Fact]
+    public async Task AWarningOnADeletedMessage_PostsNothing()
+    {
+        var handler = new CommandErrorHandler(new DiscordSocketClient(), new MemoryCache(new MemoryCacheOptions()));
+        await handler.AssociateError(Message(5).Object, "boom");
+        var channel = new Mock<IMessageChannel>();
+
+        await handler.ShowErrorAsync(5, () => Task.FromResult<IUserMessage>(null!),
+            () => Task.FromResult(channel.Object), userId: 7, "⚠");
+
+        Assert.Empty(channel.Invocations);
+    }
+
     [Fact]
     public void OnlyExceptionsAreLoggedAsErrors()
     {

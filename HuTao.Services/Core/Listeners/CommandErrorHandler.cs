@@ -55,9 +55,11 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         }
     }
 
-    public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
-        => await ReactionAdded(notification.Message, await notification.Channel.GetOrDownloadAsync(),
-            notification.Reaction);
+    public Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
+        => notification.Reaction.User is { IsSpecified: true, Value.IsBot: true }
+            ? Task.CompletedTask
+            : ShowErrorAsync(notification.Message.Id, notification.Message.GetOrDownloadAsync,
+                notification.Channel.GetOrDownloadAsync, notification.Reaction.UserId, notification.Reaction.Emote.Name);
 
     public async Task Handle(
         ReactionRemovedNotification notification,
@@ -76,40 +78,40 @@ public class CommandErrorHandler(DiscordSocketClient discordSocketClient, IMemor
         _                => context.ReplyAsync(error, ephemeral: true)
     };
 
-    private async Task ReactionAdded(
-        Cacheable<IUserMessage, ulong> cachedMessage, IMessageChannel channel,
-        SocketReaction reaction)
+    // Shows the stored error to the member who ran the command. Any member can put the warning sign on any message, so
+    // the stored error is checked first, and only a message that has one is downloaded.
+    internal async Task ShowErrorAsync(
+        ulong messageId, Func<Task<IUserMessage>> getMessage, Func<Task<IMessageChannel>> getChannel,
+        ulong userId, string emoteName)
     {
-        if (reaction.User.IsSpecified && reaction.User.Value.IsBot) return;
-        if (reaction.Emote.Name != Emoji || TryGetReply(cachedMessage.Id, out _)) return;
+        if (emoteName != Emoji || TryGetReply(messageId, out _)) return;
+        if (!TryGetError(messageId, out var value)) return;
 
-        var message = await cachedMessage.GetOrDownloadAsync();
-        if (message.Author.Id != reaction.User.Value.Id) return;
+        // A message deleted since the command ran has nothing to answer.
+        if (await getMessage() is not { } message || message.Author.Id != userId) return;
 
-        if (TryGetError(cachedMessage.Id, out var value))
-        {
-            const uint accentColor = 0x9B59FF;
-            const int maxErrorChars = 3200;
+        const uint accentColor = 0x9B59FF;
+        const int maxErrorChars = 3200;
 
-            var container = new ContainerBuilder()
-                .WithSection(new SectionBuilder()
-                    .WithTextDisplay($"## That command had an error\n{value.Truncate(maxErrorChars)}")
-                    .WithAccessory(new ThumbnailBuilder(
-                        new UnfurledMediaItemProperties("https://raw.githubusercontent.com/twitter/twemoji/gh-pages/2/72x72/26a0.png"))))
-                .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
-                .WithTextDisplay("-# Remove your reaction to delete this message")
-                .WithAccentColor(accentColor);
+        var container = new ContainerBuilder()
+            .WithSection(new SectionBuilder()
+                .WithTextDisplay($"## That command had an error\n{value.Truncate(maxErrorChars)}")
+                .WithAccessory(new ThumbnailBuilder(
+                    new UnfurledMediaItemProperties("https://raw.githubusercontent.com/twitter/twemoji/gh-pages/2/72x72/26a0.png"))))
+            .WithSeparator(isDivider: false, spacing: SeparatorSpacingSize.Small)
+            .WithTextDisplay("-# Remove your reaction to delete this message")
+            .WithAccentColor(accentColor);
 
-            var components = new ComponentBuilderV2()
-                .WithContainer(container)
-                .Build();
+        var components = new ComponentBuilderV2()
+            .WithContainer(container)
+            .Build();
 
-            var msg = await channel.SendMessageAsync(
-                components: components,
-                allowedMentions: AllowedMentions.None);
+        var channel = await getChannel();
+        var msg = await channel.SendMessageAsync(
+            components: components,
+            allowedMentions: AllowedMentions.None);
 
-            if (TryAddReply(cachedMessage.Id, msg.Id) == false) await msg.DeleteAsync();
-        }
+        if (TryAddReply(messageId, msg.Id) == false) await msg.DeleteAsync();
     }
 
     private async Task ReactionRemoved(
