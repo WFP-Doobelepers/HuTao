@@ -75,6 +75,9 @@ public class InteractionHandlingService(
         commands.AddUserTypeReader<SocketGuildUser>();
         commands.AddUserTypeReader<RestGuildUser>();
 
+        // A channel in a custom ID is looked up only in the server of the interaction.
+        commands.AddGenericTypeReader(typeof(IChannel), typeof(GuildChannelTypeReader<>));
+
         commands.AddTypeReader<ModerationCategory>(new CategoryTypeReader());
         commands.AddTypeConverter<ModerationCategory>(new CategoryTypeConverter());
 
