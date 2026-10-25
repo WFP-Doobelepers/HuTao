@@ -108,7 +108,7 @@ public class InteractiveReprimandsModule(
     public async Task ViewReprimandAsync(
         [Autocomplete(typeof(ReprimandAutocomplete))]
         string id,
-        bool ephemeral = false)
+        [RequireEphemeralScope] bool ephemeral = false)
     {
         var reprimand = await FindReprimandAsync(id, History);
         if (reprimand is null)
@@ -152,25 +152,25 @@ public class InteractiveReprimandsModule(
     [ModalInteraction("reprimand-pardon:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    public Task PardonReprimandAsync(string id, bool ephemeral, PardonModal modal)
+    public Task PardonReprimandAsync(string id, [RequireEphemeralScope] bool ephemeral, PardonModal modal)
         => PardonReprimandAsync(id, modal.Reason, ephemeral);
 
     [ComponentInteraction("reprimand-pardon:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    public Task PardonReprimandMenuAsync(string id, bool ephemeral)
+    public Task PardonReprimandMenuAsync(string id, [RequireEphemeralScope] bool ephemeral)
         => UpdateReprimandAsync<PardonModal>($"reprimand-pardon:{id}:{ephemeral}", id);
 
     [ModalInteraction("reprimand-update:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    public Task UpdateReprimandAsync(string id, bool ephemeral, UpdateModal modal)
+    public Task UpdateReprimandAsync(string id, [RequireEphemeralScope] bool ephemeral, UpdateModal modal)
         => UpdateReprimandAsync(id, modal.Reason, ephemeral);
 
     [ComponentInteraction("reprimand-history:*:*", true)]
     [RequireAuthorization(History, Group = nameof(History))]
     [RequireAnyCategoryAuthorization(History, Group = nameof(History))]
-    public async Task ViewUserHistoryAsync(ulong userId, bool ephemeral)
+    public async Task ViewUserHistoryAsync(ulong userId, [RequireEphemeralScope] bool ephemeral)
     {
         var user = await Context.Client.Rest.GetUserAsync(userId);
         if (user is null)
@@ -185,7 +185,7 @@ public class InteractiveReprimandsModule(
     [ComponentInteraction("reprimand-update:*:*", true)]
     [RequireAuthorization(History | Modify, Group = nameof(Modify))]
     [RequireAnyCategoryAuthorization(History | Modify, Group = nameof(Modify))]
-    public Task UpdateReprimandMenuAsync(string id, bool ephemeral)
+    public Task UpdateReprimandMenuAsync(string id, [RequireEphemeralScope] bool ephemeral)
         => UpdateReprimandAsync<UpdateModal>($"reprimand-update:{id}:{ephemeral}", id);
 
     protected override EmbedBuilder EntityViewer(Reprimand entity) => entity.ToEmbedBuilder(true);
