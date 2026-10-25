@@ -15,6 +15,7 @@ using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using DiscordInteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -22,7 +23,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Group("category-permissions", "Manage moderation category permissions.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class InteractiveCategoryPermissionsModule(HuTaoContext db)
+public class InteractiveCategoryPermissionsModule(AuthorizationService auth, HuTaoContext db)
     : InteractionModuleBase<SocketInteractionContext>
 {
     private const uint AccentColor = 0x9B59FF;
@@ -110,13 +111,18 @@ public class InteractiveCategoryPermissionsModule(HuTaoContext db)
         }
 
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
-        var group = guild.ModerationCategories
-            .SelectMany(c => c.Authorization)
-            .FirstOrDefault(g => g.Id == guid);
+        var category = guild.ModerationCategories.FirstOrDefault(c => c.Authorization.Any(g => g.Id == guid));
+        var group = category?.Authorization.First(g => g.Id == guid);
 
-        if (group is null)
+        if (category is null || group is null)
         {
             await FollowupAsync("Permission group not found.", ephemeral: true);
+            return;
+        }
+
+        if (await RefuseChangeAsync(group, category) is { } refusal)
+        {
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
 
@@ -132,6 +138,12 @@ public class InteractiveCategoryPermissionsModule(HuTaoContext db)
         AccessType access, Criterion criterion, bool ephemeral)
     {
         var group = new AuthorizationGroup(scope, access, JudgeType.Any, criterion);
+        if (await RefuseChangeAsync(group, category) is { } refusal)
+        {
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
+            return;
+        }
+
         category.Authorization.Add(group.WithModerator((IGuildUser)Context.User));
         await db.SaveChangesAsync();
 
@@ -140,6 +152,10 @@ public class InteractiveCategoryPermissionsModule(HuTaoContext db)
         var components = new ComponentBuilderV2().WithContainer(container).Build();
         await FollowupAsync(components: components, allowedMentions: AllowedMentions.None, ephemeral: ephemeral);
     }
+
+    private Task<string?> RefuseChangeAsync(AuthorizationGroup group, ModerationCategory category)
+        => auth.RefuseRuleChangeAsync(
+            new DiscordInteractionContext(Context), (IGuildUser)Context.User, group, category);
 
     private static EmbedBuilder BuildEmbed(Authorization auth)
     {

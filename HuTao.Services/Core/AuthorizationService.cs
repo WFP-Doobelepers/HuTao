@@ -157,10 +157,10 @@ public class AuthorizationService(HuTaoContext db)
     /// <summary>
     ///     The first of the requested scopes the member does not hold themselves, or null. Granting a scope saves a rule
     ///     with the bot's authority, so the member may only grant what they have; the guild owner and Discord
-    ///     administrators may grant any.
+    ///     administrators may grant any. For a rule in a moderation category, a scope held in that category counts too.
     /// </summary>
     public async Task<AuthorizationScope?> FindUnheldScopeAsync(
-        Context context, IGuildUser member, AuthorizationScope requested,
+        Context context, IGuildUser member, AuthorizationScope requested, ModerationCategory? category = null,
         CancellationToken cancellationToken = default)
     {
         if (member.Guild?.OwnerId == member.Id || member.GuildPermissions.Administrator)
@@ -169,7 +169,41 @@ public class AuthorizationService(HuTaoContext db)
         foreach (var scope in Enum.GetValues<AuthorizationScope>())
         {
             if (scope == AuthorizationScope.None || !requested.HasFlag(scope)) continue;
-            if (!await IsAuthorizedAsync(context, scope, cancellationToken)) return scope;
+            if (await IsAuthorizedAsync(context, scope, cancellationToken)) continue;
+            if (category is not null && IsAuthorized(context, scope, category)) continue;
+
+            return scope;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Why the member may not add or remove the rule, or null when they may. The bot judges a rule with its own
+    ///     authority, so the member may change rules only for scopes they have, in the server or in the rule's category,
+    ///     and only for members and roles that rank below them.
+    /// </summary>
+    public async Task<string?> RefuseRuleChangeAsync(
+        Context context, IGuildUser member, AuthorizationGroup rule, ModerationCategory? category = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (await FindUnheldScopeAsync(context, member, rule.Scope, category, cancellationToken) is { } unheld)
+            return $"You can only add or remove rules for scopes you have, and you do not have the {unheld} scope.";
+
+        foreach (var criterion in rule.Collection)
+        {
+            switch (criterion)
+            {
+                case UserCriterion user
+                    when await context.Guild.GetUserAsync(user.UserId) is { } target
+                    && target.Hierarchy >= member.Hierarchy:
+                    return $"{target.Mention} ranks at or above you, so you cannot add or remove a rule for them.";
+                case RoleCriterion role
+                    when context.Guild.GetRole(role.RoleId) is { } target
+                    && target.Position >= member.Hierarchy:
+                    return $"The {target.Name} role ranks at or above your highest role, "
+                        + "so you cannot add or remove a rule for it.";
+            }
         }
 
         return null;

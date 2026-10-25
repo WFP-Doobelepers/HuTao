@@ -16,6 +16,7 @@ using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using DiscordCommandContext = HuTao.Data.Models.Discord.CommandContext;
 using GuildPermission = HuTao.Data.Models.Discord.GuildPermission;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -27,7 +28,8 @@ public record Authorization(ModerationCategory Category, AuthorizationGroup Grou
 [Alias("catperms", "catperm")]
 [Summary("Manages category permissions.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext db) : InteractiveEntity<Authorization>
+public class CategoryPermissionsModule(AuthorizationService auth, CommandErrorHandler error, HuTaoContext db)
+    : InteractiveEntity<Authorization>
 {
     [Command("add")]
     [Summary(
@@ -45,6 +47,12 @@ public class CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext d
 
         var moderator = (IGuildUser) Context.User;
         var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
+        if (await RefuseChangeAsync(moderator, new Authorization(category, group)) is { } refusal)
+        {
+            await error.AssociateError(Context.Message, refusal);
+            return;
+        }
+
         category.Authorization.Add(group.WithModerator(moderator));
 
         await db.SaveChangesAsync();
@@ -63,7 +71,28 @@ public class CategoryPermissionsModule(CommandErrorHandler error, HuTaoContext d
     [Command("remove")]
     [Alias("delete", "del")]
     [Summary("Remove an authorization group.")]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+    protected override async Task RemoveEntityAsync(string id)
+    {
+        var entity = await TryFindEntityAsync(id);
+        if (entity is null)
+        {
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
+            return;
+        }
+
+        if (await RefuseChangeAsync((IGuildUser) Context.User, entity) is { } refusal)
+        {
+            await error.AssociateError(Context.Message, refusal);
+            return;
+        }
+
+        await RemoveEntityAsync(entity);
+        await Context.Message.AddReactionAsync(new Emoji("✅"));
+    }
+
+    private Task<string?> RefuseChangeAsync(IGuildUser moderator, Authorization authorization)
+        => auth.RefuseRuleChangeAsync(
+            new DiscordCommandContext(Context), moderator, authorization.Group, authorization.Category);
 
     protected override EmbedBuilder EntityViewer(Authorization entity) => GetModerationCategoryDetails(entity);
 

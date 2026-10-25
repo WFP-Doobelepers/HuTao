@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Discord;
 using Discord.Commands;
+using HuTao.Data.Models.Authorization;
+using HuTao.Data.Models.Moderation;
 using HuTao.Bot.Modules;
 using HuTao.Bot.Modules.Configuration;
 using HuTao.Bot.Modules.Linking;
@@ -49,10 +51,27 @@ public class RoleEscalationGuardTests
         { typeof(InteractiveConfigurationModule), nameof(InteractiveConfigurationModule.SelectRoleAsync) }
     };
 
+    // Every command that adds or removes an authorization rule, in the server or in a moderation category.
+    public static TheoryData<Type, string, Type[]> RuleChangingMethods => new()
+    {
+        { typeof(PermissionsModule), nameof(PermissionsModule.AddPermissionAsync), [typeof(AuthorizationScope), typeof(PermissionsModule.RuleOptions)] },
+        { typeof(PermissionsModule), nameof(PermissionsModule.InteractiveConfigureAsync), [] },
+        { typeof(PermissionsModule), "RemoveEntityAsync", [typeof(string)] },
+        { typeof(CategoryPermissionsModule), nameof(CategoryPermissionsModule.AddPermissionAsync), [typeof(ModerationCategory), typeof(AuthorizationScope), typeof(CategoryPermissionsModule.RuleOptions)] },
+        { typeof(CategoryPermissionsModule), "RemoveEntityAsync", [typeof(string)] },
+        { typeof(InteractivePermissionsModule), nameof(InteractivePermissionsModule.AddRolePermissionAsync), [typeof(AuthorizationScope), typeof(IRole), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractivePermissionsModule), nameof(InteractivePermissionsModule.AddUserPermissionAsync), [typeof(AuthorizationScope), typeof(IUser), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractivePermissionsModule), nameof(InteractivePermissionsModule.AddChannelPermissionAsync), [typeof(AuthorizationScope), typeof(IGuildChannel), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractivePermissionsModule), "RemoveEntityAsync", [typeof(string), typeof(bool)] },
+        { typeof(InteractiveCategoryPermissionsModule), nameof(InteractiveCategoryPermissionsModule.AddRolePermissionAsync), [typeof(ModerationCategory), typeof(AuthorizationScope), typeof(IRole), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractiveCategoryPermissionsModule), nameof(InteractiveCategoryPermissionsModule.AddUserPermissionAsync), [typeof(ModerationCategory), typeof(AuthorizationScope), typeof(IUser), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractiveCategoryPermissionsModule), nameof(InteractiveCategoryPermissionsModule.AddChannelPermissionAsync), [typeof(ModerationCategory), typeof(AuthorizationScope), typeof(IGuildChannel), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractiveCategoryPermissionsModule), nameof(InteractiveCategoryPermissionsModule.AddGuildPermissionAsync), [typeof(ModerationCategory), typeof(AuthorizationScope), typeof(HuTao.Data.Models.Discord.GuildPermission), typeof(AccessType), typeof(bool)] },
+        { typeof(InteractiveCategoryPermissionsModule), nameof(InteractiveCategoryPermissionsModule.RemovePermissionAsync), [typeof(string), typeof(bool)] }
+    };
+
     public static TheoryData<Type, string, Type> OtherGuardedMethods => new()
     {
-        { typeof(PermissionsModule), nameof(PermissionsModule.AddPermissionAsync), typeof(AuthorizationService) },
-        { typeof(PermissionsModule), nameof(PermissionsModule.InteractiveConfigureAsync), typeof(AuthorizationService) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncCategoryPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(VoiceChatModule), nameof(VoiceChatModule.HideAsync), typeof(VoiceChatOwnership) },
@@ -92,10 +111,20 @@ public class RoleEscalationGuardTests
         var info = module.GetMethod(method, All);
 
         Assert.NotNull(info);
+        Assert.True(Calls(info, m => m.DeclaringType == check, []), $"{module.Name}.{method} never calls {check.Name}.");
+    }
+
+    [Theory]
+    [MemberData(nameof(RuleChangingMethods))]
+    public void MethodThatAddsOrRemovesARule_ChecksTheModeratorFirst(Type module, string method, Type[] parameters)
+    {
+        var info = module.GetMethod(method, All, parameters);
+
+        Assert.NotNull(info);
         Assert.True(
-            Calls(info, m => m.DeclaringType == check
-                && (check != typeof(AuthorizationService) || m.Name == nameof(AuthorizationService.FindUnheldScopeAsync)), []),
-            $"{module.Name}.{method} never calls {check.Name}.");
+            Calls(info, m => m.DeclaringType == typeof(AuthorizationService)
+                && m.Name == nameof(AuthorizationService.RefuseRuleChangeAsync), []),
+            $"{module.Name}.{method} never calls {nameof(AuthorizationService.RefuseRuleChangeAsync)}.");
     }
 
     [Fact]

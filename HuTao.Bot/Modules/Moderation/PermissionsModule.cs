@@ -46,13 +46,13 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
         }
 
         var moderator = (IGuildUser) Context.User;
-        if (await FindUnheldScopeAsync(moderator, scope) is { } unheld)
+        var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
+        if (await RefuseChangeAsync(moderator, group) is { } refusal)
         {
-            await error.AssociateError(Context.Message, UnheldScopeMessage(unheld));
+            await error.AssociateError(Context.Message, refusal);
             return;
         }
 
-        var group = new AuthorizationGroup(scope, options.AccessType, options.JudgeType, rules);
         await AddEntitiesAsync(group.WithModerator(moderator));
     }
 
@@ -90,9 +90,12 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
 
         // The admin role gets every scope, and the moderator role gets the chosen ones.
         var granted = AuthorizationScope.All | results.Get<AuthorizationScope>(ConfigureOptions.Permissions);
-        if (await FindUnheldScopeAsync(moderator, granted) is { } unheld)
+        var both = new AuthorizationGroup(granted, AccessType.Allow, JudgeType.Any,
+            new RoleCriterion(results.Get<IRole>(ConfigureOptions.Admin)),
+            new RoleCriterion(results.Get<IRole>(ConfigureOptions.Moderator)));
+        if (await RefuseChangeAsync(moderator, both) is { } refusal)
         {
-            await error.AssociateError(Context.Message, UnheldScopeMessage(unheld));
+            await error.AssociateError(Context.Message, refusal);
             return;
         }
 
@@ -124,13 +127,27 @@ public class PermissionsModule(AuthorizationService auth, CommandErrorHandler er
     [Command("remove")]
     [Alias("delete", "del")]
     [Summary("Remove an authorization group.")]
-    protected override Task RemoveEntityAsync(string id) => base.RemoveEntityAsync(id);
+    protected override async Task RemoveEntityAsync(string id)
+    {
+        var entity = await TryFindEntityAsync(id);
+        if (entity is null)
+        {
+            await error.AssociateError(Context.Message, EmptyMatchMessage);
+            return;
+        }
 
-    private Task<AuthorizationScope?> FindUnheldScopeAsync(IGuildUser moderator, AuthorizationScope requested)
-        => auth.FindUnheldScopeAsync(new DiscordCommandContext(Context), moderator, requested);
+        if (await RefuseChangeAsync((IGuildUser) Context.User, entity) is { } refusal)
+        {
+            await error.AssociateError(Context.Message, refusal);
+            return;
+        }
 
-    private static string UnheldScopeMessage(AuthorizationScope scope)
-        => $"You cannot grant the {scope} scope, because you do not have it yourself.";
+        await RemoveEntityAsync(entity);
+        await Context.Message.AddReactionAsync(new Emoji("✅"));
+    }
+
+    private Task<string?> RefuseChangeAsync(IGuildUser moderator, AuthorizationGroup rule)
+        => auth.RefuseRuleChangeAsync(new DiscordCommandContext(Context), moderator, rule);
 
     protected override EmbedBuilder EntityViewer(AuthorizationGroup entity) => GetAuthorizationGroupDetails(entity);
 

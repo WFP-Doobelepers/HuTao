@@ -14,13 +14,14 @@ using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Interactive;
 using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
+using DiscordInteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
 namespace HuTao.Bot.Modules.Moderation;
 
 [Group("permissions", "Manage server authorization rules.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class InteractivePermissionsModule(HuTaoContext db)
+public class InteractivePermissionsModule(AuthorizationService auth, HuTaoContext db)
     : InteractionEntity<AuthorizationGroup>
 {
     [SlashCommand("add-role", "Add a role-based permission rule.")]
@@ -31,15 +32,8 @@ public class InteractivePermissionsModule(HuTaoContext db)
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var moderator = (IGuildUser)Context.User;
         var rules = new List<Criterion> { new RoleCriterion(role) };
-        var group = new AuthorizationGroup(scope, access, JudgeType.Any, rules);
-
-        var collection = await GetCollectionAsync();
-        collection.Add(group.WithModerator(moderator));
-        await Db.SaveChangesAsync();
-
-        await ReplyGroupAsync(group, ephemeral);
+        await AddGroupAsync(new AuthorizationGroup(scope, access, JudgeType.Any, rules), ephemeral);
     }
 
     [SlashCommand("add-user", "Add a user-based permission rule.")]
@@ -50,15 +44,8 @@ public class InteractivePermissionsModule(HuTaoContext db)
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var moderator = (IGuildUser)Context.User;
         var rules = new List<Criterion> { new UserCriterion(user.Id) };
-        var group = new AuthorizationGroup(scope, access, JudgeType.Any, rules);
-
-        var collection = await GetCollectionAsync();
-        collection.Add(group.WithModerator(moderator));
-        await Db.SaveChangesAsync();
-
-        await ReplyGroupAsync(group, ephemeral);
+        await AddGroupAsync(new AuthorizationGroup(scope, access, JudgeType.Any, rules), ephemeral);
     }
 
     [SlashCommand("add-channel", "Add a channel-based permission rule.")]
@@ -69,9 +56,18 @@ public class InteractivePermissionsModule(HuTaoContext db)
         [RequireEphemeralScope] bool ephemeral = false)
     {
         await DeferAsync(ephemeral);
-        var moderator = (IGuildUser)Context.User;
         var rules = new List<Criterion> { new ChannelCriterion(channel.Id, channel is ICategoryChannel) };
-        var group = new AuthorizationGroup(scope, access, JudgeType.Any, rules);
+        await AddGroupAsync(new AuthorizationGroup(scope, access, JudgeType.Any, rules), ephemeral);
+    }
+
+    private async Task AddGroupAsync(AuthorizationGroup group, bool ephemeral)
+    {
+        var moderator = (IGuildUser)Context.User;
+        if (await RefuseChangeAsync(moderator, group) is { } refusal)
+        {
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
+            return;
+        }
 
         var collection = await GetCollectionAsync();
         collection.Add(group.WithModerator(moderator));
@@ -79,6 +75,9 @@ public class InteractivePermissionsModule(HuTaoContext db)
 
         await ReplyGroupAsync(group, ephemeral);
     }
+
+    private Task<string?> RefuseChangeAsync(IGuildUser moderator, AuthorizationGroup group)
+        => auth.RefuseRuleChangeAsync(new DiscordInteractionContext(Context), moderator, group);
 
     [SlashCommand("list", "View all configured authorization groups.")]
     public async Task ListPermissionsAsync([RequireEphemeralScope] bool ephemeral = false)
@@ -100,6 +99,12 @@ public class InteractivePermissionsModule(HuTaoContext db)
         if (entity is null)
         {
             await FollowupAsync(EmptyMatchMessage, ephemeral: true);
+            return;
+        }
+
+        if (await RefuseChangeAsync((IGuildUser)Context.User, entity) is { } refusal)
+        {
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
 
