@@ -41,7 +41,7 @@ public class AuthorizationSweepTests(ITestOutputHelper output)
         [
             "text:GenshinCommands.CodesAsync"
         ]),
-        ("Help and the command list, filtered to what the member may run, and bound to the session of "
+        ("Help and the command list: they only show what commands do, and they are bound to the session of "
         + "the member who opened them.",
         [
             "interaction:InteractiveHelpModule.BackAsync", "interaction:InteractiveHelpModule.HelpAsync",
