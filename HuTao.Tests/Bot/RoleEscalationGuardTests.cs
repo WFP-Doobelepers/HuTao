@@ -16,7 +16,6 @@ using HuTao.Services.Core;
 using HuTao.Services.Moderation;
 using HuTao.Services.VoiceChat;
 using Xunit;
-using ModerationInteractionHandlers = HuTao.Bot.Modules.Moderation.ModerationInteractionHandlers;
 
 namespace HuTao.Tests.Bot;
 
