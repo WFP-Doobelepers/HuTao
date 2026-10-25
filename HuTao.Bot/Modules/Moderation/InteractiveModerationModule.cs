@@ -244,7 +244,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
     [SlashCommand("untimeout", "Remove a timeout from a user.")]
     public async Task UnTimeoutAsync(
-        IGuildUser user,
+        [RequireHigherRole] IGuildUser user,
         string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Timeout)]
         ModerationCategory? category = null,
@@ -277,7 +277,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
 
     [SlashCommand("unmute", "Unmute a user in this server.")]
     public async Task UnmuteAsync(
-        IGuildUser user, string? reason = null,
+        [RequireHigherRole] IGuildUser user, string? reason = null,
         [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
         ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false,

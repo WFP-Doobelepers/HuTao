@@ -542,7 +542,7 @@ public class ModerationModule(
     [Command("untimeout")]
     [Summary("Remove a timeout from a user.")]
     public async Task UntimeoutAsync(
-        IGuildUser user,
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Timeout)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -559,7 +559,7 @@ public class ModerationModule(
     [Command("untimeout")]
     [RequireAuthorization(AuthorizationScope.Timeout)]
     public Task UntimeoutAsync(
-        IGuildUser user,
+        [RequireHigherRole] IGuildUser user,
         [Remainder] string? reason = null)
         => UntimeoutAsync(user, null, reason);
 
@@ -567,7 +567,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("untimeout")]
     public async Task UntimeoutAsync(
-        IEnumerable<IGuildUser> users,
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         [CheckCategory(AuthorizationScope.Timeout)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -582,7 +582,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("untimeout")]
     [RequireAuthorization(AuthorizationScope.Timeout)]
-    public async Task UntimeoutAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    public async Task UntimeoutAsync([RequireHigherRole] IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
     {
         foreach (var user in users)
         {
@@ -641,7 +641,7 @@ public class ModerationModule(
     [Command("unmute")]
     [Summary("Unmute a user in this server.")]
     public async Task UnmuteAsync(
-        IGuildUser user,
+        [RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -657,13 +657,13 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("unmute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public Task UnmuteAsync(IGuildUser user, [Remainder] string? reason = null) => UnmuteAsync(user, null, reason);
+    public Task UnmuteAsync([RequireHigherRole] IGuildUser user, [Remainder] string? reason = null) => UnmuteAsync(user, null, reason);
 
     [Priority(-2)]
     [HiddenFromHelp]
     [Command("unmute")]
     public async Task UnmuteAsync(
-        IEnumerable<IGuildUser> users,
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -678,7 +678,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("unmute")]
     [RequireAuthorization(AuthorizationScope.Mute)]
-    public async Task UnmuteAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    public async Task UnmuteAsync([RequireHigherRole] IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
     {
         foreach (var user in users)
         {
@@ -736,7 +736,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("warn")]
     public async Task WarnAsync(
-        IEnumerable<IGuildUser> users, uint amount = 1,
+        [RequireHigherRole] IEnumerable<IGuildUser> users, uint amount = 1,
         [CheckCategory(AuthorizationScope.Warning)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -751,7 +751,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("warn")]
     public async Task WarnAsync(
-        IEnumerable<IGuildUser> users,
+        [RequireHigherRole] IEnumerable<IGuildUser> users,
         [CheckCategory(AuthorizationScope.Warning)]
         ModerationCategory? category = null,
         [Remainder] string? reason = null)
@@ -766,7 +766,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("warn")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public async Task WarnAsync(IEnumerable<IGuildUser> users, uint amount = 1, [Remainder] string? reason = null)
+    public async Task WarnAsync([RequireHigherRole] IEnumerable<IGuildUser> users, uint amount = 1, [Remainder] string? reason = null)
     {
         foreach (var user in users)
         {
@@ -778,7 +778,7 @@ public class ModerationModule(
     [HiddenFromHelp]
     [Command("warn")]
     [RequireAuthorization(AuthorizationScope.Warning)]
-    public async Task WarnAsync(IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
+    public async Task WarnAsync([RequireHigherRole] IEnumerable<IGuildUser> users, [Remainder] string? reason = null)
     {
         foreach (var user in users)
         {
