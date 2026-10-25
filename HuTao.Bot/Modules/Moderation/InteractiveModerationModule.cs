@@ -278,7 +278,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     [SlashCommand("unmute", "Unmute a user in this server.")]
     public async Task UnmuteAsync(
         [RequireHigherRole] IGuildUser user, string? reason = null,
-        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.HardMute)]
+        [Autocomplete(typeof(CategoryAutocomplete))] [CheckCategory(AuthorizationScope.Mute)]
         ModerationCategory? category = null,
         [RequireEphemeralScope] bool ephemeral = false,
         IAttachment? attachment = null)

@@ -13,7 +13,8 @@ namespace HuTao.Tests.Bot;
 
 // A moderator can take each moderation action with the text command, the slash command, the slash menu command, and the
 // form that the mod menu opens. The mod menu opens the form for a moderator with any moderation scope, so every one of
-// these ways must ask for the action's own scope, or a moderator without it can take the action another way.
+// these ways must ask for the action's own scope, or a moderator without it can take the action another way. A command
+// that undoes an action has only the text and slash commands, and they ask for the scope of the action they undo.
 public class ModerationScopeTests
 {
     private const BindingFlags Methods = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
@@ -23,7 +24,7 @@ public class ModerationScopeTests
         ["RequireAuthorizationAttribute", "CheckCategoryAttribute", "RequireAnyCategoryAuthorizationAttribute"];
 
     // The text command, the slash command, the form's custom ID, and the scope of the action.
-    public static TheoryData<string, string, string, AuthorizationScope> Actions => new()
+    public static TheoryData<string, string, string?, AuthorizationScope> Actions => new()
     {
         { "ban", "ban", "ban:*", AuthorizationScope.Ban },
         { "hardmute", "hardmute", "hardMute:*", AuthorizationScope.HardMute },
@@ -32,22 +33,25 @@ public class ModerationScopeTests
         { "note", "note", "note:*", AuthorizationScope.Note },
         { "notice", "notice", "notice:*", AuthorizationScope.Warning },
         { "timeout", "timeout", "timeout:*", AuthorizationScope.Timeout },
-        { "warn", "warn", "warn:*", AuthorizationScope.Warning }
+        { "warn", "warn", "warn:*", AuthorizationScope.Warning },
+        { "unban", "unban", null, AuthorizationScope.Ban },
+        { "unmute", "unmute", null, AuthorizationScope.Mute },
+        { "untimeout", "untimeout", null, AuthorizationScope.Timeout }
     };
 
     [Theory]
     [MemberData(nameof(Actions))]
     public void EveryWayToTakeAnAction_AsksForTheActionsScope(
-        string command, string slash, string form, AuthorizationScope scope)
+        string command, string slash, string? form, AuthorizationScope scope)
     {
         var ways = Ways(typeof(ModerationModule), m => m.GetCustomAttribute<CommandAttribute>()?.Text == command)
             .Concat(Ways(typeof(InteractiveModerationModule),
                 m => m.GetCustomAttribute<SlashCommandAttribute>()?.Name is { } name && (name == slash || name == $"{slash}-menu")))
             .Concat(Ways(typeof(InteractiveModerationModule),
-                m => m.GetCustomAttribute<ModalInteractionAttribute>()?.CustomId == form))
+                m => form is not null && m.GetCustomAttribute<ModalInteractionAttribute>()?.CustomId == form))
             .ToList();
 
-        // The text overloads, the slash command, the menu command and the form.
+        // The text overloads and the slash command, and for an action, also the menu command and the form.
         Assert.True(ways.Count >= 4, $"Only {ways.Count} ways to {command} were found.");
         Assert.All(ways, way => Assert.True(way.Scopes.SequenceEqual([scope]),
             $"{way.Name} asks for [{string.Join(", ", way.Scopes)}] instead of {scope}."));
