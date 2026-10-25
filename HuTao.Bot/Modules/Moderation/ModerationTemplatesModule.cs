@@ -13,6 +13,7 @@ using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Commands;
 using HuTao.Services.Interactive;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -21,7 +22,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Alias("templates")]
 [Summary("Save and reuse moderation actions as templates. Apply them with the `template` command.")]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<ModerationTemplate>
+public class ModerationTemplatesModule(HuTaoContext db, AuthorizationService auth) : InteractiveEntity<ModerationTemplate>
 {
     private const uint AccentColor = 0x9B59FF;
 
@@ -124,6 +125,12 @@ public class ModerationTemplatesModule(HuTaoContext db) : InteractiveEntity<Mode
     private async Task AddTemplateAsync(string name, ReprimandAction action, ITemplateOptions options)
     {
         var template = new ModerationTemplate(name, action, options);
+        if (await auth.RefuseSaveAsync(Context, action, template.Category) is { } refusal)
+        {
+            await ReplyPanelAsync("Moderation Templates", refusal);
+            return;
+        }
+
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
 
         var existing = guild.ModerationTemplates.FirstOrDefault(t => t.Name == template.Name);

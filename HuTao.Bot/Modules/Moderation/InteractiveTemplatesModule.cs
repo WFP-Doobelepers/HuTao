@@ -9,9 +9,11 @@ using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Infractions.Actions;
+using HuTao.Services.Core;
 using HuTao.Services.Core.Autocomplete;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Interactive;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 
 namespace HuTao.Bot.Modules.Moderation;
@@ -19,7 +21,7 @@ namespace HuTao.Bot.Modules.Moderation;
 [Group("templates", "Manage moderation templates.")]
 [RequireContext(ContextType.Guild)]
 [RequireAuthorization(AuthorizationScope.Configuration)]
-public class InteractiveTemplatesModule(HuTaoContext db) : InteractionEntity<ModerationTemplate>
+public class InteractiveTemplatesModule(HuTaoContext db, AuthorizationService auth) : InteractionEntity<ModerationTemplate>
 {
     private const uint AccentColor = 0x9B59FF;
 
@@ -134,6 +136,14 @@ public class InteractiveTemplatesModule(HuTaoContext db) : InteractionEntity<Mod
         string name, ReprimandAction action, string? reason,
         AuthorizationScope scope, ModerationCategory? category, bool ephemeral)
     {
+        var options = new SlashTemplateOptions { Scope = scope, Category = category, Reason = reason };
+        var template = new ModerationTemplate(name, action, options);
+        if (await auth.RefuseSaveAsync(Context, action, template.Category) is { } refusal)
+        {
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
+            return;
+        }
+
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var existing = guild.ModerationTemplates.FirstOrDefault(t =>
             t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -144,8 +154,6 @@ public class InteractiveTemplatesModule(HuTaoContext db) : InteractionEntity<Mod
             await Db.SaveChangesAsync();
         }
 
-        var options = new SlashTemplateOptions { Scope = scope, Category = category, Reason = reason };
-        var template = new ModerationTemplate(name, action, options);
         guild.ModerationTemplates.Add(template);
         await Db.SaveChangesAsync();
 

@@ -88,6 +88,8 @@ public class RoleEscalationGuardTests
         { typeof(InteractiveModerationModule), "GetDetailsAsync", typeof(ReprimandCategories) },
         { typeof(ModerationModule), nameof(ModerationModule.TemplateAsync), typeof(TemplateAccess) },
         { typeof(InteractiveModerationModule), nameof(InteractiveModerationModule.TemplateAsync), typeof(TemplateAccess) },
+        { typeof(ModerationTemplatesModule), "AddTemplateAsync", typeof(TemplateAccess) },
+        { typeof(InteractiveTemplatesModule), "AddTemplateAsync", typeof(TemplateAccess) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncCategoryPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(VoiceChatModule), nameof(VoiceChatModule.HideAsync), typeof(VoiceChatOwnership) },
