@@ -28,7 +28,9 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.Configuration;
 
+// Every press on the panel checks the scope again, so a member who loses it cannot keep using a panel they opened.
 [RequireContext(ContextType.Guild)]
+[RequireAuthorization(AuthorizationScope.Configuration)]
 public class InteractiveConfigurationModule(
     HuTaoContext db,
     IMemoryCache cache,
@@ -86,7 +88,6 @@ public class InteractiveConfigurationModule(
     private const string KeyVoiceShowJoinLeave = "v:show-join-leave";
 
     [SlashCommand("config", "Open the configuration panel.")]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task ConfigAsync(
         [Autocomplete(typeof(CategoryAutocomplete))]
         ModerationCategory? category = null,
@@ -115,7 +116,6 @@ public class InteractiveConfigurationModule(
     }
 
     [ComponentInteraction(OpenButtonId, true)]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task OpenFromButtonAsync()
     {
         await DeferAsync(ephemeral: true);

@@ -21,8 +21,10 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace HuTao.Bot.Modules.Moderation;
 
+// Every press on the panel checks the scope again, so a member who loses it cannot keep using a panel they opened.
 [Group("trigger", "Manage escalation rules for automatic actions.")]
 [RequireContext(ContextType.Guild)]
+[RequireAuthorization(AuthorizationScope.Configuration)]
 public sealed class InteractiveTriggersModule(
     HuTaoContext db,
     ModerationService moderation,
@@ -43,7 +45,6 @@ public sealed class InteractiveTriggersModule(
     private const string DeleteSilentButtonId = "trg:confirm:silent";
 
     [SlashCommand("panel", "Open the escalation rules manager.")]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task PanelAsync(
         [Autocomplete(typeof(CategoryAutocomplete))]
         ModerationCategory? category = null,
@@ -52,7 +53,6 @@ public sealed class InteractiveTriggersModule(
         => await OpenPanelAsync(category, ephemeral);
 
     [ComponentInteraction(OpenButtonId, true)]
-    [RequireAuthorization(AuthorizationScope.Configuration)]
     public async Task OpenFromButtonAsync()
         => await OpenPanelAsync(category: null, ephemeral: true);
 

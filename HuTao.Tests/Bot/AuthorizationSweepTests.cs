@@ -61,30 +61,6 @@ public class AuthorizationSweepTests(ITestOutputHelper output)
             "interaction:InteractiveRolesModule.SearchAsync", "interaction:InteractiveRolesModule.SearchModalAsync",
             "interaction:InteractiveRolesModule.SelectRoleAsync"
         ]),
-        ("Panel component bound to the paginator session of the member who opened it, which /config and "
-        + "/triggers open only for authorized members.",
-        [
-            "interaction:InteractiveConfigurationModule.BackAsync",
-            "interaction:InteractiveConfigurationModule.ClearChannelAsync",
-            "interaction:InteractiveConfigurationModule.ClearRoleAsync",
-            "interaction:InteractiveConfigurationModule.RefreshAsync",
-            "interaction:InteractiveConfigurationModule.SelectCategoryAsync",
-            "interaction:InteractiveConfigurationModule.SelectChannelAsync",
-            "interaction:InteractiveConfigurationModule.SelectRoleAsync",
-            "interaction:InteractiveConfigurationModule.SelectSectionAsync",
-            "interaction:InteractiveConfigurationModule.SelectSettingAsync",
-            "interaction:InteractiveConfigurationModule.ToggleSkipPermissionsAsync",
-            "interaction:InteractiveConfigurationModule.UpdateStringAsync",
-            "interaction:InteractiveConfigurationModule.UpdateTimeSpanAsync",
-            "interaction:InteractiveTriggersModule.BackAsync",
-            "interaction:InteractiveTriggersModule.ConfirmDeleteLoudAsync",
-            "interaction:InteractiveTriggersModule.ConfirmDeleteSilentAsync",
-            "interaction:InteractiveTriggersModule.DeleteAsync",
-            "interaction:InteractiveTriggersModule.RefreshAsync",
-            "interaction:InteractiveTriggersModule.SelectCategoryAsync",
-            "interaction:InteractiveTriggersModule.SelectTriggerAsync",
-            "interaction:InteractiveTriggersModule.ToggleAsync"
-        ]),
         ("Moderation panel component: bound to the session of the moderator who opened it, or checks the "
         + "scope in the handler.",
         [
