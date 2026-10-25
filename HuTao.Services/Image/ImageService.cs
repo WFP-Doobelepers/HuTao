@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using HuTao.Services.Image.ColorQuantization;
 using Microsoft.Extensions.Caching.Memory;
+using Serilog;
 using SixLabors.ImageSharp.PixelFormats;
 using static System.Drawing.Color;
 using static SixLabors.ImageSharp.Image;
@@ -101,6 +102,13 @@ public sealed class ImageService(IHttpClientFactory httpClientFactory, IMemoryCa
         }
         catch (HttpRequestException e) when (e.StatusCode is HttpStatusCode.NotFound)
         {
+            return Color.Default;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            // The color is only an accent, so a CDN that fails or times out leaves the default, and the next request
+            // tries again.
+            Log.Debug(e, "Could not download {Location} for its color", location);
             return Color.Default;
         }
     }
