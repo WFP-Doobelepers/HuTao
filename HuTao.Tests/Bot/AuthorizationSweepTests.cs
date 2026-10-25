@@ -107,7 +107,8 @@ public class AuthorizationSweepTests(ITestOutputHelper output)
         [
             "interaction:InteractiveGeneralModule.DeleteMessageAsync"
         ]),
-        ("Applying a template checks the template's own scope in the handler.",
+        ("Applying a template checks in the handler that the member has the template's scope in the category "
+        + "that its reprimand goes in.",
         [
             "interaction:InteractiveModerationModule.TemplateAsync", "text:ModerationModule.TemplateAsync"
         ]),

@@ -482,7 +482,7 @@ public class ModerationModule(
             return;
         }
 
-        if (!await auth.IsAuthorizedAsync(Context, template.Scope))
+        if (!await auth.MayApplyAsync(Context, template))
         {
             await error.AssociateError(Context.Message, "You don't have permission to use this template.");
             return;

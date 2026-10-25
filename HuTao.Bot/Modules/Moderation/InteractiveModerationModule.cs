@@ -198,7 +198,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
             return;
         }
 
-        if (!await auth.IsAuthorizedAsync(Context, template.Scope))
+        if (!await auth.MayApplyAsync(Context, template))
         {
             await FollowupAsync("You don't have permission to use this template.");
             return;

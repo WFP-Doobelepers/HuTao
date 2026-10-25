@@ -28,4 +28,25 @@ public class TemplateAutocompleteTests
         Assert.True(result.IsSuccess);
         Assert.Equal(25, result.Suggestions.Count);
     }
+
+    [Fact]
+    public async Task Suggestions_ListOnlyTheTemplatesOfTheCategoryWhereTheModeratorHasTheScope()
+    {
+        var fixture = new AuthorizationFixture();
+        var raids = fixture.AddCategory("Raids");
+        var spam = fixture.AddCategory("Spam");
+        var moderator = fixture.User(100);
+        AuthorizationFixture.Allow(raids.Authorization, AuthorizationScope.Note, moderator);
+
+        var options = Mock.Of<ITemplateOptions>(o => o.Scope == AuthorizationScope.Note && o.Reason == "reason");
+        fixture.Guild.ModerationTemplates.Add(new ModerationTemplate("raid-note", new NoteAction(), options) { Category = raids });
+        fixture.Guild.ModerationTemplates.Add(new ModerationTemplate("spam-note", new NoteAction(), options) { Category = spam });
+
+        var result = await new TemplateAutocomplete().GenerateSuggestionsAsync(
+            fixture.Interaction(moderator), AutocompleteTesting.Interaction(string.Empty),
+            AutocompleteTesting.Parameter(), fixture.Services);
+
+        var suggestion = Assert.Single(result.Suggestions);
+        Assert.StartsWith("raid-note:", suggestion.Name);
+    }
 }

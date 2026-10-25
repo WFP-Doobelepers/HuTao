@@ -8,6 +8,7 @@ using Humanizer;
 using HuTao.Data;
 using HuTao.Data.Models.Authorization;
 using HuTao.Data.Models.Moderation.Infractions;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
@@ -24,8 +25,8 @@ public class TemplateAutocomplete : AuthorizedAutocompleteHandler
         var auth = services.GetRequiredService<AuthorizationService>();
         var guild = await db.Guilds.TrackGuildAsync(context.Guild);
 
-        // The template command has no precondition and checks each template's own scope when it runs,
-        // so only suggest the templates the user may apply, unless they may configure templates.
+        // The template command has no precondition and checks each template's scope in the template's category when
+        // it runs, so only suggest the templates the user may apply, unless they may configure templates.
         var user = new InteractionContext(context);
         var configure = await auth.IsAuthorizedAsync(user, AuthorizationScope.All | AuthorizationScope.Configuration);
 
@@ -34,7 +35,7 @@ public class TemplateAutocomplete : AuthorizedAutocompleteHandler
         foreach (var t in guild.ModerationTemplates
             .Where(t => string.IsNullOrEmpty(input) || t.Name.StartsWith(input, StringComparison.OrdinalIgnoreCase)))
         {
-            if (!configure && !await auth.IsAuthorizedAsync(user, t.Scope))
+            if (!configure && !await auth.MayApplyAsync(user, t))
                 continue;
 
             templates.Add(new AutocompleteResult(
