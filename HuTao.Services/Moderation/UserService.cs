@@ -850,13 +850,25 @@ public class UserService(
         if (!isAuthorized || ban is null) return embeds;
 
         embed.WithColor(Color.Red);
-        var banDetails = userEntity.Reprimands<Ban>(null).MaxBy(b => b.Action?.Date);
-        if (banDetails is not null)
+        var (banDetails, viewable) = await LatestBanAsync(context, userEntity);
+        if (banDetails is null)
+            embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
+        else if (viewable)
             embeds.Add(banDetails.ToEmbedBuilder(true));
         else
-            embed.AddField("Banned", $"This user is banned. Reason: {ban.Reason ?? "None"}");
+            embed.AddField("Banned", "This user is banned. You cannot view who banned them or why.");
 
         return embeds;
+    }
+
+    /// <summary>
+    ///     The user's latest ban without a category, and whether the requester may view its reason and moderator, as
+    ///     their history view decides.
+    /// </summary>
+    public async Task<(Ban? Latest, bool Viewable)> LatestBanAsync(Context context, GuildUserEntity user)
+    {
+        var latest = user.Reprimands<Ban>(null).MaxBy(b => b.Action?.Date);
+        return (latest, latest is not null && await authService.IsReprimandAuthorizedAsync(context, Scope, latest));
     }
 
     private async Task AddUserMenusAsync(ComponentBuilderV2 builder, Context context, IUser user)
