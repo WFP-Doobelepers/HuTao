@@ -62,10 +62,9 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
-            if (!hasPermission)
+            if (await Auth.RefuseActAsync(Context, AuthorizationScope.Mute, mute) is { } refusal)
             {
-                await FollowupAsync("You don't have permission to unmute users.", ephemeral: true);
+                await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
@@ -141,10 +140,10 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             return;
         }
 
-        var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Mute);
-        if (!hasPermission)
+        // A moderator may have ended the mute since the form opened, and extending it then would mute the member again.
+        if (await Auth.RefuseActAsync(Context, AuthorizationScope.Mute, mute) is { } refusal)
         {
-            await FollowupAsync("You don't have permission to extend mutes.", ephemeral: true);
+            await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
 
@@ -333,10 +332,9 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var hasPermission = await Auth.IsAuthorizedAsync(Context, AuthorizationScope.Timeout);
-            if (!hasPermission)
+            if (await Auth.RefuseActAsync(Context, AuthorizationScope.Timeout, timeout) is { } refusal)
             {
-                await FollowupAsync("You don't have permission to remove timeouts.", ephemeral: true);
+                await FollowupAsync(refusal, ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
