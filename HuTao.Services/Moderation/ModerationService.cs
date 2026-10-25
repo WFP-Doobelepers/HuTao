@@ -44,6 +44,9 @@ public class ModerationService(
     ModerationLoggingService logging)
     : ExpirableService<ExpirableReprimand>(cache, db)
 {
+    /// <summary>How long a timeout given without a length lasts, which is the longest timeout Discord allows.</summary>
+    public static readonly TimeSpan DefaultTimeoutLength = TimeSpan.FromDays(28);
+
     private readonly HuTaoContext _db = db;
 
     public async Task ConfigureHardMuteRoleAsync(
@@ -1057,7 +1060,7 @@ public class ModerationService(
         KickAction        => await TryKickAsync(details, cancellationToken),
         HardMuteAction t  => await TryHardMuteAsync(t.Length, details, cancellationToken),
         MuteAction m      => await TryMuteAsync(m.Length, details, cancellationToken),
-        TimeoutAction to  => await TryTimeoutAsync(to.Length ?? TimeSpan.FromDays(28), details, cancellationToken),
+        TimeoutAction to  => await TryTimeoutAsync(to.Length ?? DefaultTimeoutLength, details, cancellationToken),
         RoleAction r      => await TryApplyRolesAsync(r.Roles, r.Length, details, cancellationToken),
         WarningAction w   => await WarnAsync(w.Count, details, cancellationToken),
         NoticeAction      => await NoticeAsync(details, cancellationToken),

@@ -355,7 +355,8 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     public async Task TimeoutAsync([RequireHigherRole] IGuildUser user,
         [CheckCategory(AuthorizationScope.Timeout)] [RequireEphemeralScope]
         TimeoutModal modal)
-        => await TimeoutAsync(user, modal.Length!.Value, modal.Reason, modal.Category, modal.Ephemeral);
+        => await TimeoutAsync(user, modal.Length ?? ModerationService.DefaultTimeoutLength,
+            modal.Reason, modal.Category, modal.Ephemeral);
 
     [ComponentInteraction("mod-menu:*")]
     [RequireAnyCategoryAuthorization(
