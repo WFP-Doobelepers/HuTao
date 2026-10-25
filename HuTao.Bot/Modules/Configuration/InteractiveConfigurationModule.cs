@@ -264,7 +264,8 @@ public class InteractiveConfigurationModule(
             return;
         }
 
-        var selected = channels.FirstOrDefault();
+        // The select's values come from the member's client, so only a channel of this server is saved.
+        var selected = channels.FirstOrDefault(c => c.GuildId == Context.Guild.Id);
         if (selected is null)
         {
             await DeferAsync();

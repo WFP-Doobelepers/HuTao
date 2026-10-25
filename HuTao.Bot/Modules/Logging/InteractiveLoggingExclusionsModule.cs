@@ -84,7 +84,7 @@ public partial class InteractiveLoggingModule
         guild.LoggingRules ??= new LoggingRules();
 
         var criteria = guild.LoggingRules.LoggingExclusions;
-        var entity = criteria.FirstOrDefault(c => c.Id == id) ?? await db.Set<Criterion>().FindAsync(id);
+        var entity = criteria.FirstOrDefault(c => c.Id == id);
 
         if (entity is not null)
         {
@@ -181,7 +181,8 @@ public partial class InteractiveLoggingModule
         if (!TryGetPaginator(out var paginator, out var state, out var interaction))
             return;
 
-        var channel = channels.FirstOrDefault();
+        // The select's values come from the member's client, so only a channel of this server is saved.
+        var channel = channels.FirstOrDefault(c => c.GuildId == Context.Guild.Id);
         if (channel is null)
         {
             await DeferAsync();

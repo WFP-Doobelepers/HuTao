@@ -10,11 +10,13 @@ using HuTao.Data.Models.Moderation;
 using HuTao.Bot.Modules;
 using HuTao.Bot.Modules.Configuration;
 using HuTao.Bot.Modules.Linking;
+using HuTao.Bot.Modules.Logging;
 using HuTao.Bot.Modules.Moderation;
 using HuTao.Services.Core;
 using HuTao.Services.Moderation;
 using HuTao.Services.VoiceChat;
 using Xunit;
+using ModerationInteractionHandlers = HuTao.Bot.Modules.Moderation.ModerationInteractionHandlers;
 
 namespace HuTao.Tests.Bot;
 
@@ -73,6 +75,16 @@ public class RoleEscalationGuardTests
 
     public static TheoryData<Type, string, Type> OtherGuardedMethods => new()
     {
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteUnmuteAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteExtendModalAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteDetailsAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleTimeoutRemoveAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleTimeoutDetailsAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleAutoToggleAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleAutoDeleteAsync), typeof(GuildRecords) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteUnmuteAsync), typeof(RoleHierarchy) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteExtendModalAsync), typeof(RoleHierarchy) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleTimeoutRemoveAsync), typeof(RoleHierarchy) },
         { typeof(ModerationModule), "GetDetailsAsync", typeof(ReprimandCategories) },
         { typeof(InteractiveModerationModule), "GetDetailsAsync", typeof(ReprimandCategories) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncPermissionsAsync), typeof(ChannelSyncAccess) },
@@ -117,6 +129,53 @@ public class RoleEscalationGuardTests
         Assert.True(Calls(info, m => m.DeclaringType == check, []), $"{module.Name}.{method} never calls {check.Name}.");
     }
 
+    // Handlers whose custom ID carries a record's ID. A member of another server can send any ID, so these look records up
+    // only through this server's own collections or GuildRecords, never by ID alone.
+    public static TheoryData<Type, string> HandlersThatTakeAnIdFromACustomId => new()
+    {
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteUnmuteAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteExtendModalAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleMuteDetailsAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleTimeoutRemoveAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleTimeoutDetailsAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleAutoToggleAsync) },
+        { typeof(ModerationInteractionHandlers), nameof(ModerationInteractionHandlers.HandleAutoDeleteAsync) },
+        { typeof(InteractiveLoggingModule.InteractiveLoggingExclusionsModule), nameof(InteractiveLoggingModule.InteractiveLoggingExclusionsModule.RemoveAsync) }
+    };
+
+    // Channel selects that save the channel. The select's values come from the member's client, so the handler keeps
+    // only channels of this server.
+    public static TheoryData<Type, string> ChannelSelectsThatSave => new()
+    {
+        { typeof(InteractiveConfigurationModule), nameof(InteractiveConfigurationModule.SelectChannelAsync) },
+        { typeof(InteractiveLoggingModule.InteractiveLoggingExclusionsModule), nameof(InteractiveLoggingModule.InteractiveLoggingExclusionsModule.AddChannelAsync) }
+    };
+
+    [Theory]
+    [MemberData(nameof(ChannelSelectsThatSave))]
+    public void ChannelSelectThatSaves_KeepsOnlyThisServersChannels(Type module, string method)
+    {
+        var info = module.GetMethod(method, All);
+
+        Assert.NotNull(info);
+        Assert.True(Calls(info, m => m.Name == "get_GuildId" && m.DeclaringType == typeof(IGuildChannel), []),
+            $"{module.Name}.{method} never compares the channel's server.");
+    }
+
+    [Theory]
+    [MemberData(nameof(HandlersThatTakeAnIdFromACustomId))]
+    public void HandlerThatTakesAnIdFromACustomId_NeverLooksItUpByIdAlone(Type module, string method)
+    {
+        var info = module.GetMethod(method, All);
+
+        Assert.NotNull(info);
+        Assert.False(
+            Calls(info, m => m.Name == "FindAsync"
+                || m.DeclaringType == typeof(Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions)
+                && m.Name.StartsWith("FirstOrDefault", StringComparison.Ordinal), []),
+            $"{module.Name}.{method} looks a record up by its ID alone.");
+    }
+
     [Theory]
     [MemberData(nameof(RuleChangingMethods))]
     public void MethodThatAddsOrRemovesARule_ChecksTheModeratorFirst(Type module, string method, Type[] parameters)
@@ -156,13 +215,17 @@ public class RoleEscalationGuardTests
 
         for (var i = 0; i + 4 < il.Length; i++)
         {
-            // call (0x28) and callvirt (0x6F), followed by the target's metadata token.
-            if (il[i] is not (0x28 or 0x6F)) continue;
+            // call (0x28) and callvirt (0x6F), followed by the target's metadata token, and ldftn (0xFE 0x06), which
+            // loads a lambda's method for a delegate.
+            var token = il[i] is 0x28 or 0x6F ? i + 1
+                : il[i] == 0xFE && il[i + 1] == 0x06 && i + 5 < il.Length ? i + 2
+                : -1;
+            if (token < 0) continue;
 
             MethodBase? target;
             try
             {
-                target = body.Module.ResolveMethod(BitConverter.ToInt32(il, i + 1),
+                target = body.Module.ResolveMethod(BitConverter.ToInt32(il, token),
                     body.DeclaringType?.IsGenericType == true ? body.DeclaringType.GetGenericArguments() : null,
                     body.IsGenericMethod ? body.GetGenericArguments() : null);
             }
@@ -173,12 +236,22 @@ public class RoleEscalationGuardTests
 
             if (target is not null && isCheck(target)) return true;
 
-            // Helpers on the same module, such as a private permission check shared by two commands.
-            if (target is MethodInfo helper && target.DeclaringType == method.DeclaringType
+            // Helpers on the same module, such as a private permission check shared by two commands, and the lambdas
+            // that the compiler moves into a class inside the module.
+            if (target is MethodInfo helper && IsOnModule(helper, method.DeclaringType)
                 && Calls(helper, isCheck, visited))
                 return true;
         }
 
         return false;
+    }
+
+    private static bool IsOnModule(MethodInfo helper, Type? module)
+    {
+        var type = helper.DeclaringType;
+        while (type is not null && type != module && type.IsDefined(typeof(CompilerGeneratedAttribute)))
+            type = type.DeclaringType;
+
+        return type is not null && type == module;
     }
 }

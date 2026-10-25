@@ -43,6 +43,18 @@ public static class RoleHierarchy
     }
 
     /// <summary>
+    ///     Returns an error when the member ranks at or above the moderator or the bot, the check that
+    ///     <see cref="Preconditions.Commands.RequireHigherRoleAttribute" /> makes for a command parameter, or null. A
+    ///     user who is not in the server has no rank.
+    /// </summary>
+    public static string? CheckTarget(IGuildUser moderator, IGuildUser? target, IGuildUser bot)
+    {
+        if (target is null) return null;
+        if (target.Hierarchy >= bot.Hierarchy) return $"The bot's role is lower than {target}.";
+        return target.Hierarchy >= moderator.Hierarchy ? $"{target} ranks at or above you." : null;
+    }
+
+    /// <summary>
     ///     Returns an error when the requested permissions include one the invoker lacks, or null. The guild owner and
     ///     administrators may request any permission.
     /// </summary>

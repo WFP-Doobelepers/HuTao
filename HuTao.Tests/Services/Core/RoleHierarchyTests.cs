@@ -165,6 +165,28 @@ public class RoleHierarchyTests
         Assert.Null(RoleHierarchy.CheckMuteRole(Member(), Role("Muted", 2), Bot()));
     }
 
+    // The moderation panels act on the member a mute or timeout belongs to, so they make the rank check that a command
+    // parameter gets from RequireHigherRole.
+    [Fact]
+    public void CheckTarget_AtOrAboveTheModerator_Fails()
+    {
+        Assert.NotNull(RoleHierarchy.CheckTarget(Member(), Member(InvokerHierarchy, id: 77), Member(100, id: 2)));
+        Assert.NotNull(RoleHierarchy.CheckTarget(Member(), Member(InvokerHierarchy + 5, id: 77), Member(100, id: 2)));
+    }
+
+    [Fact]
+    public void CheckTarget_AtOrAboveTheBot_Fails()
+    {
+        Assert.NotNull(RoleHierarchy.CheckTarget(Member(100), Member(50, id: 77), Member(50, id: 2)));
+    }
+
+    [Fact]
+    public void CheckTarget_BelowBoth_Passes_AndAUserWhoLeftHasNoRank()
+    {
+        Assert.Null(RoleHierarchy.CheckTarget(Member(), Member(InvokerHierarchy - 5, id: 77), Member(100, id: 2)));
+        Assert.Null(RoleHierarchy.CheckTarget(Member(), null, Member(100, id: 2)));
+    }
+
     private static IGuildUser Bot()
     {
         var bot = new Mock<IGuildUser>();

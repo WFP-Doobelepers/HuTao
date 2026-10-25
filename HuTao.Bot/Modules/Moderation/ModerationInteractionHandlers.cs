@@ -55,7 +55,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var mute = await Db.Set<Mute>().FirstOrDefaultAsync(m => m.Id == muteId);
+            var mute = await Db.ReprimandAsync<Mute>(Context.Guild.Id, muteId);
             if (mute is null)
             {
                 await FollowupAsync("Mute not found or already removed.", ephemeral: true);
@@ -66,6 +66,13 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             if (!hasPermission)
             {
                 await FollowupAsync("You don't have permission to unmute users.", ephemeral: true);
+                return;
+            }
+
+            var member = await ((IGuild)Context.Guild).GetUserAsync(mute.UserId);
+            if (RoleHierarchy.CheckTarget((IGuildUser)Context.User, member, Context.Guild.CurrentUser) is { } rank)
+            {
+                await FollowupAsync(rank, ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
@@ -126,10 +133,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             return;
         }
 
-        var mute = await Db.Set<Mute>()
-            .Include(m => m.Action)
-            .Include(m => m.Category)
-            .FirstOrDefaultAsync(m => m.Id == muteId);
+        var mute = await Db.ReprimandAsync<Mute>(Context.Guild.Id, muteId);
 
         if (mute is null)
         {
@@ -141,6 +145,13 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
         if (!hasPermission)
         {
             await FollowupAsync("You don't have permission to extend mutes.", ephemeral: true);
+            return;
+        }
+
+        var member = await ((IGuild)Context.Guild).GetUserAsync(mute.UserId);
+        if (RoleHierarchy.CheckTarget((IGuildUser)Context.User, member, Context.Guild.CurrentUser) is { } rank)
+        {
+            await FollowupAsync(rank, ephemeral: true, allowedMentions: AllowedMentions.None);
             return;
         }
 
@@ -191,10 +202,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var mute = await Db.Set<Mute>()
-                .Include(m => m.Action)
-                .Include(m => m.Category)
-                .FirstOrDefaultAsync(m => m.Id == muteId);
+            var mute = await Db.ReprimandAsync<Mute>(Context.Guild.Id, muteId);
 
             if (mute is null)
             {
@@ -318,7 +326,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var timeout = await Db.Set<Timeout>().FirstOrDefaultAsync(t => t.Id == timeoutId);
+            var timeout = await Db.ReprimandAsync<Timeout>(Context.Guild.Id, timeoutId);
             if (timeout is null)
             {
                 await FollowupAsync("Timeout not found or already removed.", ephemeral: true);
@@ -329,6 +337,13 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             if (!hasPermission)
             {
                 await FollowupAsync("You don't have permission to remove timeouts.", ephemeral: true);
+                return;
+            }
+
+            var member = await ((IGuild)Context.Guild).GetUserAsync(timeout.UserId);
+            if (RoleHierarchy.CheckTarget((IGuildUser)Context.User, member, Context.Guild.CurrentUser) is { } rank)
+            {
+                await FollowupAsync(rank, ephemeral: true, allowedMentions: AllowedMentions.None);
                 return;
             }
 
@@ -379,10 +394,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
                 return;
             }
 
-            var timeout = await Db.Set<Timeout>()
-                .Include(t => t.Action)
-                .Include(t => t.Category)
-                .FirstOrDefaultAsync(t => t.Id == timeoutId);
+            var timeout = await Db.ReprimandAsync<Timeout>(Context.Guild.Id, timeoutId);
 
             if (timeout is null)
             {
@@ -494,7 +506,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             return;
         }
 
-        var trigger = await Db.Set<AutoConfiguration>().FindAsync(id);
+        var trigger = (await Db.Guilds.TrackGuildAsync(Context.Guild)).Trigger<AutoConfiguration>(id);
         if (trigger is null)
         {
             await FollowupAsync("Trigger not found.", ephemeral: true);
@@ -525,7 +537,7 @@ public class ModerationInteractionHandlers : InteractionModuleBase<SocketInterac
             return;
         }
 
-        var trigger = await Db.Set<AutoConfiguration>().FindAsync(id);
+        var trigger = (await Db.Guilds.TrackGuildAsync(Context.Guild)).Trigger<AutoConfiguration>(id);
         if (trigger is null)
         {
             await FollowupAsync("Trigger not found or already deleted.", ephemeral: true);
