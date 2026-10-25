@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
-using HuTao.Data.Models.Authorization;
 using HuTao.Services.Core;
 using HuTao.Services.Core.Preconditions.Interactions;
 using HuTao.Services.Evaluation;
+using HuTao.Services.Moderation;
 using HuTao.Services.Utilities;
 using InteractionContext = HuTao.Data.Models.Discord.InteractionContext;
 
@@ -39,9 +39,7 @@ public class InteractiveGeneralModule(AuthorizationService auth, EvaluationServi
 
         await DeferAsync(true);
 
-        var permissions = user.GetPermissions(channel);
-        if (!permissions.ManageMessages &&
-            !await auth.IsAuthorizedAsync(Context, AuthorizationScope.Purge | AuthorizationScope.All))
+        if (!await auth.MayDeleteAsync(new InteractionContext(Context), user, channel))
         {
             await FollowupAsync("You do not have permission to delete messages.", ephemeral: true);
             return;

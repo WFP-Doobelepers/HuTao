@@ -103,7 +103,7 @@ public class AuthorizationSweepTests(ITestOutputHelper output)
             "interaction:InteractiveQuoteModule.CollapseQuoteAsync",
             "interaction:InteractiveQuoteModule.ExpandQuoteAsync", "interaction:InteractiveQuoteModule.ShowAllAsync"
         ]),
-        ("Deleting a message checks Manage Messages or the Purge scope in the handler.",
+        ("Deleting a message checks Manage Messages and the Purge scope in the handler.",
         [
             "interaction:InteractiveGeneralModule.DeleteMessageAsync"
         ]),
@@ -346,7 +346,7 @@ public class AuthorizationSweepTests(ITestOutputHelper output)
             "interaction:InteractiveTriggersModule.SelectCategoryAsync",
             "interaction:InteractiveTriggersModule.SelectTriggerAsync"
         ]),
-        ("The channel is read only from this server, and the handler checks Manage Messages or the Purge "
+        ("The channel is read only from this server, and the handler checks Manage Messages and the Purge "
         + "scope.",
         [
             "interaction:InteractiveGeneralModule.DeleteMessageAsync"
