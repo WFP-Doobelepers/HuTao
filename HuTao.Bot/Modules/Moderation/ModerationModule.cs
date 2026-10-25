@@ -791,6 +791,7 @@ public class ModerationModule(
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
+        category = await db.Users.ForModeratorAsync((IGuildUser) Context.User, category);
         var details = new ReprimandDetails(Context, user, reason, variables, category: category);
         var updatedReason = MediaParsingHelper.AppendAttachmentsToReason(details.Reason, Context.Message.Attachments);
         if (!string.Equals(updatedReason, details.Reason, StringComparison.Ordinal))

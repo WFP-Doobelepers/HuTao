@@ -397,6 +397,7 @@ public class InteractiveModerationModule(AuthorizationService auth, ModerationSe
     {
         var guild = await db.Guilds.TrackGuildAsync(Context.Guild);
         var variables = guild.ModerationRules?.Variables;
+        category = await db.Users.ForModeratorAsync((IGuildUser)Context.User, category);
         var details = new ReprimandDetails(
             Context, user, reason, variables,
             category: category, ephemeral: ephemeral);

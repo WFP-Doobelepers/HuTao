@@ -12,6 +12,7 @@ using HuTao.Bot.Modules.Configuration;
 using HuTao.Bot.Modules.Linking;
 using HuTao.Bot.Modules.Moderation;
 using HuTao.Services.Core;
+using HuTao.Services.Moderation;
 using HuTao.Services.VoiceChat;
 using Xunit;
 
@@ -72,6 +73,8 @@ public class RoleEscalationGuardTests
 
     public static TheoryData<Type, string, Type> OtherGuardedMethods => new()
     {
+        { typeof(ModerationModule), "GetDetailsAsync", typeof(ReprimandCategories) },
+        { typeof(InteractiveModerationModule), "GetDetailsAsync", typeof(ReprimandCategories) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(ChannelModule), nameof(ChannelModule.SyncCategoryPermissionsAsync), typeof(ChannelSyncAccess) },
         { typeof(VoiceChatModule), nameof(VoiceChatModule.HideAsync), typeof(VoiceChatOwnership) },
