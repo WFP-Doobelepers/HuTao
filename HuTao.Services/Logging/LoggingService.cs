@@ -47,6 +47,14 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         await LogMessageAsync(user, message, cancellationToken);
     }
 
+    /// <summary>
+    ///     Whether the rules send this kind of reaction to a channel. A reaction is saved only for its log post, so a
+    ///     server without the log keeps no record of who reacted.
+    /// </summary>
+    private async Task<bool> LogsAsync(LogType type, IGuild guild, CancellationToken cancellationToken)
+        => (await db.Guilds.GetLoggingAsync(guild, cache, cancellationToken))?.LoggingChannels
+            .Any(c => c.Type == type) is true;
+
     public async Task LogAsync(ReactionAddedNotification notification, CancellationToken cancellationToken)
     {
         var message = await GetMessageAsync(notification.Message);
@@ -64,6 +72,7 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         var reactor = reaction.User.GetValueOrDefault();
         if (reactor is not IGuildUser { IsBot: false } guildUser) return;
 
+        if (!await LogsAsync(LogType.ReactionAdded, channel.Guild, cancellationToken)) return;
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
         var userEntity = await db.Users.TrackUserAsync(guildUser, cancellationToken);
         var log = await LogReactionAsync(userEntity, reaction, cancellationToken);
@@ -84,6 +93,7 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
         if (message.Reactions.ContainsKey(reaction.Emote))
             return;
 
+        if (!await LogsAsync(LogType.ReactionRemoved, channel.Guild, cancellationToken)) return;
         if (await IsExcludedAsync(channel, user, cancellationToken)) return;
         var log = await LogDeletionAsync(reaction, null, cancellationToken);
         await PublishLogAsync(new ReactionDeleteDetails(log, channel.Guild), cancellationToken);
@@ -158,14 +168,9 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
             .Where(m => messageIds.Contains(m.MessageId))
             .OrderByDescending(m => m.LogDate);
 
+    // The log channel is looked up first: building the log reads the author from Discord, which is wasted without one.
     private async Task PublishLogAsync(DeleteDetails details, CancellationToken cancellationToken)
     {
-        var guildEntity = await db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
-        var options = guildEntity.LoggingRules?.UploadAttachments is true
-            ? LogEmbedOptions | UploadAttachments
-            : LogEmbedOptions;
-
-        var embed = await BuildLogAsync(details, options);
         var channel = await GetLoggingChannelAsync(details switch
         {
             MessageDeleteDetails  => LogType.MessageDeleted,
@@ -173,7 +178,14 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
             ReactionDeleteDetails => LogType.ReactionRemoved,
             _                     => throw new ArgumentOutOfRangeException(nameof(details))
         }, details.Guild, cancellationToken);
+        if (channel is null) return;
 
+        var guildEntity = await db.Guilds.TrackGuildAsync(details.Guild, cancellationToken);
+        var options = guildEntity.LoggingRules?.UploadAttachments is true
+            ? LogEmbedOptions | UploadAttachments
+            : LogEmbedOptions;
+
+        var embed = await BuildLogAsync(details, options);
         await PublishLogAsync(embed, channel);
     }
 
@@ -181,9 +193,10 @@ public class LoggingService(DiscordSocketClient client, HttpClient http, HuTaoCo
     {
         if (log is null) return;
 
-        var embed = await BuildLogAsync(log, LogEmbedOptions);
         var channel = await GetLoggingChannelAsync(type, guild, cancellationToken);
+        if (channel is null) return;
 
+        var embed = await BuildLogAsync(log, LogEmbedOptions);
         await PublishLogAsync(embed, channel);
     }
 

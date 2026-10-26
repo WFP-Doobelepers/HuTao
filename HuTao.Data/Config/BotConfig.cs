@@ -21,4 +21,6 @@ public class BotConfig
     public ulong Guild { get; init; }
 
     public ulong Owner { get; init; }
+
+    public RetentionConfig Retention { get; init; } = new();
 }

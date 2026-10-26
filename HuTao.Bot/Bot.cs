@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -63,6 +64,17 @@ public class Bot
         }
     }
 
+    // Each retention keeps data for at least a day. A shorter one would delete a log in the next hourly run.
+    private static RetentionConfig CheckedRetention()
+    {
+        var retention = HuTaoConfig.Configuration.Retention;
+        var tooShort = retention.TooShort().ToList();
+        return tooShort.Count == 0
+            ? retention
+            : throw new InvalidOperationException(
+                $"The config keeps data for less than a day in {string.Join(", ", tooShort)}.");
+    }
+
     private static ServiceProvider ConfigureServices() =>
         new ServiceCollection()
             .AddLogging(l => l.AddSerilog())
@@ -95,11 +107,13 @@ public class Bot
             .AddSingleton<InteractionHandlingService>()
             .AddSingleton(new InteractiveConfig { DefaultTimeout = TimeSpan.FromMinutes(10) })
             .AddSingleton<DiscordSocketListener>()
+            .AddSingleton(CheckedRetention())
             .AddScoped<AuthorizationService>()
             .AddScoped<EvaluationService>()
             .AddScoped<ModerationService>()
             .AddScoped<ModerationLoggingService>()
             .AddScoped<LoggingService>()
+            .AddScoped<MessageLogCleanupService>()
             .AddScoped<UserService>()
             .AddScoped<DemoReprimandSeeder>()
             .AddScoped<StickyService>()
