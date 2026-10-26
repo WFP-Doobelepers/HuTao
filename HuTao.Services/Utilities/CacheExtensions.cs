@@ -11,7 +11,9 @@ using HuTao.Data.Models.Logging;
 using HuTao.Data.Models.Moderation;
 using HuTao.Data.Models.Moderation.Auto.Configurations;
 using HuTao.Data.Models.Moderation.Auto.Exclusions;
+using HuTao.Data.Models.Moderation.Infractions.Actions;
 using HuTao.Data.Models.Moderation.Infractions.Censors;
+using HuTao.Data.Models.Moderation.Infractions.Triggers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Caching.Memory;
@@ -55,6 +57,13 @@ public static class CacheExtensions
                 .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
                     .ThenInclude(t => ((AutoConfiguration)t).Exclusions)
                     .ThenInclude(e => ((CriterionExclusion)e).Criterion)
+                // A filter that fires reads the reprimand it gives, and a role reprimand reads its roles.
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => ((AutoConfiguration)t).Reprimand).ThenInclude(a => ((RoleAction)a!).Roles)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => ((Censor)t).Reprimand).ThenInclude(a => ((RoleAction)a!).Roles)
+                .Include(g => g.ModerationRules).ThenInclude(r => r!.Triggers)
+                    .ThenInclude(t => ((ReprimandTrigger)t).Reprimand).ThenInclude(a => ((RoleAction)a!).Roles)
                 .FirstOrDefaultAsync(r => r.Id == guild.Id, cancellationToken);
             return entity?.ModerationRules;
         });
