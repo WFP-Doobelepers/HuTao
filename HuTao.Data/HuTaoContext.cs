@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Threading.Tasks;
 using HuTao.Data.Models.Criteria;
 using HuTao.Data.Models.Discord;
 using HuTao.Data.Models.Discord.Message.Components;
@@ -124,4 +126,48 @@ public class HuTaoContext(DbContextOptions<HuTaoContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
         => modelBuilder.ApplyConfigurationsFromAssembly(typeof(HuTaoContext).Assembly);
+
+    /// <summary>
+    ///     A join arrives together with the role change that follows it, and each event's scope finds the new member
+    ///     missing and adds the member's row, often the server's row too. The first save inserts the rows, and the second
+    ///     fails on the key. These rows only record that the member, the server or the role exists, so a save that loses
+    ///     that race keeps the rows that are already there and saves the rest of its changes.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, System.Threading.CancellationToken cancellationToken = default)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            }
+            catch (DbUpdateException ex) when (attempt < 3
+                && ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+            {
+                if (!await KeepExistingRowsAsync(cancellationToken)) throw;
+            }
+        }
+    }
+
+    private async Task<bool> KeepExistingRowsAsync(System.Threading.CancellationToken cancellationToken)
+    {
+        var kept = false;
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added).ToList())
+        {
+            var exists = entry.Entity switch
+            {
+                GuildUserEntity u => await Users.AsNoTracking().AnyAsync(x => x.Id == u.Id && x.GuildId == u.GuildId, cancellationToken),
+                GuildEntity g     => await Guilds.AsNoTracking().AnyAsync(x => x.Id == g.Id, cancellationToken),
+                RoleEntity r      => await Roles.AsNoTracking().AnyAsync(x => x.RoleId == r.RoleId, cancellationToken),
+                _                 => false
+            };
+            if (!exists) continue;
+
+            entry.State = EntityState.Unchanged;
+            await entry.ReloadAsync(cancellationToken);
+            kept = true;
+        }
+
+        return kept;
+    }
 }
