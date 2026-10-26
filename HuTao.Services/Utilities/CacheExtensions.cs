@@ -30,14 +30,22 @@ public static class CacheExtensions
     public static Task<IInvite?> ParseInviteAsync(this IMemoryCache cache, IDiscordClient client, string input)
         => ParseInviteAsync<IInvite>(cache, client, input);
 
+    /// <remarks>
+    ///     The rules outlive the scope that loaded them, and the next messages read them from other scopes at the same
+    ///     time. Their channels and exclusions are therefore loaded now: a lazy load later would run on the first scope's
+    ///     database context, which is disposed by then or busy with another request.
+    /// </remarks>
     public static Task<LoggingRules?> GetLoggingAsync(
         this DbSet<GuildEntity> set, IGuild guild,
         IMemoryCache cache, CancellationToken cancellationToken = default)
         => cache.GetOrCreateAsync($"{nameof(GetLoggingAsync)}.{guild.Id}", async entry =>
         {
             entry.SetAbsoluteExpiration(CacheExpiry);
-            var rules = await set.TrackGuildAsync(guild, cancellationToken);
-            return rules.LoggingRules;
+            var entity = await set.AsSplitQuery()
+                .Include(g => g.LoggingRules).ThenInclude(r => r!.LoggingChannels)
+                .Include(g => g.LoggingRules).ThenInclude(r => r!.LoggingExclusions)
+                .FirstOrDefaultAsync(g => g.Id == guild.Id, cancellationToken);
+            return entity?.LoggingRules;
         });
 
     public static Task<ModerationRules?> GetRulesAsync(
